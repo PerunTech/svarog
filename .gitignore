@@ -1,0 +1,9 @@
+*.retry
+# ignore build folder
+/build/*
+/.classpath
+/build/
+/doc/
+/target/
+/osgi-bundles/
+/osgi-cache/
