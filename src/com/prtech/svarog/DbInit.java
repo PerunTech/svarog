@@ -36,7 +36,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.felix.main.AutoProcessor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -4953,7 +4952,7 @@ public class DbInit {
 		ArrayList<IDbInit> dbiResult = new ArrayList<IDbInit>();
 		// load all dbinit instances from the legacy custom folder
 		dbiResult.addAll(getCustomDbInit("custom/"));
-		dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
+		//dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
 
 		for (IDbInit idb : dbiResult) {
 			dbtList.addAll(idb.getCustomObjectTypes());
@@ -5190,7 +5189,8 @@ public class DbInit {
 	}
 
 	/**
-	 * Method that prepares the JSON files with ACS from the custom plugins and bundles
+	 * Method that prepares the JSON files with ACS from the custom plugins and
+	 * bundles
 	 * 
 	 * @return Description of the error if any
 	 */
@@ -5232,7 +5232,8 @@ public class DbInit {
 						}
 					}
 				}
-				//load codes from the OSGI bundles dir too
+				// load codes from the OSGI bundles dir too
+				/*
 				customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 				customJars = customFolder.listFiles();
 				if (customJars != null) {
@@ -5251,7 +5252,7 @@ public class DbInit {
 
 						}
 					}
-				}
+				}*/
 				aclFilePath = SvConf.getConfPath() + aclFilePath;
 				aclSidFilePath = SvConf.getConfPath() + aclSidFilePath;
 
@@ -5397,7 +5398,8 @@ public class DbInit {
 							}
 						}
 					}
-					//load labels from the svarog OSG bundles dir
+					// load labels from the svarog OSG bundles dir
+					/*
 					customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
@@ -5408,7 +5410,7 @@ public class DbInit {
 											(String) entry.getVal("locale_id"));
 							}
 						}
-					}
+					}*/
 					if (rb != null) {
 						// load strings
 
@@ -5898,7 +5900,7 @@ public class DbInit {
 		// DbDataArray defaultObjests = new DbDataArray();
 		DbDataArray customObjests = new DbDataArray();
 		StringBuilder errMsg = new StringBuilder();
-		
+
 		File customFolder = new File(subDir);
 		File[] customJars = customFolder.listFiles();
 		if (customJars != null) {
@@ -5972,8 +5974,8 @@ public class DbInit {
 
 		// load custom objects as well as from the OSGI bundles dir
 		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes);
-		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId,
-				defaultCodes);
+		//svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId,
+		//		defaultCodes);
 
 		DbDataArray arrWF = new DbDataArray();
 		svObjectId = addDefaultUnitsUsers(arrWF, svObjectId);
@@ -6153,7 +6155,7 @@ public class DbInit {
 			Gson gson = (new GsonBuilder().setPrettyPrinting().create());
 			JsonObject jCodes = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 
-			//load codes from the custom dir
+			// load codes from the custom dir
 			File customFolder = new File("custom/");
 			File[] customJars = customFolder.listFiles();
 			if (customJars != null) {
@@ -6163,7 +6165,8 @@ public class DbInit {
 				}
 			}
 
-			//load codes from the OSGI bundles dir too
+			// load codes from the OSGI bundles dir too
+			/*
 			customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 			customJars = customFolder.listFiles();
 			if (customJars != null) {
@@ -6171,7 +6174,8 @@ public class DbInit {
 					if (customJars[i].getName().endsWith(".jar"))
 						loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
 				}
-			}
+			}*/
+			
 			// custom codes loading finished
 			ArrayList<DbDataObject> items = new ArrayList<DbDataObject>();
 
@@ -6336,10 +6340,14 @@ public class DbInit {
 					// -6 because of .class
 					String className = je.getName().substring(0, je.getName().length() - 6);
 					className = className.replace('/', '.');
-					Class<?> c = cl.loadClass(className);
-					if (IDbInit.class.isAssignableFrom(c)) {
-						dbi.add((IDbInit) c.newInstance());
+					try {
+						Class<?> c = cl.loadClass(className);
+						if (IDbInit.class.isAssignableFrom(c)) {
+							dbi.add((IDbInit) c.newInstance());
 
+						}
+					} catch (Exception ex) {
+						log4j.error("Loading wrong class");
 					}
 
 				}

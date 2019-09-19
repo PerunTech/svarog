@@ -12,6 +12,7 @@ import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
+import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 
 public class ProtoBufTests {
@@ -62,6 +63,7 @@ public class ProtoBufTests {
 			String s=arrDesc.getFile().toString();
 			String s2=arrDesc.getFile().toProto().toString();
 			System.out.println(s2);
+			FileDescriptor fd= arrDesc.getFile();
 			
 			FieldDescriptor f=arrDesc.findFieldByName("persons");
 			ArrayList<DynamicMessage> l = new ArrayList<DynamicMessage>();
