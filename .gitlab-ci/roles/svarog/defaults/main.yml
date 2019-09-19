@@ -1,0 +1,52 @@
+---
+###############################
+#
+#   POSTGRES
+#
+#
+###### POSTGRES SETTINGS ######
+postgres_ip: 192.168.100.144
+postgres_port: 5432
+postgres_driver_name: org.postgresql.Driver
+postgres_username: postgres
+postgres_password: postgres
+postgres_connstring: jdbc:postgresql://{{ postgres_ip }}:{{ postgres_port }}/postgres
+postgres_db_type: POSTGRES
+
+###### MASTER POSTGRES SVAROG SETTINGS ########
+master_postgres_schema: ci_master
+
+###### STAGING POSTGRES SVAROG SETTINGS ########
+staging_postgres_schema: ci_staging
+
+###### DEV POSTGRES SVAROG SETTINGS ########
+dev_postgres_schema: ci_dev
+
+###### GEORGIA POSTGRES SVAROG SETTINGS ########
+georgia_postgres_schema: naits
+
+###############################
+#
+#   ORACLE
+#
+#
+###### ORACLE SETTINGS ########
+oracle_ip: 192.168.100.148
+oracle_port: 1521
+oracle_sid: orcl
+oracle_driver_name: oracle.jdbc.driver.OracleDriver
+oracle_connstring: jdbc:oracle:thin:@{{ oracle_ip }}:{{ oracle_port }}:{{ oracle_sid }}
+oracle_schema: "{{ db_username }}"
+oracle_db_type: ORACLE
+
+###### MASTER ORACLE SVAROG SETTINGS ########
+master_oracle_username: ci_master
+master_oracle_password: ci_master
+
+###### STAGING ORACLE SVAROG SETTINGS ########
+staging_oracle_username: ci_staging
+staging_oracle_password: ci_staging
+
+###### DEV ORACLE SVAROG SETTINGS ########
+dev_oracle_username: CI_DEV
+dev_oracle_password: CI_DEV
