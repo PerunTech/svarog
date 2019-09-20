@@ -56,7 +56,6 @@ public class SvPostgresIO implements ISvDatabaseIO {
 
 	@Override
 	public Class<?> getTimeStampClass() {
-		// for oracle return oracle.sql.TIMESTAMP.class;
 		return java.sql.Timestamp.class;
 	}
 
