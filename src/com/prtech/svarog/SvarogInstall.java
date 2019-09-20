@@ -2058,7 +2058,7 @@ public class SvarogInstall {
 		params.put("VIEW_NAME", viewName);
 		params.put("VIEW_SCHEMA", SvConf.getDefaultSchema());
 		params.put("SELECT_QUERY", selectQuery);
-		if (!SvConf.getDbType().equals(SvDbType.ORACLE)) {
+		if (SvConf.getDbType().equals(SvDbType.POSTGRES)) {
 			if (dbObjectExists(viewName, conn))
 				executeDbScript("drop_view.sql", params, conn);
 		}

@@ -336,8 +336,7 @@ public class SvReader extends SvCore {
 			throw (new SvException("system.err.form_dbt_not_found", this.instanceUser, obj, templateMap));
 		}
 		currentObject.setVal("FORM_TYPE_ID", formTypeDbt.getObject_id());
-		// TODO for oracle do the standard boolean
-		// transformation
+		// For oracle do the standard boolean transformation
 		if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
 			obj.setVal("TBL0_FORM_VALIDATION",
 					new Boolean((obj.getVal("TBL0_FORM_VALIDATION")).equals("0") ? false : true));

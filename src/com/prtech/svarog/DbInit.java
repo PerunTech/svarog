@@ -36,6 +36,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.felix.main.AutoProcessor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -4952,7 +4953,7 @@ public class DbInit {
 		ArrayList<IDbInit> dbiResult = new ArrayList<IDbInit>();
 		// load all dbinit instances from the legacy custom folder
 		dbiResult.addAll(getCustomDbInit("custom/"));
-		//dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
+		dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
 
 		for (IDbInit idb : dbiResult) {
 			dbtList.addAll(idb.getCustomObjectTypes());
@@ -5108,7 +5109,7 @@ public class DbInit {
 			aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
 			json = gson.fromJson(aclStr, JsonElement.class);
 		} catch (Exception ex) {
-			log4j.warn(
+			log4j.debug(
 					"Warning, no ACLs found in:" + jarPath + ", path:" + filePath + ". Exception:" + ex.getMessage());
 			// ex.printStackTrace();
 		} finally {
@@ -5233,7 +5234,7 @@ public class DbInit {
 					}
 				}
 				// load codes from the OSGI bundles dir too
-				/*
+				
 				customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 				customJars = customFolder.listFiles();
 				if (customJars != null) {
@@ -5252,7 +5253,7 @@ public class DbInit {
 
 						}
 					}
-				}*/
+				}
 				aclFilePath = SvConf.getConfPath() + aclFilePath;
 				aclSidFilePath = SvConf.getConfPath() + aclSidFilePath;
 
@@ -5399,7 +5400,7 @@ public class DbInit {
 						}
 					}
 					// load labels from the svarog OSG bundles dir
-					/*
+					
 					customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
@@ -5410,7 +5411,7 @@ public class DbInit {
 											(String) entry.getVal("locale_id"));
 							}
 						}
-					}*/
+					}
 					if (rb != null) {
 						// load strings
 
@@ -5907,8 +5908,10 @@ public class DbInit {
 			Arrays.sort(customJars);
 			for (int i = 0; i < customJars.length; i++) {
 				if (customJars[i].getName().endsWith(".jar")) {
+					log4j.info("Trying to load IDbInit from jar: "+customJars[i].getName());
 					ArrayList<IDbInit> dbi = DbInit.loadCustomDbInit(customJars[i].getAbsolutePath());
-
+					if(dbi.size()>0)
+						log4j.info("Found IDbInit instance in jar: "+customJars[i].getName());
 					customObjests.getItems().clear();
 					for (IDbInit idb : dbi) {
 						svObjectId = dbTables2DbDataArray(idb.getCustomObjectTypes(), customObjests, defaultCodes,
@@ -5974,8 +5977,8 @@ public class DbInit {
 
 		// load custom objects as well as from the OSGI bundles dir
 		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes);
-		//svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId,
-		//		defaultCodes);
+		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId,
+				defaultCodes);
 
 		DbDataArray arrWF = new DbDataArray();
 		svObjectId = addDefaultUnitsUsers(arrWF, svObjectId);
@@ -6166,7 +6169,6 @@ public class DbInit {
 			}
 
 			// load codes from the OSGI bundles dir too
-			/*
 			customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 			customJars = customFolder.listFiles();
 			if (customJars != null) {
@@ -6174,7 +6176,7 @@ public class DbInit {
 					if (customJars[i].getName().endsWith(".jar"))
 						loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
 				}
-			}*/
+			}
 			
 			// custom codes loading finished
 			ArrayList<DbDataObject> items = new ArrayList<DbDataObject>();
@@ -6330,7 +6332,7 @@ public class DbInit {
 				Enumeration e = jarFile.entries();
 
 				URL[] urls = { new URL("jar:file:" + pathToJar + "!/") };
-				URLClassLoader cl = URLClassLoader.newInstance(urls);
+				URLClassLoader cl = URLClassLoader.newInstance(urls, DbInit.class.getClassLoader());
 
 				while (e.hasMoreElements()) {
 					JarEntry je = (JarEntry) e.nextElement();
@@ -6346,8 +6348,9 @@ public class DbInit {
 							dbi.add((IDbInit) c.newInstance());
 
 						}
-					} catch (Exception ex) {
-						log4j.error("Loading wrong class");
+					} catch (java.lang.NoClassDefFoundError|java.lang.IllegalAccessError ex) {
+						if(log4j.isDebugEnabled())
+							log4j.trace("Loading wrong class",e);
 					}
 
 				}

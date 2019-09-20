@@ -849,29 +849,6 @@ public class SvWriter extends SvCore {
 
 					pCount++;
 
-					/*
-					 * DbFieldType type = DbFieldType.valueOf((String)
-					 * dbf.getVal("field_type")); switch (type) { case BOOLEAN:
-					 * if (value == null) { if
-					 * (SvConf.getDBType().equals("ORACLE")) ps.setNull(pCount,
-					 * java.sql.Types.CHAR); else ps.setNull(pCount,
-					 * java.sql.Types.BOOLEAN); } else ps.setBoolean(pCount,
-					 * (Boolean) value); break; case NUMERIC: if (value == null)
-					 * ps.setNull(pCount, java.sql.Types.NUMERIC); else
-					 * ps.setBigDecimal(pCount, new BigDecimal(((Number)
-					 * value).doubleValue())); break; case DATE: case TIME: case
-					 * TIMESTAMP: if (value == null) ps.setNull(pCount,
-					 * java.sql.Types.TIMESTAMP); else if
-					 * (value.getClass().equals(DateTime.class)) {
-					 * ps.setTimestamp(pCount, new Timestamp(((DateTime)
-					 * value).getMillis())); } else { DateTime dt = new
-					 * DateTime(value.toString()); ps.setTimestamp(pCount, new
-					 * Timestamp(dt.getMillis())); }
-					 * 
-					 * break; case TEXT: case NVARCHAR: ps.setString(pCount,
-					 * (String) value); break; //TODO add geometry handling
-					 * default: break; } pCount++;
-					 */
 				}
 
 				if (isUpdate) {
