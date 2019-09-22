@@ -7,6 +7,4 @@
 /target/
 /osgi-bundles/
 /osgi-cache/
-/svarog.properties.ORA
-/svarog.properties.PG
-/svarog.properties.tpl
+/osgi-bundles-default.zip
