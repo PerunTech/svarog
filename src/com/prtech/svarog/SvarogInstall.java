@@ -1,19 +1,21 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2017 Perun Technologii DOOEL Skopje.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License
- * Version 2.0 or the Svarog License Agreement (the "License");
- * You may not use this file except in compliance with the License. 
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See LICENSE file in the project root for the specific language governing 
- * permissions and limitations under the License.
- *
+ *   Copyright (c) 2013, 2019 Perun Technologii DOOEL Skopje.
+ *   All rights reserved. This program and the accompanying materials
+ *   are made available under the terms of the Apache License
+ *   Version 2.0 or the Svarog License Agreement (the "License");
+ *   You may not use this file except in compliance with the License. 
+ *  
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See LICENSE file in the project root for the specific language governing 
+ *   permissions and limitations under the License.
+ *  
  *******************************************************************************/
 
 package com.prtech.svarog;
+
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -146,14 +148,22 @@ public class SvarogInstall {
 					else if (line.hasOption("g"))
 						returnStatus = generateGrid();
 					else if (line.hasOption("i")) {
-						if (line.hasOption("d"))
+						returnStatus = validateInstall();
+						if (returnStatus == 0 && line.hasOption("d"))
 							returnStatus = SvarogInstall.cleanDb() == true ? 0 : -1;
 						if (returnStatus == 0) {
 							firstInstall = true;
-							returnStatus = upgradeSvarog(false);
+							if (line.hasOption("a"))
+								returnStatus = generateJsonCfg();
+							if (returnStatus == 0)
+								returnStatus = upgradeSvarog(false);
 						}
 					} else if (line.hasOption("u")) {
-						returnStatus = runUpgrade(line);
+						returnStatus = validateInstall();
+						if (returnStatus == 0 && line.hasOption("a"))
+							returnStatus = generateJsonCfg();
+						if (returnStatus == 0)
+							returnStatus = runUpgrade(line);
 					} else if (line.hasOption("m")) {
 						returnStatus = manageSecurity(line);
 					} else if (line.hasOption("o")) {
@@ -179,6 +189,46 @@ public class SvarogInstall {
 		}
 		System.exit(returnStatus);
 
+	}
+
+	/**
+	 * Method to test if svarog can connect to the database.
+	 * @return 0 if the connection is successful.
+	 */
+	private static int canConnectToDb() {
+		int errStatus=-1;
+		Connection conn = null;
+		log4j.info("Validating connection to "+SvConf.getConnectionString());
+		try {
+			conn = SvConf.getDBConnection();
+			if (conn != null)
+				errStatus=0;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			log4j.info("DbConnection.getDBConnection() raised an exception");
+			log4j.debug("Connection exception:",e);
+
+		} finally {
+			if (conn != null)
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					log4j.debug("Connection wont close:",e);
+				}
+		}
+		return errStatus;
+	}
+
+	/**
+	 * Method to validate if the prerequisites for the install are satisfied.
+	 * @return
+	 */
+	private static int validateInstall() {
+		int errStatus=canConnectToDb();
+		if(SvConf.isSdiEnabled())
+			if(!SvGeometry.isSDIInitalized())
+				errStatus=-3;
+		return errStatus;
 	}
 
 	/**
@@ -874,7 +924,7 @@ public class SvarogInstall {
 				"re-create all json configuration files, including the custom config");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
-		
+
 		opt = new Option("g", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
@@ -910,6 +960,13 @@ public class SvarogInstall {
 
 		options.addOptionGroup(installGroup);
 
+		OptionGroup autoGroup = new OptionGroup();
+		opt = new Option("a", "auto", false,
+				"when using the auto option with install/upgrade option it generates the JSON config on the fly and install/upgrade based on the configuration");
+		autoGroup.addOption(opt);
+		options.addOptionGroup(autoGroup);
+
+		
 		OptionGroup repoGroup = new OptionGroup();
 		opt = OptionBuilder.withLongOpt("migrate-objects")
 				.withDescription("migrates all misconfigured objects to the correctly configured repo").create();
@@ -1586,6 +1643,7 @@ public class SvarogInstall {
 						upgradedObjects++;
 						log4j.info("Table " + operation + " " + +upgradedObjects + " of " + dbTables.size() + " on "
 								+ dbt.getDbTableName());
+
 						if (!createTableFromJson(dbt, "", conn)) {
 							retval = false;
 							break;
