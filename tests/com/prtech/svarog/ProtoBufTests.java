@@ -1,3 +1,18 @@
+/*******************************************************************************
+ *   Copyright (c) 2013, 2019 Perun Technologii DOOEL Skopje.
+ *   All rights reserved. This program and the accompanying materials
+ *   are made available under the terms of the Apache License
+ *   Version 2.0 or the Svarog License Agreement (the "License");
+ *   You may not use this file except in compliance with the License. 
+ *  
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See LICENSE file in the project root for the specific language governing 
+ *   permissions and limitations under the License.
+ *  
+ *******************************************************************************/
+ 
 package com.prtech.svarog;
 
 import java.util.ArrayList;
@@ -74,11 +89,11 @@ public class ProtoBufTests {
 			byte[] pbbarr = msgarr.toByteArray();
 			byte[] pbb = msg.toByteArray();
 
-			DynamicMessage msg2 = DynamicMessage.parseFrom(arrDesc, pbbarr);
-			List<DynamicMessage> l2=(List<DynamicMessage>)msg2.getField(arrDesc.findFieldByName("persons"));
+			DynamicMessage receivedMsg = DynamicMessage.parseFrom(arrDesc, pbbarr);
+			List<DynamicMessage> decodedList=(List<DynamicMessage>)receivedMsg.getField(arrDesc.findFieldByName("persons"));
 			
-			for(DynamicMessage m7:l2)
-				System.out.println(m7.toString());
+			for(DynamicMessage decodedMsg:decodedList)
+				System.out.println(decodedMsg.toString());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

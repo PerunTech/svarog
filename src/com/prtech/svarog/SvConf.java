@@ -1,16 +1,16 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2017 Perun Technologii DOOEL Skopje.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License
- * Version 2.0 or the Svarog License Agreement (the "License");
- * You may not use this file except in compliance with the License. 
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See LICENSE file in the project root for the specific language governing 
- * permissions and limitations under the License.
- *
+ *   Copyright (c) 2013, 2019 Perun Technologii DOOEL Skopje.
+ *   All rights reserved. This program and the accompanying materials
+ *   are made available under the terms of the Apache License
+ *   Version 2.0 or the Svarog License Agreement (the "License");
+ *   You may not use this file except in compliance with the License. 
+ *  
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See LICENSE file in the project root for the specific language governing 
+ *   permissions and limitations under the License.
+ *  
  *******************************************************************************/
 package com.prtech.svarog;
 
@@ -81,6 +81,12 @@ public class SvConf {
 	 */
 	private static long maxLockTimeout = 60000;
 
+	
+	/**
+	 * Flag to mark if SDI is enabled
+	 */
+	private static boolean sdiEnabled = false;
+	
 	/**
 	 * Property holding the system spatial SRID
 	 */
@@ -375,6 +381,11 @@ public class SvConf {
 			// TODO Auto-generated catch block
 			// e.printStackTrace();
 		}
+		
+		//check if sdi shall be enabled
+		if(mainProperties.getProperty("sys.gis.enable_spatial") != null
+				&& mainProperties.getProperty("sys.gis.enable_spatial").equals("true"))
+			sdiEnabled=true;
 
 		String svcClass = mainProperties.getProperty("sys.service_class");
 
@@ -707,6 +718,14 @@ public class SvConf {
 
 	public static void setMultiSelectSeparator(String multiSelectSeparator) {
 		SvConf.multiSelectSeparator = multiSelectSeparator;
+	}
+
+	public static boolean isSdiEnabled() {
+		return sdiEnabled;
+	}
+
+	public static void setSdiEnabled(boolean sdiEnabled) {
+		SvConf.sdiEnabled = sdiEnabled;
 	}
 
 }
