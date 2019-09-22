@@ -5234,7 +5234,7 @@ public class DbInit {
 					}
 				}
 				// load codes from the OSGI bundles dir too
-				
+
 				customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 				customJars = customFolder.listFiles();
 				if (customJars != null) {
@@ -5370,11 +5370,14 @@ public class DbInit {
 			// master_locales.json", locales.toJson().toString());
 			for (DbDataObject entry : locales.getItems()) {
 				try {
-					InputStream iStr = new FileInputStream(new File(SvConf.getConfPath() + svCONST.masterLabelsPath
-							+ entry.getVal("locale_id") + "Labels.properties"));
+					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id")
+							+ "Labels.properties";
 
-					System.out.println("Loaded labels from " + SvConf.getConfPath() + svCONST.masterLabelsPath
-							+ entry.getVal("locale_id") + "Labels");
+					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
+					if (iStr == null)
+						continue;
+
+					System.out.println("Loaded labels from " + labelFile);
 
 					Properties rb = new Properties();
 
@@ -5400,7 +5403,7 @@ public class DbInit {
 						}
 					}
 					// load labels from the svarog OSG bundles dir
-					
+
 					customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
@@ -5908,10 +5911,10 @@ public class DbInit {
 			Arrays.sort(customJars);
 			for (int i = 0; i < customJars.length; i++) {
 				if (customJars[i].getName().endsWith(".jar")) {
-					log4j.info("Trying to load IDbInit from jar: "+customJars[i].getName());
+					log4j.info("Trying to load IDbInit from jar: " + customJars[i].getName());
 					ArrayList<IDbInit> dbi = DbInit.loadCustomDbInit(customJars[i].getAbsolutePath());
-					if(dbi.size()>0)
-						log4j.info("Found IDbInit instance in jar: "+customJars[i].getName());
+					if (dbi.size() > 0)
+						log4j.info("Found IDbInit instance in jar: " + customJars[i].getName());
 					customObjests.getItems().clear();
 					for (IDbInit idb : dbi) {
 						svObjectId = dbTables2DbDataArray(idb.getCustomObjectTypes(), customObjests, defaultCodes,
@@ -5936,9 +5939,10 @@ public class DbInit {
 						}
 
 					}
-
-					String errStr = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "4" + i + ". "
-							+ customJars[i].getName().replace(".jar", ".json"), customObjests, true);
+					String errStr = "";
+					if (customObjests.size() > 0)
+						errStr = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "4" + i + ". "
+								+ customJars[i].getName().replace(".jar", ".json"), customObjests, true);
 					if (!errStr.equals("")) {
 						log4j.error("Error saving DbDataArray to file from custom IDbInit:" + customJars[i].getName()
 								+ "." + errStr.toString());
@@ -6150,8 +6154,10 @@ public class DbInit {
 
 		try {
 
-			File baseCodes = new File(SvConf.getConfPath() + svCONST.masterCodesPath + "codes.properties");
-			InputStream fis = new FileInputStream(baseCodes);
+			String codesPath = "/" + svCONST.masterCodesPath + "/codes.properties";
+			// File baseCodes = new File();
+
+			InputStream fis = DbInit.class.getResourceAsStream(codesPath);
 
 			String json = IOUtils.toString(fis, "UTF-8");
 
@@ -6177,7 +6183,7 @@ public class DbInit {
 						loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
 				}
 			}
-			
+
 			// custom codes loading finished
 			ArrayList<DbDataObject> items = new ArrayList<DbDataObject>();
 
@@ -6348,9 +6354,9 @@ public class DbInit {
 							dbi.add((IDbInit) c.newInstance());
 
 						}
-					} catch (java.lang.NoClassDefFoundError|java.lang.IllegalAccessError ex) {
-						if(log4j.isDebugEnabled())
-							log4j.trace("Loading wrong class",e);
+					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError ex) {
+						if (log4j.isDebugEnabled())
+							log4j.trace("Loading wrong class", e);
 					}
 
 				}

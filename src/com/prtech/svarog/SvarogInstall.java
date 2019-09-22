@@ -50,6 +50,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -142,6 +143,8 @@ public class SvarogInstall {
 				if (validateCommandLine(line)) {
 					if (line.hasOption("j"))
 						returnStatus = generateJsonCfg();
+					else if (line.hasOption("g"))
+						returnStatus = generateGrid();
 					else if (line.hasOption("i")) {
 						if (line.hasOption("d"))
 							returnStatus = SvarogInstall.cleanDb() == true ? 0 : -1;
@@ -176,6 +179,22 @@ public class SvarogInstall {
 		}
 		System.exit(returnStatus);
 
+	}
+
+	/**
+	 * Method to parse the system boundary in json format and generate the grid
+	 * of tiles for svarog SDI usage.
+	 * 
+	 * @return -1 in case of system error.
+	 */
+	private static int generateGrid() {
+		String errorMessage = DbInit.generateGrid();
+		if (!errorMessage.equals("")) {
+			System.out.println("Error generating system tile grid. " + errorMessage);
+			return -1;
+		}
+
+		return 0;
 	}
 
 	private static String getOptionFromCmd(String optionName) {
@@ -855,6 +874,10 @@ public class SvarogInstall {
 				"re-create all json configuration files, including the custom config");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
+		
+		opt = new Option("g", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
+		coreGroup.addOption(opt);
+		sysCoreOpts.add(opt);
 
 		opt = new Option("i", "install", false, "perform Svarog installation against the configured database");
 		coreGroup.addOption(opt);
@@ -1007,6 +1030,13 @@ public class SvarogInstall {
 	 * @return 0 if success, -1 if failed
 	 */
 	private static int generateJsonCfg() {
+
+		try {
+			FileUtils.deleteDirectory(new File(SvConf.getConfPath()));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			System.out.println("Error deleting conf resources ");
+		}
 		isAlreadyInstalled = false;
 		String errorMessage = DbInit.createJsonMasterRepo();
 		if (!errorMessage.equals("")) {
@@ -1023,11 +1053,6 @@ public class SvarogInstall {
 		if (!errorMessage.equals("")) {
 
 			System.out.println("Error preparing labels. " + errorMessage);
-			return -1;
-		}
-		errorMessage = DbInit.generateGrid();
-		if (!errorMessage.equals("")) {
-			System.out.println("Error generating system tile grid. " + errorMessage);
 			return -1;
 		}
 		return 0;
@@ -1444,24 +1469,22 @@ public class SvarogInstall {
 		try {
 			conn = SvConf.getDBConnection();
 			st = conn.createStatement();
-			log4j.info("Dropping DB schema:"+ SvConf.getDefaultSchema() );
-			try{
-			st.execute("DROP SCHEMA " + SvConf.getDefaultSchema() + " CASCADE");
-			}catch(Exception e)
-			{
-				log4j.error("Dropping DB schema failed",e);
+			log4j.info("Dropping DB schema:" + SvConf.getDefaultSchema());
+			try {
+				st.execute("DROP SCHEMA " + SvConf.getDefaultSchema() + " CASCADE");
+			} catch (Exception e) {
+				log4j.error("Dropping DB schema failed", e);
 			}
-			
-			log4j.info("Creating DB schema:"+ SvConf.getDefaultSchema() );
+
+			log4j.info("Creating DB schema:" + SvConf.getDefaultSchema());
 			st.execute("CREATE SCHEMA " + SvConf.getDefaultSchema());
 			rs = st.executeQuery("    select * from pg_extension where upper(extname) = 'POSTGIS'");
-			if (!rs.next())
-			{
-				log4j.info("Create postgis extension:"+ SvConf.getDefaultSchema() );
+			if (!rs.next()) {
+				log4j.info("Create postgis extension:" + SvConf.getDefaultSchema());
 				st.execute("CREATE EXTENSION postgis");
 			} else
-			// + "with schema " + SvConf.getDefaultSchema());
-			log4j.info("Postgis exists in :"+ SvConf.getDefaultSchema() );
+				// + "with schema " + SvConf.getDefaultSchema());
+				log4j.info("Postgis exists in :" + SvConf.getDefaultSchema());
 			DbCache.clean();
 			// SvCore.initCfgObjectsBase();
 			return true;
