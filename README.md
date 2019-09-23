@@ -36,14 +36,15 @@ The method `DbDataArray.getDistinctValuesPerColumns` no more accepts a `SvReader
 1. Install latest version of Apache Maven. On linux just do: sudo apt install maven
 2. Install git (standalone or eclipse module)
 3. Pull the following dependencies from git:
-* 	-svarog-jts-io (https://gitlab.prtech.mk/SvarogV3/svarog-jts-io)
+* 	-svarog-jts-io (https://gitlab.prtech.mk	/SvarogV3/svarog-jts-io)
 * 	-svarog-interfaces (https://gitlab.prtech.mk/prtech/svarog-interfaces)
-* 	-svarog-io (https://gitlab.prtech.mk/prtech/svarog_io)
+
 
 5. On each of the projects (exactly in the same order as they appear on the list above) go into the project directory and run. 
 	
 *  $ mvn install
 5. Pull the latest version of svarog and configure your properties file.
+	
 	5.1: To generate JSON files for installation run maven with java@json target. According to your properties configuration you need to set the correct profile. If oracle then "-P Oracle". If Posgres then "-P PostgreSQL"
 	$ mvn exec:java@json -P PostgreSQL
 	
