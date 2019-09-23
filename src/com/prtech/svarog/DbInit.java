@@ -5379,7 +5379,7 @@ public class DbInit {
 					if (iStr == null)
 						continue;
 
-					System.out.println("Loaded labels from " + labelFile);
+					log4j.info("Loaded labels from: " + labelFile);
 
 					Properties rb = new Properties();
 
@@ -6358,7 +6358,7 @@ public class DbInit {
 						}
 					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError ex) {
 						if (log4j.isDebugEnabled())
-							log4j.trace("Loading wrong class", e);
+							log4j.trace("Error loading class", e);
 					}
 
 				}
