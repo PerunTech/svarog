@@ -12,7 +12,7 @@
  *   permissions and limitations under the License.
  *  
  *******************************************************************************/
- 
+
 package com.prtech.svarog;
 
 import static org.junit.Assert.fail;
@@ -102,8 +102,19 @@ public class SvarogRolesTest {
 						testPin, "", "", "VALID");
 			}
 
-			((SvCore) svs).switchUser(testUserName);
+			try {
 
+				((SvCore) svs).switchUser(svCONST.serviceUser);
+				fail("switchUser(DbDataObject user) was success without priveleges!");
+			} catch (SvException ex) {
+				if (!ex.getLabelCode().equals("system.error.cant_switch_system_user")) {
+					ex.printStackTrace();
+					fail("The test raised an exception!");
+				}
+			}
+
+			((SvCore) svs).switchUser(testUserName);
+			fail("switchUser(String userName) was success without priveleges!");
 		} catch (SvException e) {
 			if (!e.getLabelCode().equals("system.error.cant_switch_system_user")) {
 				e.printStackTrace();
@@ -117,6 +128,8 @@ public class SvarogRolesTest {
 		SvConf.serviceClasses.add(this.getClass().getName());
 		try {
 			svs = new SvSecurity();
+			((SvCore) svs).switchUser(testUserName);
+			svs.resetUser();
 			((SvCore) svs).switchUser(svCONST.serviceUser);
 			svr = new SvReader(svs);
 
@@ -232,7 +245,7 @@ public class SvarogRolesTest {
 	public void testResetUser() {
 		SvReader svr = null;
 		try {
-			SvSecurity svs= new SvSecurity();
+			SvSecurity svs = new SvSecurity();
 			svr = new SvReader();
 			DbDataObject user = null;
 			if (svs.checkIfUserExistsByUserName(testUserName, svCONST.STATUS_VALID)) {
