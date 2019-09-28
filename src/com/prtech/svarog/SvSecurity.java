@@ -93,17 +93,24 @@ public class SvSecurity extends SvCore {
 	 * raise an exception since anonymous users should not be allowed to switch
 	 * without having a valid session
 	 * 
-	 * @param user
+	 * @param userName
 	 *            The name of user which should be switched
 	 * @throws SvException
 	 *             If the caller class is not registered service class it will
 	 *             throw "system.error.cant_switch_system_user"
 	 */
-	public void switchUser(String user) throws SvException {
-		if (!SvConf.isServiceClass(getCallerClassName()))
-			throw (new SvException("system.error.cant_switch_system_user", instanceUser));
+	public void switchUser(String userName) throws SvException {
+		DbDataObject user = this.getUser(userName);
+		this.switchUser(user);
 	}
 
+	@Override
+	public void switchUser(DbDataObject user) throws SvException {
+		if (!SvConf.isServiceClass(getCallerClassName()))
+			throw (new SvException("system.error.cant_switch_system_user", instanceUser));
+
+		super.switchUser(user);
+	}
 	/**
 	 * Method returning list of objects over which the specific user has been
 	 * empowered with Power of Attorney over.
