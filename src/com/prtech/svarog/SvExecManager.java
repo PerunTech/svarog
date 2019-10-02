@@ -144,6 +144,21 @@ public class SvExecManager extends SvCore {
 	 */
 	ISvExecutor getExecutor(String category, String name, DateTime referenceDate) {
 		String key = getKey(category, name);
+		return getExecutor(key, referenceDate);
+	}
+
+	/**
+	 * Method to find an ISvExecutor in Svarog. First it will try to get the
+	 * executor from the Cache, then if it doesn't exist, it will scan the OSGI
+	 * container to find one.
+	 * 
+	 * @param key
+	 *            Key of the executor category and name, concatenated with a dot
+	 * @param referenceDate
+	 *            Reference Date on which the executor must be valid.
+	 * @return
+	 */
+	ISvExecutor getExecutor(String key, DateTime referenceDate) {
 
 		ISvExecutor executor = null;
 		if (referenceDate == null)
@@ -228,14 +243,48 @@ public class SvExecManager extends SvCore {
 	 */
 	public Object execute(String category, String name, Map<String, Object> params, DateTime referenceDate,
 			Class<?> returnType) throws SvException {
-		
-		if(!this.hasPermission(getKey(category, name)))
-			throw (new SvException("system.error.not_authorised", this.getInstanceUser(), null, getKey(category, name)));
+		String executorKey = getKey(category, name);
+		return execute(executorKey, params, referenceDate, returnType);
+	}
+
+	/**
+	 * Method to provide global inter module execution inside Svarog. The Svarog
+	 * Executors are identified by unique combination of Category and Name,
+	 * limited to a validity date specifed by start and end dates. If the
+	 * reference date is null, Svarog will execute using the current system
+	 * time. If Svarog has two executors with the same category/name valid in
+	 * the system on the same date, it will always invoke execute on the older
+	 * executor (The one with older startDate).
+	 * 
+	 * @param executorKey
+	 *            Key of the executor, category and name, concatenated with a dot
+	 * @param params
+	 *            Parameters which will be passed to the execution
+	 * @param referenceDate
+	 *            The reference date on which the Executor must be valid.
+	 * @param returnType
+	 *            The return type of the result
+	 * @return Object instance of class type described by return type
+	 * @throws SvException
+	 *             If the executor is not found Svarog will raise
+	 *             <code>system.err.exec_not_found</code>, if the return type is
+	 *             wrong it will raise
+	 *             <code>system.err.wrong_return_type</code>. If there's
+	 *             underlying Svarog Exception from the executor, Svarog will
+	 *             leave it as it is. If there's other type of system exception,
+	 *             Svarog will mark the executor as dirty and raise the
+	 *             exception as <code>system.err.exec_failure</code>
+	 */
+	public Object execute(String executorKey, Map<String, Object> params, DateTime referenceDate, Class<?> returnType)
+			throws SvException {
+
+		if (!this.hasPermission(executorKey))
+			throw (new SvException("system.error.not_authorised", this.getInstanceUser(), null, executorKey));
 
 		Object result = null;
 		try {
 			// find the executor valid for the specific reference date
-			ISvExecutor exec = getExecutor(category, name, referenceDate);
+			ISvExecutor exec = getExecutor(executorKey, referenceDate);
 			if (exec != null) {
 				if (exec.getReturningType().equals(returnType))
 					result = exec.execute(params, this);
@@ -256,8 +305,8 @@ public class SvExecManager extends SvCore {
 				// otherwise, we consider the exception to be system related so
 				// we will remove the faulty service from the cache and the wrap
 				// the exception in a SvException
-				executorMap.invalidate(getKey(category, name));
-				String error = getKey(category, name) + ", return type:" + returnType.toString();
+				executorMap.invalidate(executorKey);
+				String error = executorKey + ", return type:" + returnType.toString();
 				throw (new SvException("system.err.exec_failure", this.getInstanceUser(), null, error, e));
 			}
 		}
@@ -304,6 +353,43 @@ public class SvExecManager extends SvCore {
 
 	}
 
+	
+	/**
+	 * Method to provide global inter module execution inside Svarog. The Svarog
+	 * Executors are identified by unique combination of Category and Name,
+	 * limited to a validity date specifed by start and end dates. If the
+	 * reference date is null, Svarog will execute using the current system
+	 * time. If Svarog has two executors with the same category/name valid in
+	 * the system on the same date, it will always invoke execute on the older
+	 * executor (The one with older startDate).
+	 * 
+	 * This version will not raise <code>system.err.wrong_return_type</code>.
+	 * 
+	 * @param executorKey
+	 *            Key of the executor, category and name, concatenated with a dot
+	 * @param params
+	 *            Parameters which will be passed to the execution
+	 * @param referenceDate
+	 *            The reference date on which the Executor must be valid.
+	 * @param returnType
+	 *            The return type of the result
+	 * @return Object instance of class type described by return type
+	 * @throws SvException
+	 *             If the executor is not found Svarog will raise
+	 *             <code>system.err.exec_not_found</code>. If there's underlying
+	 *             Svarog Exception from the executor, Svarog will leave it as
+	 *             it is. If there's other type of system exception, Svarog will
+	 *             mark the executor as dirty and raise the exception as
+	 *             <code>system.err.exec_failure</code>
+	 */
+	public Object execute(String executorKey, Map<String, Object> params, DateTime referenceDate)
+			throws SvException {
+		Object result = null;
+		Class<?> returnType = getReturnType(executorKey, referenceDate);
+		result = execute(executorKey, params, referenceDate, returnType);
+		return result;
+
+	}
 	/**
 	 * Method to provide information about specific executor's return type
 	 * 
@@ -322,6 +408,33 @@ public class SvExecManager extends SvCore {
 		Class<?> result = null;
 		// find the executor valid for the specific reference date
 		ISvExecutor exec = getExecutor(category, name, referenceDate);
+		if (exec != null) {
+			result = exec.getReturningType();
+		} else {
+			String error = getKey(exec) + ", reference date:" + referenceDate.toString();
+			throw (new SvException("system.err.exec_not_found", this.getInstanceUser(), null, error));
+		}
+		return result;
+
+	}
+	
+	
+	/**
+	 * Method to provide information about specific executor's return type
+	 * 
+	 * @param executorKey
+	 *            Key of the executor, category and name, concatenated with a dot
+	 * @param referenceDate
+	 *            The reference date on which the Executor must be valid.
+	 * @return Class object describing the return type
+	 * @throws SvException
+	 *             If the executor is not found Svarog will raise
+	 *             <code>system.err.exec_not_found</code>
+	 */
+	public Class<?> getReturnType(String executorKey, DateTime referenceDate) throws SvException {
+		Class<?> result = null;
+		// find the executor valid for the specific reference date
+		ISvExecutor exec = getExecutor(executorKey, referenceDate);
 		if (exec != null) {
 			result = exec.getReturningType();
 		} else {
