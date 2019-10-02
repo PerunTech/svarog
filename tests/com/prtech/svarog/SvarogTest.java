@@ -1125,6 +1125,8 @@ public class SvarogTest {
 		SvCore.isDebugEnabled = true;
 		SvNote svn = null;
 		try {
+			//clean up before the test is executed 
+			SvConnTracker.cleanup(); 
 			svn = new SvNote();
 			SvReader svr = new SvReader(svn);
 			SvWriter svw = new SvWriter(svn);
