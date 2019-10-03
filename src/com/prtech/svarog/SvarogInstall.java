@@ -1735,7 +1735,7 @@ public class SvarogInstall {
 	 * @throws Exception
 	 *             Raise any exception which occured
 	 */
-	static Boolean createTable(DbDataTable dbt, Connection conn) throws Exception {
+	public static Boolean createTable(DbDataTable dbt, Connection conn) throws Exception {
 		Boolean retval = false;
 		Boolean tableExists = dbObjectExists(dbt.getDbTableName(), conn);
 		HashMap<String, DbDataField> fieldsInDb = getFieldListFromDb(conn, dbt.getDbTableName(),
