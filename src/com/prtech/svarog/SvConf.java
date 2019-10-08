@@ -81,12 +81,11 @@ public class SvConf {
 	 */
 	private static long maxLockTimeout = 60000;
 
-	
 	/**
 	 * Flag to mark if SDI is enabled
 	 */
 	private static boolean sdiEnabled = false;
-	
+
 	/**
 	 * Property holding the system spatial SRID
 	 */
@@ -236,8 +235,8 @@ public class SvConf {
 			Class<?> c = Class.forName(dbHandlerClass);
 			if (ISvDatabaseIO.class.isAssignableFrom(c)) {
 				dbHandler = ((ISvDatabaseIO) c.newInstance());
-				String srid=config.getProperty("sys.gis.default_srid");
-				if(srid!=null)
+				String srid = config.getProperty("sys.gis.default_srid");
+				if (srid != null)
 					dbHandler.initSrid(srid.trim());
 				if (!dbHandler.getHandlerType().equals(SvConf.getDbType().toString())) {
 					log4j.error("Database type is: " + SvConf.getDbType().toString() + ", while handler type is: "
@@ -253,7 +252,7 @@ public class SvConf {
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
 		else
-			sqlKw=dbHandler.getSQLKeyWordsBundle();
+			sqlKw = dbHandler.getSQLKeyWordsBundle();
 
 		return dbHandler;
 	}
@@ -350,14 +349,32 @@ public class SvConf {
 				coreDataSource = (DataSource) initialContext
 						.lookup(mainProperties.getProperty("jndi.datasource").trim());
 			} else {
+				connString = mainProperties.getProperty("conn.string").trim();
+				connUser = mainProperties.getProperty("user.name").trim();
+				connPass = mainProperties.getProperty("user.password").trim();
+
 				coreDataSource = new BasicDataSource();
 				((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
 				((BasicDataSource) coreDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
 				((BasicDataSource) coreDataSource).setUsername(mainProperties.getProperty("user.name").trim());
 				((BasicDataSource) coreDataSource).setPassword(mainProperties.getProperty("user.password").trim());
 
+				// username="svarog" password="svarog" maxActive="200"
+				// maxIdle="10"
+				// maxWait="-1"
+
+				boolean removeAbandoned = false;
+				int removeAbandonedTimeout = 3000;
+
+				int timeBetweenEvictionRunsMillis = 10000;
+				int validationInterval = 30000;
+				String validationQuery = "SELECT 1 FROM DUAL";
+				boolean accessToUnderlyingConnectionAllowed = true;
 				int poolInitialSize = 10;
-				int poolMaxTotal = 10;
+				int poolMaxTotal = 100;
+				int poolMaxIdle = 10;
+				boolean testOnBorrow = true;
+				boolean testWhileIdle = true;
 				try {
 					poolInitialSize = Integer.parseInt(mainProperties.getProperty("dbcp.init.size").trim());
 					poolMaxTotal = Integer.parseInt(mainProperties.getProperty("dbcp.max.total").trim());
@@ -369,6 +386,18 @@ public class SvConf {
 				// Parameters for connection pooling
 				((BasicDataSource) coreDataSource).setInitialSize(poolInitialSize);
 				((BasicDataSource) coreDataSource).setMaxTotal(poolMaxTotal);
+				((BasicDataSource) coreDataSource).setTestOnBorrow(testOnBorrow);
+				((BasicDataSource) coreDataSource).setTestWhileIdle(testWhileIdle);
+				((BasicDataSource) coreDataSource).setValidationQuery(validationQuery);
+				((BasicDataSource) coreDataSource).setFastFailValidation(true);
+				((BasicDataSource) coreDataSource).setValidationQueryTimeout(validationInterval);
+				((BasicDataSource) coreDataSource).setMaxWaitMillis(-1);
+				((BasicDataSource) coreDataSource)
+						.setAccessToUnderlyingConnectionAllowed(accessToUnderlyingConnectionAllowed);
+				((BasicDataSource) coreDataSource).setRemoveAbandonedOnBorrow(removeAbandoned);
+				((BasicDataSource) coreDataSource).setRemoveAbandonedTimeout(removeAbandonedTimeout);
+				((BasicDataSource) coreDataSource).setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
+				((BasicDataSource) coreDataSource).setMaxIdle(poolMaxIdle);
 
 			}
 
@@ -381,11 +410,11 @@ public class SvConf {
 			// TODO Auto-generated catch block
 			// e.printStackTrace();
 		}
-		
-		//check if sdi shall be enabled
-		if(mainProperties.getProperty("sys.gis.enable_spatial") != null
+
+		// check if sdi shall be enabled
+		if (mainProperties.getProperty("sys.gis.enable_spatial") != null
 				&& mainProperties.getProperty("sys.gis.enable_spatial").equals("true"))
-			sdiEnabled=true;
+			sdiEnabled = true;
 
 		String svcClass = mainProperties.getProperty("sys.service_class");
 
@@ -485,7 +514,8 @@ public class SvConf {
 	private static Connection getJDBConnection() throws SvException {
 		Connection conn = null;
 		try {
-			conn = coreDataSource.getConnection();
+			conn = DriverManager.getConnection(connString, connUser, connPass);
+			//conn = coreDataSource.getConnection();
 		} catch (Exception ex) {
 			throw (new SvException("system.error.db_conn_err", svCONST.systemUser, ex));
 		}
