@@ -31,7 +31,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
 
-import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -385,16 +385,16 @@ public class SvConf {
 
 				// Parameters for connection pooling
 				((BasicDataSource) coreDataSource).setInitialSize(poolInitialSize);
-				((BasicDataSource) coreDataSource).setMaxTotal(poolMaxTotal);
+				((BasicDataSource) coreDataSource).setMaxActive(poolMaxTotal);
 				((BasicDataSource) coreDataSource).setTestOnBorrow(testOnBorrow);
 				((BasicDataSource) coreDataSource).setTestWhileIdle(testWhileIdle);
 				((BasicDataSource) coreDataSource).setValidationQuery(validationQuery);
-				((BasicDataSource) coreDataSource).setFastFailValidation(true);
+				//((BasicDataSource) coreDataSource).setFastFailValidation(true);
 				((BasicDataSource) coreDataSource).setValidationQueryTimeout(validationInterval);
-				((BasicDataSource) coreDataSource).setMaxWaitMillis(-1);
+				((BasicDataSource) coreDataSource).setMaxActive(-1);
 				((BasicDataSource) coreDataSource)
 						.setAccessToUnderlyingConnectionAllowed(accessToUnderlyingConnectionAllowed);
-				((BasicDataSource) coreDataSource).setRemoveAbandonedOnBorrow(removeAbandoned);
+				((BasicDataSource) coreDataSource).setRemoveAbandoned(true);
 				((BasicDataSource) coreDataSource).setRemoveAbandonedTimeout(removeAbandonedTimeout);
 				((BasicDataSource) coreDataSource).setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
 				((BasicDataSource) coreDataSource).setMaxIdle(poolMaxIdle);
