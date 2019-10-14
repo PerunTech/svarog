@@ -81,12 +81,11 @@ public class SvConf {
 	 */
 	private static long maxLockTimeout = 60000;
 
-	
 	/**
 	 * Flag to mark if SDI is enabled
 	 */
 	private static boolean sdiEnabled = false;
-	
+
 	/**
 	 * Property holding the system spatial SRID
 	 */
@@ -236,8 +235,8 @@ public class SvConf {
 			Class<?> c = Class.forName(dbHandlerClass);
 			if (ISvDatabaseIO.class.isAssignableFrom(c)) {
 				dbHandler = ((ISvDatabaseIO) c.newInstance());
-				String srid=config.getProperty("sys.gis.default_srid");
-				if(srid!=null)
+				String srid = config.getProperty("sys.gis.default_srid");
+				if (srid != null)
 					dbHandler.initSrid(srid.trim());
 				if (!dbHandler.getHandlerType().equals(SvConf.getDbType().toString())) {
 					log4j.error("Database type is: " + SvConf.getDbType().toString() + ", while handler type is: "
@@ -253,7 +252,7 @@ public class SvConf {
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
 		else
-			sqlKw=dbHandler.getSQLKeyWordsBundle();
+			sqlKw = dbHandler.getSQLKeyWordsBundle();
 
 		return dbHandler;
 	}
@@ -350,26 +349,7 @@ public class SvConf {
 				coreDataSource = (DataSource) initialContext
 						.lookup(mainProperties.getProperty("jndi.datasource").trim());
 			} else {
-				coreDataSource = new BasicDataSource();
-				((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
-				((BasicDataSource) coreDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
-				((BasicDataSource) coreDataSource).setUsername(mainProperties.getProperty("user.name").trim());
-				((BasicDataSource) coreDataSource).setPassword(mainProperties.getProperty("user.password").trim());
-
-				int poolInitialSize = 10;
-				int poolMaxTotal = 10;
-				try {
-					poolInitialSize = Integer.parseInt(mainProperties.getProperty("dbcp.init.size").trim());
-					poolMaxTotal = Integer.parseInt(mainProperties.getProperty("dbcp.max.total").trim());
-				} catch (Exception ex) {
-					log4j.warn("DBCP config is unreadable, using default initial size = 10, max idle=10");
-
-				}
-
-				// Parameters for connection pooling
-				((BasicDataSource) coreDataSource).setInitialSize(poolInitialSize);
-				((BasicDataSource) coreDataSource).setMaxTotal(poolMaxTotal);
-
+				configureDBCP(mainProperties);
 			}
 
 			if (mainProperties.containsKey("sys.codes.multiselect_separator"))
@@ -381,11 +361,11 @@ public class SvConf {
 			// TODO Auto-generated catch block
 			// e.printStackTrace();
 		}
-		
-		//check if sdi shall be enabled
-		if(mainProperties.getProperty("sys.gis.enable_spatial") != null
+
+		// check if sdi shall be enabled
+		if (mainProperties.getProperty("sys.gis.enable_spatial") != null
 				&& mainProperties.getProperty("sys.gis.enable_spatial").equals("true"))
-			sdiEnabled=true;
+			sdiEnabled = true;
 
 		String svcClass = mainProperties.getProperty("sys.service_class");
 
@@ -397,6 +377,92 @@ public class SvConf {
 		if (hasErrors)
 			mainProperties = null;
 		return mainProperties;
+	}
+
+	/**
+	 * Method to try to parse a property to integer and set to default value if it fails
+	 * @param mainProperties the list of properties
+	 * @param propName the name of the property
+	 * @param defaultValue the default value to be set to if parsing fails
+	 * @return the int value of the property
+	 */
+	static int getProperty(Properties mainProperties, String propName, int defaultValue) {
+		int intProp = defaultValue;
+		try {
+			intProp = Integer.parseInt(mainProperties.getProperty(propName).trim());
+		} catch (Exception ex) {
+			log4j.warn(propName+" config property is unreadable, using default initial value = "+defaultValue);
+		}
+		return intProp;
+	}
+	/**
+	 * Method to try to parse a property to boolean and set to default value if it fails
+	 * @param mainProperties the list of properties
+	 * @param propName the name of the property
+	 * @param defaultValue the default value to be set to if parsing fails
+	 * @return the boolean value of the property
+	 */
+	static boolean getProperty(Properties mainProperties, String propName, boolean defaultValue) {
+		boolean boolProp = defaultValue;
+		try {
+			boolProp = Boolean.parseBoolean(mainProperties.getProperty(propName).trim());
+		} catch (Exception ex) {
+			log4j.warn(propName+" config property is unreadable, using default initial value = "+defaultValue);
+		}
+		return boolProp;
+	}
+	
+	/**
+	 * Method to try to parse a property to boolean and set to default value if it fails
+	 * @param mainProperties the list of properties
+	 * @param propName the name of the property
+	 * @param defaultValue the default value to be set to if parsing fails
+	 * @return the string value of the property
+	 */
+	static String getProperty(Properties mainProperties, String propName, String defaultValue) {
+		String prop = defaultValue;
+		try {
+			prop = mainProperties.getProperty(propName).trim();
+			if(prop.isEmpty())
+			{
+				prop = defaultValue;
+				throw(new Exception("empty.prop"));
+			}
+		} catch (Exception ex) {
+			log4j.warn(propName+" config property is unreadable, using default initial value = "+defaultValue);
+		}
+		return prop;
+	}
+	/**
+	 * Method to configure the DBCP from the main properties
+	 * @param mainProperties
+	 */
+	static void configureDBCP(Properties mainProperties) {
+		connString = mainProperties.getProperty("conn.string").trim();
+		connUser = mainProperties.getProperty("user.name").trim();
+		connPass = mainProperties.getProperty("user.password").trim();
+
+		coreDataSource = new BasicDataSource();
+		((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
+		((BasicDataSource) coreDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
+		((BasicDataSource) coreDataSource).setUsername(mainProperties.getProperty("user.name").trim());
+		((BasicDataSource) coreDataSource).setPassword(mainProperties.getProperty("user.password").trim());
+
+		// Parameters for connection pooling
+		((BasicDataSource) coreDataSource).setInitialSize(getProperty(mainProperties,"dbcp.init.size",10));
+		((BasicDataSource) coreDataSource).setMaxTotal(getProperty(mainProperties,"dbcp.max.total",200));
+		((BasicDataSource) coreDataSource).setTestOnBorrow(getProperty(mainProperties,"dbcp.test.borrow",true));
+		((BasicDataSource) coreDataSource).setTestWhileIdle(getProperty(mainProperties,"dbcp.test.idle",true));
+		String defaultValidationQuery ="SELECT 1"+(svDbType.equals(SvDbType.ORACLE)?" FROM DUAL":"");
+		((BasicDataSource) coreDataSource).setValidationQuery(getProperty(mainProperties,"dbcp.validation.query",defaultValidationQuery));
+		((BasicDataSource) coreDataSource).setValidationQueryTimeout(getProperty(mainProperties,"dbcp.validation.timoeut",3000));
+		((BasicDataSource) coreDataSource).setAccessToUnderlyingConnectionAllowed(getProperty(mainProperties,"dbcp.access.conn",true));
+		((BasicDataSource) coreDataSource).setRemoveAbandonedOnBorrow(getProperty(mainProperties,"dbcp.remove.abandoned",true));
+		((BasicDataSource) coreDataSource).setRemoveAbandonedOnMaintenance(getProperty(mainProperties,"dbcp.remove.abandoned",true));
+		((BasicDataSource) coreDataSource).setRemoveAbandonedTimeout(getProperty(mainProperties,"dbcp.abandoned.timeout",3000));
+		((BasicDataSource) coreDataSource).setTimeBetweenEvictionRunsMillis(getProperty(mainProperties,"dbcp.eviction.time",3000));
+		((BasicDataSource) coreDataSource).setMaxIdle(getProperty(mainProperties,"dbcp.max.idle",10));
+
 	}
 
 	/**
@@ -485,6 +551,7 @@ public class SvConf {
 	private static Connection getJDBConnection() throws SvException {
 		Connection conn = null;
 		try {
+			//conn = DriverManager.getConnection(connString, connUser, connPass);
 			conn = coreDataSource.getConnection();
 		} catch (Exception ex) {
 			throw (new SvException("system.error.db_conn_err", svCONST.systemUser, ex));
