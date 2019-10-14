@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.apache.commons.io.IOUtils;
@@ -73,14 +74,14 @@ public class SvPostgresIO implements ISvDatabaseIO {
 	}
 
 	@Override
-	public PreparedStatement getInsertRepoStatement(Connection conn, String defaultStatement) {
+	public PreparedStatement getInsertRepoStatement(Connection conn, String defaultStatement, String schema, String repoName) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
 	}
 
 	@Override
-	public Object getInsertRepoStruct(Connection conn) {
+	public Object getInsertRepoStruct(Connection conn, int maxSize) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
@@ -88,13 +89,13 @@ public class SvPostgresIO implements ISvDatabaseIO {
 
 	@Override
 	public void addRepoBatch(Object insertRepoStruct, Long PKID, Long oldMetaPKID, Long objectId, Timestamp dtInsert,
-			Timestamp dtDelete, Long parentId, Long objType, String objStatus, Long userId) {
+			Timestamp dtDelete, Long parentId, Long objType, String objStatus, Long userId, int rowIndex) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 	}
 
 	@Override
-	public ResultSet repoSaveGetKeys(PreparedStatement repoInsert, Object insertRepoStruct) {
+	public Map<Long, Long> repoSaveGetKeys(PreparedStatement repoInsert, Object insertRepoStruct) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
