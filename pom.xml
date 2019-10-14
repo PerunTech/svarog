@@ -67,6 +67,7 @@
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
+					<appendAssemblyId>false</appendAssemblyId>
 				</configuration>
 			</plugin>
 
@@ -295,6 +296,12 @@
 			<artifactId>protobuf-dynamic</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+				<dependency>
+			<groupId>org.easybatch</groupId>
+			<artifactId>easybatch-core</artifactId>
+			<version>5.2.0</version>
+		</dependency>
+		
 	</dependencies>
 
 	<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
