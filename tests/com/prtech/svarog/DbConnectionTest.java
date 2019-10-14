@@ -17,10 +17,27 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.*;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+
+import org.joda.time.DateTime;
 import org.junit.Test;
 
+import oracle.jdbc.OracleConnection;
+import oracle.sql.ARRAY;
+import oracle.sql.ArrayDescriptor;
+import oracle.sql.StructDescriptor;
+import java.sql.Array;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSetMetaData;
+import java.sql.Struct;
+import java.sql.Types;
 
 public class DbConnectionTest {
 	@Test
