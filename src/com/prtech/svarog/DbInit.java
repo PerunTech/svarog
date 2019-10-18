@@ -12,7 +12,7 @@
  *   permissions and limitations under the License.
  *  
  *******************************************************************************/
- 
+
 package com.prtech.svarog;
 
 import com.prtech.svarog.SvCore.SvAccess;
@@ -65,6 +65,86 @@ public class DbInit {
 		meta.addProperty("ShowInGeoJSONProps", true);
 		return meta;
 
+	}
+
+	//
+	private static DbDataTable getMasterExecutors() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName("{REPO_TABLE_NAME}_executors");
+		dbt.setDbRepoName("{MASTER_REPO}");
+		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTORS);
+		dbt.setIsRepoTable(false);
+		dbt.setLabel_code("master_repo.executors");
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code("master_repo.table_meta_pkid");
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName("CATEGORY");
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(100);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code("master_repo.executor_category");
+
+		// f3
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName("NAME");
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(100);
+		dbf3.setIsNull(false);
+		dbf3.setLabel_code("master_repo.executor_name");
+		// f3
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("JAVA_TYPE");
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(100);
+		dbf4.setIsNull(false);
+		dbf4.setLabel_code("master_repo.executor_type");
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName("DESCRIPTION");
+		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf5.setDbFieldSize(300);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code("master_repo.executor_description");
+
+		DbDataField dbf6 = new DbDataField();
+		dbf6.setDbFieldName("START_DATE");
+		dbf6.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf6.setIsUnique(true);
+		dbf6.setDbFieldSize(3);
+		dbf6.setLabel_code("master_repo.executor_start_date");
+
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName("END_DATE");
+		dbf7.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf7.setIsUnique(true);
+		dbf7.setDbFieldSize(3);
+		dbf7.setLabel_code("master_repo.executor_end_date");
+
+		DbDataField[] dbTableFields = new DbDataField[7];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf3;
+		dbTableFields[3] = dbf4;
+		dbTableFields[4] = dbf5;
+		dbTableFields[5] = dbf6;
+		dbTableFields[6] = dbf7;
+
+		dbt.setDbTableFields(dbTableFields);
+
+		return dbt;
 	}
 
 	// RULE ENGINE
@@ -4898,6 +4978,9 @@ public class DbInit {
 		dbtt = createMessage();
 		dbtList.add(addSortOrder(dbtt));
 
+		dbtt = getMasterExecutors();
+		dbtList.add(addSortOrder(dbtt));
+
 		// Add SDI structure
 		if (SvConf.isSdiEnabled()) {
 			dbtt = getSDIMasterRepoObject();
@@ -5035,13 +5118,15 @@ public class DbInit {
 	 */
 
 	private static void loadLabelsFromCustom(String jarPath, HashMap<String, DbDataObject> mLabels, String locale) {
-		InputStream iStr = DbInit.loadCustomResources(jarPath, "labels/" + locale + "Labels.properties");
+		InputStream iStr = null;
 		Properties prop = new Properties();
-
-		if (iStr != null) {
-			// load strings
-			try {
+		String labelsPath = "labels/" + locale + "Labels.properties";
+		// load strings
+		try {
+			iStr = DbInit.loadCustomResources(jarPath, labelsPath);
+			if (iStr != null) {
 				prop.load(new InputStreamReader(iStr, "UTF-8"));
+				log4j.info("Loaded labels file '" + labelsPath + "' from: " + jarPath);
 
 				Iterator<Entry<Object, Object>> pit = prop.entrySet().iterator();
 				if (prop.size() > 0)
@@ -5067,17 +5152,16 @@ public class DbInit {
 						mLabels.put((String) pair.getKey(), dbo);
 
 					}
-			} catch (Exception e1) {
-				System.out.println("Error loading labels from custom jar:" + jarPath);
-				e1.printStackTrace();
-				return;
-			} finally {
-				try {
+			} else
+				log4j.trace("Labels file '" + labelsPath + "' not found in: " + jarPath);
+		} catch (Exception e1) {
+			log4j.error("Error loading labels from custom jar:" + jarPath, e1);
+		} finally {
+			try {
+				if (iStr != null)
 					iStr.close();
-				} catch (IOException e) {
-					System.out.println("Can not close input stream from custom jar:" + jarPath);
-					e.printStackTrace();
-				}
+			} catch (IOException e) {
+				log4j.error("Can not close input stream from custom jar:" + jarPath,e);
 			}
 		}
 
@@ -5112,7 +5196,7 @@ public class DbInit {
 			aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
 			json = gson.fromJson(aclStr, JsonElement.class);
 		} catch (Exception ex) {
-			log4j.debug(
+			log4j.trace(
 					"Warning, no ACLs found in:" + jarPath + ", path:" + filePath + ". Exception:" + ex.getMessage());
 			// ex.printStackTrace();
 		} finally {
@@ -5236,8 +5320,7 @@ public class DbInit {
 						}
 					}
 				}
-				// load codes from the OSGI bundles dir too
-
+				// load ACSfrom the OSGI bundles dir too
 				customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 				customJars = customFolder.listFiles();
 				if (customJars != null) {
@@ -5373,31 +5456,13 @@ public class DbInit {
 			// master_locales.json", locales.toJson().toString());
 			for (DbDataObject entry : locales.getItems()) {
 				try {
-					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id") + "Labels.properties";
-
-					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
-					if (iStr == null)
-						continue;
-
-					log4j.info("Loaded labels from: " + labelFile);
-
-					Properties rb = new Properties();
-
-					if (iStr != null) {
-						// load strings
-						try {
-							rb.load(new InputStreamReader(iStr, "UTF-8"));
-						} finally {
-							iStr.close();
-						}
-					}
-
 					// load labers from the custom folder
 					File customFolder = new File("custom/");
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
 						if (customJars != null) {
 							for (int i = 0; i < customJars.length; i++) {
+								log4j.debug("Trying to load labels from: " + customJars[i].getAbsolutePath());
 								if (customJars[i].getName().endsWith(".jar"))
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
 											(String) entry.getVal("locale_id"));
@@ -5411,15 +5476,32 @@ public class DbInit {
 						File[] customJars = customFolder.listFiles();
 						if (customJars != null) {
 							for (int i = 0; i < customJars.length; i++) {
-								if (customJars[i].getName().endsWith(".jar"))
+								if (customJars[i].getName().endsWith(".jar")) {
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
 											(String) entry.getVal("locale_id"));
+								}
 							}
+						}
+					}
+
+					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id") + "Labels.properties";
+
+					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
+
+					Properties rb = null;
+
+					if (iStr != null) {
+						// load strings
+						try {
+							rb = new Properties();
+							rb.load(new InputStreamReader(iStr, "UTF-8"));
+							log4j.info("Loaded labels from: " + labelFile);
+						} finally {
+							iStr.close();
 						}
 					}
 					if (rb != null) {
 						// load strings
-
 						Iterator<Object> pit = rb.keySet().iterator();
 						while (pit.hasNext()) {
 							String key = (String) pit.next();
@@ -5445,16 +5527,18 @@ public class DbInit {
 						}
 					}
 				} catch (Exception e) {
-					continue;
+					log4j.debug("Error reading svarog root labels", e);
 				}
 
-				arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
-				String strRetval = "";
-				strRetval = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.labelsFilePrefix
-						+ entry.getVal("locale_id") + ".json", arr, true);
-				if (!strRetval.equals("")) {
-					testRetval += testRetval + strRetval + " json/records/20. master_labels_"
-							+ entry.getVal("locale_id") + ".json; ";
+				if (mLabels != null && mLabels.size() > 0) {
+					arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
+					String strRetval = "";
+					strRetval = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath
+							+ svCONST.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
+					if (!strRetval.equals("")) {
+						testRetval += testRetval + strRetval + " json/records/20. master_labels_"
+								+ entry.getVal("locale_id") + ".json; ";
+					}
 				}
 				arr.getItems().clear();
 				mLabels.clear();
@@ -6092,26 +6176,37 @@ public class DbInit {
 		}
 	}
 
+	/**
+	 * Method to load codes from either 'custom/' directory or OSGI bundles
+	 * AUTODEPLOY DIR
+	 * 
+	 * @param jarPath
+	 *            The path of the jar file containining
+	 *            "labels/codes.properties"
+	 * @param jCodes
+	 *            The
+	 * @throws IOException
+	 */
 	private static void loadCodesFromCustom(String jarPath, JsonObject jCodes) throws IOException {
-		InputStream customIs = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
-
+		InputStream customIs = null;
 		Gson gson = (new GsonBuilder().setPrettyPrinting().create());
-		if (customIs != null) {
-			try {
+		try {
+			customIs = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
+			if (customIs != null) {
 				String jsonCustom = IOUtils.toString(customIs, "UTF-8");
 				JsonObject customJobj = gson.fromJson(jsonCustom, JsonElement.class).getAsJsonObject();
 				mergeChildrenCodes(jCodes, customJobj);
-			} catch (Exception e1) {
-				System.out.println("Error loading codes from custom jar:" + jarPath);
-				e1.printStackTrace();
-				return;
-			} finally {
-				try {
+			}
+		} catch (Exception e1) {
+			log4j.error("Error loading codes from custom jar:" + jarPath);
+			e1.printStackTrace();
+			return;
+		} finally {
+			try {
+				if (customIs != null)
 					customIs.close();
-				} catch (IOException e) {
-					System.out.println("Can not close input stream from custom jar:" + jarPath);
-					e.printStackTrace();
-				}
+			} catch (IOException e) {
+				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
 			}
 		}
 
@@ -6206,8 +6301,7 @@ public class DbInit {
 					jsonCodes);
 			codesStr[0] = jsonCodes;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log4j.error("Error processing codes: ", e);
 		}
 		updateFileLists();
 		return startingObjId;
