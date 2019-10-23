@@ -66,7 +66,7 @@ The method `DbDataArray.getDistinctValuesPerColumns` no more accepts a `SvReader
 	5.7 Unpack the default osgi-bundles-default.zip into the osgi-bundles folder (to have some bundles to play with)
 	
 	5.8 Pull the triglav-core project from gitlab, package as jar and place in the osgi-bunlde dir to provide basic proof of concept how to use Svarog v3. In order to build triglav-core sample you need to install svarog library first 
-	$mvn install -DskiptTests
+	$mvn install -DskipTests
 	
 	5.8 To run the svarog OSGI container 
 	$mvn exec:java@osgi -P PostgreSQL
