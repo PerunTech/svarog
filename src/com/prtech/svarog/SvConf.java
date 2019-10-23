@@ -334,11 +334,10 @@ public class SvConf {
 				log4j.warn("Svarog sys.gis.grid_size can't be read. Defaulting to 10km grid size.");
 				sdiGridSize = 10;
 			}
-			
-			maxLockTimeout=getProperty(mainProperties,"sys.lock.max_wait_time",5 * 60 * 1000);
-			maxLockCount =getProperty(mainProperties,"sys.lock.max_count",5000);
 
-			
+			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5)*60*1000;
+			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
+
 			dbType = mainProperties.getProperty("conn.dbType").trim().toUpperCase();
 			if (!(dbType.equals("ORACLE") || dbType.equals("POSTGRES") || dbType.equals("MSSQL"))) {
 				log4j.error("Bad DB Type!!! Must be POSTGRES, MSSQL and ORACLE");
@@ -383,10 +382,15 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to try to parse a property to integer and set to default value if it fails
-	 * @param mainProperties the list of properties
-	 * @param propName the name of the property
-	 * @param defaultValue the default value to be set to if parsing fails
+	 * Method to try to parse a property to integer and set to default value if
+	 * it fails
+	 * 
+	 * @param mainProperties
+	 *            the list of properties
+	 * @param propName
+	 *            the name of the property
+	 * @param defaultValue
+	 *            the default value to be set to if parsing fails
 	 * @return the int value of the property
 	 */
 	static int getProperty(Properties mainProperties, String propName, int defaultValue) {
@@ -394,15 +398,21 @@ public class SvConf {
 		try {
 			intProp = Integer.parseInt(mainProperties.getProperty(propName).trim());
 		} catch (Exception ex) {
-			log4j.warn(propName+" config property is unreadable, using default initial value = "+defaultValue);
+			log4j.warn(propName + " config property is unreadable, using default initial value = " + defaultValue);
 		}
 		return intProp;
 	}
+
 	/**
-	 * Method to try to parse a property to boolean and set to default value if it fails
-	 * @param mainProperties the list of properties
-	 * @param propName the name of the property
-	 * @param defaultValue the default value to be set to if parsing fails
+	 * Method to try to parse a property to boolean and set to default value if
+	 * it fails
+	 * 
+	 * @param mainProperties
+	 *            the list of properties
+	 * @param propName
+	 *            the name of the property
+	 * @param defaultValue
+	 *            the default value to be set to if parsing fails
 	 * @return the boolean value of the property
 	 */
 	static boolean getProperty(Properties mainProperties, String propName, boolean defaultValue) {
@@ -410,34 +420,40 @@ public class SvConf {
 		try {
 			boolProp = Boolean.parseBoolean(mainProperties.getProperty(propName).trim());
 		} catch (Exception ex) {
-			log4j.warn(propName+" config property is unreadable, using default initial value = "+defaultValue);
+			log4j.warn(propName + " config property is unreadable, using default initial value = " + defaultValue);
 		}
 		return boolProp;
 	}
-	
+
 	/**
-	 * Method to try to parse a property to boolean and set to default value if it fails
-	 * @param mainProperties the list of properties
-	 * @param propName the name of the property
-	 * @param defaultValue the default value to be set to if parsing fails
+	 * Method to try to parse a property to boolean and set to default value if
+	 * it fails
+	 * 
+	 * @param mainProperties
+	 *            the list of properties
+	 * @param propName
+	 *            the name of the property
+	 * @param defaultValue
+	 *            the default value to be set to if parsing fails
 	 * @return the string value of the property
 	 */
 	static String getProperty(Properties mainProperties, String propName, String defaultValue) {
 		String prop = defaultValue;
 		try {
 			prop = mainProperties.getProperty(propName).trim();
-			if(prop.isEmpty())
-			{
+			if (prop.isEmpty()) {
 				prop = defaultValue;
-				throw(new Exception("empty.prop"));
+				throw (new Exception("empty.prop"));
 			}
 		} catch (Exception ex) {
-			log4j.warn(propName+" config property is unreadable, using default initial value = "+defaultValue);
+			log4j.warn(propName + " config property is unreadable, using default initial value = " + defaultValue);
 		}
 		return prop;
 	}
+
 	/**
 	 * Method to configure the DBCP from the main properties
+	 * 
 	 * @param mainProperties
 	 */
 	static void configureDBCP(Properties mainProperties) {
@@ -452,19 +468,26 @@ public class SvConf {
 		((BasicDataSource) coreDataSource).setPassword(mainProperties.getProperty("user.password").trim());
 
 		// Parameters for connection pooling
-		((BasicDataSource) coreDataSource).setInitialSize(getProperty(mainProperties,"dbcp.init.size",10));
-		((BasicDataSource) coreDataSource).setMaxTotal(getProperty(mainProperties,"dbcp.max.total",200));
-		((BasicDataSource) coreDataSource).setTestOnBorrow(getProperty(mainProperties,"dbcp.test.borrow",true));
-		((BasicDataSource) coreDataSource).setTestWhileIdle(getProperty(mainProperties,"dbcp.test.idle",true));
-		String defaultValidationQuery ="SELECT 1"+(svDbType.equals(SvDbType.ORACLE)?" FROM DUAL":"");
-		((BasicDataSource) coreDataSource).setValidationQuery(getProperty(mainProperties,"dbcp.validation.query",defaultValidationQuery));
-		((BasicDataSource) coreDataSource).setValidationQueryTimeout(getProperty(mainProperties,"dbcp.validation.timoeut",3000));
-		((BasicDataSource) coreDataSource).setAccessToUnderlyingConnectionAllowed(getProperty(mainProperties,"dbcp.access.conn",true));
-		((BasicDataSource) coreDataSource).setRemoveAbandonedOnBorrow(getProperty(mainProperties,"dbcp.remove.abandoned",true));
-		((BasicDataSource) coreDataSource).setRemoveAbandonedOnMaintenance(getProperty(mainProperties,"dbcp.remove.abandoned",true));
-		((BasicDataSource) coreDataSource).setRemoveAbandonedTimeout(getProperty(mainProperties,"dbcp.abandoned.timeout",3000));
-		((BasicDataSource) coreDataSource).setTimeBetweenEvictionRunsMillis(getProperty(mainProperties,"dbcp.eviction.time",3000));
-		((BasicDataSource) coreDataSource).setMaxIdle(getProperty(mainProperties,"dbcp.max.idle",10));
+		((BasicDataSource) coreDataSource).setInitialSize(getProperty(mainProperties, "dbcp.init.size", 10));
+		((BasicDataSource) coreDataSource).setMaxTotal(getProperty(mainProperties, "dbcp.max.total", 200));
+		((BasicDataSource) coreDataSource).setTestOnBorrow(getProperty(mainProperties, "dbcp.test.borrow", true));
+		((BasicDataSource) coreDataSource).setTestWhileIdle(getProperty(mainProperties, "dbcp.test.idle", true));
+		String defaultValidationQuery = "SELECT 1" + (svDbType.equals(SvDbType.ORACLE) ? " FROM DUAL" : "");
+		((BasicDataSource) coreDataSource)
+				.setValidationQuery(getProperty(mainProperties, "dbcp.validation.query", defaultValidationQuery));
+		((BasicDataSource) coreDataSource)
+				.setValidationQueryTimeout(getProperty(mainProperties, "dbcp.validation.timoeut", 3000));
+		((BasicDataSource) coreDataSource)
+				.setAccessToUnderlyingConnectionAllowed(getProperty(mainProperties, "dbcp.access.conn", true));
+		((BasicDataSource) coreDataSource)
+				.setRemoveAbandonedOnBorrow(getProperty(mainProperties, "dbcp.remove.abandoned", true));
+		((BasicDataSource) coreDataSource)
+				.setRemoveAbandonedOnMaintenance(getProperty(mainProperties, "dbcp.remove.abandoned", true));
+		((BasicDataSource) coreDataSource)
+				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 3000));
+		((BasicDataSource) coreDataSource)
+				.setTimeBetweenEvictionRunsMillis(getProperty(mainProperties, "dbcp.eviction.time", 3000));
+		((BasicDataSource) coreDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
 
 	}
 
@@ -554,7 +577,8 @@ public class SvConf {
 	private static Connection getJDBConnection() throws SvException {
 		Connection conn = null;
 		try {
-			//conn = DriverManager.getConnection(connString, connUser, connPass);
+			// conn = DriverManager.getConnection(connString, connUser,
+			// connPass);
 			conn = coreDataSource.getConnection();
 		} catch (Exception ex) {
 			throw (new SvException("system.error.db_conn_err", svCONST.systemUser, ex));

@@ -26,7 +26,9 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.prtech.svarog_common.DbDataObject;
 
 /***
  * Class for managing locks over long running svarog operations. Redis
@@ -56,6 +58,13 @@ public class SvLock {
 		CacheBuilder builder = CacheBuilder.newBuilder();
 		builder = builder.maximumSize(SvConf.getMaxLockCount());
 		builder = builder.expireAfterAccess(SvConf.getMaxLockTimeout(), TimeUnit.MILLISECONDS);
+		builder = builder.removalListener(new RemovalListener<String, ReentrantLock>() {
+			@Override
+			public void onRemoval(RemovalNotification<String, ReentrantLock> removal) {
+				if (log4j.isDebugEnabled())
+					log4j.trace("Removing key:" + removal.getKey() + ", lock:" + removal.getValue().toString());
+			}
+		});
 		return (LoadingCache<String, ReentrantLock>) builder
 				.<String, ReentrantLock>build(new CacheLoader<String, ReentrantLock>() {
 					@Override
