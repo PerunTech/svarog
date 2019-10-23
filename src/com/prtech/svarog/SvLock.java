@@ -52,12 +52,11 @@ public class SvLock {
 	@Deprecated
 	public static boolean getLock(String key, Boolean isBlocking) {
 		long timeout = 0;
-		if(isBlocking)
-		{
-			timeout=SvConf.getMaxLockTimeout();
-			isBlocking=false;
+		if (isBlocking) {
+			timeout = SvConf.getMaxLockTimeout();
+			isBlocking = false;
 		}
-		return getLock(key, isBlocking, timeout)!=null;
+		return getLock(key, isBlocking, timeout) != null;
 	}
 
 	/**
@@ -71,6 +70,7 @@ public class SvLock {
 	public static boolean getLock(String key) {
 		return getLock(key, true);
 	}
+
 	/**
 	 * Method to get a lock for a specific key
 	 * 
@@ -90,22 +90,13 @@ public class SvLock {
 					+ timeout);
 
 		Boolean lockAcquired = false;
-		ReentrantLock retLock = null;
-
-		synchronized (sysLocks) {
-			retLock = sysLocks.get(key);
-			if (retLock == null) {
-				retLock = new ReentrantLock();
-				sysLocks.put(key, retLock);
-				if (log4j.isDebugEnabled())
-					log4j.trace("New lock key:" + key + ", generated");
-			}
-			// if this is non-blocking lock immediately try to lock it
-			// and avoid long waiting. We want to exit the synchronized block
-			// before we start the long wait
-			if (!isBlocking)
-				lockAcquired = retLock.tryLock();
-		}
+		ReentrantLock retLock = new ReentrantLock();
+		// if this is non-blocking lock immediately try to lock it
+		// and avoid long waiting. We want to exit the synchronized block
+		// before we start the long wait
+		retLock = sysLocks.putIfAbsent(key, retLock);
+		if (!isBlocking)
+			lockAcquired = retLock.tryLock();
 
 		if (!lockAcquired) {
 			if (isBlocking) {
@@ -123,14 +114,7 @@ public class SvLock {
 		if (lockAcquired) {
 			// verify that the releasing thread didn't remove the lock from the
 			// map. We need this to ensure that the lock wasn't lost
-			synchronized (sysLocks) {
-				if (sysLocks.get(key) == null) {
-					sysLocks.put(key, retLock);
-					if (log4j.isDebugEnabled())
-						log4j.trace("Lock removed by other thread:" + key + ", now adding it again");
-				}
-			}
-
+			retLock = sysLocks.putIfAbsent(key, retLock);
 		} else
 			retLock = null;
 
@@ -157,26 +141,28 @@ public class SvLock {
 			log4j.debug("Lock release requested for key:" + key);
 
 		if (lock != null || alwaysUnlock) {
-			synchronized (sysLocks) {
-				ReentrantLock mapLock = sysLocks.get(key);
-				if (mapLock == null) {
-					log4j.error("No lock to release under key:" + key);
-				} else {
+			ReentrantLock mapLock = sysLocks.get(key);
+			if (mapLock == null) {
+				log4j.error("No lock to release under key:" + key);
+			} else {
 
-					if (mapLock.equals(lock) || alwaysUnlock) {
-						mapLock.unlock();
-						if (log4j.isDebugEnabled())
-							log4j.trace("Lock decremented for key:" + key + ", hold count:" + mapLock.getHoldCount());
-					} else
-						log4j.error("Release requested for unlocked key:" + key + ", but lock reference is not equal");
+				if (mapLock.equals(lock) || alwaysUnlock) {
+					// if we are the last one to hold the lock then remove it also.
+					if (mapLock.getHoldCount() <= 1) {
+						if (sysLocks.remove(key, mapLock))
+						{
+							if (log4j.isDebugEnabled())
+								log4j.debug("Lock key:" + key + ", removed from lock list");
+						}else 
+								log4j.error("The lock for key:" + key + " was replaced!");
+					}	
+					mapLock.unlock();
+					if (log4j.isDebugEnabled())
+						log4j.trace("Lock decremented for key:" + key + ", hold count:" + mapLock.getHoldCount());
+				} else
+					log4j.error("Release requested for unlocked key:" + key + ", but lock reference is not equal");
 
-					if (mapLock.getHoldCount() == 0) {
-						sysLocks.remove(key);
-						if (log4j.isDebugEnabled())
-							log4j.debug("Lock key:" + key + ", removed from lock list");
-					}
 
-				}
 			}
 		} else
 			log4j.error("Release requested for unlocked key:" + key + ", but lock reference was null");
@@ -204,7 +190,8 @@ public class SvLock {
 	 * 
 	 * WARNING: This method allows you to create a bug, in which one thread
 	 * acquires the lock and another one tries to unlock it, thus raising
-	 * exception. If you are using this method, refactor your code to use {@link #releaseLock(String, ReentrantLock)}
+	 * exception. If you are using this method, refactor your code to use
+	 * {@link #releaseLock(String, ReentrantLock)}
 	 * 
 	 * @param key
 	 *            The key to unlock
