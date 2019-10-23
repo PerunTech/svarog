@@ -94,7 +94,9 @@ public class SvLock {
 		// if this is non-blocking lock immediately try to lock it
 		// and avoid long waiting. We want to exit the synchronized block
 		// before we start the long wait
-		retLock = sysLocks.putIfAbsent(key, retLock);
+		ReentrantLock oldLock = sysLocks.putIfAbsent(key, retLock);
+		retLock = (oldLock!=null? oldLock: retLock);
+		
 		if (!isBlocking)
 			lockAcquired = retLock.tryLock();
 
@@ -114,7 +116,8 @@ public class SvLock {
 		if (lockAcquired) {
 			// verify that the releasing thread didn't remove the lock from the
 			// map. We need this to ensure that the lock wasn't lost
-			retLock = sysLocks.putIfAbsent(key, retLock);
+			oldLock = sysLocks.putIfAbsent(key, retLock);
+			retLock = (oldLock!=null? oldLock: retLock);
 		} else
 			retLock = null;
 
