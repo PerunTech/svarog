@@ -82,6 +82,11 @@ public class SvConf {
 	private static long maxLockTimeout = 60000;
 
 	/**
+	 * Maximum number of locks managed by SvLock
+	 */
+	private static int maxLockCount;
+
+	/**
 	 * Flag to mark if SDI is enabled
 	 */
 	private static boolean sdiEnabled = false;
@@ -329,13 +334,11 @@ public class SvConf {
 				log4j.warn("Svarog sys.gis.grid_size can't be read. Defaulting to 10km grid size.");
 				sdiGridSize = 10;
 			}
+			
+			maxLockTimeout=getProperty(mainProperties,"sys.lock.max_wait_time",5 * 60 * 1000);
+			maxLockCount =getProperty(mainProperties,"sys.lock.max_count",5000);
 
-			try {
-				maxLockTimeout = Integer.parseInt(mainProperties.getProperty("sys.lock.max_wait_time")) * 60 * 1000;
-			} catch (Exception ex) {
-				log4j.warn("Svarog sys.lock.max_wait_time can't be read. Defaulting to 5 minutes max wait time.");
-				maxLockTimeout = 5 * 60 * 1000;
-			}
+			
 			dbType = mainProperties.getProperty("conn.dbType").trim().toUpperCase();
 			if (!(dbType.equals("ORACLE") || dbType.equals("POSTGRES") || dbType.equals("MSSQL"))) {
 				log4j.error("Bad DB Type!!! Must be POSTGRES, MSSQL and ORACLE");
@@ -793,6 +796,14 @@ public class SvConf {
 
 	public static void setSdiEnabled(boolean sdiEnabled) {
 		SvConf.sdiEnabled = sdiEnabled;
+	}
+
+	public static int getMaxLockCount() {
+		return maxLockCount;
+	}
+
+	public static void setMaxLockCount(int maxLockCount) {
+		SvConf.maxLockCount = maxLockCount;
 	}
 
 }
