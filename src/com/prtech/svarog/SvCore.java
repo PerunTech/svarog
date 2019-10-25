@@ -81,7 +81,7 @@ import com.vividsolutions.jts.io.WKBWriter;
  * configurable while breaking all best practices and patterns.
  * 
  */
-public abstract class SvCore implements ISvCore{
+public abstract class SvCore implements ISvCore {
 	/////////////////////////////////////////////////////////////
 	// SvCore static variables and methods
 	/////////////////////////////////////////////////////////////
@@ -217,6 +217,11 @@ public abstract class SvCore implements ISvCore{
 	 * Flag with information about the status of the Svarog initialization
 	 */
 	static AtomicBoolean isValid = new AtomicBoolean(false);
+
+	/**
+	 * Flag which tells if svarog daemon is running
+	 */
+	static AtomicBoolean svDaemonRunning = new AtomicBoolean(false);
 
 	/**
 	 * Timestamp which registers the SvCore last cleanup. A cleanup is performed
@@ -355,19 +360,27 @@ public abstract class SvCore implements ISvCore{
 	 * Perform good house keeping and cleanup any previous tracked connections.
 	 * The cleaning is executed in a separate thread
 	 */
-	private void trackedConnCleanup() {
+	static void trackedConnCleanup(boolean useCurrentThread) {
 		// ensure that we do cleanup only periodically (after a time out period)
-		if ((coreCreation - coreLastCleanup) < SvConf.getCoreIdleTimeout())
+		if ((DateTime.now().getMillis() - coreLastCleanup) < SvConf.getCoreIdleTimeout())
 			return;
 		else {
 			// try to get a lock for the SvConnCleaner, if we fail, just pass
 			if (maintenanceRunning.compareAndSet(false, true)) {
 				coreLastCleanup = DateTime.now().getMillis();
-				Thread cleanerThread = new Thread(new SvConnCleaner());
-				cleanerThread.setName(svCONST.maintenanceThreadId);
-				// do we actually want to know when the cleaner finished? Can we
-				// have multiple active cleaners? right?
-				cleanerThread.start();
+				// if the cleanup is invoked from the svarog daemon it shall use
+				// the current thread
+				if (useCurrentThread) {
+					SvConnCleaner clean = new SvConnCleaner();
+					clean.run();
+				} else { // run the cleanup in new thread
+					Thread cleanerThread = new Thread(new SvConnCleaner());
+					cleanerThread.setName(svCONST.maintenanceThreadId);
+					// do we actually want to know when the cleaner finished?
+					// Can we
+					// have multiple active cleaners? right?
+					cleanerThread.start();
+				}
 			}
 
 		}
@@ -428,7 +441,8 @@ public abstract class SvCore implements ISvCore{
 		if (!isValid.get())
 			initSvCoreImpl(false);
 
-		trackedConnCleanup();
+		if (!svDaemonRunning.get())
+			trackedConnCleanup(false);
 		if (srcCore != null && srcCore != this) {
 			weakSrcCore = srcCore.weakThis;
 			this.coreSessionId = srcCore.getSessionId();
@@ -1201,6 +1215,7 @@ public abstract class SvCore implements ISvCore{
 	public static void initSvCore() throws SvException {
 		initSvCoreImpl(false);
 	}
+
 	/**
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
 	 * 
