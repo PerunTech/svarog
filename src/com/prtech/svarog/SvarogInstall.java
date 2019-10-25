@@ -124,15 +124,17 @@ public class SvarogInstall {
 	 * @param args
 	 *            Command line list of arguments
 	 */
-	public static void main(String[] args) {
+	public static int main(String[] args) {
 		CommandLineParser parser = new DefaultParser();
 		Options options = getOptions();
 		int returnStatus = 0;
 		try {
 			// parse the command line arguments
 			CommandLine line = parser.parse(options, args);
-
-			// if the help option is set, just print help and do nothing
+			// if the flag -d or --daemon has been set, simply return the status
+			if (line.hasOption("dm")) {
+				return SvarogDaemon.svarogDaemonStatus;
+			} else // if the help option is set, just print help and do nothing
 			if (line.hasOption("h")) {
 				// print the value of block-size
 				HelpFormatter formatter = new HelpFormatter();
@@ -183,33 +185,37 @@ public class SvarogInstall {
 			System.out.println("Unexpected exception:" + exp.getMessage());
 			returnStatus = -2;
 		}
-		System.exit(returnStatus);
+		if (!SvCore.svDaemonRunning.get())
+			System.exit(returnStatus);
+
+		return returnStatus;
 
 	}
 
 	/**
 	 * Method to test if svarog can connect to the database.
+	 * 
 	 * @return 0 if the connection is successful.
 	 */
 	private static int canConnectToDb() {
-		int errStatus=-1;
+		int errStatus = -1;
 		Connection conn = null;
-		log4j.info("Validating connection to "+SvConf.getConnectionString());
+		log4j.info("Validating connection to " + SvConf.getConnectionString());
 		try {
 			conn = SvConf.getDBConnection();
 			if (conn != null)
-				errStatus=0;
+				errStatus = 0;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			log4j.info("DbConnection.getDBConnection() raised an exception");
-			log4j.debug("Connection exception:",e);
+			log4j.debug("Connection exception:", e);
 
 		} finally {
 			if (conn != null)
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					log4j.debug("Connection wont close:",e);
+					log4j.debug("Connection wont close:", e);
 				}
 		}
 		return errStatus;
@@ -217,13 +223,14 @@ public class SvarogInstall {
 
 	/**
 	 * Method to validate if the prerequisites for the install are satisfied.
+	 * 
 	 * @return
 	 */
 	private static int validateInstall() {
-		int errStatus=canConnectToDb();
-		if(SvConf.isSdiEnabled())
-			if(!SvGeometry.isSDIInitalized())
-				errStatus=-3;
+		int errStatus = canConnectToDb();
+		if (SvConf.isSdiEnabled())
+			if (!SvGeometry.isSDIInitalized())
+				errStatus = -3;
 		return errStatus;
 	}
 
@@ -938,6 +945,11 @@ public class SvarogInstall {
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
+		opt = new Option("dm", "daemon", false,
+				"start Svarog in daemon mode");
+		coreGroup.addOption(opt);
+		sysCoreOpts.add(opt);
+
 		coreGroup.addOption(opt);
 		opt = new Option("h", "help", false, "print this message");
 		coreGroup.addOption(opt);
@@ -962,7 +974,6 @@ public class SvarogInstall {
 		autoGroup.addOption(opt);
 		options.addOptionGroup(autoGroup);
 
-		
 		OptionGroup repoGroup = new OptionGroup();
 		opt = OptionBuilder.withLongOpt("migrate-objects")
 				.withDescription("migrates all misconfigured objects to the correctly configured repo").create();
