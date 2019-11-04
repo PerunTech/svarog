@@ -1198,8 +1198,8 @@ public abstract class SvCore implements ISvCore{
 	 * @return True if the system has been initialised properly.
 	 * @throws SvException
 	 */
-	public static void initSvCore() throws SvException {
-		initSvCoreImpl(false);
+	public static boolean initSvCore() throws SvException {
+		return initSvCoreImpl(false);
 	}
 	/**
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
@@ -1323,18 +1323,25 @@ public abstract class SvCore implements ISvCore{
 				isCfgInDb = true;
 				svarogState = true;
 			} catch (Exception ex) {
-				log4j.error("Can't load basic configurations! System not loaded!", ex);
+				log4j.error("Can't load basic configurations! Svarog not loaded!");
+				if (ex instanceof SvException)
+					log4j.error(((SvException) ex).getFormattedMessage());
+				log4j.debug("System loading error", ex);
+
 				svarogState = false;
 			} finally {
 				if (svc != null)
 					svc.release();
-				log4j.info("Svarog initialization finished");
 			}
 		} else {
 			log4j.error("Can't load basic configurations! System not loaded!");
 			svarogState = false;
 		}
-
+		if(svarogState)
+			log4j.info("Svarog initialization finished successfully");
+		else 
+			log4j.error("Svarog initialization failed!");
+			
 		isValid.compareAndSet(false, svarogState);
 		isInitialized.compareAndSet(true, svarogState);
 		return svarogState;
