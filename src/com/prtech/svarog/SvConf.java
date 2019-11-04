@@ -16,6 +16,7 @@ package com.prtech.svarog;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -34,6 +35,8 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -47,6 +50,7 @@ import com.prtech.svarog_interfaces.ISvDatabaseIO;
  *
  */
 public class SvConf {
+
 	/**
 	 * Enum listing the supported database types
 	 * 
@@ -160,6 +164,13 @@ public class SvConf {
 
 	static int sdiGridSize;
 
+	/**
+	 * Fields storing application information
+	 */
+	static final String appName = loadInfo("application.name");
+	static final String appVersion = loadInfo("application.version");
+	static final String appBuild = loadInfo("application.build");
+
 	static ArrayList<String> serviceClasses = new ArrayList<String>();
 	/**
 	 * Properties object holding the svarog master configuration
@@ -208,7 +219,7 @@ public class SvConf {
 						+ "! All available timezones in the system can be found here: http://joda-time.sourceforge.net/timezones.html");
 			}
 		}
-		log4j.info("Set MAX_DATE:" + maxDate.toString());
+		log4j.debug("Set MAX_DATE:" + maxDate.toString());
 
 		return maxDate;
 	}
@@ -263,16 +274,16 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to locate and read the main svarog.properties config file
+	 * Method to do the initial reading of the svarog.properties file
 	 * 
-	 * @return Properties instance
+	 * @return Properties object
 	 */
-	private static Properties initConfig() {
+	static Properties loadSvarogProperties() {
+
 		Properties mainProperties = null;
 		InputStream props = null;
 		boolean hasErrors = true;
 		try {
-
 			URL propsUrl = SvConf.class.getClassLoader().getResource("svarog.properties");
 			if (propsUrl != null) {
 
@@ -288,8 +299,9 @@ public class SvConf {
 				}
 				props = new FileInputStream(pFile);
 			}
-			log4j.info("Svarog Version:" + SvConf.class.getPackage().getImplementationVersion());
-
+			log4j.info("Starting " + appName);
+			log4j.info("Version:" + appVersion);
+			log4j.info("Build:" + appBuild);
 			// load all the properties from this file
 			Properties temp = new Properties();
 			temp.load(props);
@@ -316,69 +328,102 @@ public class SvConf {
 				hasErrors = true;
 			}
 		}
-		try {
-			// make sure we set the oracle compliance level
-			String oracleJdbcComliance = mainProperties.getProperty("oracle.jdbc.J2EE13Compliant");
-			if (oracleJdbcComliance != null && oracleJdbcComliance.equalsIgnoreCase("true"))
-				oracleJdbcComliance = "true";
-			else
-				oracleJdbcComliance = "false";
-
-			System.getProperties().setProperty("oracle.jdbc.J2EE13Compliant", oracleJdbcComliance);
-
-			repoName = mainProperties.getProperty("sys.masterRepo").trim().toUpperCase();
-			defaultSchema = mainProperties.getProperty("conn.defaultSchema").trim().toUpperCase();
-			try {
-				sdiGridSize = Integer.parseInt(mainProperties.getProperty("sys.gis.grid_size"));
-			} catch (Exception ex) {
-				log4j.warn("Svarog sys.gis.grid_size can't be read. Defaulting to 10km grid size.");
-				sdiGridSize = 10;
-			}
-
-			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5)*60*1000;
-			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
-
-			dbType = mainProperties.getProperty("conn.dbType").trim().toUpperCase();
-			if (!(dbType.equals("ORACLE") || dbType.equals("POSTGRES") || dbType.equals("MSSQL"))) {
-				log4j.error("Bad DB Type!!! Must be POSTGRES, MSSQL and ORACLE");
-				hasErrors = true;
-			}
-			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
-			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
-
-			if (svDbConnType.equals(SvDbConnType.JNDI)) {
-				Context initialContext = new InitialContext();
-				coreDataSource = (DataSource) initialContext
-						.lookup(mainProperties.getProperty("jndi.datasource").trim());
-			} else {
-				configureDBCP(mainProperties);
-			}
-
-			if (mainProperties.containsKey("sys.codes.multiselect_separator"))
-				multiSelectSeparator = mainProperties.getProperty("sys.codes.multiselect_separator");
-
-		} catch (Exception e) {
-			log4j.error("Svarog.properties config file not properly parsed. Svarog initialisation error.", e);
-			hasErrors = true;
-			// TODO Auto-generated catch block
-			// e.printStackTrace();
-		}
-
-		// check if sdi shall be enabled
-		if (mainProperties.getProperty("sys.gis.enable_spatial") != null
-				&& mainProperties.getProperty("sys.gis.enable_spatial").equals("true"))
-			sdiEnabled = true;
-
-		String svcClass = mainProperties.getProperty("sys.service_class");
-
-		if (svcClass != null && svcClass.length() > 1) {
-			String[] list = svcClass.trim().split(";");
-			if (list.length > 0)
-				serviceClasses.addAll(Arrays.asList(list));
-		}
 		if (hasErrors)
 			mainProperties = null;
 		return mainProperties;
+	}
+
+	/**
+	 * Method to locate and read the main svarog.properties config file
+	 * 
+	 * @return Properties instance
+	 */
+	private static Properties initConfig() {
+		boolean hasErrors = true;
+
+		Properties mainProperties = loadSvarogProperties();
+		try {
+			// make sure we set the oracle compliance level
+			String oracleJdbcComliance = getProperty(mainProperties, "oracle.jdbc.J2EE13Compliant", "false");
+			System.getProperties().setProperty("oracle.jdbc.J2EE13Compliant", oracleJdbcComliance);
+			repoName = getProperty(mainProperties, "sys.masterRepo", "SVAROG").toUpperCase();
+			defaultSchema = getProperty(mainProperties, "conn.defaultSchema", "SVAROG").toUpperCase();
+			sdiGridSize = getProperty(mainProperties, "sys.gis.grid_size", 10);
+			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5) * 60 * 1000;
+			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
+			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
+			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
+
+			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
+			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
+
+			dbType = svDbType.toString();
+			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
+					|| svDbType.equals(SvDbType.MSSQL))) {
+				log4j.error("Wrong database type! Must be one of: POSTGRES, MSSQL or ORACLE");
+				hasErrors = true;
+			}
+			if (svDbConnType.equals(SvDbConnType.JNDI)) {
+				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
+				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
+				Context initialContext = new InitialContext();
+				coreDataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
+			} else {
+				log4j.info("DB connection type is JDBC, using DBCP2");
+				configureDBCP(mainProperties);
+			}
+
+			// configure svarog service classes
+			String svcClass = mainProperties.getProperty("sys.service_class");
+			if (svcClass != null && svcClass.length() > 1) {
+				String[] list = svcClass.trim().split(";");
+				if (list.length > 0)
+					serviceClasses.addAll(Arrays.asList(list));
+			}
+			// init was successful
+			hasErrors = false;
+		} catch (Exception e) {
+			log4j.error("Svarog.properties config file not properly parsed. Svarog initialisation error.", e);
+			hasErrors = true;
+
+		}
+
+		// check if sdi shall be enabled
+		if (hasErrors)
+			mainProperties = null;
+		return mainProperties;
+	}
+
+	/**
+	 * Method to load a value from the version properties.
+	 * 
+	 * @param key
+	 *            The key generated by mvn
+	 * @return The value which was generated from the pom file
+	 */
+	static String loadInfo(String key) {
+
+		Properties info = null;
+		InputStream props = null;
+		String retval = null;
+		try {
+			
+			props = SvConf.class.getClassLoader().getResourceAsStream("version.properties");
+			info = new Properties();
+			info.load(props);
+			retval = info.getProperty(key);
+		} catch (Exception e) {
+			log4j.debug("Can't read svarog version info", e);
+		} finally {
+			if (props != null)
+				try {
+					props.close();
+				} catch (IOException e) {
+					log4j.error("Can't read svarog version info", e);
+				}
+		}
+		return retval;
+
 	}
 
 	/**
@@ -398,7 +443,7 @@ public class SvConf {
 		try {
 			intProp = Integer.parseInt(mainProperties.getProperty(propName).trim());
 		} catch (Exception ex) {
-			log4j.warn(propName + " config property is unreadable, using default initial value = " + defaultValue);
+			log4j.debug(propName + " config property is unreadable, using default initial value = " + defaultValue);
 		}
 		return intProp;
 	}
@@ -420,7 +465,7 @@ public class SvConf {
 		try {
 			boolProp = Boolean.parseBoolean(mainProperties.getProperty(propName).trim());
 		} catch (Exception ex) {
-			log4j.warn(propName + " config property is unreadable, using default initial value = " + defaultValue);
+			log4j.debug(propName + " config property is unreadable, using default initial value = " + defaultValue);
 		}
 		return boolProp;
 	}
@@ -446,7 +491,7 @@ public class SvConf {
 				throw (new Exception("empty.prop"));
 			}
 		} catch (Exception ex) {
-			log4j.warn(propName + " config property is unreadable, using default initial value = " + defaultValue);
+			log4j.debug(propName + " config property is unreadable, using default initial value = " + defaultValue);
 		}
 		return prop;
 	}

@@ -25,6 +25,8 @@ import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
@@ -43,6 +45,12 @@ import com.prtech.svarog_interfaces.ISvExecutor;
  * </p>
  **/
 public class SvarogDaemon {
+	static {
+		String path = "./log4j2.xml";
+		File pFile = new File(path);
+		if(pFile.exists())
+			System.setProperty("log4j.configurationFile", pFile.getAbsolutePath());
+	}
 	/**
 	 * Log4j object to log issues
 	 */
@@ -228,7 +236,8 @@ public class SvarogDaemon {
 		}
 
 		// initalise Svarog
-		SvCore.initSvCore();
+		if(!SvCore.initSvCore())
+			System.exit(-1);
 
 		// Load system properties.
 		SvarogDaemon.loadSystemProperties();

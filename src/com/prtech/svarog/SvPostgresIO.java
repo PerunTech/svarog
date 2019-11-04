@@ -33,8 +33,11 @@ import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.vividsolutions.jts.geom.Geometry;
 
 public class SvPostgresIO implements ISvDatabaseIO {
-	static final String sqlScriptsPackage = "DEFAULT";
-	static final String sqlKeywordsBundle = "sql." + sqlScriptsPackage + ".sql_keywords";
+
+	static final String sqlScriptsPath = "/com/prtech/svarog/sql/";
+	static final String sqlScriptsPackage = "DEFAULT/";
+	static final String sqlKeywordsBundle = sqlScriptsPath.substring(1).replace("/", ".") + "." + sqlScriptsPackage
+			+ ".sql_keywords";
 
 	static final Logger logger = LogManager.getLogger(SvPostgresIO.class.getName());
 	static String systemSrid;
@@ -74,7 +77,8 @@ public class SvPostgresIO implements ISvDatabaseIO {
 	}
 
 	@Override
-	public PreparedStatement getInsertRepoStatement(Connection conn, String defaultStatement, String schema, String repoName) {
+	public PreparedStatement getInsertRepoStatement(Connection conn, String defaultStatement, String schema,
+			String repoName) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
@@ -117,11 +121,11 @@ public class SvPostgresIO implements ISvDatabaseIO {
 		String script = "";
 		InputStream fis = null;
 		try {
-			fis = SvPostgresIO.class.getResourceAsStream("/sql/" + sqlScriptsPackage + "/" + scriptName);
+			fis = SvPostgresIO.class.getResourceAsStream(sqlScriptsPath + sqlScriptsPackage +scriptName);
 			if (fis != null)
 				script = IOUtils.toString(fis, "UTF-8");
 			else
-				logger.error("/sql/" + sqlScriptsPackage + "/" + scriptName + " is not available");
+				logger.error(sqlScriptsPath + sqlScriptsPackage  + scriptName + " is not available");
 		} catch (IOException e) {
 			logger.error("Can't read stream, disk access error maybe?", e);
 		} finally {
