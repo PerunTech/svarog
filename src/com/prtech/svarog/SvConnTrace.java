@@ -58,7 +58,7 @@ class SvConnTrace {
 
 			}
 			if (log4j.isDebugEnabled())
-				log4j.trace("Acquiring tracked connection. Usage count:"+usageCount);
+				log4j.trace("Acquiring tracked connection. Usage count:" + usageCount);
 			return connection;
 		}
 	}
@@ -77,22 +77,23 @@ class SvConnTrace {
 				if (log4j.isDebugEnabled())
 					log4j.trace("Usage count is zero. Performing physical rollback/close on the connection");
 				try {
-					if (this.connection != null && !this.connection.isClosed())
-					{
-						if(!this.connection.getAutoCommit())
+					if (this.connection != null && !this.connection.isClosed()) {
+						if (!this.connection.getAutoCommit())
 							this.connection.rollback();
-					}
-					else
-						log4j.error("Can't ROLLBACK a " +(this.connection == null?"NULL":"")+ (this.connection.isClosed()?"CLOSED":"")+ "connection for a deleted SvCore object");
+					} else
+						log4j.error("Can't ROLLBACK a " + (this.connection == null ? "NULL" : "")
+								+ (this.connection != null && this.connection.isClosed() ? "CLOSED" : "")
+								+ " connection for a deleted SvCore object");
 				} catch (SQLException e) {
 					log4j.error("Can't ROLLBACK connection for a deleted SvCore object", e);
 				}
 				try {
 					if (this.connection != null) {
-						if(!isManual)
-						{
-							log4j.error("There is a connection leak. Not all database connections are closed properly.");
-							log4j.error("This connection was closed because the SvCore that owned it got garbage collected");
+						if (!isManual) {
+							log4j.error(
+									"There is a connection leak. Not all database connections are closed properly.");
+							log4j.error(
+									"This connection was closed because the SvCore that owned it got garbage collected");
 							log4j.error("Every dbGetConn call must end with finalize block containing dbReleaseConn");
 						}
 						if (!connection.isClosed()) {

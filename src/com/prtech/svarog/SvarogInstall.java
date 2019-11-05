@@ -94,7 +94,7 @@ public class SvarogInstall {
 	/**
 	 * Flag to mark if there is valid configuration in the database
 	 */
-	static boolean isAlreadyInstalled = true;
+	static boolean isAlreadyInstalled = false;
 
 	/**
 	 * String containing the type of operation install or upgrade
@@ -3080,7 +3080,7 @@ public class SvarogInstall {
 		if (sysLocales == null) {
 			if (!isAlreadyInstalled) {
 				DbDataArray locales = new DbDataArray();
-				InputStream fis = SvCore.class.getResourceAsStream("/json/src/master_locales.json");
+				InputStream fis = SvCore.class.getResourceAsStream("/com/prtech/svarog/json/src/master_locales.json");
 				String json;
 				try {
 					json = IOUtils.toString(fis, "UTF-8");
