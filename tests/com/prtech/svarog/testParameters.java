@@ -32,11 +32,9 @@ import com.prtech.svarog_common.DbSearchExpression;
 
 public class testParameters {
 
-
-
 	@Test
 	public void testSetAndGetParamString() {
-		
+
 		SvReader svr = null;
 		SvWriter svw = null;
 		SvParameter svp = null;
@@ -67,7 +65,60 @@ public class testParameters {
 					fail("Param value not as expected");
 				}
 			}
-			svp.dbCommit();
+			svp.dbRollback();
+		} catch (SvException ex) {
+			ex.printStackTrace();
+			fail(ex.getFormattedMessage());
+		} finally {
+			if (svr != null)
+				svr.release();
+			if (svw != null)
+				svw.release();
+			if (svp != null)
+				svp.release();
+		}
+	}
+
+	@Test
+	public void testSetAndGetParamPublicString() {
+
+		SvReader svr = null;
+		SvWriter svw = null;
+		SvParameter svp = null;
+		SvSecurity svs = null;
+
+		try {
+			svr = new SvReader();
+			svs = new SvSecurity(svr);
+			svw = new SvWriter(svr);
+			svw.setAutoCommit(false);
+			svp = new SvParameter(svw);
+			String paramLabel = "param.test" + svCONST.OBJECT_TYPE_SECURITY_LOG;
+
+			DbDataObject parentDbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
+			DbDataObject paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", paramLabel, svr);
+			// if it doesn't exist, than it will create new type of parameter
+			if (paramType == null) {
+				createParamType(svCONST.OBJECT_TYPE_SECURITY_LOG, paramLabel, "String", "DROP_DOWN", null, null, null,
+						null, 1L, "Кампања", "mk_MK", svr, svw);
+				// check if paramType created
+				paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", paramLabel, svr);
+			}
+
+			if (paramType != null) {
+
+				svp.setParamString(parentDbt, paramLabel, "TEST1");
+				String val1 = svp.getParamString(parentDbt, paramLabel);
+				if (val1 == null)
+					fail("Can't get value of parameters module for repo object");
+				String value = svs.getPublicParam(paramLabel);
+				if (value == null)
+					fail("Can't get value of parameters module for repo object");
+				if (!value.equals("TEST1")) {
+					fail("Param value not as expected");
+				}
+			}
+			svp.dbRollback();
 		} catch (SvException ex) {
 			ex.printStackTrace();
 			fail(ex.getFormattedMessage());
@@ -102,7 +153,7 @@ public class testParameters {
 				paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", "param.module", svr);
 				svr.dbCommit();
 			}
-			
+
 			if (paramType != null) {
 				svp.setParamLong("param.module", 14124L);
 				svp.setParamLong("param.module", 34121L);
@@ -303,6 +354,5 @@ public class testParameters {
 		}
 		return result;
 	}
-
 
 }
