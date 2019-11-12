@@ -105,12 +105,50 @@ public class SvSecurity extends SvCore {
 	}
 
 	@Override
+	/**
+	 * Overriden method to switch the current user. It will check if the caller
+	 * class is a registered services class in svarog.properties and if not will
+	 * raise an exception since anonymous users should not be allowed to switch
+	 * without having a valid session
+	 * 
+	 * @param user
+	 *            DbDataObject which describes the user to be switched
+	 * @throws SvException
+	 *             If the caller class is not registered service class it will
+	 *             throw "system.error.cant_switch_system_user"
+	 */
 	public void switchUser(DbDataObject user) throws SvException {
 		if (!SvConf.isServiceClass(getCallerClassName()))
 			throw (new SvException("system.error.cant_switch_system_user", instanceUser));
 
 		super.switchUser(user);
 	}
+
+	/**
+	 * Method that returns value of a public string parameter. A public string
+	 * parameter is considered any parameter which has parent of type
+	 * svCONST.OBJECT_TYPE_SECURITY_LOG (currently long value 5)
+	 * 
+	 * @param label
+	 *            label is LABEL_CODE of SVAROG_PARAM_TYPE object.
+	 * 
+	 * @return It only returns the first value of object.
+	 */
+	public String getPublicParam(String label) throws SvException {
+
+		SvParameter svp = null;
+		String result = null;
+		try {
+			svp = new SvParameter();
+			DbDataObject securityDbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
+			result = svp.getParamString(securityDbt, label);
+		} finally {
+			if (svp != null)
+				svp.release();
+		}
+		return result;
+	}
+
 	/**
 	 * Method returning list of objects over which the specific user has been
 	 * empowered with Power of Attorney over.
@@ -172,7 +210,8 @@ public class SvSecurity extends SvCore {
 				sid = getSidImpl(sidName, sidType);
 
 			return sid;
-		}else throw (new SvException("system.error.sid_type_not_valid", instanceUser));
+		} else
+			throw (new SvException("system.error.sid_type_not_valid", instanceUser));
 	}
 
 	/**
