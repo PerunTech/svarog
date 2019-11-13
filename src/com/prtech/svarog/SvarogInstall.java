@@ -94,7 +94,7 @@ public class SvarogInstall {
 	/**
 	 * Flag to mark if there is valid configuration in the database
 	 */
-	static boolean isAlreadyInstalled = false;
+	private static Boolean mIsAlreadyInstalled = null;
 
 	/**
 	 * String containing the type of operation install or upgrade
@@ -945,8 +945,7 @@ public class SvarogInstall {
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
-		opt = new Option("dm", "daemon", false,
-				"start Svarog in daemon mode");
+		opt = new Option("dm", "daemon", false, "start Svarog in daemon mode");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
@@ -1101,7 +1100,6 @@ public class SvarogInstall {
 			// TODO Auto-generated catch block
 			System.out.println("Error deleting conf resources ");
 		}
-		isAlreadyInstalled = false;
 		String errorMessage = DbInit.createJsonMasterRepo();
 		if (!errorMessage.equals("")) {
 			System.out.println("Error building svarog master repo. " + errorMessage);
@@ -1129,28 +1127,33 @@ public class SvarogInstall {
 	 * @return True if the installation is valid, false if it isn't
 	 */
 	private static boolean isSvarogInstalled() {
-		Connection conn = null;
-		try {
-			conn = SvConf.getDBConnection();
-			if (!dbObjectExists(SvConf.getMasterRepo(), conn)) {
-				if (!firstInstall)
-					log4j.error("Master repo table do not exists in DB, can't run upgrade. "
-							+ "Svarog install should be run.");
-				return false;
-			}
-		} catch (Exception e) {
-			log4j.error("Can't check the database tables. Check svarog.properties for errors in connection strings!",
-					e);
-			return false;
-		} finally {
-			if (conn != null)
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					log4j.error("Can't close JDBC connection", e);
+		if (mIsAlreadyInstalled == null) {
+			mIsAlreadyInstalled = new Boolean(true);
+			Connection conn = null;
+			try {
+				conn = SvConf.getDBConnection();
+				if (!dbObjectExists(SvConf.getMasterRepo(), conn)) {
+					if (!firstInstall)
+						log4j.error("Master repo table do not exists in DB, can't run upgrade. "
+								+ "Svarog install should be run.");
+					mIsAlreadyInstalled = false;
 				}
+			} catch (Exception e) {
+				log4j.error(
+						"Can't check the database tables. Check svarog.properties for errors in connection strings!",
+						e);
+				mIsAlreadyInstalled = false;
+			} finally {
+				if (conn != null)
+					try {
+						conn.close();
+					} catch (SQLException e) {
+						log4j.error("Can't close JDBC connection", e);
+					}
+			}
+
 		}
-		return true;
+		return mIsAlreadyInstalled;
 	}
 
 	/**
@@ -1159,16 +1162,16 @@ public class SvarogInstall {
 	 * @return Status of the upgrade. 0 for success.
 	 */
 	public static int upgradeSvarog(boolean labelsOnly) {
-		isAlreadyInstalled = isSvarogInstalled();
+
 		operation = (firstInstall ? "install" : "upgrade");
-		if (!(firstInstall ^ isAlreadyInstalled)) {
+		if (!(firstInstall ^ isSvarogInstalled())) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
-					+ (isAlreadyInstalled ? "valid" : "invalid") + "!");
+					+ (isSvarogInstalled() ? "valid" : "invalid") + "!");
 			return -2;
 		}
 		if (firstInstall && labelsOnly) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
-					+ (isAlreadyInstalled ? "valid" : "invalid") + "! Can't run LABELS_ONLY upgrade!");
+					+ (isSvarogInstalled() ? "valid" : "invalid") + "! Can't run LABELS_ONLY upgrade!");
 			return -2;
 		}
 		SvParameter svp = null;
@@ -2639,6 +2642,7 @@ public class SvarogInstall {
 	 *             Any exception raised during the upgrade of the labels
 	 */
 	static Boolean upgradeLabels(String filePath) throws SvException {
+
 		log4j.info("Labels " + operation + " started:" + filePath);
 		log4j.info("Labels locale:" + filePath);
 		boolean retVal = false;
@@ -2674,7 +2678,7 @@ public class SvarogInstall {
 						existingLabels.rebuildIndex("LABEL_CODE", true);
 
 					svw.setAutoCommit(false);
-					if (isAlreadyInstalled && existingLabels.size() > 0) {
+					if (isSvarogInstalled() && existingLabels.size() > 0) {
 						for (DbDataObject dboLabel : labels.getItems()) {
 							if (!dboLabel.getParent_id().equals(dboLocale.getObject_id()))
 								dboLabel.setParent_id(dboLocale.getObject_id());
@@ -3078,7 +3082,7 @@ public class SvarogInstall {
 	 */
 	static DbDataArray getLocaleList() {
 		if (sysLocales == null) {
-			if (!isAlreadyInstalled) {
+			if (!isSvarogInstalled()) {
 				DbDataArray locales = new DbDataArray();
 				InputStream fis = SvCore.class.getResourceAsStream("/com/prtech/svarog/json/src/master_locales.json");
 				String json;
