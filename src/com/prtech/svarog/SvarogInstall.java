@@ -1093,30 +1093,33 @@ public class SvarogInstall {
 	 * @return 0 if success, -1 if failed
 	 */
 	private static int generateJsonCfg() {
+		// we should not connect to database at all and check if svarog is
+		// installed therefore we fix the mIsAlreadyInstalled to false
+		mIsAlreadyInstalled = false;
 
 		try {
 			FileUtils.deleteDirectory(new File(SvConf.getConfPath()));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Error deleting conf resources ");
+			log4j.error("Error deleting conf resources ", e);
 		}
 		String errorMessage = DbInit.createJsonMasterRepo();
 		if (!errorMessage.equals("")) {
-			System.out.println("Error building svarog master repo. " + errorMessage);
+			log4j.error("Error building svarog master repo. " + errorMessage);
 			return -1;
 		}
 		errorMessage = DbInit.createJsonMasterTableRecords();
 		if (!errorMessage.equals("")) {
-			System.out.println("Error building svarog master records. " + errorMessage);
+			log4j.error("Error building svarog master records. " + errorMessage);
 			System.exit(-1);
 			return -1;
 		}
 		errorMessage = DbInit.prepareLabels();
 		if (!errorMessage.equals("")) {
 
-			System.out.println("Error preparing labels. " + errorMessage);
+			log4j.error("Error preparing labels. " + errorMessage);
 			return -1;
 		}
+		log4j.info("JSON config files generated successfully");
 		return 0;
 	}
 
@@ -3833,7 +3836,7 @@ public class SvarogInstall {
 			is.close();
 			return bytes;
 		} catch (Exception ex) {
-			System.out.println(ex.getMessage());
+			log4j.error("Error reading file:" + file.getAbsolutePath(), ex);
 		}
 		return null;
 	}
