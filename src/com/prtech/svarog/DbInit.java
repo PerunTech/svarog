@@ -5078,12 +5078,16 @@ public class DbInit {
 			fileList = "";
 			textFolder = new File(SvConf.getConfPath() + svCONST.masterRecordsPath);
 			texFiles = textFolder.listFiles();
-			Arrays.sort(texFiles);
-			for (int i = 0; i < texFiles.length; i++) {
-				if (texFiles[i].getName().endsWith(".json"))
-					fileList += texFiles[i].getName() + "\n";
-			}
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.fileListName, fileList);
+			if (texFiles != null) {
+				Arrays.sort(texFiles);
+				for (int i = 0; i < texFiles.length; i++) {
+					if (texFiles[i].getName().endsWith(".json"))
+						fileList += texFiles[i].getName() + "\n";
+				}
+				SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.fileListName,
+						fileList);
+			} else
+				log4j.error("No JSON records generated");
 
 		} catch (Exception e) {
 			System.out.println("Error Generating file list");
@@ -5161,7 +5165,7 @@ public class DbInit {
 				if (iStr != null)
 					iStr.close();
 			} catch (IOException e) {
-				log4j.error("Can not close input stream from custom jar:" + jarPath,e);
+				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
 			}
 		}
 
@@ -6251,7 +6255,7 @@ public class DbInit {
 
 		try {
 
-			String codesPath = "/" + svCONST.masterCodesPath + "/codes.properties";
+			String codesPath = "/" + svCONST.masterCodesPath + "codes.properties";
 			// File baseCodes = new File();
 
 			InputStream fis = DbInit.class.getResourceAsStream(codesPath);
