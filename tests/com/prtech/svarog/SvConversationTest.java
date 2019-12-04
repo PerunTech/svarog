@@ -29,7 +29,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 public class SvConversationTest {
 
-	static final Logger log4j = LogManager.getLogger(SvConversationTest.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvConversationTest.class);
 
 	public void releaseAll(SvCore svc) {
 		if (svc != null)

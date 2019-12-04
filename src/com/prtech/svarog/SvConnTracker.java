@@ -26,7 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 /**
- * Class to track the number of SvCore based objects that use a single JDBC
+ * Svarog Connection Tracker. Class to track the number of SvCore based objects that use a single JDBC
  * connection
  * 
  * @author PR01
@@ -36,10 +36,17 @@ class SvConnTracker {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvConnTracker.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvConnTracker.class);
 
+	/**
+	 * Map holding soft references to each created SvCore instance
+	 */
 	static private ConcurrentHashMap<SoftReference<SvCore>, SvConnTrace> tracker = new ConcurrentHashMap<SoftReference<SvCore>, SvConnTrace>();
 
+	/**
+	 * Method to check if the connection tracker has open DB connections
+	 * @return
+	 */
 	static Boolean hasTrackedConnections() {
 		return hasTrackedConnections(false);
 	}

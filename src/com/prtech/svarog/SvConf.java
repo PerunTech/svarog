@@ -50,6 +50,18 @@ import com.prtech.svarog_interfaces.ISvDatabaseIO;
  *
  */
 public class SvConf {
+	/**
+	 * Static block to give priority to the log4j2.xml file which resides in the
+	 * working directory.
+	 */
+	static {
+		String path = "./log4j2.xml";
+		File pFile = new File(path);
+		if (pFile.exists()) {
+			System.out.println("Using log4j2.xml from:" + pFile.getAbsolutePath());
+			System.setProperty("log4j.configurationFile", pFile.getAbsolutePath());
+		}
+	}
 
 	/**
 	 * Enum listing the supported database types
@@ -407,7 +419,7 @@ public class SvConf {
 		InputStream props = null;
 		String retval = null;
 		try {
-			
+
 			props = SvConf.class.getClassLoader().getResourceAsStream("version.properties");
 			info = new Properties();
 			info.load(props);

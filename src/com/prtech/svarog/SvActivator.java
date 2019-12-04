@@ -23,19 +23,19 @@ public class SvActivator implements BundleActivator {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvActivator.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvActivator.class);
 	private BundleContext bundleContext = null;
 
 	public void start(BundleContext context) {
-		
+
 		bundleContext = context;
-		log4j.info("Starting bundle "+bundleContext.getBundle().getSymbolicName());
-		
+		log4j.info("Starting bundle " + bundleContext.getBundle().getSymbolicName());
+
 	}
 
 	public void stop(BundleContext context) {
 		bundleContext = null;
-		log4j.info("Stopping bundle "+bundleContext.getBundle().getSymbolicName());
+		log4j.info("Stopping bundle " + bundleContext.getBundle().getSymbolicName());
 
 	}
 

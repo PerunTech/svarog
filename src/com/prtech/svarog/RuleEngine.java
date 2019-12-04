@@ -32,6 +32,8 @@ import com.prtech.svarog.svCONST;
 
 public class RuleEngine extends SvCore {
 
+	static final Logger log4j = SvConf.getLogger(RuleEngine.class);
+
 	/**
 	 * Private member holding reference to object implementing the save methods
 	 * for the rule engine
@@ -80,8 +82,6 @@ public class RuleEngine extends SvCore {
 	RuleEngine() throws SvException {
 		super(svCONST.systemUser, null);
 	}
-
-	static final Logger log4j = LogManager.getLogger(RuleEngine.class.getName());
 
 	/**
 	 * Main Rule engine entry point. Will commit on success or rollback on
@@ -423,12 +423,17 @@ public class RuleEngine extends SvCore {
 	 * 
 	 * @param parentCore
 	 *            the SvCore instance used for rule execution
-	 * @param targetObject The object upon which the rule was executed
-	 * @param actionResults The array with results from the action execution
-	 * @param success False if any of the actions failed
-	 * @throws SvException Any thrown exception should be forwarded up to the caller
+	 * @param targetObject
+	 *            The object upon which the rule was executed
+	 * @param actionResults
+	 *            The array with results from the action execution
+	 * @param success
+	 *            False if any of the actions failed
+	 * @throws SvException
+	 *             Any thrown exception should be forwarded up to the caller
 	 */
-	private void saveFinalState(SvCore parentCore,DbDataObject targetObject, DbDataArray actionResults, Boolean success) throws SvException {
+	private void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults,
+			Boolean success) throws SvException {
 		if (ruleEngineSave != null)
 			ruleEngineSave.saveFinalState(parentCore, targetObject, actionResults, success);
 
@@ -512,19 +517,16 @@ public class RuleEngine extends SvCore {
 				svResult.fromJson(jobj);
 			} else if (result.getClass().equals(SvActionResult.class)) {
 				svResult = (SvActionResult) result;
-			} else if (ruleEngineSave==null)
-			{
+			} else if (ruleEngineSave == null) {
 				return null;
 			}
 
-			if(svResult!=null)
-			{
+			if (svResult != null) {
 				resultObj.setVal("result", svResult.toJson().toString());
 				resultObj.setVal("exec_state", svResult.getResult());
-			}
-			else 
+			} else
 				resultObj.setVal("result", result);
-			
+
 		}
 		return resultObj;
 	}
