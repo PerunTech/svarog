@@ -6454,7 +6454,7 @@ public class DbInit {
 							dbi.add((IDbInit) c.newInstance());
 
 						}
-					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError ex) {
+					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError ex) {
 						if (log4j.isDebugEnabled())
 							log4j.trace("Error loading class", e);
 					}
