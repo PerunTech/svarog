@@ -6002,9 +6002,10 @@ public class DbInit {
 	 * @return The updated max object id as result of the custom DbInit
 	 *         processing
 	 */
-	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes, DbDataArray customObjests) {
+	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes,
+			DbDataArray customObjestsAll) {
 		// DbDataArray defaultObjests = new DbDataArray();
-		// DbDataArray customObjests = new DbDataArray();
+		DbDataArray customObjests = new DbDataArray();
 		StringBuilder errMsg = new StringBuilder();
 
 		File customFolder = new File(subDir);
@@ -6042,9 +6043,11 @@ public class DbInit {
 
 					}
 					String errStr = "";
-					if (customObjests.size() > 0)
+					if (customObjests.size() > 0) {
 						errStr = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "4" + i + ". "
 								+ customJars[i].getName().replace(".jar", ".json"), customObjests, true);
+						customObjestsAll.getItems().addAll(customObjests.getItems());
+					}
 					if (!errStr.equals("")) {
 						log4j.error("Error saving DbDataArray to file from custom IDbInit:" + customJars[i].getName()
 								+ "." + errStr.toString());
