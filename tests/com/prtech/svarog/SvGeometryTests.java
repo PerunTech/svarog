@@ -41,6 +41,9 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 public class SvGeometryTests {
 	@Test
 	public void testGrid() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		GeoJsonWriter jtsWriter = new GeoJsonWriter();
 		jtsWriter.setUseFeatureType(true);
 		SvGeometry svg=null;
@@ -60,6 +63,9 @@ public class SvGeometryTests {
 	
 	@Test
 	public void testBboxParsing() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		SvGeometry svg=null;
 		try {
 			svg= new SvGeometry();
@@ -84,6 +90,9 @@ public class SvGeometryTests {
 	@Test
 	public void testBoundaryIntersect()
 	{
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		WKTReader wkt = new WKTReader();
 		try {
 			Geometry geom = wkt
@@ -121,6 +130,9 @@ public class SvGeometryTests {
 	@Test
 	public void testBoundsSave()
 	{
+		if(!SvConf.isSdiEnabled())
+			return;
+		
 		WKTReader wkt = new WKTReader();
 		WKTWriter wkr = new WKTWriter();
 		try {
@@ -172,6 +184,9 @@ public class SvGeometryTests {
 	}
 	@Test
 	public void testGetTile() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		GeoJsonWriter jtsWriter = new GeoJsonWriter();
 		SvGeometry svg=null;
 		try {
@@ -201,6 +216,9 @@ public class SvGeometryTests {
 	}
 	@Test
 	public void testGetGIOHandler() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 
 		ISvDatabaseIO gio = SvConf.getDbHandler();
 		if(gio==null)
@@ -210,6 +228,9 @@ public class SvGeometryTests {
 
 	@Test
 	public void testGetUnitsTile() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		GeoJsonWriter jtsWriter = new GeoJsonWriter();
 		SvGeometry svg=null;
 		try {
@@ -231,6 +252,9 @@ public class SvGeometryTests {
 	
 	@Test
 	public void testGetBoundaryTile() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		GeoJsonWriter jtsWriter = new GeoJsonWriter();
 		SvGeometry svg=null;
 		try {
@@ -252,6 +276,9 @@ public class SvGeometryTests {
 
 	@Test
 	public void testGetTileNotExist() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		GeoJsonWriter jtsWriter = new GeoJsonWriter();
 		SvGeometry svg=null;
 		try {
@@ -274,6 +301,9 @@ public class SvGeometryTests {
 	
 	@Test
 	public void testGetGeomHandler() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
 		ISvDatabaseIO gio = SvConf.getDbHandler();
 		if(gio==null)
 			fail("Can't load geometry handler");

@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.math.BigDecimal;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -31,7 +30,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -40,10 +38,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
@@ -85,6 +80,11 @@ public abstract class SvCore implements ISvCore {
 	/////////////////////////////////////////////////////////////
 	// SvCore static variables and methods
 	/////////////////////////////////////////////////////////////
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(SvCore.class);
+
 	/**
 	 * Enumeration holding flags about access over svarog objects.
 	 * 
@@ -144,10 +144,6 @@ public abstract class SvCore implements ISvCore {
 	 * HashMap containing all table descriptors mapped to the table name
 	 */
 	static final HashMap<String, DbDataObject> dbtMap = new HashMap<String, DbDataObject>();
-	/**
-	 * Log4j instance used for logging
-	 */
-	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
 	/**
 	 * Flag which enable core tracing to track potential connection leaks
 	 */
@@ -766,7 +762,7 @@ public abstract class SvCore implements ISvCore {
 		DbDataObject tableObj = getDbtByName(tableName);
 		DbDataArray fields = null;
 		DbDataObject retField = null;
-		fields = DbCache.getObjectsByParentId(tableObj.getObject_id(), svCONST.OBJECT_TYPE_FIELD_SORT);
+		fields = DbCache.getObjectsByParentId(tableObj.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 		if (fields != null)
 			for (DbDataObject dbf : fields.getItems()) {
 				if (dbf.getVal("FIELD_NAME").equals(fieldName)) {
@@ -1352,11 +1348,11 @@ public abstract class SvCore implements ISvCore {
 			log4j.error("Can't load basic configurations! System not loaded!");
 			svarogState = false;
 		}
-		if(svarogState)
+		if (svarogState)
 			log4j.info("Svarog initialization finished successfully");
-		else 
+		else
 			log4j.error("Svarog initialization failed!");
-			
+
 		isValid.compareAndSet(false, svarogState);
 		isInitialized.compareAndSet(true, svarogState);
 		return svarogState;
@@ -2399,9 +2395,11 @@ public abstract class SvCore implements ISvCore {
 		}
 		if (query.getReturnType() != null && (!isExpression || (isExpression && query.getReturnTypes().size() == 1))) {
 			setObjectRepoData(object, rs, tblPrefix);
-			object.setObject_type(query.getReturnType().getObject_id());
-			object.setGeometryType(hasGeometries(query.getReturnType().getObject_id()));
-			object.setHasGeometry(includeGeometries);
+			object.setObject_type(query.getReturnType().getObjectId());
+			if (hasGeometries(query.getReturnType().getObjectId()))
+				DboFactory.dboIsGeometryType(object);
+			if (includeGeometries)
+				DboFactory.dboHasGeometry(object);
 		}
 		object.setIs_dirty(false);
 		return object;

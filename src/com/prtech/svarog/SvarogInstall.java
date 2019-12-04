@@ -79,8 +79,9 @@ public class SvarogInstall {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvarogInstall.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvarogInstall.class);
 
+	static final String localesPath = "/com/prtech/svarog/json/src/master_locales.json";
 	/**
 	 * The map of fields in the repo table
 	 */
@@ -1165,7 +1166,8 @@ public class SvarogInstall {
 	 * @return Status of the upgrade. 0 for success.
 	 */
 	public static int upgradeSvarog(boolean labelsOnly) {
-
+		// forse reset of the flag.
+		mIsAlreadyInstalled = null;
 		operation = (firstInstall ? "install" : "upgrade");
 		if (!(firstInstall ^ isSvarogInstalled())) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
@@ -2451,9 +2453,10 @@ public class SvarogInstall {
 		try {
 			// if not first install, then init the core
 			// else boot strap the local installation
-			if (!firstInstall)
+			if (!firstInstall) {
+				sysLocales = null;
 				SvCore.initSvCore(true);
-			else
+			} else
 				installLocales();
 
 			String confPath = SvConf.getConfPath() + svCONST.masterRecordsPath;
@@ -3087,7 +3090,7 @@ public class SvarogInstall {
 		if (sysLocales == null) {
 			if (!isSvarogInstalled()) {
 				DbDataArray locales = new DbDataArray();
-				InputStream fis = SvCore.class.getResourceAsStream("/com/prtech/svarog/json/src/master_locales.json");
+				InputStream fis = SvCore.class.getResourceAsStream(localesPath);
 				String json;
 				try {
 					json = IOUtils.toString(fis, "UTF-8");
