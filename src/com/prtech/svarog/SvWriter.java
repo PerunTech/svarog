@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import com.google.gson.JsonElement;
@@ -43,6 +44,10 @@ import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 public class SvWriter extends SvCore {
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(SvWriter.class);
 
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This
@@ -669,9 +674,9 @@ public class SvWriter extends SvCore {
 						conn.setTransactionIsolation(oldTrxIsolation);
 				}
 				internalReader.release();
+				if (log4j.isDebugEnabled())
+					log4j.trace("Released internal reader used to execute constraints");
 			}
-			if (log4j.isDebugEnabled())
-				log4j.trace("Released internal reader used to execute constraints");
 		} catch (Exception e) {
 			log4j.error("Internal reader can't be properly released", e);
 		}
@@ -687,7 +692,7 @@ public class SvWriter extends SvCore {
 	 */
 	public static String getDefaultStatus(DbDataObject dbt) {
 		// TODO Extend the function to get defaults for object workflow
-		return "VALID";
+		return svCONST.STATUS_VALID;
 	}
 
 	/**

@@ -678,7 +678,7 @@ public class SvSecurity extends SvCore {
 			if (dba != null) {
 				DbDataObject user = dba.getItems().size() > 0 ? dba.getItems().get(0) : null;
 				if (user != null && user.getStatus().equals("PENDING")) {
-					(svw).moveObject(user, "VALID");
+					(svw).moveObject(user, svCONST.STATUS_VALID);
 					userFound = true;
 				}
 			}

@@ -12,7 +12,7 @@
  *   permissions and limitations under the License.
  *  
  *******************************************************************************/
- 
+
 package com.prtech.svarog;
 
 import static org.junit.Assert.fail;
@@ -1125,11 +1125,10 @@ public class SvarogTest {
 		SvCore.isDebugEnabled = true;
 		SvNote svn = null;
 		try {
-			//clean up before the test is executed 
-			SvConnTracker.cleanup(); 
+			// clean up before the test is executed
+			SvConnTracker.cleanup();
 			svn = new SvNote();
 			SvReader svr = new SvReader(svn);
-			SvWriter svw = new SvWriter(svn);
 
 			svn.setNote(1L, "test Note",
 					"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
@@ -1144,17 +1143,19 @@ public class SvarogTest {
 					null);
 			DbDataArray objects = svr.getObjects(query, null, null);
 
+			SvConnTracker.cleanup();
+			svn = new SvNote();
 			if (!note.equals("Small update"))
 				fail("Note updating doesn't work");
 			try {
 				System.out.println("The test will sleep for 1 seconds!");
-				Thread.sleep(1500);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				fail("Thread sleep failed");
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			svn = new SvNote();
+
 			svn.setIsLongRunning(true);
 			note = svn.getNote(13L, "Test note");
 			if (SvConnTracker.cleanup() > 0)
@@ -1163,13 +1164,12 @@ public class SvarogTest {
 			svn.setIsLongRunning(false);
 			try {
 				System.out.println("The test will sleep for 1 seconds!");
-				Thread.sleep(1500);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				fail("Thread sleep failed");
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			svn = new SvNote();
 			note = svn.getNote(15L, "Test note");
 		} catch (SvException e) {
 			fail("Test failed");
@@ -1179,7 +1179,7 @@ public class SvarogTest {
 			if (svn != null)
 				svn.release();
 		}
-		if (SvConnTracker.hasTrackedConnections())
+		if (SvConnTracker.hasTrackedConnections(true))
 			fail("There are still active connections");
 
 	}
@@ -2023,9 +2023,9 @@ public class SvarogTest {
 
 			}
 
-			fis = SvConf.class.getClassLoader().getResourceAsStream("json/src/master_locales.json");
+			fis = SvCore.class.getResourceAsStream(SvarogInstall.localesPath);
 			if (fis == null) {
-				String path = "./json/src/master_locales.json";
+				String path = "." + SvarogInstall.localesPath;
 				fis = new FileInputStream(path);
 			}
 			byte[] fileData = IOUtils.toByteArray(fis);
@@ -2249,7 +2249,7 @@ public class SvarogTest {
 		SvReader svr = null;
 		SvWriter svw = null;
 		SvLink svl = null;
-		DbDataObject dboFormType =null;
+		DbDataObject dboFormType = null;
 		try {
 			svs = new SvSecurity();
 			String token = svs.logon("ADMIN", SvUtil.getMD5("welcome"));
@@ -2309,7 +2309,7 @@ public class SvarogTest {
 				fail("No exception was raised");
 			} catch (SvException sv) {
 				if (!sv.getMessage().equals("system.error.field_value_too_long"))
-					fail("Field validation failed, value exceeds maximum field size:"+sv.getMessage());
+					fail("Field validation failed, value exceeds maximum field size:" + sv.getMessage());
 
 			}
 			formInstance.setVal("form_type.test17", "TEST VALUE");
@@ -2485,8 +2485,10 @@ public class SvarogTest {
 			try {
 				svw.saveObject(formInstance);
 			} catch (SvException sv) {
-				if (!(sv.getMessage().equals("system.error.form_type_is_single")||sv.getMessage().equals("system.error.form_max_count_exceeded")))
-					fail("Form type is single but svarog allowed saving a duplicate instance:"+sv.getFormattedMessage());
+				if (!(sv.getMessage().equals("system.error.form_type_is_single")
+						|| sv.getMessage().equals("system.error.form_max_count_exceeded")))
+					fail("Form type is single but svarog allowed saving a duplicate instance:"
+							+ sv.getFormattedMessage());
 
 			}
 
@@ -2616,6 +2618,8 @@ public class SvarogTest {
 		} else {
 			System.out.println("Can't run claim test since the environment doesn't contain support claim object");
 		}
+		if (SvConnTracker.hasTrackedConnections())
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2641,11 +2645,8 @@ public class SvarogTest {
 
 			}
 
-			fis = SvConf.class.getClassLoader().getResourceAsStream("json/src/master_locales.json");
-			if (fis == null) {
-				String path = "./json/src/master_locales.json";
-				fis = new FileInputStream(path);
-			}
+			String codesfile = "/" + svCONST.masterCodesPath + "codes.properties";
+			fis = SvCore.class.getResourceAsStream(codesfile);
 			byte[] fileData = IOUtils.toByteArray(fis);
 			DbDataObject fileDescriptor = new DbDataObject();
 			fileDescriptor.setObject_type(svCONST.OBJECT_TYPE_FILE);
@@ -2667,9 +2668,9 @@ public class SvarogTest {
 			// start update
 
 			{
-				fileToUpdate = SvConf.class.getClassLoader().getResourceAsStream("scripts/configure_custom.sh");
+				fileToUpdate = SvCore.class.getResourceAsStream(SvarogInstall.localesPath);
 				if (fileToUpdate == null) {
-					String path = "./scripts/configure_custom.sh";
+					String path = "." + SvarogInstall.localesPath;
 					fileToUpdate = new FileInputStream(path);
 				}
 				byte[] fileDataToUpdate = IOUtils.toByteArray(fileToUpdate);
@@ -2755,8 +2756,7 @@ public class SvarogTest {
 
 			DbDataObject result = svr.getObjectByUnqConfId("123", "SVAROG_UI_STRUCT_SOURCE");
 
-			if (result == null
-					|| (result != null && !result.getVal("NAME").equals(testObj.getVal("NAME")))) {
+			if (result == null || (result != null && !result.getVal("NAME").equals(testObj.getVal("NAME")))) {
 				fail("getObjectByUnqConfId has not returned the testObject");
 			}
 
@@ -2775,6 +2775,8 @@ public class SvarogTest {
 				svw.release();
 			}
 		}
+		if (SvConnTracker.hasTrackedConnections())
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2921,6 +2923,8 @@ public class SvarogTest {
 				svw.release();
 
 		}
+		if (SvConnTracker.hasTrackedConnections())
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2940,7 +2944,8 @@ public class SvarogTest {
 			DbDataArray fieldsPerObjectType = svr.getObjectsByParentId(fieldsTable.getItems().get(0).getObject_type(),
 					svCONST.OBJECT_TYPE_FIELD, null, 0, 0);
 
-			Map<String, List<Object>> sqlresults = fieldsTable.getDistinctValuesPerColumns(columnsSpecified, fieldsPerObjectType);
+			Map<String, List<Object>> sqlresults = fieldsTable.getDistinctValuesPerColumns(columnsSpecified,
+					fieldsPerObjectType);
 			Iterator<Entry<String, List<Object>>> it = sqlresults.entrySet().iterator();
 			while (it.hasNext()) {
 				Map.Entry<String, List<Object>> pair = it.next();
@@ -2979,6 +2984,8 @@ public class SvarogTest {
 				svr.release();
 
 		}
+		if (SvConnTracker.hasTrackedConnections())
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test

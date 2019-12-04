@@ -24,7 +24,7 @@ class SvConnTrace {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvConnTrace.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvConnTrace.class);
 
 	/**
 	 * The tracked JDBC connection

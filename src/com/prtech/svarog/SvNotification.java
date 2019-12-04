@@ -66,7 +66,7 @@ public class SvNotification extends SvCore {
 	public DbDataObject createNotificationObj(String type, String title, String message, String sender, Long eventId) {
 		DbDataObject notificationObj = new DbDataObject();
 		notificationObj.setObject_type(svCONST.OBJECT_TYPE_NOTIFICATION);
-		notificationObj.setStatus("VALID");
+		notificationObj.setStatus(svCONST.STATUS_VALID);
 		notificationObj.setVal("TYPE", type);
 		notificationObj.setVal("TITLE", title);
 		notificationObj.setVal("MESSAGE", message);

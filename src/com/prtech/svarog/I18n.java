@@ -33,6 +33,10 @@ import com.prtech.svarog_interfaces.II18n;
  *
  */
 public class I18n extends SvCore implements II18n {
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(I18n.class);
 
 	/**
 	 * Array holding the list of labels which were not successfully loaded
@@ -53,11 +57,6 @@ public class I18n extends SvCore implements II18n {
 	I18n() throws SvException {
 		super(svCONST.systemUser, null);
 	}
-
-	/**
-	 * Log4j instance used for logging
-	 */
-	static final Logger log4j = LogManager.getLogger(I18n.class.getName());
 
 	/**
 	 * The method loadLabels
@@ -273,8 +272,8 @@ public class I18n extends SvCore implements II18n {
 	 */
 	@Override
 	public String getI18nText(String languageId, String labelCode) {
-		if(languageId==null)
-			languageId=(String)getDefaultLocale().getVal("LOCALE_ID");
+		if (languageId == null)
+			languageId = (String) getDefaultLocale().getVal("LOCALE_ID");
 		return getText(languageId, labelCode);
 	}
 
@@ -311,9 +310,9 @@ public class I18n extends SvCore implements II18n {
 	 * @throws SvException
 	 */
 	@Override
-	public String getI18nLongText(String languageId, String labelCode){
-		if(languageId==null)
-			languageId=(String)getDefaultLocale().getVal("LOCALE_ID");
+	public String getI18nLongText(String languageId, String labelCode) {
+		if (languageId == null)
+			languageId = (String) getDefaultLocale().getVal("LOCALE_ID");
 		return getLongText(languageId, labelCode);
 	};
 

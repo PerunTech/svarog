@@ -58,7 +58,7 @@ public class DbInit {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(DbInit.class.getName());
+	static final Logger log4j = SvConf.getLogger(DbInit.class);
 
 	private static JsonObject getDefaultSDIMetadata() {
 		JsonObject meta = new JsonObject();
@@ -95,6 +95,8 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
+		dbf2.setIndexName("exec_name_cat");
+		dbf2.setIsUnique(true);
 		dbf2.setLabel_code("master_repo.executor_category");
 
 		// f3
@@ -102,6 +104,8 @@ public class DbInit {
 		dbf3.setDbFieldName("NAME");
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(100);
+		dbf3.setIndexName("exec_name_cat");
+		dbf3.setIsUnique(true);
 		dbf3.setIsNull(false);
 		dbf3.setLabel_code("master_repo.executor_name");
 		// f3
@@ -124,6 +128,7 @@ public class DbInit {
 		dbf6.setDbFieldType(DbFieldType.TIMESTAMP);
 		dbf6.setIsUnique(true);
 		dbf6.setDbFieldSize(3);
+		dbf6.setIsNull(false);
 		dbf6.setLabel_code("master_repo.executor_start_date");
 
 		DbDataField dbf7 = new DbDataField();
@@ -131,9 +136,19 @@ public class DbInit {
 		dbf7.setDbFieldType(DbFieldType.TIMESTAMP);
 		dbf7.setIsUnique(true);
 		dbf7.setDbFieldSize(3);
+		dbf7.setIsNull(false);
 		dbf7.setLabel_code("master_repo.executor_end_date");
+		// f1
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName("VERSION");
+		dbf8.setIsPrimaryKey(true);
+		dbf8.setDbFieldType(DbFieldType.NUMERIC);
+		dbf8.setDbFieldSize(3);
+		dbf8.setDbFieldScale(0);
+		dbf8.setIsNull(false);
+		dbf8.setLabel_code("master_repo.executor_version");
 
-		DbDataField[] dbTableFields = new DbDataField[7];
+		DbDataField[] dbTableFields = new DbDataField[8];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
 		dbTableFields[2] = dbf3;
@@ -141,6 +156,7 @@ public class DbInit {
 		dbTableFields[4] = dbf5;
 		dbTableFields[5] = dbf6;
 		dbTableFields[6] = dbf7;
+		dbTableFields[7] = dbf8;
 
 		dbt.setDbTableFields(dbTableFields);
 
@@ -5078,16 +5094,12 @@ public class DbInit {
 			fileList = "";
 			textFolder = new File(SvConf.getConfPath() + svCONST.masterRecordsPath);
 			texFiles = textFolder.listFiles();
-			if (texFiles != null) {
-				Arrays.sort(texFiles);
-				for (int i = 0; i < texFiles.length; i++) {
-					if (texFiles[i].getName().endsWith(".json"))
-						fileList += texFiles[i].getName() + "\n";
-				}
-				SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.fileListName,
-						fileList);
-			} else
-				log4j.error("No JSON records generated");
+			Arrays.sort(texFiles);
+			for (int i = 0; i < texFiles.length; i++) {
+				if (texFiles[i].getName().endsWith(".json"))
+					fileList += texFiles[i].getName() + "\n";
+			}
+			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.fileListName, fileList);
 
 		} catch (Exception e) {
 			System.out.println("Error Generating file list");
@@ -5140,7 +5152,7 @@ public class DbInit {
 							continue;
 
 						DbDataObject dbo = new DbDataObject();
-						dbo.setStatus("VALID");
+						dbo.setStatus(svCONST.STATUS_VALID);
 						dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 						dbo.setDt_delete(SvConf.MAX_DATE);
 						dbo.setVal("label_code", (String) pair.getKey());
@@ -5216,7 +5228,7 @@ public class DbInit {
 
 	public static DbDataObject createAclFromDbt(DbDataObject dbt, SvAccess accessLevel) {
 		DbDataObject dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", accessLevel.toString());
@@ -5231,7 +5243,7 @@ public class DbInit {
 
 	public static void prepareSystemACLs(DbDataArray acls) {
 		DbDataObject dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
@@ -5243,7 +5255,7 @@ public class DbInit {
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
@@ -5255,7 +5267,7 @@ public class DbInit {
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
@@ -5368,7 +5380,7 @@ public class DbInit {
 							for (int i = 0; i < arr.size(); i++) {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
-								dbo.setStatus("VALID");
+								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 								dbo.setDt_delete(SvConf.MAX_DATE);
 								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
@@ -5400,7 +5412,7 @@ public class DbInit {
 							for (int i = 0; i < arr.size(); i++) {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
-								dbo.setStatus("VALID");
+								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 								dbo.setDt_delete(SvConf.MAX_DATE);
 								dbo.setVal("sid_object_id", aclItem.get("sid_object_id") != null
@@ -5513,7 +5525,7 @@ public class DbInit {
 								continue;
 
 							DbDataObject dbo = new DbDataObject();
-							dbo.setStatus("VALID");
+							dbo.setStatus(svCONST.STATUS_VALID);
 							dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 							dbo.setDt_delete(SvConf.MAX_DATE);
 							dbo.setVal("label_code", key);
@@ -5617,7 +5629,7 @@ public class DbInit {
 			dbo.setObject_type(svCONST.OBJECT_TYPE_TABLE);
 
 			dbo.setObject_id(dbt.getObjectId());
-			dbo.setStatus("VALID");
+			dbo.setStatus(svCONST.STATUS_VALID);
 			dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 			dbo.setDt_delete(SvConf.MAX_DATE);
 			dbo.setVal("system_table", dbt.getIsSystemTable());
@@ -5675,7 +5687,7 @@ public class DbInit {
 
 				dbo.setObject_id(svObjectId);
 				svObjectId++;
-				dbo.setStatus("VALID");
+				dbo.setStatus(svCONST.STATUS_VALID);
 				dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 				dbo.setDt_delete(SvConf.MAX_DATE);
 
@@ -5766,7 +5778,7 @@ public class DbInit {
 
 		DbDataObject dbl = new DbDataObject();
 		dbl.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl.setStatus("VALID");
+		dbl.setStatus(svCONST.STATUS_VALID);
 		dbl.setVal("LINK_TYPE", "USER_DEFAULT_GROUP");
 		dbl.setVal("LINK_TYPE_DESCRIPTION", "User group default membership");
 		dbl.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_USER);
@@ -5775,7 +5787,7 @@ public class DbInit {
 
 		DbDataObject dbGroup = new DbDataObject();
 		dbGroup.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbGroup.setStatus("VALID");
+		dbGroup.setStatus(svCONST.STATUS_VALID);
 		dbGroup.setVal("LINK_TYPE", "USER_GROUP");
 		dbGroup.setVal("LINK_TYPE_DESCRIPTION", "User group additional membership");
 		dbGroup.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_USER);
@@ -5784,7 +5796,7 @@ public class DbInit {
 
 		DbDataObject dblFormParent = new DbDataObject();
 		dblFormParent.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblFormParent.setStatus("VALID");
+		dblFormParent.setStatus(svCONST.STATUS_VALID);
 		dblFormParent.setVal("LINK_TYPE", "FORM_TYPE_PARENT");
 		dblFormParent.setVal("link_type_description",
 				"Link from form type to svarog object types, to signify which objects can have a form attached");
@@ -5794,7 +5806,7 @@ public class DbInit {
 
 		DbDataObject dblFFieldParent = new DbDataObject();
 		dblFFieldParent.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblFFieldParent.setStatus("VALID");
+		dblFFieldParent.setStatus(svCONST.STATUS_VALID);
 		dblFFieldParent.setVal("link_type_description",
 				"Link between form field and form type to signify which fields should be shown on a form");
 		dblFFieldParent.setVal("LINK_TYPE", "FORM_FIELD_LINK");
@@ -5806,7 +5818,7 @@ public class DbInit {
 
 		DbDataObject dbl_bee_1 = new DbDataObject();
 		dbl_bee_1.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl_bee_1.setStatus("VALID");
+		dbl_bee_1.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_1.setVal("LINK_TYPE", "LINK_JOB_TASK");
 		dbl_bee_1.setVal("LINK_TYPE_DESCRIPTION", "Link between job and task");
 		dbl_bee_1.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5816,7 +5828,7 @@ public class DbInit {
 
 		DbDataObject dbl_bee_2 = new DbDataObject();
 		dbl_bee_2.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl_bee_2.setStatus("VALID");
+		dbl_bee_2.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_2.setVal("LINK_TYPE", "LINK_FILE");
 		dbl_bee_2.setVal("LINK_TYPE_DESCRIPTION", "Link between job and file");
 		dbl_bee_2.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5826,7 +5838,7 @@ public class DbInit {
 
 		DbDataObject dbl_bee_3 = new DbDataObject();
 		dbl_bee_3.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl_bee_3.setStatus("VALID");
+		dbl_bee_3.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_3.setVal("LINK_TYPE", "LINK_JOB_OBJECT_WITH_TASK");
 		dbl_bee_3.setVal("LINK_TYPE_DESCRIPTION", "Link between job_object and task");
 		dbl_bee_3.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_OBJECT);
@@ -5839,7 +5851,7 @@ public class DbInit {
 
 		DbDataObject dbaf1 = new DbDataObject();
 		dbaf1.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbaf1.setStatus("VALID");
+		dbaf1.setStatus(svCONST.STATUS_VALID);
 		dbaf1.setVal("LINK_TYPE", "LINK_FILE");
 		dbaf1.setVal("LINK_TYPE_DESCRIPTION", "file link to table");
 		dbaf1.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_ACTION);
@@ -5849,7 +5861,7 @@ public class DbInit {
 
 		DbDataObject dblAdminHQ = new DbDataObject();
 		dblAdminHQ.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblAdminHQ.setStatus("VALID");
+		dblAdminHQ.setStatus(svCONST.STATUS_VALID);
 		dblAdminHQ.setVal("LINK_TYPE", "POA");
 		dblAdminHQ.setVal("LINK_TYPE_DESCRIPTION", "Power of attorney link for user on behalf of a OU");
 		dblAdminHQ.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_USER);
@@ -5859,7 +5871,7 @@ public class DbInit {
 		// Parameters link
 		DbDataObject dblinkParam = new DbDataObject();
 		dblinkParam.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblinkParam.setStatus("VALID");
+		dblinkParam.setStatus(svCONST.STATUS_VALID);
 		dblinkParam.setVal("LINK_TYPE", "LINK_CONFOBJ_WITH_PARAM_TYPE");
 		dblinkParam.setVal("LINK_TYPE_DESCRIPTION", "link job type with param type");
 		dblinkParam.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5869,7 +5881,7 @@ public class DbInit {
 		// Notification link
 		DbDataObject dblNotificationUser = new DbDataObject();
 		dblNotificationUser.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblNotificationUser.setStatus("VALID");
+		dblNotificationUser.setStatus(svCONST.STATUS_VALID);
 		dblNotificationUser.setVal("LINK_TYPE", "LINK_NOTIFICATION_USER");
 		dblNotificationUser.setVal("LINK_TYPE_DESCRIPTION", "link notification and user");
 		dblNotificationUser.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_NOTIFICATION);
@@ -5879,7 +5891,7 @@ public class DbInit {
 		// Notification link 2
 		DbDataObject dblNotificationUserGroup = new DbDataObject();
 		dblNotificationUserGroup.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblNotificationUserGroup.setStatus("VALID");
+		dblNotificationUserGroup.setStatus(svCONST.STATUS_VALID);
 		dblNotificationUserGroup.setVal("LINK_TYPE", "LINK_NOTIFICATION_GROUP");
 		dblNotificationUserGroup.setVal("LINK_TYPE_DESCRIPTION", "link notification and user group");
 		dblNotificationUserGroup.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_NOTIFICATION);
@@ -5889,7 +5901,7 @@ public class DbInit {
 		// BATCH LINK
 		DbDataObject dblPrint = new DbDataObject();
 		dblPrint.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblPrint.setStatus("VALID");
+		dblPrint.setStatus(svCONST.STATUS_VALID);
 		dblPrint.setVal("LINK_TYPE", "LINK_JOB_UI_STRUCT");
 		dblPrint.setVal("LINK_TYPE_DESCRIPTION", "job_type link to ui_struct");
 		dblPrint.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5899,7 +5911,7 @@ public class DbInit {
 		 * // link conversation and user DbDataObject dblConversationUser = new
 		 * DbDataObject();
 		 * dblNotificationUser.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		 * dblNotificationUser.setStatus("VALID");
+		 * dblNotificationUser.setStatus(svCONST.STATUS_VALID);
 		 * dblNotificationUser.setVal("LINK_TYPE",
 		 * "LINK_CONVERSATION_ATTACHMENT");
 		 * dblNotificationUser.setVal("LINK_TYPE_DESCRIPTION", "link user");
@@ -5912,7 +5924,7 @@ public class DbInit {
 		 * // link conversation and org unit DbDataObject dblConversationOrgUnit
 		 * = new DbDataObject();
 		 * dblConversationOrgUnit.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		 * dblConversationOrgUnit.setStatus("VALID");
+		 * dblConversationOrgUnit.setStatus(svCONST.STATUS_VALID);
 		 * dblConversationOrgUnit.setVal("LINK_TYPE",
 		 * "LINK_CONVERSATION_ATTACHMENT");
 		 * dblConversationOrgUnit.setVal("LINK_TYPE_DESCRIPTION",
@@ -6111,7 +6123,7 @@ public class DbInit {
 			// dbo.setRepo_name("{MASTER_REPO}");
 			// dbo.setTable_name("{MASTER_REPO}" + "_codes");
 			// dbo.setSchema("{DEFAULT_SCHEMA}");
-			dbo.setStatus("VALID");
+			dbo.setStatus(svCONST.STATUS_VALID);
 
 			dbo.setObject_id(object_id);
 			dbo.setObject_type(svCONST.OBJECT_TYPE_CODE);
@@ -6258,7 +6270,7 @@ public class DbInit {
 
 		try {
 
-			String codesPath = "/" + svCONST.masterCodesPath + "codes.properties";
+			String codesPath = "/" + svCONST.masterCodesPath + "/codes.properties";
 			// File baseCodes = new File();
 
 			InputStream fis = DbInit.class.getResourceAsStream(codesPath);

@@ -43,16 +43,11 @@ import com.prtech.svarog_interfaces.ISvExecutor;
  * </p>
  **/
 public class SvarogDaemon {
-	static {
-		String path = "./log4j2.xml";
-		File pFile = new File(path);
-		if(pFile.exists())
-			System.setProperty("log4j.configurationFile", pFile.getAbsolutePath());
-	}
+
 	/**
 	 * Log4j object to log issues
 	 */
-	private static final Logger log4j = LogManager.getLogger(SvarogDaemon.class.getName());
+	private static final Logger log4j = SvConf.getLogger(SvarogDaemon.class);
 	/**
 	 * Service tracker to list all SvarogExecutors loaded from bundles
 	 */
@@ -194,7 +189,7 @@ public class SvarogDaemon {
 			System.exit(cmdLineStatus);
 
 		// initalise Svarog
-		if(!SvCore.initSvCore())
+		if (!SvCore.initSvCore())
 			System.exit(-1);
 
 		// Load system properties.
