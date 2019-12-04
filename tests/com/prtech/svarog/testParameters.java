@@ -144,20 +144,20 @@ public class testParameters {
 			svw.setAutoCommit(false);
 			svp = new SvParameter(svw);
 
-			DbDataObject paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", "param.module", svr);
+			DbDataObject paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", "param.module.long", svr);
 			// if it doesn't exist, than it will create new type of parameter
 			if (paramType == null) {
-				createParamType(0L, "param.module", "Long", "DROP_DOWN", null, null, null, null, 1L, "Кампања", "mk_MK",
+				createParamType(0L, "param.module.long", "Long", "DROP_DOWN", null, null, null, null, 1L, "Кампања", "mk_MK",
 						svr, svw);
 				// check if paramType created
-				paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", "param.module", svr);
+				paramType = searchForObject(svCONST.OBJECT_TYPE_PARAM_TYPE, "LABEL_CODE", "param.module.long", svr);
 				svr.dbCommit();
 			}
 
 			if (paramType != null) {
-				svp.setParamLong("param.module", 14124L);
-				svp.setParamLong("param.module", 34121L);
-				Long value = svp.getParamLong("param.module");
+				svp.setParamLong("param.module.long", 14124L);
+				svp.setParamLong("param.module.long", 34121L);
+				Long value = svp.getParamLong("param.module.long");
 				if (value == null)
 					fail("Can't get value of parameters module for repo object");
 				if (!value.equals(Long.valueOf(34121))) {

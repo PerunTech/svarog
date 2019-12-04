@@ -52,12 +52,17 @@ import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 public class SvFileStore extends SvCore {
+	/**
+	 * Log4j instance
+	 */
+	static final Logger log4j = SvConf.getLogger(SvFileStore.class);
 
 	/**
 	 * Static cache instance to hold the system files.
 	 */
 	private static Cache<Long, byte[]> systemCache = getSystemFilesCache();
 
+	static String fileStorePath = initFileStorePath();
 	/**
 	 * Variable holding the maximum size of a system file to be cached in mega
 	 * bytes
@@ -77,6 +82,28 @@ public class SvFileStore extends SvCore {
 			max_size = 5;
 		}
 		return max_size;
+	}
+
+	private static String initFileStorePath() {
+
+		String path = SvConf.getParam("filestore.path");
+		if (path == null || path.isEmpty())
+			log4j.error("Filestore path not properly configured. Using default path");
+		File fPath = new File(path);
+		if (!fPath.exists()) {
+			log4j.error("Filestore path " + path + " does not exist on the file system!. Using default path");
+			path = "./svarog_filestore";
+			fPath = new File(path);
+			if (!fPath.exists())
+				fPath.mkdir();
+
+		}
+
+		if (path != null)
+			log4j.info("Filestore path is:" + fPath.getAbsolutePath());
+
+		// TODO Auto-generated method stub
+		return path;
 	}
 
 	/**
@@ -121,12 +148,7 @@ public class SvFileStore extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-	/**
-	 * Log4j instance
-	 */
-	static final Logger log4j = LogManager.getLogger(SvFileStore.class.getName());
-
-	static Boolean initFileStore() {
+	static boolean initFileStore() {
 
 		DbDataTable dbt = new DbDataTable(SvConf.getSqlkw());
 		dbt.setDbTableName(SvConf.getParam("filestore.table"));
@@ -488,7 +510,7 @@ public class SvFileStore extends SvCore {
 	 * @throws SvException
 	 */
 	private FileOutputStream fileSystemSaveStream(Long fileId) throws SvException {
-		File rootFs = new File(SvConf.getParam("filestore.path") + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
+		File rootFs = new File(fileStorePath + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
 		FileOutputStream output = null;
 
 		try {
@@ -516,7 +538,7 @@ public class SvFileStore extends SvCore {
 	 * @throws SvException
 	 */
 	private FileInputStream fileSystemGetStream(Long fileId, HashMap<String, Object> extendedInfo) throws SvException {
-		File rootFs = new File(SvConf.getParam("filestore.path") + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
+		File rootFs = new File(fileStorePath + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
 		FileInputStream input = null;
 
 		try {
