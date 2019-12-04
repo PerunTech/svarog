@@ -5990,9 +5990,9 @@ public class DbInit {
 	 * @return The updated max object id as result of the custom DbInit
 	 *         processing
 	 */
-	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes) {
+	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes, DbDataArray customObjests) {
 		// DbDataArray defaultObjests = new DbDataArray();
-		DbDataArray customObjests = new DbDataArray();
+		// DbDataArray customObjests = new DbDataArray();
 		StringBuilder errMsg = new StringBuilder();
 
 		File customFolder = new File(subDir);
@@ -6070,9 +6070,12 @@ public class DbInit {
 			return errMsg.toString();
 
 		// load custom objects as well as from the OSGI bundles dir
-		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes);
-		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId,
-				defaultCodes);
+		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes, customObjests);
+		customObjestsAll.getItems().addAll(customObjests.getItems());
+
+		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
+				customObjests);
+		customObjestsAll.getItems().addAll(customObjests.getItems());
 
 		DbDataArray arrWF = new DbDataArray();
 		svObjectId = addDefaultUnitsUsers(arrWF, svObjectId);
@@ -6084,7 +6087,7 @@ public class DbInit {
 
 		retval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.usersFile, arrWF, true);
 
-		prepareACLs(defaultObjests, customObjests);
+		prepareACLs(defaultObjests, customObjestsAll);
 
 		updateFileLists();
 		return retval;
