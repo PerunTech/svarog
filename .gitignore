@@ -2,6 +2,9 @@
 # ignore build folder
 /build/*
 /.classpath
+/.settings
+/.directory
+/.project
 /build/
 /doc/
 /target/
@@ -11,3 +14,5 @@
 /conf/
 /sv_batch_fs/
 /svarog_filestore/
+/bin/
+/svarog.properties
