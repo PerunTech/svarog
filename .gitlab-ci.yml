@@ -63,7 +63,7 @@ svarog:
     # RUN SVAROG INSTALL for POSTGRES database
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop -P PostgreSQL
-    - mvn exec:java@upgrade-force -P PostgrSQL
+    - mvn exec:java@upgrade-force -P PostgreSQL
     # Run unit tests
     - mvn test
     #  - rm -rf test_results/
@@ -87,6 +87,7 @@ svarog:
     - master
     - staging
     - dev
+    - feature/CI 
 
 
 svarog-sonarqube:
