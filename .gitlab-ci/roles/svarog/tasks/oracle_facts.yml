@@ -25,3 +25,4 @@
     db_schema: "{{ oracle_schema }}"
     db_type: "{{ oracle_db_type }}"
     db_conn_type: JDBC
+    db_handler: "{{ oracle_db_handler }}"

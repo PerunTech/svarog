@@ -12,6 +12,7 @@ postgres_username: postgres
 postgres_password: postgres
 postgres_connstring: jdbc:postgresql://{{ postgres_ip }}:{{ postgres_port }}/postgres
 postgres_db_type: POSTGRES
+postgres_db_handler: 
 
 ###### MASTER POSTGRES SVAROG SETTINGS ########
 master_postgres_schema: ci_master
@@ -36,6 +37,7 @@ oracle_driver_name: oracle.jdbc.driver.OracleDriver
 oracle_connstring: jdbc:oracle:thin:@{{ oracle_ip }}:{{ oracle_port }}:{{ oracle_sid }}
 oracle_schema: "{{ db_username }}"
 oracle_db_type: ORACLE
+oracle_db_handler: com.prtech.svarog.io.SvOracleIO
 
 ###### MASTER ORACLE SVAROG SETTINGS ########
 master_oracle_username: ci_master
