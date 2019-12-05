@@ -46,7 +46,7 @@ svarog:
     - ./ansible-svarog.sh $CI_COMMIT_REF_NAME $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR
 
-    - mvn exec:java@json
+    - mvn exec:java@json -P ORACLE
 
     - echo $PROJECT_JAR
     ####################################
