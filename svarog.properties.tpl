@@ -7,6 +7,7 @@ user.password={{ db_password }}
 
 conn.dbType={{ db_type }}
 conn.defaultSchema={{ db_schema }}
+conn.dbHandlerClass={{ db_handler }}
 sys.masterRepo=svarog
 
 sys.core.cleanup_time=30
