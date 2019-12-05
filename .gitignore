@@ -2,6 +2,9 @@
 # ignore build folder
 /build/*
 /.classpath
+/.settings
+/.directory
+/.project
 /build/
 /doc/
 /target/
