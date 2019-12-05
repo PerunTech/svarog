@@ -91,4 +91,4 @@ svarog:
 static_analysis:
   stage: sonarqube
   script:
-    -mvn sonar:sonar 
+    - mvn sonar:sonar 
