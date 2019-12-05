@@ -1,6 +1,7 @@
 stages:
   - build
-  - sonarqube
+  - code_analysis
+  - mvn_install
 
 
 before_script:
@@ -88,7 +89,17 @@ svarog:
     - dev
 
 
-static_analysis:
-  stage: sonarqube
+svarog-sonarqube:
+  stage: code_analysis
   script:
     - mvn sonar:sonar 
+    
+svarog-install:
+  stage: mvn_install
+  script:  
+    - pwd
+    - mvn install
+  only:
+    - master
+    - staging
+    - dev    
