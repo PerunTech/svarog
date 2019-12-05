@@ -9,3 +9,5 @@
 /osgi-cache/
 /osgi-bundles-default.zip
 /conf/
+/sv_batch_fs/
+/svarog_filestore/

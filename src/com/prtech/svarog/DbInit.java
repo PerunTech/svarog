@@ -12,7 +12,7 @@
  *   permissions and limitations under the License.
  *  
  *******************************************************************************/
- 
+
 package com.prtech.svarog;
 
 import com.prtech.svarog.SvCore.SvAccess;
@@ -58,13 +58,109 @@ public class DbInit {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(DbInit.class.getName());
+	static final Logger log4j = SvConf.getLogger(DbInit.class);
 
 	private static JsonObject getDefaultSDIMetadata() {
 		JsonObject meta = new JsonObject();
 		meta.addProperty("ShowInGeoJSONProps", true);
 		return meta;
 
+	}
+
+	//
+	private static DbDataTable getMasterExecutors() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName("{REPO_TABLE_NAME}_executors");
+		dbt.setDbRepoName("{MASTER_REPO}");
+		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTORS);
+		dbt.setIsRepoTable(false);
+		dbt.setLabel_code("master_repo.executors");
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code("master_repo.table_meta_pkid");
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName("CATEGORY");
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(100);
+		dbf2.setIsNull(false);
+		dbf2.setIndexName("exec_name_cat");
+		dbf2.setIsUnique(true);
+		dbf2.setLabel_code("master_repo.executor_category");
+
+		// f3
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName("NAME");
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(100);
+		dbf3.setIndexName("exec_name_cat");
+		dbf3.setIsUnique(true);
+		dbf3.setIsNull(false);
+		dbf3.setLabel_code("master_repo.executor_name");
+		// f3
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("JAVA_TYPE");
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(100);
+		dbf4.setIsNull(false);
+		dbf4.setLabel_code("master_repo.executor_type");
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName("DESCRIPTION");
+		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf5.setDbFieldSize(300);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code("master_repo.executor_description");
+
+		DbDataField dbf6 = new DbDataField();
+		dbf6.setDbFieldName("START_DATE");
+		dbf6.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf6.setIsUnique(true);
+		dbf6.setDbFieldSize(3);
+		dbf6.setIsNull(false);
+		dbf6.setLabel_code("master_repo.executor_start_date");
+
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName("END_DATE");
+		dbf7.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf7.setIsUnique(true);
+		dbf7.setDbFieldSize(3);
+		dbf7.setIsNull(false);
+		dbf7.setLabel_code("master_repo.executor_end_date");
+		// f1
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName("VERSION");
+		dbf8.setIsPrimaryKey(true);
+		dbf8.setDbFieldType(DbFieldType.NUMERIC);
+		dbf8.setDbFieldSize(3);
+		dbf8.setDbFieldScale(0);
+		dbf8.setIsNull(false);
+		dbf8.setLabel_code("master_repo.executor_version");
+
+		DbDataField[] dbTableFields = new DbDataField[8];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf3;
+		dbTableFields[3] = dbf4;
+		dbTableFields[4] = dbf5;
+		dbTableFields[5] = dbf6;
+		dbTableFields[6] = dbf7;
+		dbTableFields[7] = dbf8;
+
+		dbt.setDbTableFields(dbTableFields);
+
+		return dbt;
 	}
 
 	// RULE ENGINE
@@ -4898,6 +4994,9 @@ public class DbInit {
 		dbtt = createMessage();
 		dbtList.add(addSortOrder(dbtt));
 
+		dbtt = getMasterExecutors();
+		dbtList.add(addSortOrder(dbtt));
+
 		// Add SDI structure
 		if (SvConf.isSdiEnabled()) {
 			dbtt = getSDIMasterRepoObject();
@@ -5035,13 +5134,15 @@ public class DbInit {
 	 */
 
 	private static void loadLabelsFromCustom(String jarPath, HashMap<String, DbDataObject> mLabels, String locale) {
-		InputStream iStr = DbInit.loadCustomResources(jarPath, "labels/" + locale + "Labels.properties");
+		InputStream iStr = null;
 		Properties prop = new Properties();
-
-		if (iStr != null) {
-			// load strings
-			try {
+		String labelsPath = "labels/" + locale + "Labels.properties";
+		// load strings
+		try {
+			iStr = DbInit.loadCustomResources(jarPath, labelsPath);
+			if (iStr != null) {
 				prop.load(new InputStreamReader(iStr, "UTF-8"));
+				log4j.info("Loaded labels file '" + labelsPath + "' from: " + jarPath);
 
 				Iterator<Entry<Object, Object>> pit = prop.entrySet().iterator();
 				if (prop.size() > 0)
@@ -5051,7 +5152,7 @@ public class DbInit {
 							continue;
 
 						DbDataObject dbo = new DbDataObject();
-						dbo.setStatus("VALID");
+						dbo.setStatus(svCONST.STATUS_VALID);
 						dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 						dbo.setDt_delete(SvConf.MAX_DATE);
 						dbo.setVal("label_code", (String) pair.getKey());
@@ -5067,17 +5168,16 @@ public class DbInit {
 						mLabels.put((String) pair.getKey(), dbo);
 
 					}
-			} catch (Exception e1) {
-				System.out.println("Error loading labels from custom jar:" + jarPath);
-				e1.printStackTrace();
-				return;
-			} finally {
-				try {
+			} else
+				log4j.trace("Labels file '" + labelsPath + "' not found in: " + jarPath);
+		} catch (Exception e1) {
+			log4j.error("Error loading labels from custom jar:" + jarPath, e1);
+		} finally {
+			try {
+				if (iStr != null)
 					iStr.close();
-				} catch (IOException e) {
-					System.out.println("Can not close input stream from custom jar:" + jarPath);
-					e.printStackTrace();
-				}
+			} catch (IOException e) {
+				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
 			}
 		}
 
@@ -5112,7 +5212,7 @@ public class DbInit {
 			aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
 			json = gson.fromJson(aclStr, JsonElement.class);
 		} catch (Exception ex) {
-			log4j.debug(
+			log4j.trace(
 					"Warning, no ACLs found in:" + jarPath + ", path:" + filePath + ". Exception:" + ex.getMessage());
 			// ex.printStackTrace();
 		} finally {
@@ -5128,7 +5228,7 @@ public class DbInit {
 
 	public static DbDataObject createAclFromDbt(DbDataObject dbt, SvAccess accessLevel) {
 		DbDataObject dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", accessLevel.toString());
@@ -5143,7 +5243,7 @@ public class DbInit {
 
 	public static void prepareSystemACLs(DbDataArray acls) {
 		DbDataObject dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
@@ -5155,7 +5255,7 @@ public class DbInit {
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
@@ -5167,7 +5267,7 @@ public class DbInit {
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
-		dbo.setStatus("VALID");
+		dbo.setStatus(svCONST.STATUS_VALID);
 		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 		dbo.setDt_delete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
@@ -5236,8 +5336,7 @@ public class DbInit {
 						}
 					}
 				}
-				// load codes from the OSGI bundles dir too
-
+				// load ACSfrom the OSGI bundles dir too
 				customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 				customJars = customFolder.listFiles();
 				if (customJars != null) {
@@ -5281,7 +5380,7 @@ public class DbInit {
 							for (int i = 0; i < arr.size(); i++) {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
-								dbo.setStatus("VALID");
+								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 								dbo.setDt_delete(SvConf.MAX_DATE);
 								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
@@ -5313,7 +5412,7 @@ public class DbInit {
 							for (int i = 0; i < arr.size(); i++) {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
-								dbo.setStatus("VALID");
+								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 								dbo.setDt_delete(SvConf.MAX_DATE);
 								dbo.setVal("sid_object_id", aclItem.get("sid_object_id") != null
@@ -5373,31 +5472,13 @@ public class DbInit {
 			// master_locales.json", locales.toJson().toString());
 			for (DbDataObject entry : locales.getItems()) {
 				try {
-					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id") + "Labels.properties";
-
-					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
-					if (iStr == null)
-						continue;
-
-					log4j.info("Loaded labels from: " + labelFile);
-
-					Properties rb = new Properties();
-
-					if (iStr != null) {
-						// load strings
-						try {
-							rb.load(new InputStreamReader(iStr, "UTF-8"));
-						} finally {
-							iStr.close();
-						}
-					}
-
 					// load labers from the custom folder
 					File customFolder = new File("custom/");
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
 						if (customJars != null) {
 							for (int i = 0; i < customJars.length; i++) {
+								log4j.debug("Trying to load labels from: " + customJars[i].getAbsolutePath());
 								if (customJars[i].getName().endsWith(".jar"))
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
 											(String) entry.getVal("locale_id"));
@@ -5411,15 +5492,32 @@ public class DbInit {
 						File[] customJars = customFolder.listFiles();
 						if (customJars != null) {
 							for (int i = 0; i < customJars.length; i++) {
-								if (customJars[i].getName().endsWith(".jar"))
+								if (customJars[i].getName().endsWith(".jar")) {
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
 											(String) entry.getVal("locale_id"));
+								}
 							}
+						}
+					}
+
+					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id") + "Labels.properties";
+
+					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
+
+					Properties rb = null;
+
+					if (iStr != null) {
+						// load strings
+						try {
+							rb = new Properties();
+							rb.load(new InputStreamReader(iStr, "UTF-8"));
+							log4j.info("Loaded labels from: " + labelFile);
+						} finally {
+							iStr.close();
 						}
 					}
 					if (rb != null) {
 						// load strings
-
 						Iterator<Object> pit = rb.keySet().iterator();
 						while (pit.hasNext()) {
 							String key = (String) pit.next();
@@ -5427,7 +5525,7 @@ public class DbInit {
 								continue;
 
 							DbDataObject dbo = new DbDataObject();
-							dbo.setStatus("VALID");
+							dbo.setStatus(svCONST.STATUS_VALID);
 							dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 							dbo.setDt_delete(SvConf.MAX_DATE);
 							dbo.setVal("label_code", key);
@@ -5445,16 +5543,18 @@ public class DbInit {
 						}
 					}
 				} catch (Exception e) {
-					continue;
+					log4j.debug("Error reading svarog root labels", e);
 				}
 
-				arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
-				String strRetval = "";
-				strRetval = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.labelsFilePrefix
-						+ entry.getVal("locale_id") + ".json", arr, true);
-				if (!strRetval.equals("")) {
-					testRetval += testRetval + strRetval + " json/records/20. master_labels_"
-							+ entry.getVal("locale_id") + ".json; ";
+				if (mLabels != null && mLabels.size() > 0) {
+					arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
+					String strRetval = "";
+					strRetval = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath
+							+ svCONST.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
+					if (!strRetval.equals("")) {
+						testRetval += testRetval + strRetval + " json/records/20. master_labels_"
+								+ entry.getVal("locale_id") + ".json; ";
+					}
 				}
 				arr.getItems().clear();
 				mLabels.clear();
@@ -5529,7 +5629,7 @@ public class DbInit {
 			dbo.setObject_type(svCONST.OBJECT_TYPE_TABLE);
 
 			dbo.setObject_id(dbt.getObjectId());
-			dbo.setStatus("VALID");
+			dbo.setStatus(svCONST.STATUS_VALID);
 			dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 			dbo.setDt_delete(SvConf.MAX_DATE);
 			dbo.setVal("system_table", dbt.getIsSystemTable());
@@ -5587,7 +5687,7 @@ public class DbInit {
 
 				dbo.setObject_id(svObjectId);
 				svObjectId++;
-				dbo.setStatus("VALID");
+				dbo.setStatus(svCONST.STATUS_VALID);
 				dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
 				dbo.setDt_delete(SvConf.MAX_DATE);
 
@@ -5678,7 +5778,7 @@ public class DbInit {
 
 		DbDataObject dbl = new DbDataObject();
 		dbl.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl.setStatus("VALID");
+		dbl.setStatus(svCONST.STATUS_VALID);
 		dbl.setVal("LINK_TYPE", "USER_DEFAULT_GROUP");
 		dbl.setVal("LINK_TYPE_DESCRIPTION", "User group default membership");
 		dbl.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_USER);
@@ -5687,7 +5787,7 @@ public class DbInit {
 
 		DbDataObject dbGroup = new DbDataObject();
 		dbGroup.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbGroup.setStatus("VALID");
+		dbGroup.setStatus(svCONST.STATUS_VALID);
 		dbGroup.setVal("LINK_TYPE", "USER_GROUP");
 		dbGroup.setVal("LINK_TYPE_DESCRIPTION", "User group additional membership");
 		dbGroup.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_USER);
@@ -5696,7 +5796,7 @@ public class DbInit {
 
 		DbDataObject dblFormParent = new DbDataObject();
 		dblFormParent.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblFormParent.setStatus("VALID");
+		dblFormParent.setStatus(svCONST.STATUS_VALID);
 		dblFormParent.setVal("LINK_TYPE", "FORM_TYPE_PARENT");
 		dblFormParent.setVal("link_type_description",
 				"Link from form type to svarog object types, to signify which objects can have a form attached");
@@ -5706,7 +5806,7 @@ public class DbInit {
 
 		DbDataObject dblFFieldParent = new DbDataObject();
 		dblFFieldParent.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblFFieldParent.setStatus("VALID");
+		dblFFieldParent.setStatus(svCONST.STATUS_VALID);
 		dblFFieldParent.setVal("link_type_description",
 				"Link between form field and form type to signify which fields should be shown on a form");
 		dblFFieldParent.setVal("LINK_TYPE", "FORM_FIELD_LINK");
@@ -5718,7 +5818,7 @@ public class DbInit {
 
 		DbDataObject dbl_bee_1 = new DbDataObject();
 		dbl_bee_1.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl_bee_1.setStatus("VALID");
+		dbl_bee_1.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_1.setVal("LINK_TYPE", "LINK_JOB_TASK");
 		dbl_bee_1.setVal("LINK_TYPE_DESCRIPTION", "Link between job and task");
 		dbl_bee_1.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5728,7 +5828,7 @@ public class DbInit {
 
 		DbDataObject dbl_bee_2 = new DbDataObject();
 		dbl_bee_2.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl_bee_2.setStatus("VALID");
+		dbl_bee_2.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_2.setVal("LINK_TYPE", "LINK_FILE");
 		dbl_bee_2.setVal("LINK_TYPE_DESCRIPTION", "Link between job and file");
 		dbl_bee_2.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5738,7 +5838,7 @@ public class DbInit {
 
 		DbDataObject dbl_bee_3 = new DbDataObject();
 		dbl_bee_3.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbl_bee_3.setStatus("VALID");
+		dbl_bee_3.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_3.setVal("LINK_TYPE", "LINK_JOB_OBJECT_WITH_TASK");
 		dbl_bee_3.setVal("LINK_TYPE_DESCRIPTION", "Link between job_object and task");
 		dbl_bee_3.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_OBJECT);
@@ -5751,7 +5851,7 @@ public class DbInit {
 
 		DbDataObject dbaf1 = new DbDataObject();
 		dbaf1.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dbaf1.setStatus("VALID");
+		dbaf1.setStatus(svCONST.STATUS_VALID);
 		dbaf1.setVal("LINK_TYPE", "LINK_FILE");
 		dbaf1.setVal("LINK_TYPE_DESCRIPTION", "file link to table");
 		dbaf1.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_ACTION);
@@ -5761,7 +5861,7 @@ public class DbInit {
 
 		DbDataObject dblAdminHQ = new DbDataObject();
 		dblAdminHQ.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblAdminHQ.setStatus("VALID");
+		dblAdminHQ.setStatus(svCONST.STATUS_VALID);
 		dblAdminHQ.setVal("LINK_TYPE", "POA");
 		dblAdminHQ.setVal("LINK_TYPE_DESCRIPTION", "Power of attorney link for user on behalf of a OU");
 		dblAdminHQ.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_USER);
@@ -5771,7 +5871,7 @@ public class DbInit {
 		// Parameters link
 		DbDataObject dblinkParam = new DbDataObject();
 		dblinkParam.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblinkParam.setStatus("VALID");
+		dblinkParam.setStatus(svCONST.STATUS_VALID);
 		dblinkParam.setVal("LINK_TYPE", "LINK_CONFOBJ_WITH_PARAM_TYPE");
 		dblinkParam.setVal("LINK_TYPE_DESCRIPTION", "link job type with param type");
 		dblinkParam.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5781,7 +5881,7 @@ public class DbInit {
 		// Notification link
 		DbDataObject dblNotificationUser = new DbDataObject();
 		dblNotificationUser.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblNotificationUser.setStatus("VALID");
+		dblNotificationUser.setStatus(svCONST.STATUS_VALID);
 		dblNotificationUser.setVal("LINK_TYPE", "LINK_NOTIFICATION_USER");
 		dblNotificationUser.setVal("LINK_TYPE_DESCRIPTION", "link notification and user");
 		dblNotificationUser.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_NOTIFICATION);
@@ -5791,7 +5891,7 @@ public class DbInit {
 		// Notification link 2
 		DbDataObject dblNotificationUserGroup = new DbDataObject();
 		dblNotificationUserGroup.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblNotificationUserGroup.setStatus("VALID");
+		dblNotificationUserGroup.setStatus(svCONST.STATUS_VALID);
 		dblNotificationUserGroup.setVal("LINK_TYPE", "LINK_NOTIFICATION_GROUP");
 		dblNotificationUserGroup.setVal("LINK_TYPE_DESCRIPTION", "link notification and user group");
 		dblNotificationUserGroup.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_NOTIFICATION);
@@ -5801,7 +5901,7 @@ public class DbInit {
 		// BATCH LINK
 		DbDataObject dblPrint = new DbDataObject();
 		dblPrint.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dblPrint.setStatus("VALID");
+		dblPrint.setStatus(svCONST.STATUS_VALID);
 		dblPrint.setVal("LINK_TYPE", "LINK_JOB_UI_STRUCT");
 		dblPrint.setVal("LINK_TYPE_DESCRIPTION", "job_type link to ui_struct");
 		dblPrint.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -5811,7 +5911,7 @@ public class DbInit {
 		 * // link conversation and user DbDataObject dblConversationUser = new
 		 * DbDataObject();
 		 * dblNotificationUser.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		 * dblNotificationUser.setStatus("VALID");
+		 * dblNotificationUser.setStatus(svCONST.STATUS_VALID);
 		 * dblNotificationUser.setVal("LINK_TYPE",
 		 * "LINK_CONVERSATION_ATTACHMENT");
 		 * dblNotificationUser.setVal("LINK_TYPE_DESCRIPTION", "link user");
@@ -5824,7 +5924,7 @@ public class DbInit {
 		 * // link conversation and org unit DbDataObject dblConversationOrgUnit
 		 * = new DbDataObject();
 		 * dblConversationOrgUnit.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
-		 * dblConversationOrgUnit.setStatus("VALID");
+		 * dblConversationOrgUnit.setStatus(svCONST.STATUS_VALID);
 		 * dblConversationOrgUnit.setVal("LINK_TYPE",
 		 * "LINK_CONVERSATION_ATTACHMENT");
 		 * dblConversationOrgUnit.setVal("LINK_TYPE_DESCRIPTION",
@@ -5902,7 +6002,8 @@ public class DbInit {
 	 * @return The updated max object id as result of the custom DbInit
 	 *         processing
 	 */
-	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes) {
+	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes,
+			DbDataArray customObjestsAll) {
 		// DbDataArray defaultObjests = new DbDataArray();
 		DbDataArray customObjests = new DbDataArray();
 		StringBuilder errMsg = new StringBuilder();
@@ -5942,9 +6043,11 @@ public class DbInit {
 
 					}
 					String errStr = "";
-					if (customObjests.size() > 0)
+					if (customObjests.size() > 0) {
 						errStr = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "4" + i + ". "
 								+ customJars[i].getName().replace(".jar", ".json"), customObjests, true);
+						customObjestsAll.getItems().addAll(customObjests.getItems());
+					}
 					if (!errStr.equals("")) {
 						log4j.error("Error saving DbDataArray to file from custom IDbInit:" + customJars[i].getName()
 								+ "." + errStr.toString());
@@ -5982,9 +6085,12 @@ public class DbInit {
 			return errMsg.toString();
 
 		// load custom objects as well as from the OSGI bundles dir
-		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes);
-		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId,
-				defaultCodes);
+		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes, customObjests);
+		customObjestsAll.getItems().addAll(customObjests.getItems());
+
+		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
+				customObjests);
+		customObjestsAll.getItems().addAll(customObjests.getItems());
 
 		DbDataArray arrWF = new DbDataArray();
 		svObjectId = addDefaultUnitsUsers(arrWF, svObjectId);
@@ -5996,7 +6102,7 @@ public class DbInit {
 
 		retval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.usersFile, arrWF, true);
 
-		prepareACLs(defaultObjests, customObjests);
+		prepareACLs(defaultObjests, customObjestsAll);
 
 		updateFileLists();
 		return retval;
@@ -6020,7 +6126,7 @@ public class DbInit {
 			// dbo.setRepo_name("{MASTER_REPO}");
 			// dbo.setTable_name("{MASTER_REPO}" + "_codes");
 			// dbo.setSchema("{DEFAULT_SCHEMA}");
-			dbo.setStatus("VALID");
+			dbo.setStatus(svCONST.STATUS_VALID);
 
 			dbo.setObject_id(object_id);
 			dbo.setObject_type(svCONST.OBJECT_TYPE_CODE);
@@ -6092,26 +6198,37 @@ public class DbInit {
 		}
 	}
 
+	/**
+	 * Method to load codes from either 'custom/' directory or OSGI bundles
+	 * AUTODEPLOY DIR
+	 * 
+	 * @param jarPath
+	 *            The path of the jar file containining
+	 *            "labels/codes.properties"
+	 * @param jCodes
+	 *            The
+	 * @throws IOException
+	 */
 	private static void loadCodesFromCustom(String jarPath, JsonObject jCodes) throws IOException {
-		InputStream customIs = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
-
+		InputStream customIs = null;
 		Gson gson = (new GsonBuilder().setPrettyPrinting().create());
-		if (customIs != null) {
-			try {
+		try {
+			customIs = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
+			if (customIs != null) {
 				String jsonCustom = IOUtils.toString(customIs, "UTF-8");
 				JsonObject customJobj = gson.fromJson(jsonCustom, JsonElement.class).getAsJsonObject();
 				mergeChildrenCodes(jCodes, customJobj);
-			} catch (Exception e1) {
-				System.out.println("Error loading codes from custom jar:" + jarPath);
-				e1.printStackTrace();
-				return;
-			} finally {
-				try {
+			}
+		} catch (Exception e1) {
+			log4j.error("Error loading codes from custom jar:" + jarPath);
+			e1.printStackTrace();
+			return;
+		} finally {
+			try {
+				if (customIs != null)
 					customIs.close();
-				} catch (IOException e) {
-					System.out.println("Can not close input stream from custom jar:" + jarPath);
-					e.printStackTrace();
-				}
+			} catch (IOException e) {
+				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
 			}
 		}
 
@@ -6206,8 +6323,7 @@ public class DbInit {
 					jsonCodes);
 			codesStr[0] = jsonCodes;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log4j.error("Error processing codes: ", e);
 		}
 		updateFileLists();
 		return startingObjId;
@@ -6356,7 +6472,7 @@ public class DbInit {
 							dbi.add((IDbInit) c.newInstance());
 
 						}
-					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError ex) {
+					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError ex) {
 						if (log4j.isDebugEnabled())
 							log4j.trace("Error loading class", e);
 					}

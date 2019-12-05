@@ -15,8 +15,6 @@
 
 package com.prtech.svarog;
 
-import static org.junit.Assert.fail;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,8 +22,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -83,8 +79,9 @@ public class SvarogInstall {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvarogInstall.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvarogInstall.class);
 
+	static final String localesPath = "/com/prtech/svarog/json/src/master_locales.json";
 	/**
 	 * The map of fields in the repo table
 	 */
@@ -98,7 +95,7 @@ public class SvarogInstall {
 	/**
 	 * Flag to mark if there is valid configuration in the database
 	 */
-	static boolean isAlreadyInstalled = true;
+	private static Boolean mIsAlreadyInstalled = null;
 
 	/**
 	 * String containing the type of operation install or upgrade
@@ -128,15 +125,17 @@ public class SvarogInstall {
 	 * @param args
 	 *            Command line list of arguments
 	 */
-	public static void main(String[] args) {
+	public static int main(String[] args) {
 		CommandLineParser parser = new DefaultParser();
 		Options options = getOptions();
 		int returnStatus = 0;
 		try {
 			// parse the command line arguments
 			CommandLine line = parser.parse(options, args);
-
-			// if the help option is set, just print help and do nothing
+			// if the flag -d or --daemon has been set, simply return the status
+			if (line.hasOption("dm")) {
+				return SvarogDaemon.svarogDaemonStatus;
+			} else // if the help option is set, just print help and do nothing
 			if (line.hasOption("h")) {
 				// print the value of block-size
 				HelpFormatter formatter = new HelpFormatter();
@@ -187,33 +186,37 @@ public class SvarogInstall {
 			System.out.println("Unexpected exception:" + exp.getMessage());
 			returnStatus = -2;
 		}
-		System.exit(returnStatus);
+		if (!SvCore.svDaemonRunning.get())
+			System.exit(returnStatus);
+
+		return returnStatus;
 
 	}
 
 	/**
 	 * Method to test if svarog can connect to the database.
+	 * 
 	 * @return 0 if the connection is successful.
 	 */
 	private static int canConnectToDb() {
-		int errStatus=-1;
+		int errStatus = -1;
 		Connection conn = null;
-		log4j.info("Validating connection to "+SvConf.getConnectionString());
+		log4j.info("Validating connection to " + SvConf.getConnectionString());
 		try {
 			conn = SvConf.getDBConnection();
 			if (conn != null)
-				errStatus=0;
+				errStatus = 0;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			log4j.info("DbConnection.getDBConnection() raised an exception");
-			log4j.debug("Connection exception:",e);
+			log4j.debug("Connection exception:", e);
 
 		} finally {
 			if (conn != null)
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					log4j.debug("Connection wont close:",e);
+					log4j.debug("Connection wont close:", e);
 				}
 		}
 		return errStatus;
@@ -221,13 +224,14 @@ public class SvarogInstall {
 
 	/**
 	 * Method to validate if the prerequisites for the install are satisfied.
+	 * 
 	 * @return
 	 */
 	private static int validateInstall() {
-		int errStatus=canConnectToDb();
-		if(SvConf.isSdiEnabled())
-			if(!SvGeometry.isSDIInitalized())
-				errStatus=-3;
+		int errStatus = canConnectToDb();
+		if (SvConf.isSdiEnabled())
+			if (!SvGeometry.isSDIInitalized())
+				errStatus = -3;
 		return errStatus;
 	}
 
@@ -942,6 +946,10 @@ public class SvarogInstall {
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
+		opt = new Option("dm", "daemon", false, "start Svarog in daemon mode");
+		coreGroup.addOption(opt);
+		sysCoreOpts.add(opt);
+
 		coreGroup.addOption(opt);
 		opt = new Option("h", "help", false, "print this message");
 		coreGroup.addOption(opt);
@@ -966,7 +974,6 @@ public class SvarogInstall {
 		autoGroup.addOption(opt);
 		options.addOptionGroup(autoGroup);
 
-		
 		OptionGroup repoGroup = new OptionGroup();
 		opt = OptionBuilder.withLongOpt("migrate-objects")
 				.withDescription("migrates all misconfigured objects to the correctly configured repo").create();
@@ -1087,31 +1094,33 @@ public class SvarogInstall {
 	 * @return 0 if success, -1 if failed
 	 */
 	private static int generateJsonCfg() {
+		// we should not connect to database at all and check if svarog is
+		// installed therefore we fix the mIsAlreadyInstalled to false
+		mIsAlreadyInstalled = false;
 
 		try {
 			FileUtils.deleteDirectory(new File(SvConf.getConfPath()));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Error deleting conf resources ");
+			log4j.error("Error deleting conf resources ", e);
 		}
-		isAlreadyInstalled = false;
 		String errorMessage = DbInit.createJsonMasterRepo();
 		if (!errorMessage.equals("")) {
-			System.out.println("Error building svarog master repo. " + errorMessage);
+			log4j.error("Error building svarog master repo. " + errorMessage);
 			return -1;
 		}
 		errorMessage = DbInit.createJsonMasterTableRecords();
 		if (!errorMessage.equals("")) {
-			System.out.println("Error building svarog master records. " + errorMessage);
+			log4j.error("Error building svarog master records. " + errorMessage);
 			System.exit(-1);
 			return -1;
 		}
 		errorMessage = DbInit.prepareLabels();
 		if (!errorMessage.equals("")) {
 
-			System.out.println("Error preparing labels. " + errorMessage);
+			log4j.error("Error preparing labels. " + errorMessage);
 			return -1;
 		}
+		log4j.info("JSON config files generated successfully");
 		return 0;
 	}
 
@@ -1122,28 +1131,33 @@ public class SvarogInstall {
 	 * @return True if the installation is valid, false if it isn't
 	 */
 	private static boolean isSvarogInstalled() {
-		Connection conn = null;
-		try {
-			conn = SvConf.getDBConnection();
-			if (!dbObjectExists(SvConf.getMasterRepo(), conn)) {
-				if (!firstInstall)
-					log4j.error("Master repo table do not exists in DB, can't run upgrade. "
-							+ "Svarog install should be run.");
-				return false;
-			}
-		} catch (Exception e) {
-			log4j.error("Can't check the database tables. Check svarog.properties for errors in connection strings!",
-					e);
-			return false;
-		} finally {
-			if (conn != null)
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					log4j.error("Can't close JDBC connection", e);
+		if (mIsAlreadyInstalled == null) {
+			mIsAlreadyInstalled = new Boolean(true);
+			Connection conn = null;
+			try {
+				conn = SvConf.getDBConnection();
+				if (!dbObjectExists(SvConf.getMasterRepo(), conn)) {
+					if (!firstInstall)
+						log4j.error("Master repo table do not exists in DB, can't run upgrade. "
+								+ "Svarog install should be run.");
+					mIsAlreadyInstalled = false;
 				}
+			} catch (Exception e) {
+				log4j.error(
+						"Can't check the database tables. Check svarog.properties for errors in connection strings!",
+						e);
+				mIsAlreadyInstalled = false;
+			} finally {
+				if (conn != null)
+					try {
+						conn.close();
+					} catch (SQLException e) {
+						log4j.error("Can't close JDBC connection", e);
+					}
+			}
+
 		}
-		return true;
+		return mIsAlreadyInstalled;
 	}
 
 	/**
@@ -1152,16 +1166,17 @@ public class SvarogInstall {
 	 * @return Status of the upgrade. 0 for success.
 	 */
 	public static int upgradeSvarog(boolean labelsOnly) {
-		isAlreadyInstalled = isSvarogInstalled();
+		// forse reset of the flag.
+		mIsAlreadyInstalled = null;
 		operation = (firstInstall ? "install" : "upgrade");
-		if (!(firstInstall ^ isAlreadyInstalled)) {
+		if (!(firstInstall ^ isSvarogInstalled())) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
-					+ (isAlreadyInstalled ? "valid" : "invalid") + "!");
+					+ (isSvarogInstalled() ? "valid" : "invalid") + "!");
 			return -2;
 		}
 		if (firstInstall && labelsOnly) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
-					+ (isAlreadyInstalled ? "valid" : "invalid") + "! Can't run LABELS_ONLY upgrade!");
+					+ (isSvarogInstalled() ? "valid" : "invalid") + "! Can't run LABELS_ONLY upgrade!");
 			return -2;
 		}
 		SvParameter svp = null;
@@ -1735,7 +1750,7 @@ public class SvarogInstall {
 	 * @throws Exception
 	 *             Raise any exception which occured
 	 */
-	static Boolean createTable(DbDataTable dbt, Connection conn) throws Exception {
+	public static Boolean createTable(DbDataTable dbt, Connection conn) throws Exception {
 		Boolean retval = false;
 		Boolean tableExists = dbObjectExists(dbt.getDbTableName(), conn);
 		HashMap<String, DbDataField> fieldsInDb = getFieldListFromDb(conn, dbt.getDbTableName(),
@@ -2438,9 +2453,10 @@ public class SvarogInstall {
 		try {
 			// if not first install, then init the core
 			// else boot strap the local installation
-			if (!firstInstall)
+			if (!firstInstall) {
+				sysLocales = null;
 				SvCore.initSvCore(true);
-			else
+			} else
 				installLocales();
 
 			String confPath = SvConf.getConfPath() + svCONST.masterRecordsPath;
@@ -2632,6 +2648,7 @@ public class SvarogInstall {
 	 *             Any exception raised during the upgrade of the labels
 	 */
 	static Boolean upgradeLabels(String filePath) throws SvException {
+
 		log4j.info("Labels " + operation + " started:" + filePath);
 		log4j.info("Labels locale:" + filePath);
 		boolean retVal = false;
@@ -2667,7 +2684,7 @@ public class SvarogInstall {
 						existingLabels.rebuildIndex("LABEL_CODE", true);
 
 					svw.setAutoCommit(false);
-					if (isAlreadyInstalled && existingLabels.size() > 0) {
+					if (isSvarogInstalled() && existingLabels.size() > 0) {
 						for (DbDataObject dboLabel : labels.getItems()) {
 							if (!dboLabel.getParent_id().equals(dboLocale.getObject_id()))
 								dboLabel.setParent_id(dboLocale.getObject_id());
@@ -3071,9 +3088,9 @@ public class SvarogInstall {
 	 */
 	static DbDataArray getLocaleList() {
 		if (sysLocales == null) {
-			if (!isAlreadyInstalled) {
+			if (!isSvarogInstalled()) {
 				DbDataArray locales = new DbDataArray();
-				InputStream fis = SvCore.class.getResourceAsStream("/json/src/master_locales.json");
+				InputStream fis = SvCore.class.getResourceAsStream(localesPath);
 				String json;
 				try {
 					json = IOUtils.toString(fis, "UTF-8");
@@ -3822,7 +3839,7 @@ public class SvarogInstall {
 			is.close();
 			return bytes;
 		} catch (Exception ex) {
-			System.out.println(ex.getMessage());
+			log4j.error("Error reading file:" + file.getAbsolutePath(), ex);
 		}
 		return null;
 	}

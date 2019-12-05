@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.math.BigDecimal;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -31,7 +30,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -40,10 +38,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
@@ -81,10 +76,15 @@ import com.vividsolutions.jts.io.WKBWriter;
  * configurable while breaking all best practices and patterns.
  * 
  */
-public abstract class SvCore implements ISvCore{
+public abstract class SvCore implements ISvCore {
 	/////////////////////////////////////////////////////////////
 	// SvCore static variables and methods
 	/////////////////////////////////////////////////////////////
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(SvCore.class);
+
 	/**
 	 * Enumeration holding flags about access over svarog objects.
 	 * 
@@ -144,10 +144,6 @@ public abstract class SvCore implements ISvCore{
 	 * HashMap containing all table descriptors mapped to the table name
 	 */
 	static final HashMap<String, DbDataObject> dbtMap = new HashMap<String, DbDataObject>();
-	/**
-	 * Log4j instance used for logging
-	 */
-	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
 	/**
 	 * Flag which enable core tracing to track potential connection leaks
 	 */
@@ -217,6 +213,11 @@ public abstract class SvCore implements ISvCore{
 	 * Flag with information about the status of the Svarog initialization
 	 */
 	static AtomicBoolean isValid = new AtomicBoolean(false);
+
+	/**
+	 * Flag which tells if svarog daemon is running
+	 */
+	static AtomicBoolean svDaemonRunning = new AtomicBoolean(false);
 
 	/**
 	 * Timestamp which registers the SvCore last cleanup. A cleanup is performed
@@ -355,19 +356,27 @@ public abstract class SvCore implements ISvCore{
 	 * Perform good house keeping and cleanup any previous tracked connections.
 	 * The cleaning is executed in a separate thread
 	 */
-	private void trackedConnCleanup() {
+	static void trackedConnCleanup(boolean useCurrentThread) {
 		// ensure that we do cleanup only periodically (after a time out period)
-		if ((coreCreation - coreLastCleanup) < SvConf.getCoreIdleTimeout())
+		if ((DateTime.now().getMillis() - coreLastCleanup) < SvConf.getCoreIdleTimeout())
 			return;
 		else {
 			// try to get a lock for the SvConnCleaner, if we fail, just pass
 			if (maintenanceRunning.compareAndSet(false, true)) {
 				coreLastCleanup = DateTime.now().getMillis();
-				Thread cleanerThread = new Thread(new SvConnCleaner());
-				cleanerThread.setName(svCONST.maintenanceThreadId);
-				// do we actually want to know when the cleaner finished? Can we
-				// have multiple active cleaners? right?
-				cleanerThread.start();
+				// if the cleanup is invoked from the svarog daemon it shall use
+				// the current thread
+				if (useCurrentThread) {
+					SvConnCleaner clean = new SvConnCleaner();
+					clean.run();
+				} else { // run the cleanup in new thread
+					Thread cleanerThread = new Thread(new SvConnCleaner());
+					cleanerThread.setName(svCONST.maintenanceThreadId);
+					// do we actually want to know when the cleaner finished?
+					// Can we
+					// have multiple active cleaners? right?
+					cleanerThread.start();
+				}
 			}
 
 		}
@@ -428,7 +437,8 @@ public abstract class SvCore implements ISvCore{
 		if (!isValid.get())
 			initSvCoreImpl(false);
 
-		trackedConnCleanup();
+		if (!svDaemonRunning.get())
+			trackedConnCleanup(false);
 		if (srcCore != null && srcCore != this) {
 			weakSrcCore = srcCore.weakThis;
 			this.coreSessionId = srcCore.getSessionId();
@@ -752,7 +762,7 @@ public abstract class SvCore implements ISvCore{
 		DbDataObject tableObj = getDbtByName(tableName);
 		DbDataArray fields = null;
 		DbDataObject retField = null;
-		fields = DbCache.getObjectsByParentId(tableObj.getObject_id(), svCONST.OBJECT_TYPE_FIELD_SORT);
+		fields = DbCache.getObjectsByParentId(tableObj.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 		if (fields != null)
 			for (DbDataObject dbf : fields.getItems()) {
 				if (dbf.getVal("FIELD_NAME").equals(fieldName)) {
@@ -1198,9 +1208,10 @@ public abstract class SvCore implements ISvCore{
 	 * @return True if the system has been initialised properly.
 	 * @throws SvException
 	 */
-	public static void initSvCore() throws SvException {
-		initSvCoreImpl(false);
+	public static boolean initSvCore() throws SvException {
+		return initSvCoreImpl(false);
 	}
+
 	/**
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
 	 * 
@@ -1323,17 +1334,24 @@ public abstract class SvCore implements ISvCore{
 				isCfgInDb = true;
 				svarogState = true;
 			} catch (Exception ex) {
-				log4j.error("Can't load basic configurations! System not loaded!", ex);
+				log4j.error("Can't load basic configurations! Svarog not loaded!");
+				if (ex instanceof SvException)
+					log4j.error(((SvException) ex).getFormattedMessage());
+				log4j.debug("System loading error", ex);
+
 				svarogState = false;
 			} finally {
 				if (svc != null)
 					svc.release();
-				log4j.info("Svarog initialization finished");
 			}
 		} else {
 			log4j.error("Can't load basic configurations! System not loaded!");
 			svarogState = false;
 		}
+		if (svarogState)
+			log4j.info("Svarog initialization finished successfully");
+		else
+			log4j.error("Svarog initialization failed!");
 
 		isValid.compareAndSet(false, svarogState);
 		isInitialized.compareAndSet(true, svarogState);
@@ -2377,9 +2395,11 @@ public abstract class SvCore implements ISvCore{
 		}
 		if (query.getReturnType() != null && (!isExpression || (isExpression && query.getReturnTypes().size() == 1))) {
 			setObjectRepoData(object, rs, tblPrefix);
-			object.setObject_type(query.getReturnType().getObject_id());
-			object.setGeometryType(hasGeometries(query.getReturnType().getObject_id()));
-			object.setHasGeometry(includeGeometries);
+			object.setObject_type(query.getReturnType().getObjectId());
+			if (hasGeometries(query.getReturnType().getObjectId()))
+				DboFactory.dboIsGeometryType(object);
+			if (includeGeometries)
+				DboFactory.dboHasGeometry(object);
 		}
 		object.setIs_dirty(false);
 		return object;

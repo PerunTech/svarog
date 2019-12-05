@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.apache.commons.io.IOUtils;
@@ -32,8 +33,11 @@ import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.vividsolutions.jts.geom.Geometry;
 
 public class SvPostgresIO implements ISvDatabaseIO {
-	static final String sqlScriptsPackage = "DEFAULT";
-	static final String sqlKeywordsBundle = "sql." + sqlScriptsPackage + ".sql_keywords";
+
+	static final String sqlScriptsPath = "/com/prtech/svarog/sql/";
+	static final String sqlScriptsPackage = "DEFAULT/";
+	static final String sqlKeywordsBundle = sqlScriptsPath.substring(1).replace("/", ".") + "." + sqlScriptsPackage
+			+ ".sql_keywords";
 
 	static final Logger logger = LogManager.getLogger(SvPostgresIO.class.getName());
 	static String systemSrid;
@@ -73,14 +77,15 @@ public class SvPostgresIO implements ISvDatabaseIO {
 	}
 
 	@Override
-	public PreparedStatement getInsertRepoStatement(Connection conn, String defaultStatement) {
+	public PreparedStatement getInsertRepoStatement(Connection conn, String defaultStatement, String schema,
+			String repoName) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
 	}
 
 	@Override
-	public Object getInsertRepoStruct(Connection conn) {
+	public Object getInsertRepoStruct(Connection conn, int maxSize) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
@@ -88,13 +93,13 @@ public class SvPostgresIO implements ISvDatabaseIO {
 
 	@Override
 	public void addRepoBatch(Object insertRepoStruct, Long PKID, Long oldMetaPKID, Long objectId, Timestamp dtInsert,
-			Timestamp dtDelete, Long parentId, Long objType, String objStatus, Long userId) {
+			Timestamp dtDelete, Long parentId, Long objType, String objStatus, Long userId, int rowIndex) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 	}
 
 	@Override
-	public ResultSet repoSaveGetKeys(PreparedStatement repoInsert, Object insertRepoStruct) {
+	public Map<Long, Long> repoSaveGetKeys(PreparedStatement repoInsert, Object insertRepoStruct) {
 		// Postgres is the default implementation so we don't need to override
 		// the repo insert
 		return null;
@@ -116,11 +121,11 @@ public class SvPostgresIO implements ISvDatabaseIO {
 		String script = "";
 		InputStream fis = null;
 		try {
-			fis = SvPostgresIO.class.getResourceAsStream("/sql/" + sqlScriptsPackage + "/" + scriptName);
+			fis = SvPostgresIO.class.getResourceAsStream(sqlScriptsPath + sqlScriptsPackage +scriptName);
 			if (fis != null)
 				script = IOUtils.toString(fis, "UTF-8");
 			else
-				logger.error("/sql/" + sqlScriptsPackage + "/" + scriptName + " is not available");
+				logger.error(sqlScriptsPath + sqlScriptsPackage  + scriptName + " is not available");
 		} catch (IOException e) {
 			logger.error("Can't read stream, disk access error maybe?", e);
 		} finally {
