@@ -1,0 +1,10 @@
+[runner]
+gitlab-ci-runner
+
+[master]
+gitlab-ci-runner
+
+[oracle]
+gitlab-ci-oracle
+
+[master:vars]

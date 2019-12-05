@@ -1,0 +1,13 @@
+---
+- name: "Apply build.xml template for branch {{ env_name }}"
+  template:
+    src: "{{ base_dir }}/build.xml.tpl"
+    dest: "{{ base_dir }}/build.xml"
+
+- name: Register output for ORACLE svarog.properties
+  shell: cat "{{ base_dir }}/build.xml"
+  register: cat_output1
+
+- name: Display output for build.xml
+  debug:
+    var: cat_output1
