@@ -1,6 +1,5 @@
 stages:
   - build
-  - unit_tests
   - sonarqube
 
 
@@ -66,8 +65,8 @@ svarog:
     - mvn exec:java@upgrade-force -P PostgrSQL
     # Run unit tests
     - mvn test
-#    - rm -rf test_results/
-#    - (ant run_tests) || status=$? || true
+    #  - rm -rf test_results/
+    #    - (ant run_tests) || status=$? || true
     - cd target/surefire-reports
     - zip -r surefire-reports.zip *
     # FAIL job if unit_tests fail (now disabled because they do fail)
