@@ -65,7 +65,7 @@ svarog:
     - mvn exec:java@install-drop -P PostgreSQL
     - mvn exec:java@upgrade-force -P PostgreSQL
     # Run unit tests
-    - mvn test
+    - mvn test -P PostgreSQL
     #  - rm -rf test_results/
     #    - (ant run_tests) || status=$? || true
     - cd target/surefire-reports
