@@ -26,6 +26,11 @@ import com.prtech.svarog.svCONST;
 
 public class CodeList extends SvCore implements ISvCodeList {
 	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(CodeList.class);
+
+	/**
 	 * Constructor to create a SvUtil object according to a user session. This
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
@@ -56,7 +61,7 @@ public class CodeList extends SvCore implements ISvCodeList {
 	public CodeList(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
 	}
-	
+
 	/**
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
@@ -66,11 +71,6 @@ public class CodeList extends SvCore implements ISvCodeList {
 	CodeList() throws SvException {
 		super(svCONST.systemUser, null);
 	}
-
-	/**
-	 * Log4j instance used for logging
-	 */
-	static final Logger log4j = LogManager.getLogger(CodeList.class.getName());
 
 	public HashMap<Long, String> getCodeCategoriesId() {
 		return getCodeCategoriesId(SvConf.getDefaultLocale());
@@ -110,7 +110,6 @@ public class CodeList extends SvCore implements ISvCodeList {
 		return object;
 
 	}
-
 
 	public HashMap<Long, String> getCodeCategoriesId(String languageId) {
 		return getCodeListId(languageId, 0L);

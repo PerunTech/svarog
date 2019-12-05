@@ -1,10 +1,10 @@
 ###### Build status for branch:
  - Master:
-   - [![build status](https://gitlab.prtech.mk/prtech/svarog/badges/master/build.svg)](https://gitlab.prtech.mk/prtech/svarog/commits/master)
+   - [![build status](https://gitlab.prtech.mk/prtech/svarog/badges/master/build.svg)](https://github.com/PerunTech/svarog/commits/master)
  - Staging:
-   - [![build status](https://gitlab.prtech.mk/prtech/svarog/badges/staging/build.svg)](https://gitlab.prtech.mk/prtech/svarog/commits/staging)
+   - [![build status](https://gitlab.prtech.mk/prtech/svarog/badges/staging/build.svg)](https://github.com/PerunTech/svarog/commits/staging)
  - Dev:
-   - [![build status](https://gitlab.prtech.mk/prtech/svarog/badges/dev/build.svg)](https://gitlab.prtech.mk/prtech/svarog/commits/dev)
+   - [![build status](https://gitlab.prtech.mk/prtech/svarog/badges/dev/build.svg)](https://github.com/PerunTech/svarog/commits/dev)
 
 ### Git; Branch and Stability Info
 Source control is `Git` exclusive:
@@ -25,8 +25,8 @@ The DbDataObject constructor which takes an object name is no more available. Th
 
 The method `DbDataArray.getDistinctValuesPerColumns` no more accepts a `SvReader` as parameter to resolve field names. The field names must be resolved previously.
 
-*Old: `DbDataArray1.getDistinctValuesPerColumns(columnsSpecified, svReader1);`
-*New: `DbDataArray fieldsPerObjectType = svr.getObjectsByParentId(objectTypeId1, svCONST.OBJECT_TYPE_FIELD, null, 0, 0);`
+* Old: `DbDataArray1.getDistinctValuesPerColumns(columnsSpecified, svReader1);`
+* New: `DbDataArray fieldsPerObjectType = svr.getObjectsByParentId(objectTypeId1, svCONST.OBJECT_TYPE_FIELD, null, 0, 0);`
 	`DbDataArray1.getDistinctValuesPerColumns(columnsSpecified, fieldsPerObjectType);`
 
 
@@ -35,20 +35,21 @@ The method `DbDataArray.getDistinctValuesPerColumns` no more accepts a `SvReader
 ##Prerequisites
 1. Install latest version of Apache Maven. On linux just do: sudo apt install maven
 2. Install git (standalone or eclipse module)
-3. Pull the following dependencies from git:
-* 	-svarog-jts-io (https://gitlab.prtech.mk/SvarogV3/svarog-jts-io)
-* 	-svarog-interfaces (https://gitlab.prtech.mk/prtech/svarog-interfaces)
-* 	-svarog-io (https://gitlab.prtech.mk/prtech/svarog_io)
+3. Pull the following dependencies from github:
+* 	`svarog-jts-io (https://github.com/PerunTech/svarog-jts-io)`
+* 	`svarog-interfaces (https://github.com/PerunTech/svarog-interfaces)`
 
-5. On each of the projects (exactly in the same order as they appear on the list above) go into the project directory and run. 
+4. On each of the projects (exactly in the same order as they appear on the list above) go into the project directory and run. 
 	
-*  $ mvn install
+*  `$ mvn install`
+
 5. Pull the latest version of svarog and configure your properties file.
+	
 	5.1: To generate JSON files for installation run maven with java@json target. According to your properties configuration you need to set the correct profile. If oracle then "-P Oracle". If Posgres then "-P PostgreSQL"
 	$ mvn exec:java@json -P PostgreSQL
 	
 	5.2 To install fresh svarog the target is install
-	$ mvn exec:java@install -P PostgreSQL
+	$ mvn exec:java@install -P PostgreSQL 
 	
 	5.3 To install fresh svarog with drop of the schema (for Postgres only)
 	$ mvn exec:java@install-drop -P PostgreSQL
@@ -65,8 +66,10 @@ The method `DbDataArray.getDistinctValuesPerColumns` no more accepts a `SvReader
 	5.7 Unpack the default osgi-bundles-default.zip into the osgi-bundles folder (to have some bundles to play with)
 	
 	5.8 Pull the triglav-core project from gitlab, package as jar and place in the osgi-bunlde dir to provide basic proof of concept how to use Svarog v3. In order to build triglav-core sample you need to install svarog library first 
-	*mvn install -DskiptTests
+	$mvn install -DskipTests
 	
 	5.8 To run the svarog OSGI container 
 	$mvn exec:java@osgi -P PostgreSQL
 	
+	
+6. Unzip the osgi-bundles-defaults.zip archive into the directory osgi-bundles (or the directory you configured in your svarog.properties file) and restart the svarog osgi container. Now you can see the standard felix admin console at http://localhost:8080/system/console.

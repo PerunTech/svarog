@@ -961,7 +961,7 @@ public class SvParameter extends SvCore {
 			svw = new SvWriter(this);
 			paramTypeObj = new DbDataObject();
 			paramTypeObj.setObject_type(svCONST.OBJECT_TYPE_PARAM_TYPE);
-			paramTypeObj.setStatus("VALID");
+			paramTypeObj.setStatus(svCONST.STATUS_VALID);
 			paramTypeObj.setParent_id(0L);
 			paramTypeObj.setDt_insert(new DateTime());
 			paramTypeObj.setDt_delete(SvConf.MAX_DATE);

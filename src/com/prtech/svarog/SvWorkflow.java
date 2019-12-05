@@ -26,7 +26,7 @@ public class SvWorkflow extends SvCore {
 	 * 
 	 * @throws Exception
 	 */
-	public SvWorkflow (String session_id) throws SvException {
+	public SvWorkflow(String session_id) throws SvException {
 		super(session_id);
 	}
 
@@ -61,15 +61,16 @@ public class SvWorkflow extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-
 	/**
 	 * Method to change the status of a DbDataObject and move it to a new state.
-	 * This overloaded version performs commit on success and rollback on exception
+	 * This overloaded version performs commit on success and rollback on
+	 * exception
+	 * 
 	 * @param dbo
 	 *            The DbDataObject which is subject of change
 	 * @param newStatus
 	 *            The status to which the object will be moved
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	public void moveObject(DbDataObject dbo, String newStatus) throws SvException {
 		moveObject(dbo, newStatus, this.autoCommit);
@@ -111,7 +112,7 @@ public class SvWorkflow extends SvCore {
 	 *            The status to which the object should be moved
 	 * @throws Exception
 	 */
-	 void moveObjectImpl(DbDataObject dbo, String newStatus) throws SvException {
+	void moveObjectImpl(DbDataObject dbo, String newStatus) throws SvException {
 
 		DbDataObject dbt = getDbt(dbo);
 		dbo.setStatus(newStatus);
@@ -119,15 +120,12 @@ public class SvWorkflow extends SvCore {
 		dba.addDataItem(dbo);
 
 		SvWriter svw = new SvWriter(this);
-		try
-		{
-		svw.saveRepoData(dbt, dba, false, false);
+		try {
+			svw.saveRepoData(dbt, dba, false, false);
 
-		// in case we are moving a link, we need to invalidate the link cache
-		if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_LINK))
-			svw.removeLinkCache(dbo);
-		}finally
-		{
+			// Invoke the cache cleanup
+			svw.cacheCleanup(dbo, dbt);
+		} finally {
 			svw.release();
 		}
 		// TODO add movement specific business rules and other things

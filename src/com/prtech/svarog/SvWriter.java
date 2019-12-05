@@ -24,8 +24,11 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import com.google.gson.JsonElement;
@@ -41,6 +44,10 @@ import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 public class SvWriter extends SvCore {
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(SvWriter.class);
 
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This
@@ -473,10 +480,10 @@ public class SvWriter extends SvCore {
 				psInsRepo = conn.prepareStatement(sqlInsRepo, genKeyIds);
 			else {// if the handler overrides the repo insert, pass the
 					// generation of the statement to the handler
-				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo);
+				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo, schema, repo_name);
 				if (psInsRepo == null)
 					throw (new SvException("system.error.jdbc_bad_database_handler", instanceUser));
-				extendedRepoStruct = SvConf.getDbHandler().getInsertRepoStruct(conn);
+				extendedRepoStruct = dbHandler.getInsertRepoStruct(conn, dba.size());
 			}
 
 			if (!skipPreSaveChecks || isUpdate) {
@@ -486,6 +493,7 @@ public class SvWriter extends SvCore {
 			CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
 			CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
 
+			int rowIndex = 0;
 			for (DbDataObject dbo : dba.getItems()) {
 				if (globalCallback != null)
 					for (ISvOnSave onSave : globalCallback) {
@@ -510,34 +518,31 @@ public class SvWriter extends SvCore {
 					dbo.setStatus(getDefaultStatus(dbt));
 				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObject_id()) : null;
 				addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidateOld, psInsRepo, dtInsert, dtEndPrev,
-						extendedRepoStruct);
+						extendedRepoStruct, rowIndex);
+				rowIndex++;
 
 			}
 
 			int[] updatedRows = psInvalidateOld.executeBatch();
 			int[] insertedRows = null;
-
+			int objectIndex = 0;
 			if (!dbHandler.getOverrideInsertRepo()) {
 				insertedRows = psInsRepo.executeBatch();
 				rsGenKeys = psInsRepo.getGeneratedKeys();
+				while (rsGenKeys.next()) {
+					setKeys(dba, rsGenKeys.getLong(1), rsGenKeys.getLong(2), objectIndex);
+					objectIndex++;
+				}
 			} else {
-				rsGenKeys = dbHandler.repoSaveGetKeys(psInsRepo, extendedRepoStruct);
-				if (rsGenKeys == null)
+				Map<Long, Long> repoKeys = dbHandler.repoSaveGetKeys(psInsRepo, extendedRepoStruct);
+				if (repoKeys == null)
 					throw (new SvException("system.error.jdbc_bad_database_handler", instanceUser));
+				for (Entry<Long, Long> entry : repoKeys.entrySet()) {
+					setKeys(dba, entry.getKey(), entry.getValue(), objectIndex);
+					objectIndex++;
+				}
 			}
 
-			int objectIndex = 0;
-			while (rsGenKeys.next()) {
-				dba.getItems().get(objectIndex).setObject_id(rsGenKeys.getLong(2));
-				dba.getItems().get(objectIndex).setPkid(rsGenKeys.getLong(1));
-				dba.getItems().get(objectIndex).setUser_id(
-						this.saveAsUser != null ? this.saveAsUser.getObject_id() : this.instanceUser.getObject_id());
-				if (log4j.isDebugEnabled()) {
-					log4j.debug("Generated keys (pkid):" + rsGenKeys.getString(1));
-					log4j.debug("Generated keys (object_id)" + rsGenKeys.getString(2));
-				}
-				objectIndex++;
-			}
 			if (dba.getItems().size() != objectIndex || (isUpdate && !isInternal && objectIndex != updatedRows.length))
 				throw (new SvException("system.error.batch_size_err", instanceUser, dba, dbt));
 
@@ -552,6 +557,30 @@ public class SvWriter extends SvCore {
 		}
 		return oldRepoData;
 
+	}
+
+	/**
+	 * Method to set the generated keys to the appropriate Object in the
+	 * DbDataArray which is batched
+	 * 
+	 * @param dba
+	 *            The batched DbDataArray
+	 * @param pkid
+	 *            The versioning id of the object
+	 * @param objectId
+	 *            The object id of the object
+	 * @param objectIndex
+	 *            The index of the object in the batched array
+	 */
+	void setKeys(DbDataArray dba, Long pkid, Long objectId, int objectIndex) {
+		dba.getItems().get(objectIndex).setObject_id(objectId);
+		dba.getItems().get(objectIndex).setPkid(pkid);
+		dba.getItems().get(objectIndex).setUser_id(
+				this.saveAsUser != null ? this.saveAsUser.getObject_id() : this.instanceUser.getObject_id());
+		if (log4j.isDebugEnabled()) {
+			log4j.debug("Generated keys (pkid):" + pkid.toString());
+			log4j.debug("Generated keys (object_id)" + objectId.toString());
+		}
 	}
 
 	/**
@@ -571,7 +600,7 @@ public class SvWriter extends SvCore {
 	 */
 	void addRepoBatch(DbDataObject dbt, DbDataObject dbo, Boolean withMetaUpdate, Object[] repoObjects,
 			PreparedStatement psInvalidate, PreparedStatement psInsert, Timestamp dtInsert, Timestamp dtEndPrev,
-			Object extendedRepoStruct) throws SQLException {
+			Object extendedRepoStruct, int rowIndex) throws SQLException {
 
 		ISvDatabaseIO dbHandler = SvConf.getDbHandler();
 
@@ -605,7 +634,7 @@ public class SvWriter extends SvCore {
 		} else {
 			// if the insert is overriden then call overrided add repo batch
 			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObject_id(), dtInsert,
-					SvConf.MAX_DATE_SQL, objParent, objType, objStatus, userId);
+					SvConf.MAX_DATE_SQL, objParent, objType, objStatus, userId, rowIndex);
 		}
 	}
 
@@ -645,9 +674,9 @@ public class SvWriter extends SvCore {
 						conn.setTransactionIsolation(oldTrxIsolation);
 				}
 				internalReader.release();
+				if (log4j.isDebugEnabled())
+					log4j.trace("Released internal reader used to execute constraints");
 			}
-			if (log4j.isDebugEnabled())
-				log4j.trace("Released internal reader used to execute constraints");
 		} catch (Exception e) {
 			log4j.error("Internal reader can't be properly released", e);
 		}
@@ -663,7 +692,7 @@ public class SvWriter extends SvCore {
 	 */
 	public static String getDefaultStatus(DbDataObject dbt) {
 		// TODO Extend the function to get defaults for object workflow
-		return "VALID";
+		return svCONST.STATUS_VALID;
 	}
 
 	/**

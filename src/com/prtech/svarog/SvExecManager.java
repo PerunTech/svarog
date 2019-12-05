@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,6 +27,13 @@ import org.joda.time.DateTime;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.prtech.svarog_common.DbDataArray;
+import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbQueryObject;
+import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.DbSearchExpression;
+import com.prtech.svarog_common.ISvOnSave;
 import com.prtech.svarog_interfaces.ISvExecutor;
 
 /**
@@ -38,6 +46,100 @@ import com.prtech.svarog_interfaces.ISvExecutor;
  */
 public class SvExecManager extends SvCore {
 	/**
+	 * Internal SvExecInstance class to wrap the executor in order to allow
+	 * changing of the default start and end dates coming from the executor
+	 * itself.The real start and end dates are provided by configuration
+	 */
+	public class SvExecInstance {
+
+		String status;
+		DateTime startDate;
+		DateTime endDate;
+		ISvExecutor executor;
+
+		SvExecInstance(ISvExecutor executor, DateTime startDate, DateTime endDate) {
+			this.startDate = startDate != null ? startDate : executor.getStartDate();
+			this.endDate = endDate != null ? endDate : executor.getEndDate();
+			this.executor = executor;
+			if (this.executor == null)
+				throw new NullPointerException("Executor can't be null");
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj == null) {
+				return false;
+			}
+			if (!SvExecInstance.class.isAssignableFrom(obj.getClass())) {
+				return false;
+			}
+			if (this.executor == null) {
+				return false;
+			}
+			final SvExecInstance other = (SvExecInstance) obj;
+			if (other.executor == null) {
+				return false;
+			}
+
+			if (!getKey(this.executor).equals(getKey(other.executor))) {
+				return false;
+			}
+			if (this.executor.versionUID() != other.executor.versionUID()) {
+				return false;
+			}
+			return true;
+		}
+
+		@Override
+		public int hashCode() {
+			int hash = 3;
+			if (this.executor != null) {
+				hash = 53 * hash + (getKey(this.executor).hashCode());
+				hash = (int) (53 * hash + this.executor.versionUID());
+			}
+			return hash;
+		}
+
+		public DateTime getStartDate() {
+			return startDate;
+		}
+
+		public void setStartDate(DateTime startDate) {
+			this.startDate = startDate;
+		}
+
+		public DateTime getEndDate() {
+			return endDate;
+		}
+
+		public void setEndDate(DateTime endDate) {
+			this.endDate = endDate;
+		}
+
+		public ISvExecutor getExecutor() {
+			return executor;
+		}
+
+		public void setExecutor(ISvExecutor executor) {
+			this.executor = executor;
+		}
+
+		public String getStatus() {
+			return status;
+		}
+
+		public void setStatus(String status) {
+			this.status = status;
+		}
+	}
+
+	/**
+	 * Global member which we can use for unit testing also! In JUnit just set
+	 * the value of the services you want to test.
+	 */
+	Object[] osgiServices = null;
+
+	/**
 	 * Log4j instance used for logging
 	 */
 	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
@@ -46,7 +148,7 @@ public class SvExecManager extends SvCore {
 	 * Cache with all executors responding to a specific command string. The Key
 	 * is represents a CATEGORY.NAME
 	 */
-	private static final Cache<String, CopyOnWriteArrayList<ISvExecutor>> executorMap = initExecutorCache();
+	static final Cache<String, CopyOnWriteArrayList<SvExecInstance>> executorMap = initExecutorCache();
 
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This
@@ -96,12 +198,35 @@ public class SvExecManager extends SvCore {
 	 * @return
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	static Cache<String, CopyOnWriteArrayList<ISvExecutor>> initExecutorCache() {
+	static Cache<String, CopyOnWriteArrayList<SvExecInstance>> initExecutorCache() {
+		/**
+		 * Callback class to cleanup the executor cache according to changes in
+		 * Svarog
+		 * 
+		 * @author XPS13
+		 *
+		 */
+		class SvExecutorCacheCallback implements ISvOnSave {
+
+			@Override
+			public boolean beforeSave(SvCore parentCore, DbDataObject dbo) {
+				// TODO Auto-generated method stub
+				return true;
+			}
+
+			@Override
+			public void afterSave(SvCore parentCore, DbDataObject dbo) {
+				executorMap.invalidate(getKey((String) dbo.getVal("CATEGORY"), (String) dbo.getVal("NAME")));
+			}
+		}
+
 		CacheBuilder builder = CacheBuilder.newBuilder();
 		builder = builder.maximumSize(5000);
 		builder = builder.expireAfterAccess(10, TimeUnit.MINUTES);
-		return (Cache<String, CopyOnWriteArrayList<ISvExecutor>>) builder
-				.<String, CopyOnWriteArrayList<ISvExecutor>>build();
+		ISvOnSave callback = new SvExecutorCacheCallback();
+		SvCore.registerOnSaveCallback(callback, svCONST.OBJECT_TYPE_EXECUTORS);
+		return (Cache<String, CopyOnWriteArrayList<SvExecInstance>>) builder
+				.<String, CopyOnWriteArrayList<SvExecInstance>>build();
 	}
 
 	/**
@@ -125,7 +250,7 @@ public class SvExecManager extends SvCore {
 	 *            The second part of the key
 	 * @return The string key separated by coma.
 	 */
-	String getKey(String category, String name) {
+	static String getKey(String category, String name) {
 		return (category != null ? category : "") + "." + (name != null ? name : "");
 	}
 
@@ -140,60 +265,237 @@ public class SvExecManager extends SvCore {
 	 *            Name of the Executor
 	 * @param referenceDate
 	 *            Reference Date on which the executor must be valid.
-	 * @return
+	 * @return Instance of Svarog Executor
+	 * @throws SvException
+	 *             Throws exception if executor isn't valid
 	 */
-	ISvExecutor getExecutor(String category, String name, DateTime referenceDate) {
+	ISvExecutor getExecutor(String category, String name, DateTime referenceDate) throws SvException {
 		String key = getKey(category, name);
+		return getExecutor(key, referenceDate);
+	}
+
+	/**
+	 * Method to find an ISvExecutor in Svarog. First it will try to get the
+	 * executor from the Cache, then if it doesn't exist, it will scan the OSGI
+	 * container to find one.
+	 * 
+	 * @param key
+	 *            Key of the executor category and name, concatenated with a dot
+	 * @param referenceDate
+	 *            Reference Date on which the executor must be valid.
+	 * @return Object instance implementing the ISvExecutor interface
+	 * @throws SvException
+	 *             Throws exception if executor isn't valid
+	 */
+	ISvExecutor getExecutor(String key, DateTime referenceDate) throws SvException {
 
 		ISvExecutor executor = null;
 		if (referenceDate == null)
 			referenceDate = new DateTime();
+		// try to get the executor from Cache
+		executor = getExecutorFromCache(key, referenceDate);
 
-		CopyOnWriteArrayList<ISvExecutor> execs = executorMap.getIfPresent(key);
-		if (execs != null) {
-
-			for (ISvExecutor sve : execs) {
-				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
-					executor = sve;
-					break;
+		if (executor == null) {
+			// if not, then look in the OSGI container and initialise
+			String lockKey = key + "-LOADING";
+			ReentrantLock lock = null;
+			try {
+				lock = SvLock.getLock(lockKey, true, SvConf.getMaxLockTimeout());
+				if (lock != null) {
+					executor = loadExecutor(key, referenceDate);
 				}
+			} finally {
+				if (lock != null)
+					SvLock.releaseLock(lockKey, lock);
 			}
 		}
-		if (executor == null) {
-			if (execs == null)
-				execs = new CopyOnWriteArrayList<ISvExecutor>();
-			// if we did reach this point, we haven't found the executor in
-			// the
-			// cache so we must search for it in the OSGI world.
 
-			// See if any of the currently tracked ISvExecutor services
-			// match the specified Category/Name
-			Object[] services = SvarogDaemon.svcTracker.getServices();
-			for (int i = 0; (services != null) && (i < services.length); i++) {
-				ISvExecutor sve = (ISvExecutor) services[i];
+		return executor;
+	}
 
-				if (getKey(sve).equals(key))
-					execs.addIfAbsent(sve);
-			}
-			// if there's more than 1 executor then sort by start date.
-			if (execs.size() > 1)
-				Collections.sort(execs, new Comparator<ISvExecutor>() {
-					@Override
-					public int compare(ISvExecutor o1, ISvExecutor o2) {
-						return o1.getStartDate().compareTo(o2.getStartDate());
-					}
-				});
-
-			executorMap.put(key, execs);
-
-			for (ISvExecutor sve : execs) {
+	/**
+	 * Method to find an ISvExecutor in the local executor cache
+	 * 
+	 * @param key
+	 *            Key of the executor category and name, concatenated with a dot
+	 * @param referenceDate
+	 *            Reference Date on which the executor must be valid.
+	 * @return Object instance implementing the ISvExecutor interface
+	 * @throws SvException
+	 *             Throws exception if executor isn't valid
+	 */
+	ISvExecutor getExecutorFromCache(String key, DateTime referenceDate) throws SvException {
+		ISvExecutor executor = null;
+		CopyOnWriteArrayList<SvExecInstance> execs = executorMap.getIfPresent(key);
+		if (execs != null) {
+			for (SvExecInstance sve : execs) {
 				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
-					executor = sve;
+					if (!svCONST.STATUS_VALID.equals(sve.getStatus()))
+						throw (new SvException("system.error.executor_not_valid", this.getInstanceUser(), null, key));
+					executor = sve.getExecutor();
 					break;
 				}
 			}
 		}
 		return executor;
+	}
+
+	/**
+	 * Method which initialises the executor metadata from the database. This
+	 * part is important to support the changing of the start and end date by
+	 * the admin user in the database in order override the dates coming from
+	 * the executor itself.
+	 * 
+	 * @param executor
+	 *            Object implementing ISvExecutor interface.
+	 * @return SvExecInstance object to be stored in the execution cache
+	 */
+	SvExecInstance initExecInstance(SvExecInstance exeInstance) {
+		ISvExecutor executor = exeInstance.getExecutor();
+
+		SvReader svr = null;
+		SvWriter svw = null;
+		SvSecurity svs = null;
+		try {
+			svr = new SvReader();
+			// switch to service user in order to be able to manage permissions
+			svr.switchUser(svCONST.serviceUser);
+			svw = new SvWriter(svr);
+			svs = new SvSecurity(svw);
+			svw.setAutoCommit(false);
+			DbSearchExpression search = new DbSearchExpression();
+			search.addDbSearchItem(new DbSearchCriterion("NAME", DbCompareOperand.EQUAL, executor.getName()));
+			search.addDbSearchItem(new DbSearchCriterion("CATEGORY", DbCompareOperand.EQUAL, executor.getCategory()));
+			search.addDbSearchItem(new DbSearchCriterion("VERSION", DbCompareOperand.EQUAL, executor.versionUID()));
+
+			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), search, null, null);
+			DbDataArray objects = svr.getObjects(dqo, 0, 0);
+			if (objects.size() > 0) {
+				DbDataObject dbo = objects.get(0);
+				exeInstance.setStartDate((DateTime) dbo.getVal("START_DATE"));
+				exeInstance.setEndDate((DateTime) dbo.getVal("END_DATE"));
+				exeInstance.setStatus(dbo.getStatus());
+			} else {
+				DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTORS);
+				dbo.setVal("CATEGORY", executor.getCategory());
+				dbo.setVal("NAME", executor.getName());
+				dbo.setVal("JAVA_TYPE", executor.getReturningType().getClass().getCanonicalName());
+				dbo.setVal("DESCRIPTION", executor.getDescription());
+				dbo.setVal("START_DATE", executor.getStartDate());
+				dbo.setVal("END_DATE", executor.getEndDate());
+				dbo.setVal("VERSION", executor.versionUID());
+				svw.saveObject(dbo);
+				String executorKey = getKey(executor);
+				DbDataArray perms = svs.getPermissions(executorKey);
+				if (perms.size() < 1)
+					svs.addPermission(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), executorKey, executorKey,
+							SvAccess.EXECUTE);
+				svw.dbCommit();
+			}
+		} catch (SvException e) {
+			log4j.error("Error loading executor data from db. Executor:'" + getKey(executor) + "', version:"
+					+ executor.versionUID(), e);
+		} finally {
+			if (svr != null)
+				svr.release();
+			if (svw != null)
+				svw.release();
+			if (svs != null)
+				svs.release();
+		}
+
+		return exeInstance;
+	}
+
+	/**
+	 * Method which searches the tracked services from the osgi container,
+	 * trying to find the appropriate executor service. If the service is found
+	 * then we initialise it with the data stored in the svarog database if any
+	 * along with setting up appropriate ACLs
+	 * 
+	 * @param key
+	 *            Key of the executor category and name, concatenated with a dot
+	 * @param referenceDate
+	 *            Reference Date on which the executor must be valid.
+	 * @return Object instance implementing the ISvExecutor interface
+	 * @throws SvException
+	 *             Throws exception if executor isn't valid
+	 */
+	ISvExecutor loadExecutor(String key, DateTime referenceDate) throws SvException {
+		ISvExecutor executor = null;
+		CopyOnWriteArrayList<SvExecInstance> execs = executorMap.getIfPresent(key);
+		if (execs == null)
+			execs = new CopyOnWriteArrayList<SvExecInstance>();
+		else { // just in case the executor was loaded after the long wait, lets
+				// give it one more try
+			for (SvExecInstance sve : execs) {
+				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
+					if (!svCONST.STATUS_VALID.equals(sve.getStatus()))
+						throw (new SvException("system.error.executor_not_valid", this.getInstanceUser(), null, key));
+
+					executor = sve.getExecutor();
+					break;
+				}
+			}
+		}
+		if (executor == null) {
+			// if we did reach this point, we haven't found the executor
+			// in the cache so we must search for it in the OSGI world.
+			// See if any of the currently tracked ISvExecutor services
+			// match the specified Category/Name
+			Object[] services = getOSGIServices();
+			for (int i = 0; (services != null) && (i < services.length); i++) {
+				ISvExecutor sve = (ISvExecutor) services[i];
+				if (sve.getName() == null || sve.getCategory() == null) {
+					log4j.error("Executor not loaded. Executor can't be used if Name or Category is null. Key:"
+							+ getKey(sve));
+					continue;
+				}
+				if (getKey(sve).equals(key)) {
+					// get start and end date from database and
+					// update the SVE
+					SvExecInstance exeInstance = new SvExecInstance(sve, sve.getStartDate(), sve.getEndDate());
+					exeInstance.setStatus(svCONST.STATUS_VALID);
+					if (!execs.contains(exeInstance))
+						execs.add(initExecInstance(exeInstance));
+
+				}
+			}
+			// if there's more than 1 executor then sort by start date.
+			if (execs.size() > 1)
+				Collections.sort(execs, new Comparator<SvExecInstance>() {
+					@Override
+					public int compare(SvExecInstance o1, SvExecInstance o2) {
+						return o1.getStartDate().compareTo(o2.getStartDate());
+					}
+				});
+
+			executorMap.put(key, execs);
+			// once again try to find the executor
+			for (SvExecInstance sve : execs) {
+				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
+					if (!svCONST.STATUS_VALID.equals(sve.getStatus()))
+						throw (new SvException("system.error.executor_not_valid", this.getInstanceUser(), null, key));
+					executor = sve.getExecutor();
+					break;
+				}
+			}
+		}
+		return executor;
+	}
+
+	/**
+	 * Method to get the available OSGI services if the OSGI container is
+	 * running
+	 * 
+	 * @return
+	 */
+	private Object[] getOSGIServices() {
+		if (SvCore.svDaemonRunning.get() && SvarogDaemon.svcTracker != null)
+			osgiServices = SvarogDaemon.svcTracker.getServices();
+		// if the daemon is not running we assume JUnit test has set the
+		// services
+		return osgiServices;
 	}
 
 	/**
@@ -228,23 +530,58 @@ public class SvExecManager extends SvCore {
 	 */
 	public Object execute(String category, String name, Map<String, Object> params, DateTime referenceDate,
 			Class<?> returnType) throws SvException {
-		
-		if(!this.hasPermission(getKey(category, name)))
-			throw (new SvException("system.error.not_authorised", this.getInstanceUser(), null, getKey(category, name)));
+		String executorKey = getKey(category, name);
+		return execute(executorKey, params, referenceDate, returnType);
+	}
+
+	/**
+	 * Method to provide global inter module execution inside Svarog. The Svarog
+	 * Executors are identified by unique combination of Category and Name,
+	 * limited to a validity date specifed by start and end dates. If the
+	 * reference date is null, Svarog will execute using the current system
+	 * time. If Svarog has two executors with the same category/name valid in
+	 * the system on the same date, it will always invoke execute on the older
+	 * executor (The one with older startDate).
+	 * 
+	 * @param executorKey
+	 *            Key of the executor, category and name, concatenated with a
+	 *            dot
+	 * @param params
+	 *            Parameters which will be passed to the execution
+	 * @param referenceDate
+	 *            The reference date on which the Executor must be valid.
+	 * @param returnType
+	 *            The return type of the result
+	 * @return Object instance of class type described by return type
+	 * @throws SvException
+	 *             If the executor is not found Svarog will raise
+	 *             <code>system.err.exec_not_found</code>, if the return type is
+	 *             wrong it will raise
+	 *             <code>system.err.wrong_return_type</code>. If there's
+	 *             underlying Svarog Exception from the executor, Svarog will
+	 *             leave it as it is. If there's other type of system exception,
+	 *             Svarog will mark the executor as dirty and raise the
+	 *             exception as <code>system.err.exec_failure</code>
+	 */
+	public Object execute(String executorKey, Map<String, Object> params, DateTime referenceDate, Class<?> returnType)
+			throws SvException {
+
+		if (!this.hasPermission(executorKey))
+			throw (new SvException("system.error.not_authorised", this.getInstanceUser(), null, executorKey));
 
 		Object result = null;
 		try {
 			// find the executor valid for the specific reference date
-			ISvExecutor exec = getExecutor(category, name, referenceDate);
+			ISvExecutor exec = getExecutor(executorKey, referenceDate);
 			if (exec != null) {
-				if (exec.getReturningType().equals(returnType))
-					result = exec.execute(params, this);
-				else {
+				if (returnType != null && !exec.getReturningType().equals(returnType)) {
 					String error = getKey(exec) + ", return type:" + returnType.toString();
 					throw (new SvException("system.err.wrong_return_type", this.getInstanceUser(), null, error));
 				}
+				result = exec.execute(params, this);
 			} else {
-				String error = getKey(exec) + ", reference date:" + referenceDate.toString();
+				String error = executorKey + ", reference date:"
+						+ (referenceDate != null ? referenceDate.toString() : new DateTime().toString());
 				throw (new SvException("system.err.exec_not_found", this.getInstanceUser(), null, error));
 			}
 		} catch (Exception e) {
@@ -256,8 +593,9 @@ public class SvExecManager extends SvCore {
 				// otherwise, we consider the exception to be system related so
 				// we will remove the faulty service from the cache and the wrap
 				// the exception in a SvException
-				executorMap.invalidate(getKey(category, name));
-				String error = getKey(category, name) + ", return type:" + returnType.toString();
+				executorMap.invalidate(executorKey);
+				String error = executorKey + ", return type:"
+						+ (returnType != null ? returnType.toString() : "no type");
 				throw (new SvException("system.err.exec_failure", this.getInstanceUser(), null, error, e));
 			}
 		}
@@ -298,8 +636,43 @@ public class SvExecManager extends SvCore {
 	public Object execute(String category, String name, Map<String, Object> params, DateTime referenceDate)
 			throws SvException {
 		Object result = null;
-		Class<?> returnType = getReturnType(category, name, referenceDate);
-		result = execute(category, name, params, referenceDate, returnType);
+		result = execute(category, name, params, referenceDate, null);
+		return result;
+
+	}
+
+	/**
+	 * Method to provide global inter module execution inside Svarog. The Svarog
+	 * Executors are identified by unique combination of Category and Name,
+	 * limited to a validity date specifed by start and end dates. If the
+	 * reference date is null, Svarog will execute using the current system
+	 * time. If Svarog has two executors with the same category/name valid in
+	 * the system on the same date, it will always invoke execute on the older
+	 * executor (The one with older startDate).
+	 * 
+	 * This version will not raise <code>system.err.wrong_return_type</code>.
+	 * 
+	 * @param executorKey
+	 *            Key of the executor, category and name, concatenated with a
+	 *            dot
+	 * @param params
+	 *            Parameters which will be passed to the execution
+	 * @param referenceDate
+	 *            The reference date on which the Executor must be valid.
+	 * @param returnType
+	 *            The return type of the result
+	 * @return Object instance of class type described by return type
+	 * @throws SvException
+	 *             If the executor is not found Svarog will raise
+	 *             <code>system.err.exec_not_found</code>. If there's underlying
+	 *             Svarog Exception from the executor, Svarog will leave it as
+	 *             it is. If there's other type of system exception, Svarog will
+	 *             mark the executor as dirty and raise the exception as
+	 *             <code>system.err.exec_failure</code>
+	 */
+	public Object execute(String executorKey, Map<String, Object> params, DateTime referenceDate) throws SvException {
+		Object result = null;
+		result = execute(executorKey, params, referenceDate, null);
 		return result;
 
 	}
@@ -322,6 +695,34 @@ public class SvExecManager extends SvCore {
 		Class<?> result = null;
 		// find the executor valid for the specific reference date
 		ISvExecutor exec = getExecutor(category, name, referenceDate);
+		if (exec != null) {
+			result = exec.getReturningType();
+		} else {
+			String error = getKey(category, name) + ", reference date:"
+					+ (referenceDate != null ? referenceDate.toString() : new DateTime());
+			throw (new SvException("system.err.exec_not_found", this.getInstanceUser(), null, error));
+		}
+		return result;
+
+	}
+
+	/**
+	 * Method to provide information about specific executor's return type
+	 * 
+	 * @param executorKey
+	 *            Key of the executor, category and name, concatenated with a
+	 *            dot
+	 * @param referenceDate
+	 *            The reference date on which the Executor must be valid.
+	 * @return Class object describing the return type
+	 * @throws SvException
+	 *             If the executor is not found Svarog will raise
+	 *             <code>system.err.exec_not_found</code>
+	 */
+	public Class<?> getReturnType(String executorKey, DateTime referenceDate) throws SvException {
+		Class<?> result = null;
+		// find the executor valid for the specific reference date
+		ISvExecutor exec = getExecutor(executorKey, referenceDate);
 		if (exec != null) {
 			result = exec.getReturningType();
 		} else {

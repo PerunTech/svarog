@@ -29,6 +29,13 @@ public class SvConnCleaner implements Runnable {
 	 */
 	@Override
 	public void run() {
+		cleanUp();
+	}
+
+	/**
+	 * Method which performs cleanup of of any non released svarog cores
+	 */
+	public void cleanUp() {
 		if (SvCore.log4j.isDebugEnabled())
 			SvCore.log4j.trace("Performing SvCore cleanup");
 		// perform the general cleanup of the tracked cores.

@@ -16,11 +16,10 @@
 package com.prtech.svarog;
 
 import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import org.junit.Test;
-
 
 public class DbConnectionTest {
 	@Test

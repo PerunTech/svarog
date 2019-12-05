@@ -25,6 +25,8 @@ import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
@@ -35,28 +37,22 @@ import com.prtech.svarog_interfaces.ISvExecutor;
 
 /**
  * <p>
- * This class is the default way to instantiate and execute the framework. It is
- * not intended to be the only way to instantiate and execute the framework;
- * rather, it is one example of how to do so. When embedding the framework in a
- * host application, this class can serve as a simple guide of how to do so. It
- * may even be worthwhile to reuse some of its property handling capabilities.
+ * This class is the default way to instantiate and execute the framework. Its
+ * recycled from the Felix project. It reuses some of its property handling
+ * capabilities.
  * </p>
  **/
 public class SvarogDaemon {
+
 	/**
 	 * Log4j object to log issues
 	 */
-	private static final Logger log4j = LogManager.getLogger(SvarogDaemon.class.getName());
+	private static final Logger log4j = SvConf.getLogger(SvarogDaemon.class);
 	/**
 	 * Service tracker to list all SvarogExecutors loaded from bundles
 	 */
 
 	static ServiceTracker<ISvExecutor, ISvExecutor> svcTracker = null;
-	/**
-	 * Switch for specifying bundle directory.
-	 **/
-	public static final String BUNDLE_DIR_SWITCH = "-b";
-
 	/**
 	 * The property name used to specify whether the launcher should install a
 	 * shutdown hook.
@@ -90,47 +86,29 @@ public class SvarogDaemon {
 	private static Framework osgiFramework = null;
 
 	/**
+	 * Satus code used by svarog installed to notify that the daemon should run
+	 */
+	public static int svarogDaemonStatus = -13;
+
+	/**
 	 * <p>
 	 * This method performs the main task of constructing an framework instance
-	 * and starting its execution. The following functions are performed when
-	 * invoked:
+	 * and starting its execution or running the install/management process. The
+	 * following functions are performed when invoked:
 	 * </p>
 	 * <ol>
 	 * <li><i><b>Examine and verify command-line arguments.</b></i> The launcher
-	 * accepts a "<tt>-b</tt>" command line switch to set the bundle auto-deploy
-	 * directory and a single argument to set the bundle cache directory.</li>
-	 * <li><i><b>Read the system properties file.</b></i> This is a file
-	 * containing properties to be pushed into <tt>System.setProperty()</tt>
-	 * before starting the framework. This mechanism is mainly shorthand for
-	 * people starting the framework from the command line to avoid having to
-	 * specify a bunch of <tt>-D</tt> system property definitions. The only
-	 * properties defined in this file that will impact the framework's behavior
-	 * are the those concerning setting HTTP proxies, such as
-	 * <tt>http.proxyHost</tt>, <tt>http.proxyPort</tt>, and
-	 * <tt>http.proxyAuth</tt>. Generally speaking, the framework does not use
-	 * system properties at all.</li>
-	 * <li><i><b>Read the framework's configuration property file.</b></i> This
-	 * is a file containing properties used to configure the framework instance
-	 * and to pass configuration information into bundles installed into the
-	 * framework instance. The configuration property file is called
-	 * <tt>config.properties</tt> by default and is located in the
-	 * <tt>conf/</tt> directory of the Felix installation directory, which is
-	 * the parent directory of the directory containing the <tt>felix.jar</tt>
-	 * file. It is possible to use a different location for the property file by
-	 * specifying the desired URL using the <tt>felix.config.properties</tt>
-	 * system property; this should be set using the <tt>-D</tt> syntax when
-	 * executing the JVM. If the <tt>config.properties</tt> file cannot be
-	 * found, then default values are used for all configuration properties.
-	 * Refer to the <a href="Felix.html#Felix(java.util.Map)"><tt>Felix</tt></a>
-	 * constructor documentation for more information on framework configuration
-	 * properties.</li>
+	 * will pass the command line to the SvarogInstaller. If the installer finds
+	 * -dm or --daemon, it will skipinstall and run the SvarogDaemon to host the
+	 * OSGI Framework</li>
 	 * <li><i><b>Copy configuration properties specified as system properties
 	 * into the set of configuration properties.</b></i> Even though the Felix
 	 * framework does not consult system properties for configuration
 	 * information, sometimes it is convenient to specify them on the command
-	 * line when launching Felix. To make this possible, the Felix launcher
-	 * copies any configuration properties specified as system properties into
-	 * the set of configuration properties passed into Felix.</li>
+	 * line when launching Felix. To make this possible, the SvarogDaemon
+	 * launcher copies any configuration properties specified as system
+	 * properties into the set of configuration properties passed into
+	 * Felix.</li>
 	 * <li><i><b>Add shutdown hook.</b></i> To make sure the framework shutdowns
 	 * cleanly, the launcher installs a shutdown hook; this can be disabled with
 	 * the <tt>felix.shutdown.hook</tt> configuration property.</li>
@@ -189,46 +167,30 @@ public class SvarogDaemon {
 	 * </li>
 	 * </ul>
 	 * <p>
-	 * These properties should be specified in the <tt>config.properties</tt> so
+	 * These properties should be specified in the <tt>svarog.properties</tt> so
 	 * that they can be processed by the launcher during the framework startup
 	 * process.
 	 * </p>
 	 * 
 	 * @param args
-	 *            Accepts arguments to set the auto-deploy directory and/or the
-	 *            bundle cache directory.
+	 *            Accepts arguments to install, upgrade or configure svarog.
 	 * @throws Exception
 	 *             If an error occurs.
 	 **/
 	public static void main(String[] args) throws Exception {
 
-		// Look for bundle directory and/or cache directory.
-		// We support at most one argument, which is the bundle
-		// cache directory.
-		String bundleDir = null;
-		String cacheDir = null;
-		boolean expectBundleDir = false;
-		for (int i = 0; i < args.length; i++) {
-			if (args[i].equals(BUNDLE_DIR_SWITCH)) {
-				expectBundleDir = true;
-			} else if (expectBundleDir) {
-				bundleDir = args[i];
-				expectBundleDir = false;
-			} else if (args[i].equals("-h")) {
-				System.out.println("Usage: [-b <bundle-deploy-dir>] [<bundle-cache-dir>]");
-				System.exit(0);
-			} else {
-				cacheDir = args[i];
-			}
-		}
+		// set svarog daemon flag, to prevent cleanup on its own.
+		SvCore.svDaemonRunning.compareAndSet(false, true);
+		if (args.length == 0)
+			args = new String[] { "-dm" };
 
-		if ((args.length > 3) || (expectBundleDir && bundleDir == null)) {
-			System.out.println("Usage: [-b <bundle-deploy-dir>] [<bundle-cache-dir>]");
-			System.exit(0);
-		}
+		int cmdLineStatus = SvarogInstall.main(args);
+		if (cmdLineStatus != svarogDaemonStatus)
+			System.exit(cmdLineStatus);
 
 		// initalise Svarog
-		SvCore.initSvCore();
+		if (!SvCore.initSvCore())
+			System.exit(-1);
 
 		// Load system properties.
 		SvarogDaemon.loadSystemProperties();
@@ -244,18 +206,6 @@ public class SvarogDaemon {
 
 		// Copy framework properties from the system properties.
 		SvarogDaemon.copySystemProperties(configProps);
-
-		// If there is a passed in bundle auto-deploy directory, then
-		// that overwrites anything in the config file.
-		if (bundleDir != null) {
-			configProps.put(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, bundleDir);
-		}
-
-		// If there is a passed in bundle cache directory, then
-		// that overwrites anything in the config file.
-		if (cacheDir != null) {
-			configProps.put(Constants.FRAMEWORK_STORAGE, cacheDir);
-		}
 
 		// If enabled, register a shutdown hook to make sure the framework is
 		// cleanly shutdown when the VM exits.
@@ -277,7 +227,7 @@ public class SvarogDaemon {
 
 		try {
 
-			List list = new ArrayList();
+			List<SvActivator> list = new ArrayList<SvActivator>();
 			list.add(new SvActivator());
 			configProps.put(FelixConstants.SYSTEMBUNDLE_ACTIVATORS_PROP, list);
 
@@ -287,28 +237,40 @@ public class SvarogDaemon {
 
 			// Use the framework bundle context to register a service tracker
 			// in order to track Svarog Executors coming and going in the system
-			svcTracker = new ServiceTracker(osgiFramework.getBundleContext(), ISvExecutor.class.getName(), null);
+			svcTracker = new ServiceTracker<ISvExecutor, ISvExecutor>(osgiFramework.getBundleContext(),
+					ISvExecutor.class.getName(), null);
 			svcTracker.open();
 
 			// Use the system bundle context to process the auto-deploy
 			// and auto-install/auto-start properties.
-			log4j.info("Starting OSGI auto-deploy from directory:" + configProps.get(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
+			log4j.info("Starting OSGI auto-deploy from directory:"
+					+ configProps.get(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 			AutoProcessor.process(configProps, osgiFramework.getBundleContext());
 			FrameworkEvent event;
-
-			do {
-				// Start the framework.
-				osgiFramework.start();
+			// Start the framework.
+			osgiFramework.start();
+			boolean shutdown = false;
+			while (!shutdown) {
 				// Wait for framework to stop to exit the VM.
-				event = osgiFramework.waitForStop(0);
+				event = osgiFramework.waitForStop(SvConf.getCoreIdleTimeout());
+				if (event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
+					SvCore.trackedConnCleanup(true);
+					shutdown = false;
+				} else
+					shutdown = true;
+				// if the system bundle was restarted due to update then restart
+				// it and mark
+				// shutdown as false
+				if (event.getType() == FrameworkEvent.STOPPED_UPDATE) {
+					osgiFramework.start();
+					shutdown = false;
+				}
 			}
-			// If the framework was updated, then restart it.
-			while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
+			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
 			// Otherwise, exit.
 			System.exit(0);
 		} catch (Exception ex) {
-			System.err.println("Could not create framework: " + ex);
-			ex.printStackTrace();
+			log4j.info("Could not start OSGI framework!", ex);
 			System.exit(0);
 		}
 	}
