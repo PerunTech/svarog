@@ -5034,7 +5034,7 @@ public class DbInit {
 	static ArrayList<IDbInit> getCustomDbInit(String subDir) {
 		File customFolder = new File(subDir);
 		ArrayList<IDbInit> dbiResult = new ArrayList<IDbInit>();
-		if (customFolder == null)
+		if (!customFolder.exists())
 			return dbiResult;
 		File[] customJars = customFolder.listFiles();
 		if (customJars != null) {
@@ -5318,7 +5318,7 @@ public class DbInit {
 				String aclSidFilePath = svCONST.masterSecurityPath + svCONST.aclSidFile;
 
 				File customFolder = new File("custom/");
-				File[] customJars = customFolder.listFiles();
+				File[] customJars = customFolder.exists() ? customFolder.listFiles() : null;
 				if (customJars != null) {
 					for (int i = 0; i < customJars.length; i++) {
 						if (customJars[i].getName().endsWith(".jar")) {

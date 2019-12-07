@@ -29,7 +29,7 @@ public final class SvClassLoader extends ClassLoader {
 	/**
 	 * Lazy loader's private instance
 	 */
-	private static SvClassLoader instance = null;
+	private static volatile SvClassLoader instance = null;
 
 	/**
 	 * List of JAR IDs which were loaded
@@ -74,10 +74,10 @@ public final class SvClassLoader extends ClassLoader {
 	public static Boolean isJarLoaded(String unqId) {
 		Boolean isLoaded = false;
 		isLoaded = listOfLoadedJars.containsKey(unqId);
-	
+
 		return isLoaded;
 	}
-	
+
 	/**
 	 * Method to check if a JAR with the requested ID was already loaded
 	 * 
@@ -177,14 +177,13 @@ public final class SvClassLoader extends ClassLoader {
 	public void unloadClassLoader() {
 		this.unloadClassLoader();
 	}
-	
+
 	public static byte[] getJarData(String unqId) {
-		byte[] retval=null;
+		byte[] retval = null;
 		Boolean isLoaded = false;
 		isLoaded = listOfLoadedJars.containsKey(unqId);
-		if(isLoaded)
-		{
-			retval= listOfLoadedJars.get(unqId);
+		if (isLoaded) {
+			retval = listOfLoadedJars.get(unqId);
 		}
 		return retval;
 	}

@@ -18,6 +18,12 @@
     db_password: "{{ dev_oracle_password }}"
   when: env_name == "dev"
 
+- name: Set ORACLE username and password
+  set_fact:
+    db_username: "{{ ut_oracle_username }}"
+    db_password: "{{ ut_oracle_password }}"
+  when: env_name == "ut"
+
 - name: Set ORACLE generic variables
   set_fact:
     db_driver_name: "{{ oracle_driver_name }}"

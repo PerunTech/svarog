@@ -179,12 +179,12 @@ public class ActionSQL extends SvCore {
 		Connection conn = this.dbGetConn();
 		String pattern = "(\\{)(.*?)(\\})";
 		ArrayList<String> fieldNames = getFieldNames(sql, pattern);
-		sql = sql.replaceAll(pattern, "?");
+		sql = "{ ? = " + sql.replaceAll(pattern, "?") + "}";
 
 		int offset;
 		try {
 			if (sql.toLowerCase().startsWith("call")) {
-				cst = conn.prepareCall("{ ? = " + sql + "}");
+				cst = conn.prepareCall(sql);
 				if (rettype == java.sql.Types.ARRAY) {
 					cst.registerOutParameter(1, rettype.intValue(), arrayType);
 				} else {
