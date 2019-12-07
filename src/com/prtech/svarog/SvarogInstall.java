@@ -68,6 +68,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_common.SvCharId;
+import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.vividsolutions.jts.geom.Envelope;
 
 /**
@@ -1220,7 +1221,7 @@ public class SvarogInstall {
 			}
 			// finally create the file store if it is initial install
 			if (!isSvarogInstalled())
-				if (!SvFileStore.initFileStore()) {
+				if (!initFileStore()) {
 					log4j.error("Initialising the svarog file store failed");
 					return -2;
 				}
@@ -4116,6 +4117,67 @@ public class SvarogInstall {
 				svr.release();
 		}
 		return dboFormType;
+
+	}
+
+	/**
+	 * Method to initialise the FileStore table structure
+	 * 
+	 * @return true if initialised correctly
+	 */
+	static boolean initFileStore() {
+
+		DbDataTable dbt = new DbDataTable(SvConf.getSqlkw());
+		dbt.setDbTableName(SvConf.getParam("filestore.table"));
+		dbt.setDbRepoName(SvConf.getMasterRepo());
+		dbt.setDbSchema(SvConf.getDefaultSchema());
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setDbSequenceName(dbt.getDbTableName() + "_pkid");
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName("DATA");
+		dbf2.setDbFieldType(DbFieldType.BLOB);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code("master_repo.file_type");
+
+		dbt.setDbTableFields(new DbDataField[2]);
+		dbt.getDbTableFields()[0] = dbf1;
+		dbt.getDbTableFields()[1] = dbf2;
+		Boolean retval = false;
+		DbDataTable.setRbConf(SvConf.getSqlkw());
+		DbDataField.setSqlKWResource(SvConf.getSqlkw());
+
+		Connection conn = null;
+		try {
+
+			conn = SvConf.getDBConnection();
+			retval = SvarogInstall.createTable(dbt, conn);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			retval = false;
+		} finally
+
+		{
+			if (conn != null)
+				try {
+					conn.close();
+				} catch (Exception e) {
+					log4j.error("Connection can't be released!", e);
+				}
+			;
+
+		}
+		return retval;
 
 	}
 }

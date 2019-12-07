@@ -144,14 +144,14 @@ public class SvWriter extends SvCore {
 			// Multi entry checks
 			// 1. If the form is not multi entry check for existing forms
 			// 2. If the form is multi entry but has a maximum instance limit
-			if (dbo.getObject_id() == 0 && (!(Boolean) formType.getVal("multi_entry")
+			if (dbo.getObjectId() == 0 && (!(Boolean) formType.getVal("multi_entry")
 					|| ((Boolean) formType.getVal("multi_entry") && formType.getVal("MAX_INSTANCES") != null))) {
 
 				// TODO Check the form existence in the cache instead of firing
 				// a
 				// get objects request
 				DbSearchExpression dbse = new DbSearchExpression();
-				dbse.addDbSearchItem(new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, dbo.getParent_id()));
+				dbse.addDbSearchItem(new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, dbo.getParentId()));
 				dbse.addDbSearchItem(new DbSearchCriterion("FORM_TYPE_ID", DbCompareOperand.EQUAL, formTypeId));
 				DbDataArray existingForms = (svr).getObjects(dbse, getDbt(svCONST.OBJECT_TYPE_FORM), null, 0, 0);
 				if (existingForms != null) {
@@ -215,7 +215,7 @@ public class SvWriter extends SvCore {
 				paramPos++;
 			}
 			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObject_id());
+				ps.setLong(paramPos, dbo.getObjectId());
 				paramPos++;
 			}
 			rs = ps.executeQuery();
@@ -321,9 +321,9 @@ public class SvWriter extends SvCore {
 			Boolean hasPKID) {
 		String sql = null;
 		if (!isUpdate)
-			sql = queryCache.get(dbt.getObject_id());
+			sql = queryCache.get(dbt.getObjectId());
 		else
-			sql = queryCache.get(-dbt.getObject_id());
+			sql = queryCache.get(-dbt.getObjectId());
 		if (sql != null)
 			return sql;
 
@@ -361,11 +361,11 @@ public class SvWriter extends SvCore {
 
 		if (!isUpdate) {
 			sql += "VALUES(" + fieldVals + ")";
-			queryCache.put(dbt.getObject_id(), sql);
+			queryCache.put(dbt.getObjectId(), sql);
 		} else {
 			sql += "SELECT " + fieldVals + " FROM " + (String) dbt.getVal("schema") + "."
 					+ (String) dbt.getVal("table_name") + " WHERE pkid=?";
-			queryCache.put(-dbt.getObject_id(), sql);
+			queryCache.put(-dbt.getObjectId(), sql);
 		}
 		log4j.debug(sql);
 		return sql;
@@ -385,20 +385,20 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	void checkRepoData(DbDataObject dbo, Boolean isUpdate, Boolean skipPreSaveChecks) throws SvException {
-		Boolean isOld = dbo.getObject_id() != 0L;
+		Boolean isOld = dbo.getObjectId() != 0L;
 		if (isUpdate && !isOld)
 			throw (new SvException("system.error.multi_type_batch_err", instanceUser, dbo, null));
-		if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_FORM) && dbo.getParent_id() == 0)
+		if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_FORM) && dbo.getParentId() == 0)
 			throw (new SvException("system.error.form_must_have_parent", instanceUser, dbo, null));
-		if (skipPreSaveChecks && (dbo.getPkid() != 0 || dbo.getObject_id() != 0
-				|| dbo.getObject_type().equals(svCONST.OBJECT_TYPE_FORM)))
+		if (skipPreSaveChecks && (dbo.getPkid() != 0 || dbo.getObjectId() != 0
+				|| dbo.getObjectType().equals(svCONST.OBJECT_TYPE_FORM)))
 			throw (new SvException("system.error.skip_presave_err", instanceUser, dbo, null));
 		// if this is installation process don't execute the ID checks
 		if (!isInternal) {
-			if (!((dbo.getPkid() != 0 && dbo.getObject_id() != 0) || (dbo.getPkid() == 0 && dbo.getObject_id() == 0)))
+			if (!((dbo.getPkid() != 0 && dbo.getObjectId() != 0) || (dbo.getPkid() == 0 && dbo.getObjectId() == 0)))
 				throw (new SvException("system.error.no_obj_id", instanceUser, dbo, null));
 
-			if (dbo.getObject_type() < svCONST.MIN_WRITEABLE_OBJID)
+			if (dbo.getObjectType() < svCONST.MIN_WRITEABLE_OBJID)
 				throw (new SvException("system.error.type_not_writeable", instanceUser, dbo, null));
 		}
 	}
@@ -463,7 +463,7 @@ public class SvWriter extends SvCore {
 
 			String schema = dbt.getVal("schema").toString();
 			String repo_name = dbt.getVal("repo_name").toString();
-			Boolean isUpdate = dba.getItems().get(0).getObject_id() != 0L;
+			Boolean isUpdate = dba.getItems().get(0).getObjectId() != 0L;
 			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repo_name);
 			log4j.debug(sqlInsRepo);
 			// sort the milis of the ending/starting time
@@ -499,24 +499,24 @@ public class SvWriter extends SvCore {
 					for (ISvOnSave onSave : globalCallback) {
 						onSave.beforeSave(this, dbo);
 					}
-				localCallbacks = onSaveCallbacks.get(dbo.getObject_type());
+				localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
 				if (localCallbacks != null)
 					for (ISvOnSave onSave : localCallbacks) {
 						onSave.beforeSave(this, dbo);
 					}
 				// make sure we save SDI objects only when SvWriter is used
 				// internally by SvGeometry
-				if (!isInternal && hasGeometries(dbo.getObject_type()))
+				if (!isInternal && hasGeometries(dbo.getObjectType()))
 					throw (new SvException("system.error.sdi.sdi_type_limit", instanceUser, dbo, dbt));
 
 				// perform the basic repo checks over the object before saving
 				checkRepoData(dbo, isUpdate, skipPreSaveChecks);
 				// if the object is a new object, make sure we assign the
 				// default status to it.
-				if ((dbo.getPkid() == 0 || dbo.getObject_id() == 0)
+				if ((dbo.getPkid() == 0 || dbo.getObjectId() == 0)
 						&& (dbo.getStatus() == null || dbo.getStatus() == ""))
 					dbo.setStatus(getDefaultStatus(dbt));
-				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObject_id()) : null;
+				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObjectId()) : null;
 				addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidateOld, psInsRepo, dtInsert, dtEndPrev,
 						extendedRepoStruct, rowIndex);
 				rowIndex++;
@@ -573,10 +573,10 @@ public class SvWriter extends SvCore {
 	 *            The index of the object in the batched array
 	 */
 	void setKeys(DbDataArray dba, Long pkid, Long objectId, int objectIndex) {
-		dba.getItems().get(objectIndex).setObject_id(objectId);
+		dba.getItems().get(objectIndex).setObjectId(objectId);
 		dba.getItems().get(objectIndex).setPkid(pkid);
-		dba.getItems().get(objectIndex).setUser_id(
-				this.saveAsUser != null ? this.saveAsUser.getObject_id() : this.instanceUser.getObject_id());
+		dba.getItems().get(objectIndex).setUserId(
+				this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId());
 		if (log4j.isDebugEnabled()) {
 			log4j.debug("Generated keys (pkid):" + pkid.toString());
 			log4j.debug("Generated keys (object_id)" + objectId.toString());
@@ -611,15 +611,15 @@ public class SvWriter extends SvCore {
 		}
 		String objStatus = dbo.getStatus() != null ? dbo.getStatus() : getDefaultStatus(dbt);
 		// make sure that the object type hasn't changed
-		Long objType = repoObjects == null || repoObjects[0] == null ? dbt.getObject_id() : (Long) repoObjects[3];
-		Long objParent = dbo.getParent_id() == null ? 0 : dbo.getParent_id();
+		Long objType = repoObjects == null || repoObjects[0] == null ? dbt.getObjectId() : (Long) repoObjects[3];
+		Long objParent = dbo.getParentId() == null ? 0 : dbo.getParentId();
 		Long oldMetaPKID = repoObjects != null && withMetaUpdate == false ? (Long) repoObjects[4] : 0L;
-		Long userId = this.saveAsUser != null ? this.saveAsUser.getObject_id() : this.instanceUser.getObject_id();
+		Long userId = this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId();
 		int paramCount = 1;
 		if (!dbHandler.getOverrideInsertRepo()) { // if the handler does not
 													// override the insert repo
-			if (dbo.getObject_id() != 0)
-				psInsert.setLong(paramCount++, dbo.getObject_id());
+			if (dbo.getObjectId() != 0)
+				psInsert.setLong(paramCount++, dbo.getObjectId());
 			psInsert.setTimestamp(paramCount++, dtInsert);
 			psInsert.setTimestamp(paramCount++, SvConf.MAX_DATE_SQL);
 			psInsert.setLong(paramCount++, objParent);
@@ -628,12 +628,12 @@ public class SvWriter extends SvCore {
 			if (oldMetaPKID != 0)
 				psInsert.setLong(paramCount++, oldMetaPKID);
 			psInsert.setString(paramCount++, objStatus);
-			psInsert.setLong(paramCount++, userId);
+			psInsert.setLong(paramCount, userId);
 			psInsert.addBatch();
 
 		} else {
 			// if the insert is overriden then call overrided add repo batch
-			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObject_id(), dtInsert,
+			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObjectId(), dtInsert,
 					SvConf.MAX_DATE_SQL, objParent, objType, objStatus, userId, rowIndex);
 		}
 	}
@@ -702,7 +702,7 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	void executeConstraints(DbDataArray dba) throws SvException {
-		SvObjectConstraints oConstr = SvCore.getObjectConstraints(dba.getItems().get(0).getObject_type());
+		SvObjectConstraints oConstr = SvCore.getObjectConstraints(dba.getItems().get(0).getObjectType());
 		if (oConstr == null)
 			return;
 		StringBuilder sqlStrB = oConstr.getSQLQueryString(dba);
@@ -766,7 +766,7 @@ public class SvWriter extends SvCore {
 		if (!skipPreSaveChecks) {
 			executeConstraints(dba);
 
-			if (dbt.getObject_id().equals(svCONST.OBJECT_TYPE_FORM)) {
+			if (dbt.getObjectId().equals(svCONST.OBJECT_TYPE_FORM)) {
 				for (DbDataObject dbo : dba.getItems())
 					canSaveForm(dbo);
 			}
@@ -789,22 +789,22 @@ public class SvWriter extends SvCore {
 	void cacheCleanup(DbDataObject dbo, DbDataObject dbt) throws SvException {
 
 		if (isCfgInDb) {
-			if (dbt.getObject_id() != svCONST.OBJECT_TYPE_TABLE && dbt.getObject_id() != svCONST.OBJECT_TYPE_FIELD) {
-				DbCache.removeObject(dbo.getObject_id(), dbt.getObject_id());
+			if (dbt.getObjectId() != svCONST.OBJECT_TYPE_TABLE && dbt.getObjectId() != svCONST.OBJECT_TYPE_FIELD) {
+				DbCache.removeObject(dbo.getObjectId(), dbt.getObjectId());
 				DbCache.removeObjectSupport(dbo);
-				dbo.setIs_dirty(false);
+				dbo.setIsDirty(false);
 			} else {
 				SvReader svr = new SvReader(this);
 				DbDataObject dboRefresh = null;
 				try {
-					dboRefresh = svr.getObjectById(dbo.getObject_id(), dbt, null);
+					dboRefresh = svr.getObjectById(dbo.getObjectId(), dbt, null);
 				} finally {
 					svr.release();
 				}
 				if (dboRefresh != null)
 					DbCache.addObject(dboRefresh);
 			}
-			if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_LINK)) {
+			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK)) {
 				removeLinkCache(dbo);
 			}
 
@@ -815,7 +815,7 @@ public class SvWriter extends SvCore {
 					onSave.afterSave(this, dbo);
 				}
 
-			localCallbacks = onSaveCallbacks.get(dbo.getObject_type());
+			localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
 			if (localCallbacks != null)
 				for (ISvOnSave onSave : localCallbacks) {
 					onSave.afterSave(this, dbo);
@@ -841,7 +841,7 @@ public class SvWriter extends SvCore {
 
 	void saveTableData(DbDataArray arrayToSave, DbDataObject dbt, HashMap<Long, Object[]> oldRepoObjs, Boolean isUpdate)
 			throws SvException {
-		DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObject_id(), svCONST.OBJECT_TYPE_FIELD_SORT);
+		DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 
 		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true);
 		if (log4j.isDebugEnabled())
@@ -853,7 +853,7 @@ public class SvWriter extends SvCore {
 			int objIndex = 0;
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
 				int pCount = 1;
-				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObject_id()) : null;
+				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObjectId()) : null;
 				// if (oldPkid == 0)
 				ps.setBigDecimal(pCount, new BigDecimal(objToSave.getPkid()));
 				String fName = "";
@@ -1011,7 +1011,7 @@ public class SvWriter extends SvCore {
 		// we are guaranteed to have at least one Object
 		DbDataObject dbt = getDbt(dba.get(0));
 		for (DbDataObject dbo : dba.getItems()) {
-			if (!dbt.getObject_id().equals(dbo.getObject_type()))
+			if (!dbt.getObjectId().equals(dbo.getObjectType()))
 				dbt = getDbt(dbo);
 			if (!hasDbtAccess(dbt, null, SvAccess.WRITE))
 				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
@@ -1051,7 +1051,7 @@ public class SvWriter extends SvCore {
 
 		int objectIndex = 0;
 		// if we aren't saving a form
-		if (!dboFirst.getObject_type().equals(svCONST.OBJECT_TYPE_FORM)) {
+		if (!dboFirst.getObjectType().equals(svCONST.OBJECT_TYPE_FORM)) {
 			if (isUpdate && dba.getItems().size() != oldRepoObjs.size())
 				throw (new SvException("system.error.batch_size_update_err", instanceUser, dba, dbt));
 			saveTableData(dba, dbt, oldRepoObjs, isUpdate);
@@ -1059,13 +1059,13 @@ public class SvWriter extends SvCore {
 			for (DbDataObject dbo : dba.getItems()) {
 				try {
 					// execute pre-save checks
-					Object[] oldRepoObjects = oldRepoObjs != null ? oldRepoObjs.get(dbo.getObject_id()) : null;
+					Object[] oldRepoObjects = oldRepoObjs != null ? oldRepoObjs.get(dbo.getObjectId()) : null;
 					Long oldPkid = oldRepoObjects != null && oldRepoObjects[4] != null ? ((Long) oldRepoObjects[4]) : 0;
-					dbo.setObject_type(dbt.getObject_id());
+					dbo.setObjectType(dbt.getObjectId());
 					this.saveFormData(dbo, dbt, oldPkid, dbo.getPkid(), dbo.getStatus());
 
 				} catch (SvException e) {
-					dbo.setObject_id(0L);
+					dbo.setObjectId(0L);
 					dbo.setPkid(0L);
 					throw (e);
 				}
@@ -1227,7 +1227,7 @@ public class SvWriter extends SvCore {
 	 */
 	protected void deleteObjectImpl(DbDataObject dbo) throws SvException {
 		if (log4j.isDebugEnabled())
-			log4j.trace("Deleting object with ID:" + dbo.getObject_id());
+			log4j.trace("Deleting object with ID:" + dbo.getObjectId());
 
 		PreparedStatement ps = null;
 		try {
@@ -1246,7 +1246,7 @@ public class SvWriter extends SvCore {
 				DbDataArray dba = new DbDataArray();
 				dba.addDataItem(dbo);
 				HashMap<Long, Object[]> repoData = getRepoData(dbt, dba);
-				if (repoData.get(dbo.getObject_id()) == null)
+				if (repoData.get(dbo.getObjectId()) == null)
 					throw (new SvException("system.error.no_obj_to_del", instanceUser, dbo, null));
 
 			}
@@ -1263,8 +1263,8 @@ public class SvWriter extends SvCore {
 					throw (new SvException("system.error.multiple_rows_updated", instanceUser, dbo, null));
 				} else
 					cacheCleanup(dbo, dbt);
-				// DbCache.removeObject(dbo.getObject_id(),
-				// dbo.getObject_type());
+				// DbCache.removeObject(dbo.getObjectId(),
+				// dbo.getObjectType());
 			}
 		} catch (SQLException e) {
 			throw (new SvException("system.error.sql_err", instanceUser, dbo, null, e));
@@ -1322,7 +1322,7 @@ public class SvWriter extends SvCore {
 	 * @throws SQLException
 	 */
 	protected void deleteObjectsByParentImpl(DbDataObject parentDbo, Long childrenObjectType) throws SvException {
-		if (parentDbo.getObject_id().compareTo(svCONST.MAX_SYS_OBJECT_ID) < 0)
+		if (parentDbo.getObjectId().compareTo(svCONST.MAX_SYS_OBJECT_ID) < 0)
 			throw (new SvException("system.error.no_obj_to_del", instanceUser, parentDbo, null));
 
 		if (childrenObjectType == null || childrenObjectType == 0)
@@ -1346,13 +1346,13 @@ public class SvWriter extends SvCore {
 			log4j.trace("Invalidate the old one first");
 			ps = conn.prepareStatement(delByParentSQL);
 			ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
-			ps.setLong(2, parentDbo.getObject_id());
+			ps.setLong(2, parentDbo.getObjectId());
 			ps.setTimestamp(3, new Timestamp(dt_insert.getMillis() - 1));
 			ps.setLong(4, childrenObjectType);
 
 			int invalidatedRows = ps.executeUpdate();
 			if (invalidatedRows > 0)
-				DbCache.removeByParentId(childrenObjectType, parentDbo.getObject_id());
+				DbCache.removeByParentId(childrenObjectType, parentDbo.getObjectId());
 		} catch (SQLException e) {
 			throw (new SvException("system.error.delete_byparent_err", instanceUser, parentDbo, null, e));
 		} finally {
@@ -1432,7 +1432,7 @@ public class SvWriter extends SvCore {
 			svr = new SvReader(this);
 			svr.instanceUser = svCONST.systemUser;
 
-			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObject_id(), svCONST.OBJECT_TYPE_FIELD_SORT);
+			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true);
 			log4j.debug("Executing SQL:" + sql);
 
@@ -1468,7 +1468,7 @@ public class SvWriter extends SvCore {
 			DbDataObject formType = svr.getObjectById((Long) objToSave.getVal("FORM_TYPE_ID"),
 					getDbt(svCONST.OBJECT_TYPE_FORM_TYPE), null, false);
 
-			DbDataArray formFields = svr.getObjectsByLinkedId(formType.getObject_id(), svCONST.OBJECT_TYPE_FORM_TYPE,
+			DbDataArray formFields = svr.getObjectsByLinkedId(formType.getObjectId(), svCONST.OBJECT_TYPE_FORM_TYPE,
 					"FORM_FIELD_LINK", svCONST.OBJECT_TYPE_FORM_FIELD_TYPE, false, null, 0, 0);
 
 			DateTime dt_insert = new DateTime();
@@ -1482,7 +1482,7 @@ public class SvWriter extends SvCore {
 
 				psInvalidate = conn.prepareStatement(sqlUpdate);
 				psInvalidate.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
-				psInvalidate.setLong(2, objToSave.getObject_id());
+				psInvalidate.setLong(2, objToSave.getObjectId());
 				psInvalidate.setLong(3, svCONST.OBJECT_TYPE_FORM_FIELD);
 				psInvalidate.setTimestamp(4, SvConf.MAX_DATE_SQL);
 				psInvalidate.executeUpdate();
@@ -1545,10 +1545,10 @@ public class SvWriter extends SvCore {
 			validateFieldData(dbf, fVal_2nd, true);
 
 			DbDataObject dbfVal = new DbDataObject();
-			dbfVal.setObject_type(svCONST.OBJECT_TYPE_FORM_FIELD);
-			dbfVal.setParent_id(objToSave.getObject_id());
-			dbfVal.setVal("form_object_id", objToSave.getObject_id());
-			dbfVal.setVal("field_type_id", dbf.getObject_id());
+			dbfVal.setObjectType(svCONST.OBJECT_TYPE_FORM_FIELD);
+			dbfVal.setParentId(objToSave.getObjectId());
+			dbfVal.setVal("form_object_id", objToSave.getObjectId());
+			dbfVal.setVal("field_type_id", dbf.getObjectId());
 			dbfVal.setVal("value", fVal.toString());
 			dbfVal.setVal("first_check", fVal_1st != null ? fVal_1st.toString() : null);
 			dbfVal.setVal("second_check", fVal_2nd != null ? fVal_2nd.toString() : null);
@@ -1592,8 +1592,8 @@ public class SvWriter extends SvCore {
 					if ((Boolean) formTypeDbt.getVal("multi_entry") == false
 							&& (Boolean) formTypeDbt.getVal("AUTOINSTANCE_SINGLE")) {
 						currentObject = new DbDataObject();
-						currentObject.setObject_type(svCONST.OBJECT_TYPE_FORM);
-						currentObject.setParent_id(parentId);
+						currentObject.setObjectType(svCONST.OBJECT_TYPE_FORM);
+						currentObject.setParentId(parentId);
 						currentObject.setVal("LABEL_CODE", I18n.getText((String) formTypeDbt.getVal("LABEL_CODE")));
 						currentObject.setVal("VALUE", null);
 						currentObject.setVal("FIRST_CHECK", null);
@@ -1657,12 +1657,12 @@ public class SvWriter extends SvCore {
 			Long currentOID = 0L;
 			DbDataArray forms = svr.getFormsByParentId(oldOID, formTypeIds, null, null, true);
 			for (DbDataObject child : forms.getItems()) {
-				currentOID = child.getObject_id();
-				child.setObject_id(0L);
+				currentOID = child.getObjectId();
+				child.setObjectId(0L);
 				child.setPkid(0L);
-				child.setParent_id(dbo.getObject_id());
+				child.setParentId(dbo.getObjectId());
 				saveObject(child, false);
-				oldNewOIDPairs.put(currentOID, child.getObject_id());
+				oldNewOIDPairs.put(currentOID, child.getObjectId());
 			}
 		} catch (SQLException e) {
 			throw (new SvException("system.error.children_clone_err", instanceUser, dbo, null, e));
@@ -1683,12 +1683,12 @@ public class SvWriter extends SvCore {
 		try {
 			children = svr.getObjectsByParentId(oldOID, objectTypeToClone, null, 0, 0);
 			for (DbDataObject child : children.getItems()) {
-				currentOID = child.getObject_id();
-				child.setObject_id(0L);
+				currentOID = child.getObjectId();
+				child.setObjectId(0L);
 				child.setPkid(0L);
-				child.setParent_id(dbo.getObject_id());
+				child.setParentId(dbo.getObjectId());
 				saveObject(child, false);
-				oldNewOIDPairs.put(currentOID, child.getObject_id());
+				oldNewOIDPairs.put(currentOID, child.getObjectId());
 			}
 		} finally {
 			svr.release();
@@ -1704,9 +1704,9 @@ public class SvWriter extends SvCore {
 	 */
 	void removeLinkCache(DbDataObject linkDbo) {
 		DbDataObject dbl = getLinkType((Long) linkDbo.getVal("LINK_TYPE_ID"));
-		DbCache.invalidateLinkCache((Long) linkDbo.getVal("LINK_OBJ_ID_1"), dbl.getObject_id(),
+		DbCache.invalidateLinkCache((Long) linkDbo.getVal("LINK_OBJ_ID_1"), dbl.getObjectId(),
 				(Long) dbl.getVal("LINK_OBJ_TYPE_2"));
-		DbCache.invalidateLinkCache((Long) linkDbo.getVal("LINK_OBJ_ID_2"), dbl.getObject_id(),
+		DbCache.invalidateLinkCache((Long) linkDbo.getVal("LINK_OBJ_ID_2"), dbl.getObjectId(),
 				(Long) dbl.getVal("LINK_OBJ_TYPE_1"));
 	}
 
@@ -1765,7 +1765,7 @@ public class SvWriter extends SvCore {
 			while (rs.next()) {
 				DbDataObject dbo = new DbDataObject();
 				isFound = false;
-				dbo.setObject_type(rs.getLong("OBJECT_TYPE"));
+				dbo.setObjectType(rs.getLong("OBJECT_TYPE"));
 				dbo.setVal("LINK_TYPE_ID", rs.getLong("LINK_TYPE_ID"));
 				dbo.setVal("LINK_OBJ_ID_2", rs.getLong("LINK_OBJ_ID_2"));
 
@@ -1872,16 +1872,16 @@ public class SvWriter extends SvCore {
 		DbDataObject oldDbo = null;
 		DbDataObject newObj = null;
 		try {
-			oldDbo = svr.getObjectById(dbo.getObject_id(), getDbt(dbo.getObject_type()), null);
-			newObj = new DbDataObject(dbo.getObject_type());
+			oldDbo = svr.getObjectById(dbo.getObjectId(), getDbt(dbo.getObjectType()), null);
+			newObj = new DbDataObject(dbo.getObjectType());
 			newObj.setValuesMap(oldDbo.getValuesMap());
-			newObj.setParent_id(oldDbo.getParent_id());
+			newObj.setParentId(oldDbo.getParentId());
 			newObj.setStatus(oldDbo.getStatus());
 			if (newObj != null) {
 
 				saveObject(newObj, false);
 				if (cloneChildren) {
-					cloneChildren(newObj, oldDbo.getObject_id(), cloneChildrenLinks);
+					cloneChildren(newObj, oldDbo.getObjectId(), cloneChildrenLinks);
 				}
 			}
 		} finally {

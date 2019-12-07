@@ -34,9 +34,8 @@ public class SvActivator implements BundleActivator {
 	}
 
 	public void stop(BundleContext context) {
-		bundleContext = null;
 		log4j.info("Stopping bundle " + bundleContext.getBundle().getSymbolicName());
-
+		bundleContext = null;
 	}
 
 	public BundleContext getContext() {

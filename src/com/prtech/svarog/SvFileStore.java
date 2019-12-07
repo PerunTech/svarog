@@ -148,61 +148,7 @@ public class SvFileStore extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-	static boolean initFileStore() {
-
-		DbDataTable dbt = new DbDataTable(SvConf.getSqlkw());
-		dbt.setDbTableName(SvConf.getParam("filestore.table"));
-		dbt.setDbRepoName(SvConf.getMasterRepo());
-		dbt.setDbSchema(SvConf.getDefaultSchema());
-
-		// f1
-		DbDataField dbf1 = new DbDataField();
-		dbf1.setDbFieldName("PKID");
-		dbf1.setIsPrimaryKey(true);
-		dbf1.setDbFieldType(DbFieldType.NUMERIC);
-		dbf1.setDbFieldSize(18);
-		dbf1.setDbFieldScale(0);
-		dbf1.setIsNull(false);
-		dbf1.setDbSequenceName(dbt.getDbTableName() + "_pkid");
-
-		// f2
-		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("DATA");
-		dbf2.setDbFieldType(DbFieldType.BLOB);
-		dbf2.setIsNull(false);
-		dbf2.setLabel_code("master_repo.file_type");
-
-		dbt.setDbTableFields(new DbDataField[2]);
-		dbt.getDbTableFields()[0] = dbf1;
-		dbt.getDbTableFields()[1] = dbf2;
-		Boolean retval = false;
-		DbDataTable.setRbConf(SvConf.getSqlkw());
-		DbDataField.setSqlKWResource(SvConf.getSqlkw());
-
-		Connection conn = null;
-		try {
-
-			conn = SvConf.getDBConnection();
-			retval = SvarogInstall.createTable(dbt, conn);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			retval = false;
-		} finally
-
-		{
-			if (conn != null)
-				try {
-					conn.close();
-				} catch (Exception e) {
-					log4j.error("Connection can't be released!", e);
-				}
-			;
-
-		}
-		return retval;
-
-	}
+	
 
 	/**
 	 * Initialiser method for the file cache

@@ -4,21 +4,21 @@
 #
 - name: "Set ORACLE facts for branch {{ env_name }}"
   include: oracle_facts.yml
-  when: db == "ORACLE" and (env_name == "master" or env_name == "staging" or env_name == "dev")
+  when: db == "ORACLE" and (env_name == "master" or env_name == "staging" or env_name == "dev" or env_name == "ut")
 
 - name: "Apply ORACLE svarog.properties for {{ env_name }}"
   include: apply_svarog_properties.yml
-  when: db == "ORACLE" and (env_name == "master" or env_name == "staging" or env_name == "dev")
+  when: db == "ORACLE" and (env_name == "master" or env_name == "staging" or env_name == "dev" or env_name == "ut")
 #
 # POSTGRES
 #
 - name: "Set POSTGRES facts for branch {{ env_name }}"
   include: postgres_facts.yml
-  when: db == "POSTGRES" and (env_name == "master" or env_name == "staging" or env_name == "dev")
+  when: db == "POSTGRES" and (env_name == "master" or env_name == "staging" or env_name == "dev" or env_name == "ut")
 
 - name: "Apply POSTGRES svarog.properties for {{ env_name }}"
   include: apply_svarog_properties.yml
-  when: db == "POSTGRES" and (env_name == "master" or env_name == "staging" or env_name == "dev")
+  when: db == "POSTGRES" and (env_name == "master" or env_name == "staging" or env_name == "dev" or env_name == "ut")
 
 
 #- name: Display all HOSTVARS

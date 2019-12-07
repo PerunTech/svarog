@@ -118,7 +118,7 @@ public class SvLock {
 	 *            Timeout in mili-seconds to acquire the lock
 	 * @return Instance of ReentrantLock, mapped to the System Locks using the
 	 *         requested key
-
+	 * 
 	 */
 	public static ReentrantLock getLock(String key, Boolean isBlocking, long timeout) {
 		if (log4j.isDebugEnabled())
@@ -188,8 +188,10 @@ public class SvLock {
 		} else
 			log4j.error("Release requested for unlocked key:" + key + ", but lock reference was null");
 		if (alwaysUnlock && !lockReleased) {
-			lock.unlock();
-			log4j.warn("Forced release under key:" + key + ", lock:" + lock.toString());
+			if (lock != null)
+				lock.unlock();
+			log4j.warn(
+					(lock == null ? "NO lock" : "Forced release") + " under key:" + key + ", lock:" + lock.toString());
 
 		}
 
