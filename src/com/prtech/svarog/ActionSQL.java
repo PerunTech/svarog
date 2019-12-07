@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import org.joda.time.DateTime;
 
 import com.prtech.svarog_common.DbDataObject;
+
 /**
  * Class to execute an action configured in the Rule Engine, which is in the
  * form of a SQL string
@@ -38,17 +39,21 @@ public class ActionSQL extends SvCore {
 
 	/**
 	 * Default Constructor. This constructor can be used only within the svarog
-	 * package since it will run with system priveleges.
+	 * package since it will run with system privileges.
+	 * 
+	 * @param sharedSvCore
+	 *            The shared SvCore see {@link SvCore}
 	 * 
 	 * @throws SvException
+	 *             Pass through underlying exceptions
 	 */
 	ActionSQL(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
 	}
 
-
 	/**
-	 * Method for executing an SQL based action of the rule engine 
+	 * Method for executing an SQL based action of the rule engine
+	 * 
 	 * @param sql
 	 *            SQL query to be executed
 	 * @param dbo
@@ -61,20 +66,24 @@ public class ActionSQL extends SvCore {
 	 *            In case of stored procedure type of return parameter to be
 	 *            binded.
 	 * @param arrayType
-	 *            The array type that should be used for returning values (SQL type)
+	 *            The array type that should be used for returning values (SQL
+	 *            type)
 	 * @param params
-	 * 			Hashmap containing additional parameters passed to the bindParams method 
-	 * @param autoCommit Flag to enable/disable auto commit/rollback on success/exception
+	 *            Hashmap containing additional parameters passed to the
+	 *            bindParams method
+	 * @param autoCommit
+	 *            Flag to enable/disable auto commit/rollback on
+	 *            success/exception
 	 * @return Object result of execution, can be of different type
 	 * @throws SvException
+	 *             Pass through underlying exceptions
 	 */
-	public Object execute(String sql, DbDataObject dbo, Long exec_id, String calltype, Long rettype, String className,
-			Map<Object, Object> params, Boolean autoCommit) throws SvException
-	{
+	public Object execute(String sql, DbDataObject dbo, Long exec_id, String calltype, Long rettype, String arrayType,
+			Map<Object, Object> params, Boolean autoCommit) throws SvException {
 		Object retVal = null;
 		try {
 			this.dbSetAutoCommit(false);
-			retVal = executeImpl(sql, dbo, exec_id, calltype, rettype, className,params);
+			retVal = executeImpl(sql, dbo, exec_id, calltype, rettype, arrayType, params);
 			if (autoCommit)
 				dbCommit();
 		} catch (SvException e) {
@@ -85,6 +94,7 @@ public class ActionSQL extends SvCore {
 		}
 		return retVal;
 	}
+
 	/**
 	 * Prepare statement and execute appropriate actions depending on call type.
 	 * 
@@ -100,11 +110,15 @@ public class ActionSQL extends SvCore {
 	 *            In case of stored procedure type of return parameter to be
 	 *            binded.
 	 * @param arrayType
-	 *            The array type that should be used for returning values (SQL type)
+	 *            The array type that should be used for returning values (SQL
+	 *            type)
 	 * @param params
-	 * 			Hashmap containing additional parameters passed to the bindParams method          
+	 *            Hashmap containing additional parameters passed to the
+	 *            bindParams method
 	 * @return Object result of execution, can be of different type
-	 * @throws SvException 
+	 * @throws SvException
+	 *             Throws system.error.re_action_sql_err exception to signal sql
+	 *             failure
 	 * 
 	 */
 	Object executeImpl(String sql, DbDataObject dbo, Long exec_id, String calltype, Long rettype, String arrayType,
@@ -126,10 +140,10 @@ public class ActionSQL extends SvCore {
 				result = cst.getObject(1);
 			}
 		} catch (SQLException e) {
-			throw (new SvException("system.error.re_action_sql_err", instanceUser, dbo, sql,e));
+			throw (new SvException("system.error.re_action_sql_err", instanceUser, dbo, sql, e));
 		} finally {
-			closeResource((AutoCloseable)rs, instanceUser);
-			closeResource((AutoCloseable)cst, instanceUser);
+			closeResource((AutoCloseable) rs, instanceUser);
+			closeResource((AutoCloseable) cst, instanceUser);
 		}
 		return result;
 	}
@@ -144,17 +158,18 @@ public class ActionSQL extends SvCore {
 	 *            Database object the rule action is executed on
 	 * @param exec_id
 	 *            Id of the rule execution saved in database.
-	 * @param calltype
-	 *            Execute query, get result or execute stored procedure.
 	 * @param rettype
 	 *            In case of stored procedure type of return parameter to be
 	 *            binded.
 	 * @param arrayType
-	 *            The array type that should be used for returning values (SQL type)
+	 *            The array type that should be used for returning values (SQL
+	 *            type)
 	 * @param params
-	 * 			Hashmap containing additional parameters passed to the bindParams method
+	 *            Hashmap containing additional parameters passed to the
+	 *            bindParams method
 	 * @return CallableStatement
-	 * @throws SQLException
+	 * @throws SvException
+	 *             Throws system.error.re_action_sql_err in case of SQL failure
 	 * 
 	 */
 	private CallableStatement prepareGet(String sql, DbDataObject dbo, Long exec_id, Long rettype, String arrayType,
@@ -167,25 +182,23 @@ public class ActionSQL extends SvCore {
 		sql = sql.replaceAll(pattern, "?");
 
 		int offset;
-		try
-		{
-		if (sql.toLowerCase().startsWith("call")) {
-			cst = conn.prepareCall("{ ? = " + sql + "}");
-			if (rettype == java.sql.Types.ARRAY) {
-				cst.registerOutParameter(1, rettype.intValue(), arrayType);
+		try {
+			if (sql.toLowerCase().startsWith("call")) {
+				cst = conn.prepareCall("{ ? = " + sql + "}");
+				if (rettype == java.sql.Types.ARRAY) {
+					cst.registerOutParameter(1, rettype.intValue(), arrayType);
+				} else {
+					cst.registerOutParameter(1, rettype.intValue());
+				}
+				offset = 2;
 			} else {
-				cst.registerOutParameter(1, rettype.intValue());
+				cst = conn.prepareCall(sql);
+				offset = 1;
 			}
-			offset = 2;
-		} else {
-			cst = conn.prepareCall(sql);
-			offset = 1;
-		}
 
-		cst = bindParams(cst, dbo, exec_id, fieldNames, offset, params);
-		}catch(SQLException e)
-		{
-			throw (new SvException("system.error.re_action_sql_err", instanceUser, dbo, sql,e));
+			cst = bindParams(cst, dbo, exec_id, fieldNames, offset, params);
+		} catch (SQLException e) {
+			throw (new SvException("system.error.re_action_sql_err", instanceUser, dbo, sql, e));
 		}
 		return cst;
 	}
@@ -224,7 +237,11 @@ public class ActionSQL extends SvCore {
 	 *            List of field names for binding
 	 * @param offset
 	 *            Binding parameters start index
+	 * @param params
+	 *            The map of key/values used as parameters
 	 * @return CallableStatement with parameters binded
+	 * @throws SQLException
+	 *             Exception which is result of JDBC parameter binding
 	 * 
 	 */
 	private CallableStatement bindParams(CallableStatement cst, DbDataObject dbo, Long exec_id,
@@ -235,15 +252,15 @@ public class ActionSQL extends SvCore {
 			if (currentField.equals("pkid"))
 				cst.setLong(i + offset, dbo.getPkid());
 			else if (currentField.equals("object_id"))
-				cst.setLong(i + offset, dbo.getObject_id());
+				cst.setLong(i + offset, dbo.getObjectId());
 			else if (currentField.equals("parent_id"))
-				cst.setLong(i + offset, dbo.getParent_id());
+				cst.setLong(i + offset, dbo.getParentId());
 			else if (currentField.equals("object_type"))
-				cst.setLong(i + offset, dbo.getObject_type());
+				cst.setLong(i + offset, dbo.getObjectType());
 			else if (currentField.equals("dt_insert"))
-				cst.setTimestamp(i + offset, new Timestamp(dbo.getDt_insert().getMillis() - 1));
+				cst.setTimestamp(i + offset, new Timestamp(dbo.getDtInsert().getMillis() - 1));
 			else if (currentField.equals("dt_delete"))
-				cst.setTimestamp(i + offset, new Timestamp(dbo.getDt_delete().getMillis() - 1));
+				cst.setTimestamp(i + offset, new Timestamp(dbo.getDtDelete().getMillis() - 1));
 			else if (currentField.equals("status"))
 				cst.setString(i + offset, dbo.getStatus());
 			else if (currentField.equals("exec_id"))
@@ -256,12 +273,18 @@ public class ActionSQL extends SvCore {
 		return cst;
 	}
 
-	/** 
-	 * Method to bind a parameter to the callable statement at index parameterIndex
-	 * @param cst The callable statement
-	 * @param parameterIndex The index of parameter
-	 * @param value The object holding the value 
+	/**
+	 * Method to bind a parameter to the callable statement at index
+	 * parameterIndex
+	 * 
+	 * @param cst
+	 *            The callable statement
+	 * @param parameterIndex
+	 *            The index of parameter
+	 * @param value
+	 *            The object holding the value
 	 * @throws SQLException
+	 *             Pass through SQL excetpions related to the binding
 	 */
 	private void bindParamByType(CallableStatement cst, int parameterIndex, Object value) throws SQLException {
 		if (value instanceof Long) {
