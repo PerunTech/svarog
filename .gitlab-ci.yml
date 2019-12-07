@@ -104,7 +104,7 @@ upgrade-oracle-pipeline:
 svarog-sonarqube:
   stage: code_analysis
   script:
-    - mvn sonar:sonar -Dsonar.analysis.mode=preview
+    - mvn sonar:sonar -Dsonar.analysis.mode=preview -Dsonar.branch=$CI_BUILD_REF_NAME -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_BUILD_REF -Dsonar.gitlab.ref_name=$CI_BUILD_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
     
 svarog-install:
   stage: mvn_install
