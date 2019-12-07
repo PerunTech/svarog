@@ -1,13 +1,16 @@
 stages:
   - build
-  - configure
   - svarog-unit-tests
   - svarog-upgrade-pipeline
   - code_analysis
   - mvn_install
 
 
-#before_script:
+before_script:
+  - git reset --hard $CI_COMMIT_SHA
+  - git clean -df
+  - git stash
+  - git pull origin $CI_COMMIT_SHA  
 
 
 #after_script:
@@ -15,17 +18,13 @@ stages:
 #  - git clean -df
 #  - git stash
 #  - git pull origin $CI_COMMIT_REF_NAME
-svarog-build:
+01_svarog-build:
   stage: build
   script:
-    - git reset --hard $CI_COMMIT_SHA
-    - git clean -df
-    - git stash
-    - git pull origin $CI_COMMIT_SHA  
     - mvn clean compile
 
-svarog-json:
-  stage: configure
+02_svarog-json:
+  stage: build
   script:
     - cd $CI_PROJECT_DIR
     - mvn exec:java@json
