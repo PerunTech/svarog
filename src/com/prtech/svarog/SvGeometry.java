@@ -44,8 +44,10 @@ import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 
 /**
- * The god pattern for handling Geographical data attached to
- * {@link DbDataObject}
+ * Class for handling all kinds of GIS information attached to the standard
+ * DbDataObjects in the system. This class uses the basic {@link DbDataObject}
+ * while it focuses only on the fields which are of type GEOMETRY. It provides
+ * vast array of caching mechanisms based on tiles.
  * 
  * @author XPS13
  *
@@ -98,7 +100,7 @@ public class SvGeometry extends SvCore {
 			builder = builder.expireAfterAccess(10, TimeUnit.MINUTES);
 			builder = builder.maximumSize(100);
 		}
-		return (Cache<String, SvSDITile>) builder.<String, SvSDITile> build();
+		return (Cache<String, SvSDITile>) builder.<String, SvSDITile>build();
 	}
 
 	/**
@@ -107,7 +109,7 @@ public class SvGeometry extends SvCore {
 	 * 
 	 * @param env
 	 *            The envelope used to describe the BBOX
-	 * @return
+	 * @return String version of the boundign box (example BBOX=-180,-90.180,90)
 	 */
 	public static String getBBox(Envelope env) {
 		// BBOX=-180,-90.180,90
@@ -118,10 +120,12 @@ public class SvGeometry extends SvCore {
 	 * Method to generate a BBOX string from an envelope. The bbox string is
 	 * according to WMS1.1 axis ordering
 	 * 
-	 * @param env
+	 * @param bbox
 	 *            The envelope used to describe the BBOX
-	 * @return
+	 * @return Envelope representing the string BBOX
 	 * @throws SvException
+	 *             Throws system.error.sdi.cant_parse_bbox if it can't parse the
+	 *             BBOX string
 	 */
 	public static Envelope parseBBox(String bbox) throws SvException {
 		String[] coords = bbox.split(",");
@@ -270,6 +274,8 @@ public class SvGeometry extends SvCore {
 	 * Method that returns the grid tiles intersecting a specific envelope
 	 * 
 	 * @param envelope
+	 *            The envelope which we want to use as bounding box for the
+	 *            returned geometries
 	 * @return List of {@link Geometry} objects
 	 */
 	public static List<Geometry> getTileGeometries(Envelope envelope) {
@@ -278,7 +284,7 @@ public class SvGeometry extends SvCore {
 		return result;
 	}
 
-	public  ArrayList<Geometry> getGeometriesByBBOX(Long typeId, String bbox) throws SvException {
+	public ArrayList<Geometry> getGeometriesByBBOX(Long typeId, String bbox) throws SvException {
 		Envelope envelope = parseBBox(bbox);
 		return getGeometries(typeId, envelope);
 	}
@@ -336,7 +342,7 @@ public class SvGeometry extends SvCore {
 	 * A method that creates a new {@link SvSDITile} based on the GeoJSON system
 	 * boundary
 	 * 
-	 * @return
+	 * @return SvSDITile representing the system boundary
 	 */
 	public static SvSDITile getSysBoundary() {
 		HashMap<String, Object> params = new HashMap<String, Object>();
@@ -345,11 +351,15 @@ public class SvGeometry extends SvCore {
 	}
 
 	/**
-	 * A method that creates a new {@link SvSDITile} based on the GeoJSON system
-	 * boundary
+	 * A method that returns all unit boundaries for a specific class. We assume
+	 * that the UNIT_CLASS=0 is administrative boundary. All other classes are
+	 * user defined
 	 * 
-	 * @return
+	 * @param unitClass
+	 *            The id of the class of units to be returned
+	 * @return The SvSDITile instance holding all units of the specific class
 	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public static SvSDITile getSDIUnitBoundary(Long unitClass) throws SvException {
 		DbSearchCriterion dbs = new DbSearchCriterion("UNIT_CLASS", DbCompareOperand.EQUAL, unitClass);
@@ -364,9 +374,11 @@ public class SvGeometry extends SvCore {
 	 * 
 	 * @param tileTypeId
 	 *            The tile type ID
+	 * @param tileId
+	 *            The string identification of the tile
 	 * @param tileParams
 	 *            Array of strings containing tile id or file path.
-	 * @return
+	 * @return Instance of the tile, either from the cache of newly created
 	 */
 	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
 
@@ -481,7 +493,11 @@ public class SvGeometry extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            The user session which will be used to associate the SvCore
+	 *            instance with the instance user
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvGeometry(String session_id) throws SvException {
 		super(session_id);
@@ -492,7 +508,14 @@ public class SvGeometry extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            The user session which will be used to associate the SvCore
+	 *            instance with the instance user
+	 * @param sharedSvCore
+	 *            The shared core which will be used to share the JDBC
+	 *            connection
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvGeometry(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -502,7 +525,11 @@ public class SvGeometry extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * @param sharedSvCore
+	 *            The shared core which will be used to share the JDBC
+	 *            connection
 	 * @throws SvException
+	 *             Pass through of underlying exceptions from the constructor
 	 */
 	public SvGeometry(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -510,9 +537,10 @@ public class SvGeometry extends SvCore {
 
 	/**
 	 * Default Constructor. This constructor can be used only within the svarog
-	 * package since it will run with system priveleges.
+	 * package since it will run with system privileges.
 	 * 
 	 * @throws SvException
+	 *             Pass through of underlying exceptions from the constructor
 	 */
 	SvGeometry() throws SvException {
 		super(svCONST.systemUser, null);
@@ -527,6 +555,13 @@ public class SvGeometry extends SvCore {
 	 * @param dbo
 	 *            The {@link DbDataObject} containing at least GEOMETRY column.
 	 * @throws SvException
+	 *             If the geometry is not valid throws
+	 *             "system.error.sdi.invalid_geom". If the geometry is outside
+	 *             of the system grid then
+	 *             "system.error.sdi.geometry_not_in_grid" is thrown. If the
+	 *             geometry intersects the system boundary and svarog is not
+	 *             configured to allow system boundary intersections then
+	 *             "system.error.sdi.geometry_crosses_sysbounds" is thrown.
 	 */
 	public void verifyBounds(DbDataObject dbo) throws SvException {
 		Geometry geom = SvGeometry.getGeometry(dbo);
@@ -554,11 +589,17 @@ public class SvGeometry extends SvCore {
 	}
 
 	/**
-	 * Method
+	 * Method to get an Administrative Unit based on a point geometry.
 	 * 
 	 * @param geom
-	 * @return
+	 *            The point geometry for which we want to find the
+	 *            administrative unit
+	 * @return DbDataObject representation of the administrative unit
 	 * @throws SvException
+	 *             throws system.error.sdi.adm_bounds_overlaps if the point
+	 *             belongs to more than one Administrative Unit (i.e. there is
+	 *             overlap) or system.error.sdi.adm_bounds_not_found if the
+	 *             point is outside of coverage of the administrative units
 	 */
 	public DbDataObject getAdmUnit(Point geom) throws SvException {
 		SvSDITile admTile = getSDIUnitBoundary(admUnitClass);
@@ -596,6 +637,20 @@ public class SvGeometry extends SvCore {
 
 	}
 
+	/**
+	 * Method to save a DbDataArray of DbDataObjects which are of Geometry Type
+	 * and have set the flag hasGeometries. The method will perform basic
+	 * saveObject on the alphanumeric fields and further process the GEOMETRY
+	 * columns
+	 * 
+	 * @param dba
+	 *            the array of objects to be saved in the database
+	 * @throws SvException
+	 *             Throws system.error.sdi.non_sdi_type if the object not of
+	 *             geometry type or system.error.sdi.geom_field_missing if the
+	 *             object has no geometry field while SvGeometry has
+	 *             allowNullGeometry set to false
+	 */
 	public void saveGeometry(DbDataArray dba) throws SvException {
 		SvWriter svw = null;
 		try {
@@ -619,6 +674,16 @@ public class SvGeometry extends SvCore {
 		}
 	}
 
+	/**
+	 * Method to save a single geometry to the database. Same as
+	 * {@link #saveGeometry(DbDataArray)}, but using a single object instead of
+	 * array.
+	 * 
+	 * @param dbo
+	 *            The object which should be saved
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
+	 */
 	public void saveGeometry(DbDataObject dbo) throws SvException {
 		DbDataArray dba = new DbDataArray();
 		dba.addDataItem(dbo);
@@ -628,7 +693,7 @@ public class SvGeometry extends SvCore {
 	/**
 	 * Getter for allowNullGeometry
 	 * 
-	 * @return
+	 * @return return true if null geometries are allowed
 	 */
 	public boolean getAllowNullGeometry() {
 		return allowNullGeometry;

@@ -1143,8 +1143,6 @@ public class SvarogTest {
 					null);
 			DbDataArray objects = svr.getObjects(query, null, null);
 
-			SvConnTracker.cleanup();
-			svn = new SvNote();
 			if (!note.equals("Small update"))
 				fail("Note updating doesn't work");
 			try {
@@ -1155,7 +1153,8 @@ public class SvarogTest {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
+			SvConnTracker.cleanup();
+			svn = new SvNote();
 			svn.setIsLongRunning(true);
 			note = svn.getNote(13L, "Test note");
 			if (SvConnTracker.cleanup() > 0)
