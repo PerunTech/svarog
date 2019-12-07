@@ -100,7 +100,7 @@ svarog-install:
   stage: mvn_install
   script:  
     - pwd
-    - mvn install
+    - mvn install -DskipTests
   only:
     - master
     - staging
