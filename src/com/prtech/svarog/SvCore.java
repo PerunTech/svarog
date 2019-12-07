@@ -237,7 +237,7 @@ public abstract class SvCore implements ISvCore {
 	/**
 	 * Local static var holding the default system locale
 	 */
-	private static DbDataObject defaultSysLocale = null;
+	private static volatile DbDataObject defaultSysLocale = null;
 
 	/**
 	 * The internal static geometry handler instance
@@ -395,8 +395,8 @@ public abstract class SvCore implements ISvCore {
 	 * connection leaks.
 	 */
 	private void setDebugInfo() {
-		StackTraceElement singleTrace = null;
 		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
+		StackTraceElement singleTrace = traces[0];
 		for (StackTraceElement strace : traces) {
 			if (strace.getMethodName().equals("<init>") || strace.getMethodName().equals("getStackTrace")
 					|| strace.getMethodName().equals("setDebugInfo"))
@@ -406,6 +406,7 @@ public abstract class SvCore implements ISvCore {
 				break;
 			}
 		}
+
 		this.coreTraceInfo = "File:" + singleTrace.getFileName() + "; Class:" + singleTrace.getClassName() + "; Method:"
 				+ singleTrace.getMethodName() + "; Line number:" + singleTrace.getLineNumber();
 	}
@@ -645,12 +646,14 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getDefaultLocale() {
 		if (defaultSysLocale == null) {
-			DbDataObject dboLocale = SvarogInstall.getLocaleList().getItemByIdx(SvConf.getDefaultLocale());
-			if (defaultSysLocale == null)
-				log4j.error("System locale is misconfigured, expect unexpected behavior");
-			else
-				DboFactory.makeDboReadOnly(dboLocale);
-			defaultSysLocale = dboLocale;
+			synchronized (SvCore.class) {
+				DbDataObject dboLocale = SvarogInstall.getLocaleList().getItemByIdx(SvConf.getDefaultLocale());
+				if (dboLocale == null)
+					log4j.error("System locale is misconfigured, expect unexpected behavior");
+				else
+					DboFactory.makeDboReadOnly(dboLocale);
+				defaultSysLocale = dboLocale;
+			}
 		}
 		return defaultSysLocale;
 	}
@@ -1994,8 +1997,7 @@ public abstract class SvCore implements ISvCore {
 			// create the SID search expression
 			DbSearchExpression dbxSid = new DbSearchExpression()
 					.addDbSearchItem(new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, sid.getObjectId()))
-					.addDbSearchItem(
-							new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObjectType()));
+					.addDbSearchItem(new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObjectType()));
 			dbxSid.setNextCritOperand("OR");
 
 			DbSearchExpression dbx = new DbSearchExpression().addDbSearchItem(dbxSid);
@@ -2139,8 +2141,8 @@ public abstract class SvCore implements ISvCore {
 							permissions = getPermissions(this.instanceUser, svr);
 							// after fetching the objects from the DB, cache
 							// them please
-							DbCache.addArrayByParentId(permissions, svCONST.OBJECT_TYPE_ACL,
-									instanceUser.getObjectId(), false);
+							DbCache.addArrayByParentId(permissions, svCONST.OBJECT_TYPE_ACL, instanceUser.getObjectId(),
+									false);
 						}
 						// now process all access control objects for faster
 						// indexing using aclkeys

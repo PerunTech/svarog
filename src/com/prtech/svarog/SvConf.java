@@ -16,7 +16,6 @@ package com.prtech.svarog;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -162,19 +161,12 @@ public class SvConf {
 	/**
 	 * The Datasource reference
 	 */
-	private static DataSource sysDataSource = null;
+	private static volatile DataSource sysDataSource = null;
 
 	/**
 	 * Set the default multi select separator
 	 */
 	private static String multiSelectSeparator = ";";
-	/**
-	 * JDBC conn string, user and pass
-	 */
-	private static String connString = null;
-	private static String connUser = null;
-	private static String connPass = null;
-
 	static int sdiGridSize;
 
 	/**
@@ -245,11 +237,6 @@ public class SvConf {
 	 * RDBMS engines
 	 */
 	private static ResourceBundle sqlKw = null;
-
-	/**
-	 * Flag to signify if the datasource was initialised
-	 */
-	private static AtomicBoolean isDsInitialized = new AtomicBoolean(false);
 
 	/**
 	 * Method to return the currently configured ISvDatabaseIO instance
@@ -330,7 +317,8 @@ public class SvConf {
 			log4j.error("Svarog.properties config file can not be found. Svarog not initialised.", e);
 		} finally {
 			try {
-				props.close();
+				if (props != null)
+					props.close();
 			} catch (IOException e) {
 				log4j.error("Svarog.properties config file not properly read. Svarog initialisation error.", e);
 				hasErrors = true;
@@ -370,11 +358,6 @@ public class SvConf {
 			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
 
 			dbType = svDbType.toString();
-			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
-					|| svDbType.equals(SvDbType.MSSQL))) {
-				log4j.error("Wrong database type! Must be one of: POSTGRES, MSSQL or ORACLE");
-				hasErrors = true;
-			}
 			if (svDbConnType.equals(SvDbConnType.JNDI)) {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
 				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
@@ -384,8 +367,12 @@ public class SvConf {
 				log4j.info("DB connection type is JDBC, using DBCP2");
 				dataSource = configureDBCP(mainProperties);
 			}
-			// init was successful
 			hasErrors = false;
+			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
+					|| svDbType.equals(SvDbType.MSSQL))) {
+				log4j.error("Wrong database type! Must be one of: POSTGRES, MSSQL or ORACLE");
+				hasErrors = true;
+			}
 		} catch (Exception e) {
 			log4j.error("Svarog.properties config file not properly parsed. Svarog initialisation error.", e);
 			hasErrors = true;
@@ -405,7 +392,7 @@ public class SvConf {
 	static DataSource getDataSource() {
 
 		// if Svarog is already initialised, simply return
-		if (!isDsInitialized.compareAndSet(false, true))
+		if (sysDataSource != null)
 			return sysDataSource;
 		else {
 			synchronized (config) {
@@ -569,9 +556,6 @@ public class SvConf {
 	 * @return configured DBCP data source
 	 */
 	static DataSource configureDBCP(Properties mainProperties) {
-		connString = mainProperties.getProperty("conn.string").trim();
-		connUser = mainProperties.getProperty("user.name").trim();
-		connPass = mainProperties.getProperty("user.password").trim();
 
 		DataSource coreDataSource = new BasicDataSource();
 		((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
