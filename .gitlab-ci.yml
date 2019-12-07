@@ -1,5 +1,7 @@
 stages:
   - build
+  - svarog-unit-tests
+  - svarog-upgrade-pipeline
   - code_analysis
   - mvn_install
 
@@ -23,13 +25,13 @@ svarog-build:
     - mvn clean compile
 
 svarog-json:
-  stage: generate-json
+  stage: build
   script:
     - cd $CI_PROJECT_DIR
     - mvn exec:java@json
 
-svarog-unit-tests:
-  stage: install-postgres-ut
+install-postgres-ut:
+  stage: svarog-unit-tests
   script:
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
@@ -38,12 +40,14 @@ svarog-unit-tests:
     - mvn exec:java@install-drop -P PostgreSQL
     - mvn test -P PostgreSQL
   
-  stage: upgrade-postgres-ut
+upgrade-postgres-ut:
+  stage: svarog-unit-tests
   script:
     - mvn exec:java@upgrade-force -P PostgreSQL
     - mvn test -P PostgreSQL
     
-  stage: install-oracle-ut
+install-oracle-ut:
+  stage: svarog-unit-tests
   script:
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
@@ -51,13 +55,14 @@ svarog-unit-tests:
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop-auto -P Oracle
 
-  stage: upgrade-oracle-ut
+upgrade-oracle-ut:
+  stage: svarog-unit-tests
   script:
     - mvn exec:java@upgrade-force-auto -P Oracle
     - mvn test -P Oracle
     
-svarog-upgrade:
-  stage: upgrade-postgres-pipeline
+upgrade-postgres-pipeline:
+  stage: svarog-upgrade-pipeline
   script:
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
@@ -66,7 +71,8 @@ svarog-upgrade:
     - mvn exec:java@upgrade-force -P PostgreSQL
     - mvn test -P PostgreSQL
     
-  stage: upgrade-oracle-pipeline
+upgrade-oracle-pipeline:
+  stage: svarog-upgrade-pipeline
   script:
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
