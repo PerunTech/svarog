@@ -32,7 +32,7 @@ install-postgres-ut:
     - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
-    - ./ansible-svarog.sh UT $CI_PROJECT_DIR POSTGRES
+    - ./ansible-svarog.sh ut $CI_PROJECT_DIR POSTGRES
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop -P PostgreSQL
     - mvn test -P PostgreSQL
@@ -46,7 +46,7 @@ install-oracle-ut:
     - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
-    - ./ansible-svarog.sh UT $CI_PROJECT_DIR ORACLE
+    - ./ansible-svarog.sh ut $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop-auto -P Oracle
     - mvn exec:java@upgrade-force-auto -P Oracle
