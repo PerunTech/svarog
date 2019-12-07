@@ -1,5 +1,6 @@
 stages:
   - build
+  - configure
   - svarog-unit-tests
   - svarog-upgrade-pipeline
   - code_analysis
@@ -25,7 +26,7 @@ svarog-build:
     - mvn clean compile
 
 svarog-json:
-  stage: build
+  stage: configure
   script:
     - cd $CI_PROJECT_DIR
     - mvn exec:java@json
