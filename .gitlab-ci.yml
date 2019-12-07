@@ -6,11 +6,7 @@ stages:
   - mvn_install
 
 
-before_script:
-  - git reset --hard $CI_COMMIT_SHA
-  - git clean -df
-  - git stash
-  - git pull origin $CI_COMMIT_SHA  
+#before_script:
 
 
 #after_script:
@@ -21,6 +17,10 @@ before_script:
 01_svarog-build:
   stage: build
   script:
+    - git reset --hard $CI_COMMIT_SHA
+    - git clean -df
+    - git stash
+    - git pull origin $CI_COMMIT_SHA  
     - mvn clean compile
 
 02_svarog-json:
