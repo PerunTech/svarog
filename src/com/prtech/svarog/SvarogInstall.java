@@ -1168,13 +1168,15 @@ public class SvarogInstall {
 	public static int upgradeSvarog(boolean labelsOnly) {
 		// forse reset of the flag.
 		mIsAlreadyInstalled = null;
-		operation = (firstInstall ? "install" : "upgrade");
-		if (!(firstInstall ^ isSvarogInstalled())) {
-			log4j.error("Svarog " + operation + " failed! In-database config is "
-					+ (isSvarogInstalled() ? "valid" : "invalid") + "!");
-			return -2;
-		}
-		if (firstInstall && labelsOnly) {
+		operation = (isSvarogInstalled() ? "install" : "upgrade");
+		firstInstall = !isSvarogInstalled();
+
+		/*
+		 * (if (!(firstInstall ^ isSvarogInstalled())) { log4j.error("Svarog " +
+		 * operation + " failed! In-database config is " + (isSvarogInstalled()
+		 * ? "valid" : "invalid") + "!"); return -2; }
+		 */
+		if (!isSvarogInstalled() && labelsOnly) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
 					+ (isSvarogInstalled() ? "valid" : "invalid") + "! Can't run LABELS_ONLY upgrade!");
 			return -2;
@@ -1183,7 +1185,7 @@ public class SvarogInstall {
 		try {
 			// if this isn't first time install then we can't set the upgrade
 			// running param
-			if (!firstInstall) {
+			if (isSvarogInstalled()) {
 				svp = new SvParameter();
 				String isRunning = svp.getParamString("svarog.upgrade.running");
 				if (isRunning != null && isRunning.equals("true") && !forceUpgrade) {
@@ -1194,6 +1196,17 @@ public class SvarogInstall {
 				isRunning = svp.getParamString("svarog.upgrade.running");
 				svp.release();
 			}
+			// pre-install db handler call
+			Connection conn = null;
+			try {
+				conn = SvConf.getDBConnection();
+				String before = SvCore.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
+				log4j.info("Svarog DbHandler pre-upgrade:" + before);
+			} finally {
+				if (conn != null)
+					conn.close();
+			}
+
 			// do the actual table creation, unless we run labels only upgrade
 			if (!labelsOnly)
 				if (!SvarogInstall.createMasterRepo()) {
@@ -1206,21 +1219,29 @@ public class SvarogInstall {
 				return -2;
 			}
 			// finally create the file store if it is initial install
-			if (firstInstall)
+			if (!isSvarogInstalled())
 				if (!SvFileStore.initFileStore()) {
 					log4j.error("Initialising the svarog file store failed");
 					return -2;
 				}
-			if (!firstInstall)
+			if (isSvarogInstalled())
 				try {
 					svp.setParamString("svarog.upgrade.running", "false");
 				} catch (SvException e) {
 					log4j.error("Can't set upgrade running flag to false", e);
 				}
 
+			try {
+				conn = SvConf.getDBConnection();
+				String after = SvCore.getDbHandler().afterInstall(conn, SvConf.getDefaultSchema());
+				log4j.info("Svarog DbHandler post-upgrade:" + after);
+			} finally {
+				if (conn != null)
+					conn.close();
+			}
 			log4j.info("Svarog " + operation + " finished");
-		} catch (SvException e) {
-			log4j.error("Existing upgrade check failed", e);
+		} catch (Exception e) {
+			log4j.error("Svarog install/upgrade failed", e);
 			return -2;
 		} finally {
 			if (svp != null) {
@@ -1539,25 +1560,46 @@ public class SvarogInstall {
 		Statement st = null;
 		ResultSet rs = null;
 		try {
-			conn = SvConf.getDBConnection();
-			st = conn.createStatement();
-			log4j.info("Dropping DB schema:" + SvConf.getDefaultSchema());
-			try {
-				st.execute("DROP SCHEMA " + SvConf.getDefaultSchema() + " CASCADE");
-			} catch (Exception e) {
-				log4j.error("Dropping DB schema failed", e);
+			if (SvConf.getDbType().equals(SvDbType.POSTGRES)) {
+				conn = SvConf.getDBConnection();
+				st = conn.createStatement();
+				log4j.info("Dropping DB schema:" + SvConf.getDefaultSchema());
+				try {
+					st.execute("DROP SCHEMA " + SvConf.getDefaultSchema() + " CASCADE");
+				} catch (Exception e) {
+					log4j.error("Dropping DB schema failed", e);
+				}
+
+				log4j.info("Creating DB schema:" + SvConf.getDefaultSchema());
+				st.execute("CREATE SCHEMA " + SvConf.getDefaultSchema());
+				rs = st.executeQuery("    select * from pg_extension where upper(extname) = 'POSTGIS'");
+				if (!rs.next()) {
+					log4j.info("Create postgis extension:" + SvConf.getDefaultSchema());
+					st.execute("CREATE EXTENSION postgis");
+				} else
+					// + "with schema " + SvConf.getDefaultSchema());
+					log4j.info("Postgis exists in :" + SvConf.getDefaultSchema());
+			} else if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
+				conn = SvConf.getDBConnection();
+				st = conn.createStatement();
+				log4j.info("Dropping tables in DB schema:" + SvConf.getDefaultSchema());
+				try {
+
+					String dropStr = "begin "
+							+ "for c1 in ( select * from ALL_OBJECTS WHERE  upper(OWNER)=upper('{SCHEMA}') and "
+							+ "object_type<>'INDEX' and object_type<>'LOB' and object_type<>'TYPE' and object_type<>'PROCEDURE') "
+							+ "loop " + "execute immediate 'DROP '||c1.object_type||' '||c1.owner||'.'||c1.object_name;"
+							+ "end loop;" + "end;";
+					st.execute(dropStr.replace("{SCHEMA}", SvConf.getDefaultSchema()));
+
+				} catch (Exception e) {
+					log4j.error("Dropping tables in DB schema failed", e);
+				}
+
 			}
 
-			log4j.info("Creating DB schema:" + SvConf.getDefaultSchema());
-			st.execute("CREATE SCHEMA " + SvConf.getDefaultSchema());
-			rs = st.executeQuery("    select * from pg_extension where upper(extname) = 'POSTGIS'");
-			if (!rs.next()) {
-				log4j.info("Create postgis extension:" + SvConf.getDefaultSchema());
-				st.execute("CREATE EXTENSION postgis");
-			} else
-				// + "with schema " + SvConf.getDefaultSchema());
-				log4j.info("Postgis exists in :" + SvConf.getDefaultSchema());
 			DbCache.clean();
+
 			// SvCore.initCfgObjectsBase();
 			return true;
 		} catch (Exception e) {

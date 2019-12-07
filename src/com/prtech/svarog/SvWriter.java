@@ -54,7 +54,7 @@ public class SvWriter extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvWriter(String session_id) throws SvException {
 		super(session_id);
@@ -65,7 +65,7 @@ public class SvWriter extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvWriter(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -1177,7 +1177,6 @@ public class SvWriter extends SvCore {
 	 * 
 	 * @param dbDataArray
 	 *            The DbDataArray object which needs to be saved.
-	 * @return Error code as defined in svCONST
 	 * @throws SvException
 	 */
 	public void saveObject(DbDataArray dbDataArray) throws SvException {
@@ -1205,7 +1204,6 @@ public class SvWriter extends SvCore {
 	 *            if autocommit is true, the connection will be committed if no
 	 *            exception occurs. if exception occurs, a rollback will be
 	 *            issued
-	 * @return Error code as defined in svCONST
 	 * @throws SvException
 	 */
 
@@ -1281,7 +1279,6 @@ public class SvWriter extends SvCore {
 	 * 
 	 * @param dbDataObject
 	 *            The DbDataObject object which needs to be saved.
-	 * @return Error code as defined in svCONST
 	 * @throws SvException
 	 */
 	public void deleteObject(DbDataObject dbDataObject, Boolean autoCommit) throws SvException {

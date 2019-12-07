@@ -827,12 +827,10 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Implementation method to recovery a user password in a svarog system.
+	 * Implementation method to change a user password in a svarog system.
 	 * 
 	 * @param userName
 	 *            The username
-	 * @param pin
-	 *            Personal ID number
 	 * @param oldPass
 	 *            Old (Current) password of the user
 	 * @param newPass
@@ -963,8 +961,11 @@ public class SvSecurity extends SvCore {
 	 * Method that checks if a user already exists according the entered pin
 	 * number in registration forms. If exists return true.
 	 * 
-	 * @param piNo
+	 * @param pinNo
 	 *            the pin number entered in the user registration form
+	 * @return True if the user identified by the pin exists.
+	 * @throws SvException Passthrough
+	 *             of underlying SvException
 	 */
 	public Boolean checkIfUserExistsByPin(String pinNo) throws SvException {
 		return checkIfUserExistsByPin(pinNo, null);
@@ -975,7 +976,7 @@ public class SvSecurity extends SvCore {
 	 * number in registration forms along with status of the user. If exists
 	 * return true.
 	 * 
-	 * @param piNo
+	 * @param pinNo
 	 *            the pin number entered in the user registration form
 	 * @param status
 	 *            The status for which the user should be checked. Status check
@@ -1170,9 +1171,8 @@ public class SvSecurity extends SvCore {
 	 * 
 	 * @param userObj
 	 *            The user object which should be empowered
-	 * @param linkType
-	 * @param linkedObject
-	 * @return
+	 * @param empowerOverObject
+	 *            The object over which the userObj shall be empowered
 	 * @throws SvException
 	 *             Re-throw any underlying Svarog exception
 	 */
@@ -1195,12 +1195,11 @@ public class SvSecurity extends SvCore {
 	 * 
 	 * @param userObj
 	 *            The user object which should be empowered
-	 * @param linkType
-	 * @param linkedObject
+	 * @param empowerOverObject
+	 *            The object over which the userObj shall be empowered
 	 * @param svl
 	 *            SvLink instance to be used for linking the objects and allow
 	 *            transaction control
-	 * @return
 	 * @throws SvException
 	 *             Re-throw any underlying Svarog exception
 	 */

@@ -118,7 +118,7 @@ public class SvLock {
 	 *            Timeout in mili-seconds to acquire the lock
 	 * @return Instance of ReentrantLock, mapped to the System Locks using the
 	 *         requested key
-	 * @throws ExecutionException
+
 	 */
 	public static ReentrantLock getLock(String key, Boolean isBlocking, long timeout) {
 		if (log4j.isDebugEnabled())
