@@ -10,18 +10,21 @@ postgres_port: 5432
 postgres_driver_name: org.postgresql.Driver
 postgres_username: postgres
 postgres_password: postgres
-postgres_connstring: jdbc:postgresql://{{ postgres_ip }}:{{ postgres_port }}/postgres
+postgres_connstring: jdbc:postgresql://{{ postgres_ip }}:{{ postgres_port }}/svarog3
 postgres_db_type: POSTGRES
 postgres_db_handler: 
 
 ###### MASTER POSTGRES SVAROG SETTINGS ########
-master_postgres_schema: ci_master
+master_postgres_schema: SVAROG3_MASTER
 
 ###### STAGING POSTGRES SVAROG SETTINGS ########
-staging_postgres_schema: ci_staging
+staging_postgres_schema: SVAROG3_STAGE
 
 ###### DEV POSTGRES SVAROG SETTINGS ########
-dev_postgres_schema: ci_dev
+dev_postgres_schema: SVAROG3_DEV
+
+###### DEV ORACLE SVAROG SETTINGS ########
+ut_postgres_schema: SVAROG3_UT
 
 
 ###############################
@@ -30,7 +33,7 @@ dev_postgres_schema: ci_dev
 #
 #
 ###### ORACLE SETTINGS ########
-oracle_ip: 192.168.100.148
+oracle_ip: 192.168.100.149
 oracle_port: 1521
 oracle_sid: orcl
 oracle_driver_name: oracle.jdbc.driver.OracleDriver
@@ -40,13 +43,17 @@ oracle_db_type: ORACLE
 oracle_db_handler: com.prtech.svarog.io.SvOracleIO
 
 ###### MASTER ORACLE SVAROG SETTINGS ########
-master_oracle_username: ci_master
-master_oracle_password: ci_master
+master_oracle_username: SVAROG3_MASTER
+master_oracle_password: SVAROG3_MASTER
 
 ###### STAGING ORACLE SVAROG SETTINGS ########
-staging_oracle_username: ci_staging
-staging_oracle_password: ci_staging
+staging_oracle_username: SVAROG3_STAGE
+staging_oracle_password: SVAROG3_STAGE
 
 ###### DEV ORACLE SVAROG SETTINGS ########
-dev_oracle_username: CI_DEV
-dev_oracle_password: CI_DEV
+dev_oracle_username: SVAROG3_DEV
+dev_oracle_password: SVAROG3_DEV
+
+###### DEV ORACLE SVAROG SETTINGS ########
+ut_oracle_username: SVAROG3_UT
+ut_oracle_password: SVAROG3_UT

@@ -15,6 +15,11 @@
     db_schema: "{{ dev_postgres_schema }}"
   when: env_name == "dev"
 
+- name: Set postgres schema
+  set_fact:
+    db_schema: "{{ ut_postgres_schema }}"
+  when: env_name == "ut"
+
 - name: Set POSTGRES generic variables
   set_fact:
     db_username: "{{ postgres_username }}"

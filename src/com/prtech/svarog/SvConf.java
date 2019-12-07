@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -161,7 +162,7 @@ public class SvConf {
 	/**
 	 * The Datasource reference
 	 */
-	private static DataSource coreDataSource = null;
+	private static DataSource sysDataSource = null;
 
 	/**
 	 * Set the default multi select separator
@@ -246,6 +247,11 @@ public class SvConf {
 	private static ResourceBundle sqlKw = null;
 
 	/**
+	 * Flag to signify if the datasource was initialised
+	 */
+	private static AtomicBoolean isDsInitialized = new AtomicBoolean(false);
+
+	/**
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
 	 * @return ISvDatabaseIO instance
@@ -319,16 +325,6 @@ public class SvConf {
 			temp.load(props);
 			// all well
 			mainProperties = temp;
-			try {
-				Class.forName(mainProperties.getProperty("driver.name").trim());
-			} catch (java.lang.ClassNotFoundException e) {
-				log4j.error(
-						"Database driver class name can not be found on the class path. "
-								+ "Please make sure the library containing "
-								+ mainProperties.getProperty("driver.name").trim() + " is on the classpath of the JVM",
-						e);
-
-			}
 			hasErrors = false;
 		} catch (Exception e) {
 			log4j.error("Svarog.properties config file can not be found. Svarog not initialised.", e);
@@ -343,6 +339,82 @@ public class SvConf {
 		if (hasErrors)
 			mainProperties = null;
 		return mainProperties;
+	}
+
+	/**
+	 * Method to configure the database connection based on the main properties
+	 * loaded from svarog.properties. It is separate from initConfig because
+	 * {@link #initConfig()} might be invokes without need for database access,
+	 * such as grid preparation or JSON scripts
+	 * 
+	 * @param mainProperties
+	 *            svarog main parameters
+	 * @return DataSource instance representing JNDI/DBCP data source
+	 */
+	private static DataSource initDataSource(Properties mainProperties) {
+		boolean hasErrors = true;
+		DataSource dataSource = null;
+		try {
+			try {
+				Class.forName(mainProperties.getProperty("driver.name").trim());
+			} catch (java.lang.ClassNotFoundException e) {
+				log4j.error(
+						"Database driver class name can not be found on the class path. "
+								+ "Please make sure the library containing "
+								+ mainProperties.getProperty("driver.name").trim() + " is on the classpath of the JVM",
+						e);
+
+			}
+
+			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
+			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
+
+			dbType = svDbType.toString();
+			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
+					|| svDbType.equals(SvDbType.MSSQL))) {
+				log4j.error("Wrong database type! Must be one of: POSTGRES, MSSQL or ORACLE");
+				hasErrors = true;
+			}
+			if (svDbConnType.equals(SvDbConnType.JNDI)) {
+				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
+				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
+				Context initialContext = new InitialContext();
+				dataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
+			} else {
+				log4j.info("DB connection type is JDBC, using DBCP2");
+				dataSource = configureDBCP(mainProperties);
+			}
+			// init was successful
+			hasErrors = false;
+		} catch (Exception e) {
+			log4j.error("Svarog.properties config file not properly parsed. Svarog initialisation error.", e);
+			hasErrors = true;
+
+		}
+		if (hasErrors)
+			dataSource = null;
+
+		return dataSource;
+	}
+
+	/**
+	 * Method to configure the svarog system data source
+	 * 
+	 * @return DataSource instance
+	 */
+	static DataSource getDataSource() {
+
+		// if Svarog is already initialised, simply return
+		if (!isDsInitialized.compareAndSet(false, true))
+			return sysDataSource;
+		else {
+			synchronized (sysDataSource) {
+				if (sysDataSource == null)
+					sysDataSource = initDataSource(config);
+				return sysDataSource;
+			}
+		}
+
 	}
 
 	/**
@@ -365,25 +437,6 @@ public class SvConf {
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
-
-			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
-			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
-
-			dbType = svDbType.toString();
-			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
-					|| svDbType.equals(SvDbType.MSSQL))) {
-				log4j.error("Wrong database type! Must be one of: POSTGRES, MSSQL or ORACLE");
-				hasErrors = true;
-			}
-			if (svDbConnType.equals(SvDbConnType.JNDI)) {
-				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
-				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
-				Context initialContext = new InitialContext();
-				coreDataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
-			} else {
-				log4j.info("DB connection type is JDBC, using DBCP2");
-				configureDBCP(mainProperties);
-			}
 
 			// configure svarog service classes
 			String svcClass = mainProperties.getProperty("sys.service_class");
@@ -512,13 +565,15 @@ public class SvConf {
 	 * Method to configure the DBCP from the main properties
 	 * 
 	 * @param mainProperties
+	 *            the svarog main properties
+	 * @return configured DBCP data source
 	 */
-	static void configureDBCP(Properties mainProperties) {
+	static DataSource configureDBCP(Properties mainProperties) {
 		connString = mainProperties.getProperty("conn.string").trim();
 		connUser = mainProperties.getProperty("user.name").trim();
 		connPass = mainProperties.getProperty("user.password").trim();
 
-		coreDataSource = new BasicDataSource();
+		DataSource coreDataSource = new BasicDataSource();
 		((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
 		((BasicDataSource) coreDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
 		((BasicDataSource) coreDataSource).setUsername(mainProperties.getProperty("user.name").trim());
@@ -545,7 +600,7 @@ public class SvConf {
 		((BasicDataSource) coreDataSource)
 				.setTimeBetweenEvictionRunsMillis(getProperty(mainProperties, "dbcp.eviction.time", 3000));
 		((BasicDataSource) coreDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
-
+		return coreDataSource;
 	}
 
 	/**
@@ -564,83 +619,19 @@ public class SvConf {
 	 * Method to get a new JDBC connection to the database
 	 * 
 	 * @return A JDBC connection object
-	 * @throws Exception
+	 * @throws SvException
+	 *             If connection can't be acquired from the datasource a
+	 *             system.error.db_conn_err is thrown
 	 */
 	static Connection getDBConnection() throws SvException {
-		Connection conn = getDBConnectionImpl();
-		log4j.trace("New DB connection acquired");
-		return conn;
-	}
-
-	/**
-	 * Method to return a connection for fetching and storing files in Database
-	 * BLOBs.
-	 * 
-	 * @return
-	 * @throws SvException
-	 */
-	/*
-	 * static Connection getFSDBConnection() throws SvException { String
-	 * fs_conn_type = "filestore."; if (config.getProperty(fs_conn_type +
-	 * "conn.type").trim().equals("DEFAULT")) fs_conn_type = "";
-	 * 
-	 * Connection conn=getDBConnectionImpl(fs_conn_type); log4j.trace(
-	 * "New FileStore DB connection acquired"); return conn; }
-	 */
-
-	/**
-	 * The mediator method that decides if the connection should be established
-	 * via JDBC or via JNDI data source.
-	 * 
-	 * @param connPrefix
-	 *            The prefix name of the connection
-	 * @return A JDBC Connection Object
-	 * @throws SvException
-	 */
-	static private Connection getDBConnectionImpl() throws SvException {
-		if (svDbConnType.equals(SvDbConnType.JDBC))
-			return getJDBConnection();
-		else
-			return getJNDIConnection();
-	}
-
-	/**
-	 * A method to acquire a connection from a JNDI data source
-	 * 
-	 * @param connPrefix
-	 *            Connection prefix to be used for configuring the JNDI data
-	 *            source
-	 * @return A JDBC connection
-	 * @throws SvException
-	 */
-	static private Connection getJNDIConnection() throws SvException {
 		Connection result = null;
 		try {
-			result = coreDataSource.getConnection();
+			result = getDataSource().getConnection();
 		} catch (Exception ex) {
 			throw (new SvException("system.error.db_conn_err", svCONST.systemUser, ex));
 		}
+		log4j.trace("New DB connection acquired");
 		return result;
-	}
-
-	/**
-	 * A method to acquire a connection from a JDBC driver
-	 * 
-	 * @param connPrefix
-	 *            Connection prefix to be used for configuring the JDBC driver
-	 * @return A JDBC connection
-	 * @throws SvException
-	 */
-	private static Connection getJDBConnection() throws SvException {
-		Connection conn = null;
-		try {
-			// conn = DriverManager.getConnection(connString, connUser,
-			// connPass);
-			conn = coreDataSource.getConnection();
-		} catch (Exception ex) {
-			throw (new SvException("system.error.db_conn_err", svCONST.systemUser, ex));
-		}
-		return conn;
 	}
 
 	/**
