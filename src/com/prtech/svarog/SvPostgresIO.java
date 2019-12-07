@@ -171,4 +171,16 @@ public class SvPostgresIO implements ISvDatabaseIO {
 
 	}
 
+	@Override
+	public String beforeInstall(Connection conn, String schema) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String afterInstall(Connection conn, String schema) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

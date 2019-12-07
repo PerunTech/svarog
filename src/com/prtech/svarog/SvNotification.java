@@ -37,7 +37,7 @@ public class SvNotification extends SvCore {
 	 * order to enforce the svarog security mechanisms based on the logged on
 	 * user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvNotification(String session_id) throws SvException {
 		super(session_id);

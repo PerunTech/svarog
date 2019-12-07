@@ -26,7 +26,7 @@ public class SvSequence extends SvCore {
 	 * This is the default constructor available to the public, in order to
 	 * enforce the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvSequence(String session_id) throws SvException {
 		super(session_id);

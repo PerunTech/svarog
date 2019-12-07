@@ -237,7 +237,7 @@ public abstract class SvCore implements ISvCore {
 	/**
 	 * Local static var holding the default system locale
 	 */
-	private static DbDataObject defaultSysLocale = null;
+	private static volatile DbDataObject defaultSysLocale = null;
 
 	/**
 	 * The internal static geometry handler instance
@@ -355,6 +355,13 @@ public abstract class SvCore implements ISvCore {
 	/**
 	 * Perform good house keeping and cleanup any previous tracked connections.
 	 * The cleaning is executed in a separate thread
+	 * 
+	 * @param useCurrentThread
+	 *            Flag to tell the cleanup to use the current thread or to
+	 *            launch a new maintenance thread. If the SvarogDaemon is
+	 *            running, the maintenance shall be executed in the current
+	 *            thread. If svarog is used as external library without daemon,
+	 *            it shall launch a new maintenance thread
 	 */
 	static void trackedConnCleanup(boolean useCurrentThread) {
 		// ensure that we do cleanup only periodically (after a time out period)
@@ -388,8 +395,8 @@ public abstract class SvCore implements ISvCore {
 	 * connection leaks.
 	 */
 	private void setDebugInfo() {
-		StackTraceElement singleTrace = null;
 		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
+		StackTraceElement singleTrace = traces[0];
 		for (StackTraceElement strace : traces) {
 			if (strace.getMethodName().equals("<init>") || strace.getMethodName().equals("getStackTrace")
 					|| strace.getMethodName().equals("setDebugInfo"))
@@ -399,6 +406,7 @@ public abstract class SvCore implements ISvCore {
 				break;
 			}
 		}
+
 		this.coreTraceInfo = "File:" + singleTrace.getFileName() + "; Class:" + singleTrace.getClassName() + "; Method:"
 				+ singleTrace.getMethodName() + "; Line number:" + singleTrace.getLineNumber();
 	}
@@ -638,12 +646,14 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getDefaultLocale() {
 		if (defaultSysLocale == null) {
-			DbDataObject dboLocale = SvarogInstall.getLocaleList().getItemByIdx(SvConf.getDefaultLocale());
-			if (defaultSysLocale == null)
-				log4j.error("System locale is misconfigured, expect unexpected behavior");
-			else
-				DboFactory.makeDboReadOnly(dboLocale);
-			defaultSysLocale = dboLocale;
+			synchronized (SvCore.class) {
+				DbDataObject dboLocale = SvarogInstall.getLocaleList().getItemByIdx(SvConf.getDefaultLocale());
+				if (dboLocale == null)
+					log4j.error("System locale is misconfigured, expect unexpected behavior");
+				else
+					DboFactory.makeDboReadOnly(dboLocale);
+				defaultSysLocale = dboLocale;
+			}
 		}
 		return defaultSysLocale;
 	}
@@ -721,8 +731,8 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getDbt(DbDataObject dbo) throws SvException {
 		DbDataObject dbt = null;
-		if (dbo.getObject_type() != null && dbo.getObject_type() > 0)
-			dbt = DbCache.getObject(dbo.getObject_type(), svCONST.OBJECT_TYPE_TABLE);
+		if (dbo.getObjectType() != null && dbo.getObjectType() > 0)
+			dbt = DbCache.getObject(dbo.getObjectType(), svCONST.OBJECT_TYPE_TABLE);
 		if (dbt == null) {
 			String exceptionMessage = "system.error.no_dbt_found";
 			throw (new SvException(exceptionMessage, svCONST.systemUser, dbo, null));
@@ -814,7 +824,7 @@ public abstract class SvCore implements ISvCore {
 	 * @return A link type descriptor object
 	 */
 	public static DbDataObject getLinkType(String linkType, DbDataObject dbt1, DbDataObject dbt2) {
-		String uqVals = linkType + "." + dbt1.getObject_id().toString() + "." + dbt2.getObject_id().toString();
+		String uqVals = linkType + "." + dbt1.getObjectId().toString() + "." + dbt2.getObjectId().toString();
 		return DbCache.getObject(uqVals, svCONST.OBJECT_TYPE_LINK_TYPE);
 	}
 
@@ -872,7 +882,7 @@ public abstract class SvCore implements ISvCore {
 			return 0L;
 		DbDataObject objType = getDbtByName(objectName, objectSchema);
 		if (objType != null)
-			return objType.getObject_id();
+			return objType.getObjectId();
 		else
 			return 0L;
 	}
@@ -981,11 +991,11 @@ public abstract class SvCore implements ISvCore {
 			DbDataArray sysObjects = new DbDataArray();
 			sysObjects.fromJson(jobj);
 			for (DbDataObject dbo : sysObjects.getItems()) {
-				if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_TABLE)) {
+				if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_TABLE)) {
 					dbo.setVal("TABLE_NAME", ((String) dbo.getVal("TABLE_NAME")).toUpperCase());
 					dbo.setVal("SCHEMA", ((String) dbo.getVal("SCHEMA")).toUpperCase());
 				}
-				dbo.setIs_dirty(false);
+				dbo.setIsDirty(false);
 				coreObjects.addDataItem(dbo);
 			}
 			DbCache.addArrayWithParent(sysObjects);
@@ -1024,7 +1034,7 @@ public abstract class SvCore implements ISvCore {
 			DbDataArray sysCodes = new DbDataArray();
 			sysCodes.fromJson(jobj);
 			for (DbDataObject dbo : sysCodes.getItems()) {
-				dbo.setIs_dirty(false);
+				dbo.setIsDirty(false);
 				coreCodes.addDataItem(dbo);
 			}
 			DbCache.addArrayWithParent(sysCodes);
@@ -1079,7 +1089,7 @@ public abstract class SvCore implements ISvCore {
 				try {
 					JsonObject jo = gs.fromJson((String) dbo.getVal("gui_metadata"), JsonObject.class);
 					dbo.setVal("gui_metadata", jo);
-					dbo.setIs_dirty(false);
+					dbo.setIsDirty(false);
 				} catch (Exception e) {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata");
 				}
@@ -1101,7 +1111,7 @@ public abstract class SvCore implements ISvCore {
 							dbo.setVal(je.getKey(), jel.getAsJsonObject());
 
 					}
-					dbo.setIs_dirty(false);
+					dbo.setIsDirty(false);
 
 				} catch (Exception e) {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
@@ -1134,14 +1144,14 @@ public abstract class SvCore implements ISvCore {
 					continue;
 
 				for (DbDataObject searchDbt : tables.getItems()) {
-					if (searchDbt.getObject_id().equals(cfgTypeId)) {
+					if (searchDbt.getObjectId().equals(cfgTypeId)) {
 						dbt.setVal("config_type", searchDbt);
 						DbDataArray searchList = null;
 						searchList = dbt.getVal("config_relation_type").equals("FIELD") ? fields : searchList;
 						searchList = dbt.getVal("config_relation_type").equals("LINK") ? fields : searchList;
 						if (searchList != null && dbt.getVal("config_relation_id") != null) {
 							for (DbDataObject searchField : searchList.getItems()) {
-								if (searchField.getObject_id().equals(dbt.getVal("config_relation_id"))) {
+								if (searchField.getObjectId().equals(dbt.getVal("config_relation_id"))) {
 									dbt.setVal("config_relation", searchField);
 									found = true;
 									break;
@@ -1155,7 +1165,7 @@ public abstract class SvCore implements ISvCore {
 					log4j.error(
 							"Misconfigured table object. Inconsistent config_type_id, config_relation_type, config_relation_id. Descriptor:"
 									+ dbt.toJson());
-				dbt.setIs_dirty(false);
+				dbt.setIsDirty(false);
 			}
 		}
 	}
@@ -1179,8 +1189,8 @@ public abstract class SvCore implements ISvCore {
 			prepareFields(fieldTypes);
 			for (DbDataObject dbo : fieldTypes.getItems()) {
 				DboFactory.makeDboReadOnly(dbo);
-				if (dbo.getVal("FIELD_TYPE").equals("GEOMETRY") && !geometryTypes.contains(dbo.getParent_id()))
-					geometryTypes.add(dbo.getParent_id());
+				if (dbo.getVal("FIELD_TYPE").equals("GEOMETRY") && !geometryTypes.contains(dbo.getParentId()))
+					geometryTypes.add(dbo.getParentId());
 				DbCache.addObject(dbo, null, true);
 			}
 		}
@@ -1192,7 +1202,7 @@ public abstract class SvCore implements ISvCore {
 		DbInit.initCoreRecords(coreCodes, coreObjects);
 
 		for (DbDataObject baseType : coreObjects.getItems()) {
-			if (baseType.getObject_type().equals(svCONST.OBJECT_TYPE_TABLE)) {
+			if (baseType.getObjectType().equals(svCONST.OBJECT_TYPE_TABLE)) {
 				String key = ((String) baseType.getVal("schema")).toUpperCase() + "."
 						+ ((String) baseType.getVal("table_name")).toUpperCase();
 				if (!dbtMap.containsKey(key))
@@ -1207,6 +1217,7 @@ public abstract class SvCore implements ISvCore {
 	 * 
 	 * @return True if the system has been initialised properly.
 	 * @throws SvException
+	 *             Re-throw underlying exceptions
 	 */
 	public static boolean initSvCore() throws SvException {
 		return initSvCoreImpl(false);
@@ -1215,11 +1226,11 @@ public abstract class SvCore implements ISvCore {
 	/**
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
 	 * 
-	 * @return True if the system has been initialised properly.
 	 * @param forceInit
 	 *            flag to allow the user to force Svarog to read the core config
 	 *            from the database, if Svarog is already initialised
 	 * @throws SvException
+	 *             Re-throw underlying exceptions
 	 */
 	public static void initSvCore(boolean forceInit) throws SvException {
 		if (forceInit)
@@ -1323,7 +1334,7 @@ public abstract class SvCore implements ISvCore {
 					try {
 						SvObjectConstraints constr = new SvObjectConstraints(currentDbt);
 						if (constr.getConstraints().size() > 0)
-							uniqueConstraints.put(currentDbt.getObject_id(), constr);
+							uniqueConstraints.put(currentDbt.getObjectId(), constr);
 					} catch (SvException ex) {
 						log4j.warn("Constraints disabled on object: " + (String) currentDbt.getVal("TABLE_NAME"));
 						log4j.warn(ex.getFormattedMessage());
@@ -1465,12 +1476,12 @@ public abstract class SvCore implements ISvCore {
 			DbDataObject dbLink = getLinkType(userGroupLinkType, svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
 			svr = new SvReader(svc);
 			svr.isInternal = true;
-			groups = svr.getObjectsByLinkedId(user.getObject_id(), dbLink, null, 0, 0);
+			groups = svr.getObjectsByLinkedId(user.getObjectId(), dbLink, null, 0, 0);
 			if (!returnOnlyDefault) {
 				userGroupLinkType = "USER_GROUP";
 				dbLink = getLinkType(userGroupLinkType, svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
 				if (dbLink != null) {
-					DbDataArray otherGroups = svr.getObjectsByLinkedId(user.getObject_id(), dbLink, null, 0, 0);
+					DbDataArray otherGroups = svr.getObjectsByLinkedId(user.getObjectId(), dbLink, null, 0, 0);
 					if (groups != null && groups.getItems().size() > 0)
 						otherGroups.addDataItem(groups.getItems().get(0));
 					groups = otherGroups;
@@ -1715,7 +1726,7 @@ public abstract class SvCore implements ISvCore {
 			if (isSystem() || isService() || hasPermission(svCONST.SUDO_ACL)) {
 				instanceUser = user;
 				previousUser = currentUser;
-				if (user.getObject_id().equals(currentUser.getObject_id()))
+				if (user.getObjectId().equals(currentUser.getObjectId()))
 					throw (new SvException("system.error.can_not_switch_to_same_user", instanceUser));
 
 				// reset all lazy loaded user specific config
@@ -1756,7 +1767,7 @@ public abstract class SvCore implements ISvCore {
 	 *             Re-throws any underlying exception
 	 */
 	public DbDataObject getDefaultUserGroup() throws SvException {
-		if (instanceUserDefaultGroup == null && instanceUser.getObject_id() != svCONST.OBJECT_USER_SYSTEM) {
+		if (instanceUserDefaultGroup == null && instanceUser.getObjectId() != svCONST.OBJECT_USER_SYSTEM) {
 			DbDataArray groups = getUserGroups(instanceUser, true);
 			if (groups != null && groups.getItems().size() > 0)
 				instanceUserDefaultGroup = groups.getItems().get(0);
@@ -1794,8 +1805,13 @@ public abstract class SvCore implements ISvCore {
 
 	/**
 	 * Method for checking if the current user has power of attorney over the
-	 * dataset he is fetching
+	 * dataset he is fetching. If the user group security type is Power of
+	 * Attorney (POA) then the query is modified to contain the empowerment
 	 * 
+	 * @param query
+	 *            The original query to be executed subject of modification
+	 * @return The new DbQuery object which is based on the original query
+	 *         including the POA empowerment
 	 * @throws SvException
 	 *             Any underlying exception is re-thrown
 	 */
@@ -1809,14 +1825,14 @@ public abstract class SvCore implements ISvCore {
 		if (dboUG != null && ((String) dboUG.getVal("GROUP_SECURITY_TYPE")).equals("POA")) {
 			if (query instanceof DbQueryObject) {
 				DbDataObject dbt = ((DbQueryObject) query).getDbt();
-				Long objectType = dbt.getObject_id();
+				Long objectType = dbt.getObjectId();
 				for (DbDataObject dbc : poaDbLinkTypes.getItems()) {
 					if (((Long) dbc.getVal("link_obj_type_1")).equals(svCONST.OBJECT_TYPE_USER)
 							&& objectType.equals((Long) dbc.getVal("link_obj_type_2"))) {
 						DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
 						DbQueryExpression dqe = new DbQueryExpression();
 						DbQueryObject dqo = new DbQueryObject(usersDbt,
-								new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, instanceUser.getObject_id()),
+								new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, instanceUser.getObjectId()),
 								DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
 						dqe.addItem(dqo);
 						dqe.addItem((DbQueryObject) query);
@@ -1847,20 +1863,15 @@ public abstract class SvCore implements ISvCore {
 	 * A method that creates PreparedStatement and returns a ResultSet object
 	 * for the specific search
 	 * 
+	 * @param query
+	 *            The DbQuery object from which the SQL shall be generated and a
+	 *            prepared statement created
 	 * @param conn
 	 *            DB Connection which should be used
-	 * @param dbt
-	 *            Configuration for the object type
-	 * @param repoDbt
-	 *            Configuration for the repository of the object
-	 * @param refDate
-	 *            Reference date for the search
-	 * @param dbSearch
-	 *            DbSearch used to filter results
-	 * @param repoPrefix
-	 *            Prefix used in the SQL query to identify the repo table
-	 * @param tblPrefix
-	 *            Prefix used in the SQL query to identify the object table
+	 * @param rowLimit
+	 *            The maximum number of rows/objects to be returned by the query
+	 * @param offset
+	 *            The offset from which query will start returning objects.
 	 * @return A ResultSet containing the results from the DB
 	 * @throws SvException
 	 *             Any underlying exception is re-thrown
@@ -1928,15 +1939,21 @@ public abstract class SvCore implements ISvCore {
 	 * 
 	 * @param dboAcl
 	 *            DbDataObject instance of ACL type
-	 * @return
+	 * @return SvAclKey object generated from the dbo
 	 */
 	private SvAclKey getAclKey(DbDataObject dboAcl) {
-		if (dboAcl.getObject_type().equals(svCONST.OBJECT_TYPE_ACL))
+		if (dboAcl.getObjectType().equals(svCONST.OBJECT_TYPE_ACL))
 			return new SvAclKey(dboAcl);
 		else
 			return null;
 	}
 
+	/**
+	 * Method to return a map all access control list (ACL) objects by key based
+	 * on the label_code of the ACL.
+	 * 
+	 * @return Key/Value map of ACLs mapped by LABEL_CODE
+	 */
 	public HashMap<String, DbDataObject> getPermissionsByKey() throws SvException {
 		if (permissionKeys == null) {
 			permissionKeys = new HashMap<String, DbDataObject>();
@@ -1970,7 +1987,7 @@ public abstract class SvCore implements ISvCore {
 		SvReader svr = null;
 		try {
 			svr = new SvReader(core);
-			if (sid.getObject_type().equals(svCONST.OBJECT_TYPE_USER))
+			if (sid.getObjectType().equals(svCONST.OBJECT_TYPE_USER))
 				groups = SvCore.getUserGroups(sid, false);
 
 			DbQueryObject dqoAcl = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_ACL), null, null,
@@ -1979,9 +1996,8 @@ public abstract class SvCore implements ISvCore {
 			// START creation of the search expressions
 			// create the SID search expression
 			DbSearchExpression dbxSid = new DbSearchExpression()
-					.addDbSearchItem(new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, sid.getObject_id()))
-					.addDbSearchItem(
-							new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObject_type()));
+					.addDbSearchItem(new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, sid.getObjectId()))
+					.addDbSearchItem(new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObjectType()));
 			dbxSid.setNextCritOperand("OR");
 
 			DbSearchExpression dbx = new DbSearchExpression().addDbSearchItem(dbxSid);
@@ -1992,7 +2008,7 @@ public abstract class SvCore implements ISvCore {
 				DbSearchExpression dbxGroupsList = new DbSearchExpression();
 				for (DbDataObject group : groups.getItems()) {
 					dbxGroupsList.addDbSearchItem(new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL,
-							group.getObject_id(), DbLogicOperand.OR));
+							group.getObjectId(), DbLogicOperand.OR));
 				}
 
 				DbSearchExpression dbxGroups = new DbSearchExpression()
@@ -2013,7 +2029,7 @@ public abstract class SvCore implements ISvCore {
 			DbQueryExpression dqe = null;
 
 			if (returnType != null) {
-				if (returnType.getObject_id().equals(dqoSID.getDbt().getObject_id())) {
+				if (returnType.getObjectId().equals(dqoSID.getDbt().getObjectId())) {
 					dqoSID.setIsReturnType(true);
 					dqoSID.addChild(dqoAcl);
 					dqoAcl.setLinkToNextType(LinkType.DENORMALIZED_REVERSE);
@@ -2036,7 +2052,7 @@ public abstract class SvCore implements ISvCore {
 					acType = SvAccess.valueOf(act);
 
 				dbop.setVal("ACCESS_TYPE", acType);
-				dbop.setIs_dirty(false);
+				dbop.setIsDirty(false);
 			}
 		} finally {
 			if (svr != null)
@@ -2116,7 +2132,7 @@ public abstract class SvCore implements ISvCore {
 						// make sure to check first if we have already cached a
 						// list of permissions for this specific user in the
 						// svarog system cache
-						DbDataArray permissions = DbCache.getObjectsByParentId(instanceUser.getObject_id(),
+						DbDataArray permissions = DbCache.getObjectsByParentId(instanceUser.getObjectId(),
 								svCONST.OBJECT_TYPE_ACL);
 
 						if (permissions == null) {
@@ -2125,8 +2141,8 @@ public abstract class SvCore implements ISvCore {
 							permissions = getPermissions(this.instanceUser, svr);
 							// after fetching the objects from the DB, cache
 							// them please
-							DbCache.addArrayByParentId(permissions, svCONST.OBJECT_TYPE_ACL,
-									instanceUser.getObject_id(), false);
+							DbCache.addArrayByParentId(permissions, svCONST.OBJECT_TYPE_ACL, instanceUser.getObjectId(),
+									false);
 						}
 						// now process all access control objects for faster
 						// indexing using aclkeys
@@ -2199,7 +2215,7 @@ public abstract class SvCore implements ISvCore {
 						locale = SvConf.getDefaultLocale();
 
 					userObject.setVal("LOCALE", locale);
-					userObject.setIs_dirty(false);
+					userObject.setIsDirty(false);
 				} else
 					locale = (String) userObject.getVal("LOCALE");
 
@@ -2292,9 +2308,9 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public DbDataObject createDboByType(DbDataObject dbt) {
 		DbDataObject dbo = null;
-		LinkedHashMap<SvCharId, Object> emptyMap = emptyKeyMap.get(dbt.getObject_id());
+		LinkedHashMap<SvCharId, Object> emptyMap = emptyKeyMap.get(dbt.getObjectId());
 		if (emptyMap == null) {
-			DbDataArray dbfs = DbCache.getObjectsByParentId(dbt.getObject_id(), svCONST.OBJECT_TYPE_FIELD_SORT);
+			DbDataArray dbfs = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 			emptyMap = new LinkedHashMap<SvCharId, Object>(dbfs.size(), 1);
 			LinkedHashMap<SvCharId, Object> keyMap = new LinkedHashMap<SvCharId, Object>(dbfs.size(), 1);
 
@@ -2305,10 +2321,10 @@ public abstract class SvCore implements ISvCore {
 				else
 					keyMap.put(new SvCharId((String) dbf.getVal("FIELD_NAME")), null);
 			}
-			dbtKeyMap.put(dbt.getObject_id(), keyMap);
-			emptyKeyMap.put(dbt.getObject_id(), emptyMap);
+			dbtKeyMap.put(dbt.getObjectId(), keyMap);
+			emptyKeyMap.put(dbt.getObjectId(), emptyMap);
 		}
-		dbo = new DbDataObject(dbt.getObject_id(), emptyMap);
+		dbo = new DbDataObject(dbt.getObjectId(), emptyMap);
 		return dbo;
 
 	}
@@ -2347,14 +2363,16 @@ public abstract class SvCore implements ISvCore {
 	 * 
 	 * @return DbDataObject containing the data.
 	 * @throws SQLException
+	 *             Underlying exceptions from the JDBC structures
 	 * @throws ParseException
+	 *             Exception from conversion of datatypes between DB/Java
 	 * @throws SvException
 	 *             Re-throws any underlying exception
 	 */
 	private DbDataObject getObjectFromRecord(ResultSet rs, String tblPrefix, DbQuery query, ResultSetMetaData rsmt)
 			throws SQLException, ParseException, SvException {
 		DbDataObject object = null;
-		Long typeId = query.getReturnType() != null ? query.getReturnType().getObject_id() : 0L;
+		Long typeId = query.getReturnType() != null ? query.getReturnType().getObjectId() : 0L;
 		boolean isExpression = query instanceof DbQueryExpression;
 		boolean isReverse = isExpression ? ((DbQueryExpression) query).getIsReverseExpression() : false;
 		int numberOfColumns = rs.getMetaData().getColumnCount();
@@ -2395,13 +2413,13 @@ public abstract class SvCore implements ISvCore {
 		}
 		if (query.getReturnType() != null && (!isExpression || (isExpression && query.getReturnTypes().size() == 1))) {
 			setObjectRepoData(object, rs, tblPrefix);
-			object.setObject_type(query.getReturnType().getObjectId());
+			object.setObjectType(query.getReturnType().getObjectId());
 			if (hasGeometries(query.getReturnType().getObjectId()))
 				DboFactory.dboIsGeometryType(object);
 			if (includeGeometries)
 				DboFactory.dboHasGeometry(object);
 		}
-		object.setIs_dirty(false);
+		object.setIsDirty(false);
 		return object;
 	}
 
@@ -2409,20 +2427,25 @@ public abstract class SvCore implements ISvCore {
 	 * Method to populate basic object data from a resultset
 	 * 
 	 * @param object
+	 *            The DbDataObject instance which will be initialised from the
+	 *            resultset
 	 * @param rs
+	 *            The JDBC resultset which will be used for initialising the
+	 *            object metadata
 	 * @param colPrefix
+	 *            The column prefix used in the query
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
 	private void setObjectRepoData(DbDataObject object, ResultSet rs, String colPrefix) throws SQLException {
 		object.setPkid(rs.getLong(colPrefix + "_PKID"));
-		object.setObject_id(rs.getLong(colPrefix + "_OBJECT_ID"));
-		object.setDt_insert(new DateTime(rs.getTimestamp(colPrefix + "_DT_INSERT")));
-		object.setDt_delete(new DateTime(rs.getTimestamp(colPrefix + "_DT_DELETE")));
-		object.setParent_id(rs.getLong(colPrefix + "_PARENT_ID"));
-		object.setObject_type(rs.getLong(colPrefix + "_OBJECT_TYPE"));
+		object.setObjectId(rs.getLong(colPrefix + "_OBJECT_ID"));
+		object.setDtInsert(new DateTime(rs.getTimestamp(colPrefix + "_DT_INSERT")));
+		object.setDtDelete(new DateTime(rs.getTimestamp(colPrefix + "_DT_DELETE")));
+		object.setParentId(rs.getLong(colPrefix + "_PARENT_ID"));
+		object.setObjectType(rs.getLong(colPrefix + "_OBJECT_TYPE"));
 		object.setStatus(rs.getString(colPrefix + "_STATUS"));
-		object.setUser_id(rs.getLong(colPrefix + "_USER_ID"));
+		object.setUserId(rs.getLong(colPrefix + "_USER_ID"));
 	}
 
 	/**
@@ -2698,7 +2721,7 @@ public abstract class SvCore implements ISvCore {
 
 	public boolean isAdmin() throws SvException {
 		return this.getDefaultUserGroup() != null
-				&& this.getDefaultUserGroup().getObject_id().equals(svCONST.SID_ADMINISTRATORS);
+				&& this.getDefaultUserGroup().getObjectId().equals(svCONST.SID_ADMINISTRATORS);
 
 	}
 
@@ -2881,6 +2904,7 @@ public abstract class SvCore implements ISvCore {
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
+	@SuppressWarnings("unchecked")
 	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value)
 			throws SQLException, Exception {
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));

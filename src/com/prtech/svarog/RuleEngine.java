@@ -511,8 +511,7 @@ public class RuleEngine extends SvCore {
 			SvActionResult svResult = null;
 			if (result.getClass().equals(String.class)) {
 				Gson gson = new Gson();
-				JsonObject jobj = new JsonObject();
-				jobj = gson.fromJson((String) result, JsonObject.class);
+				JsonObject jobj = gson.fromJson((String) result, JsonObject.class);
 				svResult = new SvActionResult();
 				svResult.fromJson(jobj);
 			} else if (result.getClass().equals(SvActionResult.class)) {
