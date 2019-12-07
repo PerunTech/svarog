@@ -216,7 +216,6 @@ public class SvRelationCache {
 	 *            The link descriptor in case the relation is by using DbLink
 	 * @param referenceDate
 	 *            The reference date for this specific part of the dataset
-	 * @return
 	 * @throws SvException
 	 *             Throws exception if basic configuration can not be achieved.
 	 */

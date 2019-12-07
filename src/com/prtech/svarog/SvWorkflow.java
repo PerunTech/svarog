@@ -24,7 +24,8 @@ public class SvWorkflow extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvWorkflow(String session_id) throws SvException {
 		super(session_id);
@@ -35,7 +36,8 @@ public class SvWorkflow extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvWorkflow(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -86,7 +88,8 @@ public class SvWorkflow extends SvCore {
 	 *            The status to which the object should be moved
 	 * @param autoCommit
 	 *            Flag to enable/disable auto commit
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public void moveObject(DbDataObject dbo, String newStatus, Boolean autoCommit) throws SvException {
 		try {

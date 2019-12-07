@@ -388,17 +388,5 @@
 				</dependency>
 			</dependencies>
 		</profile>
-		<profile>
-			<id>sonar</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-			<properties>
-				<!-- Optional URL to server. Default value is http://localhost:9000 -->
-				<sonar.host.url>
-					https://sonarqube.prtech.mk/
-				</sonar.host.url>
-			</properties>
-		</profile>
 	</profiles>
 </project>

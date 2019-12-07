@@ -15,6 +15,7 @@
 package com.prtech.svarog;
 
 import javax.script.*;
+
 /**
  * Class to execute an action configured in the Rule Engine, which is in the
  * form of a JavaScript file
@@ -25,32 +26,40 @@ import javax.script.*;
 public class ActionJS {
 
 	/**
-	 * Prepare statement using SQL query input string with DbDataObject properties as bind parameters. 
-	 * Execute query and return true if everything OK. 
+	 * Prepare statement using SQL query input string with DbDataObject
+	 * properties as bind parameters. Execute query and return true if
+	 * everything OK.
 	 * 
-	 * @param script		JavaScript code to be executed by engine
-	 * @param jsonData		Data Object/Array in JSON format
-	 * @param jsonResults	Execution results in JSON format 
-	 * @return jsonResults	New execution results in JSON format, updated with current result and errors 
-	 * @throws 				ScriptException
+	 * @param script
+	 *            JavaScript code to be executed by engine
+	 * @param action_id
+	 *            The object id of the executed action
+	 * @param jsonData
+	 *            Data Object/Array in JSON format
+	 * @param jsonResults
+	 *            Execution results in JSON format
+	 * @return jsonResults New execution results in JSON format, updated with
+	 *         current result and errors
+	 * @throws ScriptException
+	 *             An exception raised by the JavaScript engine
 	 */
 	public String execute(String script, Long action_id, String jsonData, String jsonResults) throws ScriptException {
-		
+
 		// initialize script engine
 		ScriptEngineManager factory = new ScriptEngineManager();
-        ScriptEngine engine = factory.getEngineByName("JavaScript");
-        
-        // set script input parameters
-        engine.put("action_id",action_id);
-        engine.put("data",jsonData);
-        engine.put("results",jsonResults);
-        
-        // execute script
-        engine.eval(script);	
+		ScriptEngine engine = factory.getEngineByName("JavaScript");
 
-    	// get results from script and return
-        jsonResults = engine.get("results").toString();
-    	return jsonResults;
+		// set script input parameters
+		engine.put("action_id", action_id);
+		engine.put("data", jsonData);
+		engine.put("results", jsonResults);
+
+		// execute script
+		engine.eval(script);
+
+		// get results from script and return
+		jsonResults = engine.get("results").toString();
+		return jsonResults;
 	}
-	
+
 }
