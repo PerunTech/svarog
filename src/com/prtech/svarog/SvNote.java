@@ -32,7 +32,7 @@ public class SvNote extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvNote(String session_id) throws SvException {
 		super(session_id);
@@ -43,6 +43,7 @@ public class SvNote extends SvCore {
 	 * SvCore chained constructor. This constructor will re-use the JDBC
 	 * connection from the chained SvCore
 	 * 
+	 * @param sharedSvCore The shared SvCore object from which we reuse the connection 
 	 * @throws SvException
 	 */
 	public SvNote(SvCore sharedSvCore) throws SvException {

@@ -33,7 +33,19 @@ import com.prtech.svarog_common.DbSearch.DbLogicOperand;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
+import com.prtech.svarog_common.SvCharId;
 
+/**
+ * The SvReader class is the implementation of multipurpose Reader class based
+ * on the SvCore. The SvReader ammends the SvCore methods to provide layer of
+ * methods which use relation caching. The SvReader provides core methods for
+ * reading forms, getting objects by parent or by link type as well as reading
+ * objects via unique configuration id. All methods use Svarog's advanced
+ * relation caching.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvReader extends SvCore {
 
 	/**
@@ -41,10 +53,13 @@ public class SvReader extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param sessionId
+	 *            the string id of the user session
+	 * @throws SvException
+	 *             Pass through exception from super
 	 */
-	public SvReader(String session_id) throws SvException {
-		super(session_id);
+	public SvReader(String sessionId) throws SvException {
+		super(sessionId);
 	}
 
 	/**
@@ -52,17 +67,27 @@ public class SvReader extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param sessionId
+	 *            the string id of the user session
+	 * @param sharedSvCore
+	 *            The chained SvCore instance from which we will re-use the JDBC
+	 *            connection.
+	 * @throws SvException
+	 *             Pass through underlyng exception from SvCore constructor
 	 */
-	public SvReader(String session_id, SvCore sharedSvCore) throws SvException {
-		super(session_id, sharedSvCore);
+	public SvReader(String sessionId, SvCore sharedSvCore) throws SvException {
+		super(sessionId, sharedSvCore);
 	}
 
 	/**
 	 * Default Constructor. This constructor can be used only within the svarog
-	 * package since it will run with system priveleges.
+	 * package since it will run with system privileges.
 	 * 
+	 * @param sharedSvCore
+	 *            The chained SvCore instance from which we will re-use the JDBC
+	 *            connection.
 	 * @throws SvException
+	 *             Pass through of any underlying exceptions
 	 */
 	public SvReader(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -73,6 +98,7 @@ public class SvReader extends SvCore {
 	 * package since it will run with system priveleges.
 	 * 
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	SvReader() throws SvException {
 		super();
@@ -85,6 +111,7 @@ public class SvReader extends SvCore {
 	 * @param dbSearch
 	 *            A {@link DbSearch} instance containing the search criteria
 	 * @param typeDescriptor
+	 *            A descriptor of the svarog object type
 	 * @param refDate
 	 *            Reference date to be used for the query
 	 * @param errorCode
@@ -131,12 +158,13 @@ public class SvReader extends SvCore {
 	 * @return A {@link DbDataArray} object containing all returned data in
 	 *         DbDataObject format
 	 * @throws SvException
+	 *             Passthrough exception from super.getObjects
 	 */
 	DbDataArray getObjects(DbSearch dbSearch, DbDataObject typeDescriptor, DateTime refDate, Integer rowLimit,
 			Integer offset) throws SvException {
 		// create the query object based on the DbSearch and DBT
 		DbQueryObject query = new DbQueryObject(repoDbt, repoDbtFields, typeDescriptor,
-				getFields(typeDescriptor.getObject_id()), dbSearch, refDate,
+				getFields(typeDescriptor.getObjectId()), dbSearch, refDate,
 				dbSearch != null ? dbSearch.getOrderByFields() : null);
 
 		return getObjects(query, rowLimit, offset);
@@ -159,6 +187,7 @@ public class SvReader extends SvCore {
 	 * @return A {@link DbDataArray} object containing all returned data in
 	 *         DbDataObject format
 	 * @throws SvException
+	 *             Passthrough exception from super.getObjects
 	 */
 	public DbDataArray getObjects(DbSearch dbSearch, Long objectType, DateTime refDate, Integer rowLimit,
 			Integer offset) throws SvException {
@@ -174,8 +203,6 @@ public class SvReader extends SvCore {
 	 * @param query
 	 *            The DbQuery object which actually describes the query to the
 	 *            DB
-	 * @param errorCode
-	 *            Error codes from the operation
 	 * @param rowLimit
 	 *            The number of rows to be returned
 	 * @param offset
@@ -183,6 +210,7 @@ public class SvReader extends SvCore {
 	 *            returned
 	 * @return The returning object of type DbDataArray
 	 * @throws SvException
+	 *             Pass-through exception from super.getObjects
 	 */
 	public DbDataArray getObjects(DbQuery query, Integer rowLimit, Integer offset) throws SvException {
 
@@ -205,6 +233,7 @@ public class SvReader extends SvCore {
 	 *            The offset to start at
 	 * @return The array of objects
 	 * @throws SvException
+	 *             Pass-through exception from super.getObjects
 	 */
 	public DbDataArray getObjectsHistory(DbSearch search, Long objectType, Integer rowLimit, Integer offset)
 			throws SvException {
@@ -218,13 +247,14 @@ public class SvReader extends SvCore {
 	 * Method that creates a sorted map of form fields according to the SORT
 	 * ORDER
 	 * 
-	 * @param currentFormTypeId
+	 * @param formTypeId
 	 *            The form type ID for which we want to create a map
-	 * @return A map containing the form field labels as keys
 	 * @throws SvException
+	 *             Passthrough exception from internally used SvReader
+	 * @return Map of field descriptors for the specific form type
 	 */
-	private LinkedHashMap<String, Object> formTypeFields(Long formTypeId) throws SvException {
-		LinkedHashMap<String, Object> templateMap = null;
+	private LinkedHashMap<SvCharId, Object> formTypeFields(Long formTypeId) throws SvException {
+		LinkedHashMap<SvCharId, Object> templateMap = null;
 		SvReader svr = null;
 		try {
 			svr = new SvReader(this);
@@ -239,14 +269,14 @@ public class SvReader extends SvCore {
 					svCONST.OBJECT_TYPE_FORM_FIELD_TYPE, false, null, 0, 0);
 
 			// create the table map according to the sort order
-			templateMap = new LinkedHashMap<String, Object>();
-			templateMap.put("LABEL_CODE", null);
-			templateMap.put("VALUE", null);
-			templateMap.put("FIRST_CHECK", null);
+			templateMap = new LinkedHashMap<SvCharId, Object>();
+			templateMap.put(new SvCharId("LABEL_CODE"), null);
+			templateMap.put(new SvCharId("VALUE"), null);
+			templateMap.put(new SvCharId("FIRST_CHECK"), null);
 			for (DbDataObject ffDbo : formFields.getSortedItems("SORT_ORDER")) {
-				templateMap.put(((String) ffDbo.getVal("label_code")).toUpperCase(), null);
-				templateMap.put(((String) ffDbo.getVal("label_code") + "_1st").toUpperCase(), null);
-				templateMap.put(((String) ffDbo.getVal("label_code") + "_2nd").toUpperCase(), null);
+				templateMap.put(new SvCharId(((String) ffDbo.getVal("label_code")).toUpperCase()), null);
+				templateMap.put(new SvCharId(((String) ffDbo.getVal("label_code") + "_1st").toUpperCase()), null);
+				templateMap.put(new SvCharId(((String) ffDbo.getVal("label_code") + "_2nd").toUpperCase()), null);
 			}
 		} finally {
 			if (svr != null)
@@ -269,6 +299,7 @@ public class SvReader extends SvCore {
 	 *            The reference date on which the form should be read
 	 * @return DbDataArray containing the form fields
 	 * @throws SvException
+	 *             Passthrough of underlying exceptions
 	 */
 	private DbDataArray getFormPlainFields(Long parentId, ArrayList<Long> formTypeIds, DbSearch search,
 			DateTime refDate) throws SvException {
@@ -323,19 +354,22 @@ public class SvReader extends SvCore {
 	 *            The non structured object
 	 * @param templateMap
 	 *            The template map to initialise the form fields
-	 * @return
+	 * @return Initialised DbDataObject according to the specific form instance
+	 *         template
 	 * @throws SvException
+	 *             Throws system.err.form_dbt_not_found if the form descriptor
+	 *             can not be found
 	 */
 	@SuppressWarnings("unchecked")
-	DbDataObject initFormInstance(DbDataObject obj, LinkedHashMap<String, Object> templateMap) throws SvException {
+	DbDataObject initFormInstance(DbDataObject obj, LinkedHashMap<SvCharId, Object> templateMap) throws SvException {
 		DbDataObject currentObject = new DbDataObject();
-		currentObject.setValues((LinkedHashMap<String, Object>) templateMap.clone());
+		currentObject.setValuesMap((LinkedHashMap<SvCharId, Object>) templateMap.clone());
 
 		DbDataObject formTypeDbt = getFormType((Long) obj.getVal("TBL0_FORM_TYPE_ID"));
 		if (formTypeDbt == null) {
 			throw (new SvException("system.err.form_dbt_not_found", this.instanceUser, obj, templateMap));
 		}
-		currentObject.setVal("FORM_TYPE_ID", formTypeDbt.getObject_id());
+		currentObject.setVal("FORM_TYPE_ID", formTypeDbt.getObjectId());
 		// For oracle do the standard boolean transformation
 		if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
 			obj.setVal("TBL0_FORM_VALIDATION",
@@ -351,14 +385,14 @@ public class SvReader extends SvCore {
 			labelText = longLabelText;
 		}
 		currentObject.setVal("LABEL_CODE", labelText);
-		currentObject.setObject_id((Long) obj.getVal("TBL0_OBJECT_ID"));
-		currentObject.setObject_type(svCONST.OBJECT_TYPE_FORM);
-		currentObject.setDt_delete((DateTime) obj.getVal("TBL0_DT_DELETE"));
-		currentObject.setDt_insert((DateTime) obj.getVal("TBL0_DT_INSERT"));
+		currentObject.setObjectId((Long) obj.getVal("TBL0_OBJECT_ID"));
+		currentObject.setObjectType(svCONST.OBJECT_TYPE_FORM);
+		currentObject.setDtDelete((DateTime) obj.getVal("TBL0_DT_DELETE"));
+		currentObject.setDtInsert((DateTime) obj.getVal("TBL0_DT_INSERT"));
 		currentObject.setPkid((Long) obj.getVal("TBL0_PKID"));
-		currentObject.setParent_id((Long) obj.getVal("TBL0_PARENT_ID"));
+		currentObject.setParentId((Long) obj.getVal("TBL0_PARENT_ID"));
 		currentObject.setStatus((String) obj.getVal("TBL0_STATUS"));
-		currentObject.setUser_id((Long) obj.getVal("TBL0_USER_ID"));
+		currentObject.setUserId((Long) obj.getVal("TBL0_USER_ID"));
 		currentObject.setVal("VALUE", (Long) obj.getVal("TBL0_VALUE"));
 		currentObject.setVal("FIRST_CHECK", (Long) obj.getVal("TBL0_FIRST_CHECK"));
 		// TODO return the secondary checks when Roles are
@@ -377,16 +411,19 @@ public class SvReader extends SvCore {
 	 * 
 	 * @param parentId
 	 *            The parent object of the form
-	 * @param formTypeId
-	 *            The type of the form
+	 * @param formTypeIds
+	 *            The list of form types which should be loaded
 	 * @param search
 	 *            Additional search criteria, via class implementing DbSearch
 	 * @param refDate
 	 *            Reference date to use
 	 * @param disableAutoinstance
 	 *            Flag to enable or disable auto instance
-	 * @return
+	 * @return list of form instances available in the database
 	 * @throws SvException
+	 *             system.err.cant_acquire_lck if it can't acquire lock for the
+	 *             loading forms of the parent or any other pass through
+	 *             exceptin generated from the internal SvReaders
 	 */
 	public DbDataArray getFormsByParentId(Long parentId, ArrayList<Long> formTypeIds, DbSearch search, DateTime refDate,
 			Boolean disableAutoinstance) throws SvException {
@@ -417,7 +454,7 @@ public class SvReader extends SvCore {
 				// template map of form fields to ensure proper field sort in
 				// the
 				// result set
-				LinkedHashMap<String, Object> templateMap = null;
+				LinkedHashMap<SvCharId, Object> templateMap = null;
 				// the resulting data set containing the form fields from the DB
 				DbDataArray plainFields = getFormPlainFields(parentId, formTypeIds, search, refDate);
 				Long fldDescId = null;
@@ -465,14 +502,12 @@ public class SvReader extends SvCore {
 					}
 				}
 				// the record set iteration finished, but we need to add the
-				// last
-				// form
+				// last form
 				if (currentObject != null)
 					formArray.addDataItem(currentObject);
 
 				// if there are form type which aren't stored in the db then
-				// invoke
-				// auto init on the not found
+				// invoke auto init on the not found
 				if (notFoundFormTypes.size() > 0 && refDate == null && !disableAutoinstance) {
 					SvWriter svw = null;
 					DbDataArray autoForms = null;
@@ -515,10 +550,9 @@ public class SvReader extends SvCore {
 	 *            Additional search criteria, via class implementing DbSearch
 	 * @param refDate
 	 *            Reference date to use
-	 * @param errorCode
-	 *            Standard Svarog error codes as per {@link svCONST}
-	 * @return
+	 * @return list of forms loaded from the db
 	 * @throws SvException
+	 *             Pass through exceptions from the underlying code
 	 */
 	public DbDataArray getFormsByParentId(Long parentId, Long formTypeId, DbSearch search, DateTime refDate)
 			throws SvException {
@@ -539,10 +573,9 @@ public class SvReader extends SvCore {
 	 *            as DBT)
 	 * @param refDate
 	 *            Reference date on which the data should be fetched
-	 * @param errorCode
-	 *            An error code of the operation
 	 * @return A DbDataObject if one is located in the DB or the Cache system.
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataObject getObjectById(Long object_id, DbDataObject typeDescriptor, DateTime refDate)
 			throws SvException {
@@ -559,10 +592,9 @@ public class SvReader extends SvCore {
 	 *            Id of the type of object which should be fetched
 	 * @param refDate
 	 *            Reference date on which the data should be fetched
-	 * @param errorCode
-	 *            An error code of the operation
 	 * @return A DbDataObject if one is located in the DB or the Cache system.
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataObject getObjectById(Long object_id, Long object_type, DateTime refDate) throws SvException {
 
@@ -583,10 +615,9 @@ public class SvReader extends SvCore {
 	 *            Configuration for the type of the object fetched
 	 * @param refDate
 	 *            Reference date on which the data should be fetched
-	 * @param errorCode
-	 *            An error code of the operation
 	 * @return A DbDataObject if one is located in the DB or the Cache system.
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	DbDataObject getObjectById(Long object_id, DbDataObject dbt, DateTime refDate, Boolean forceDbQuery)
 			throws SvException {
@@ -594,7 +625,7 @@ public class SvReader extends SvCore {
 
 		if (!forceDbQuery && dbt.getVal("use_cache") != null && refDate == null && isCfgInDb
 				&& (Boolean) dbt.getVal("use_cache"))
-			object = DbCache.getObject(object_id, dbt.getObject_id());
+			object = DbCache.getObject(object_id, dbt.getObjectId());
 
 		if (object == null || (object.isGeometryType() && !object.getHasGeometry())) {
 			object = getObjectByIdImpl(object_id, dbt, refDate);
@@ -613,6 +644,7 @@ public class SvReader extends SvCore {
 	 *            The reference date at which we want to fetch the object
 	 * @return The loaded DbDataObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	DbDataObject getObjectByIdImpl(Long object_id, DbDataObject dbt, DateTime refDate) throws SvException {
 		DbDataObject object = null;
@@ -633,7 +665,7 @@ public class SvReader extends SvCore {
 	/**
 	 * Svarog internal method to get all data for certain SVAROG_OBJECT type
 	 * 
-	 * @param type
+	 * @param typeId
 	 *            The Id of the SVAROG_OBJECT
 	 * @param refDate
 	 *            The reference date at which we want to fetch the object
@@ -643,12 +675,13 @@ public class SvReader extends SvCore {
 	 *            The offset at which to start returning objects
 	 * @return all data that currently exists for certain SVAROG_OBJECT type
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
-	public DbDataArray getObjectsByTypeId(Long type_id, DateTime refDate, Integer rowLimit, Integer offset)
+	public DbDataArray getObjectsByTypeId(Long typeId, DateTime refDate, Integer rowLimit, Integer offset)
 			throws SvException {
 		DbDataArray arr = null;
-		DbSearch search = new DbSearchCriterion("OBJECT_TYPE", DbSearchCriterion.DbCompareOperand.EQUAL, type_id);
-		arr = getObjects(search, SvReader.getDbt(type_id), refDate, rowLimit, offset);
+		DbSearch search = new DbSearchCriterion("OBJECT_TYPE", DbSearchCriterion.DbCompareOperand.EQUAL, typeId);
+		arr = getObjects(search, SvReader.getDbt(typeId), refDate, rowLimit, offset);
 
 		return arr;
 	}
@@ -675,8 +708,9 @@ public class SvReader extends SvCore {
 	 *            Maximum number of objects
 	 * @param offset
 	 *            The offset at which to start returning objects
-	 * @return
+	 * @return Array of objects linked by a specific link type to the LinkObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	@Deprecated
 	public DbDataArray getObjectsByLinkedId(Long LinkObjectId, Long linkObjectTypeId1, String linkCode,
@@ -714,8 +748,9 @@ public class SvReader extends SvCore {
 	 *            The offset at which to start returning objects
 	 * @param linkStatus
 	 *            The status of the link which is linking the two objects
-	 * @return
+	 * @return Array of objects linked by a specific link type to the LinkObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	@Deprecated
 	public DbDataArray getObjectsByLinkedId(Long LinkObjectId, Long linkObjectTypeId1, String linkCode,
@@ -753,8 +788,9 @@ public class SvReader extends SvCore {
 	 *            Maximum number of objects
 	 * @param offset
 	 *            The offset at which to start returning objects
-	 * @return
+	 * @return Array of objects linked by a specific link type to the LinkObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataArray getObjectsByLinkedId(Long LinkObjectId, Long linkObjectTypeId1, DbDataObject dbLink,
 			Long linkObjectTypeId2, Boolean isReverse, DateTime refDate, Integer rowLimit, Integer offset)
@@ -768,8 +804,6 @@ public class SvReader extends SvCore {
 	 * 
 	 * @param LinkObjectId
 	 *            The object to which the result set is linked
-	 * @param linkObjectTypeId1
-	 *            The type of LinkObjectId
 	 * @param dbLink
 	 *            The link descriptor
 	 * @param refDate
@@ -778,8 +812,9 @@ public class SvReader extends SvCore {
 	 *            Number of rows
 	 * @param offset
 	 *            Starting form row number
-	 * @return
+	 * @return Array of objects linked by a specific link type to the LinkObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataArray getObjectsByLinkedId(Long LinkObjectId, DbDataObject dbLink, DateTime refDate, Integer rowLimit,
 			Integer offset) throws SvException {
@@ -815,8 +850,9 @@ public class SvReader extends SvCore {
 	 *            Starting form row number
 	 * @param linkStatus
 	 *            The status of the link between the two objects
-	 * @return
+	 * @return Array of objects linked by a specific link type to the LinkObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataArray getObjectsByLinkedId(Long LinkObjectId, Long linkObjectTypeId1, DbDataObject dbLink,
 			Long linkObjectTypeId2, Boolean isReverse, DateTime refDate, Integer rowLimit, Integer offset,
@@ -842,8 +878,8 @@ public class SvReader extends SvCore {
 			}
 
 			if (shouldForceDbQuery)
-				object = getObjectsByLinkedIdFromDb(LinkObjectId, linkObjectTypeId1, dbLink, linkObjectTypeId2,
-						isReverse, refDate, rowLimit, offset, linkStatus);
+				object = getObjectsByLinkedIdImpl(LinkObjectId, linkObjectTypeId1, dbLink, linkObjectTypeId2, isReverse,
+						refDate, rowLimit, offset, linkStatus);
 		}
 		return object;
 	}
@@ -869,10 +905,12 @@ public class SvReader extends SvCore {
 	 *            Starting form row number
 	 * @param linkStatus
 	 *            The status of the link between the two objects
-	 * @return
+	 * @return Method which performs the actual loading of the objects from the
+	 *         database
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
-	DbDataArray getObjectsByLinkedIdFromDb(Long LinkObjectId, Long linkObjectTypeId1, DbDataObject dbLink,
+	DbDataArray getObjectsByLinkedIdImpl(Long LinkObjectId, Long linkObjectTypeId1, DbDataObject dbLink,
 			Long linkObjectTypeId2, Boolean isReverse, DateTime refDate, Integer rowLimit, Integer offset,
 			String linkStatus) throws SvException {
 		DbDataArray ret = null;
@@ -941,8 +979,9 @@ public class SvReader extends SvCore {
 	 *            Limit on the number of rows
 	 * @param offset
 	 *            Offset at which to start returning rows
-	 * @return
+	 * @return Array of child object of the identified parent
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataArray getObjectsByParentId(Long parent_id, Long object_type, DateTime refDate, Integer rowLimit,
 			Integer offset) throws SvException {
@@ -962,8 +1001,12 @@ public class SvReader extends SvCore {
 	 *            Limit on the number of rows
 	 * @param offset
 	 *            Offset at which to start returning rows
-	 * @return
+	 * @param sortByField
+	 *            the field name in the database which shall be used for sorting
+	 *            the result array
+	 * @return Array of objects saved as children for the parent object
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataArray getObjectsByParentId(Long parent_id, Long object_type, DateTime refDate, Integer rowLimit,
 			Integer offset, String sortByField) throws SvException {
@@ -1002,12 +1045,13 @@ public class SvReader extends SvCore {
 	 * Method for searching object by its type unique id (expecting to return
 	 * one object, if no always return the first one)
 	 * 
-	 * @param srchVlaue
+	 * @param srchValue
 	 *            The value we search for
 	 * @param tableName
 	 *            The name of the table we are searching in
-	 * @return
+	 * @return An object uniquely identified by the srchValue as key
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataObject getObjectByUnqConfId(String srchValue, String tableName) throws SvException {
 		// get the unique field id from svarog_tables
@@ -1020,13 +1064,14 @@ public class SvReader extends SvCore {
 	 * one object, if no always return the first one). This one is backwards
 	 * compatible using case sensitive search.
 	 * 
-	 * @param srchVlaue
+	 * @param srchValue
 	 *            The value we search for
 	 * @param tableObj
 	 *            The object descriptor of the table we are searching in
 	 * @return A DbDataObject describing the configuration row from a config
 	 *         table identified by tableObject
 	 * @throws SvException
+	 *             Pass through exception from the underlying methods
 	 */
 	public DbDataObject getObjectByUnqConfId(String srchValue, DbDataObject tableObj) throws SvException {
 		return getObjectByUnqConfId(srchValue, tableObj, false);
@@ -1037,7 +1082,7 @@ public class SvReader extends SvCore {
 	 * one object, if no always return the first one), allowing you to search by
 	 * case insensitive or case sensitive manner.
 	 * 
-	 * @param srchVlaue
+	 * @param srchValue
 	 *            The value we search for
 	 * @param tableObj
 	 *            The object descriptor of the table we are searching in
@@ -1047,6 +1092,7 @@ public class SvReader extends SvCore {
 	 * @return A DbDataObject describing the configuration row from a config
 	 *         table identified by tableObject
 	 * @throws SvException
+	 *             Pass through underlyng exception from SvCore.getObjects
 	 */
 	public DbDataObject getObjectByUnqConfId(String srchValue, DbDataObject tableObj, boolean caseSensitive)
 			throws SvException {
