@@ -32,7 +32,7 @@ install-postgres-ut:
     - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
-    - ./ansible-svarog.sh UT $CI_PROJECT_DIR POSTGRES
+    - ./ansible-svarog.sh ut $CI_PROJECT_DIR POSTGRES
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop -P PostgreSQL
     - mvn test -P PostgreSQL
@@ -46,9 +46,10 @@ install-oracle-ut:
     - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
-    - ./ansible-svarog.sh UT $CI_PROJECT_DIR ORACLE
+    - ./ansible-svarog.sh ut $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop-auto -P Oracle
+    - mvn test -P Oracle
     - mvn exec:java@upgrade-force-auto -P Oracle
     - mvn test -P Oracle
     
@@ -63,6 +64,13 @@ upgrade-postgres-pipeline:
     - cd $CI_PROJECT_DIR  
     - mvn exec:java@upgrade-force -P PostgreSQL
     - mvn test -P PostgreSQL
+  environment:
+    name: $CI_COMMIT_REF_NAME
+  only:
+    - master
+    - staging
+    - dev
+
     
 upgrade-oracle-pipeline:
   stage: svarog-upgrade-pipeline
@@ -96,7 +104,7 @@ upgrade-oracle-pipeline:
 svarog-sonarqube:
   stage: code_analysis
   script:
-    - mvn sonar:sonar -Dsonar.analysis.mode=preview
+    - mvn sonar:sonar -Dsonar.analysis.mode=publish -Dsonar.branch=$CI_BUILD_REF_NAME -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_BUILD_REF -Dsonar.gitlab.ref_name=$CI_BUILD_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
     
 svarog-install:
   stage: mvn_install
