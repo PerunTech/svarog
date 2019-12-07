@@ -49,6 +49,7 @@ install-oracle-ut:
     - ./ansible-svarog.sh ut $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop-auto -P Oracle
+    - mvn test -P Oracle
     - mvn exec:java@upgrade-force-auto -P Oracle
     - mvn test -P Oracle
     
@@ -63,6 +64,13 @@ upgrade-postgres-pipeline:
     - cd $CI_PROJECT_DIR  
     - mvn exec:java@upgrade-force -P PostgreSQL
     - mvn test -P PostgreSQL
+  environment:
+    name: $CI_COMMIT_REF_NAME
+  only:
+    - master
+    - staging
+    - dev
+
     
 upgrade-oracle-pipeline:
   stage: svarog-upgrade-pipeline
