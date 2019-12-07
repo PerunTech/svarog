@@ -408,7 +408,7 @@ public class SvConf {
 		if (!isDsInitialized.compareAndSet(false, true))
 			return sysDataSource;
 		else {
-			synchronized (sysDataSource) {
+			synchronized (config) {
 				if (sysDataSource == null)
 					sysDataSource = initDataSource(config);
 				return sysDataSource;
