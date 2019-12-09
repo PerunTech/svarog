@@ -46,7 +46,12 @@ public class RuleEngine extends SvCore {
 	 * order to enforce the svarog security mechanisms based on the logged on
 	 * user.
 	 * 
-	 * @throws Exception
+	 * 
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public RuleEngine(String session_id) throws SvException {
 		super(session_id);
@@ -67,7 +72,13 @@ public class RuleEngine extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * 
+	 * 
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public RuleEngine(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -78,6 +89,7 @@ public class RuleEngine extends SvCore {
 	 * package since it will run with system priveleges.
 	 * 
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	RuleEngine() throws SvException {
 		super(svCONST.systemUser, null);
