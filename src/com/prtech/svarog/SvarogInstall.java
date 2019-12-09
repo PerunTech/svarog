@@ -82,7 +82,7 @@ public class SvarogInstall {
 	 */
 	static final Logger log4j = SvConf.getLogger(SvarogInstall.class);
 
-	static final String localesPath = "/com/prtech/svarog/json/src/master_locales.json";
+	static final String localesPath = "/com/prtech/svarog/json/src/master_locales.bjson";
 	/**
 	 * The map of fields in the repo table
 	 */
@@ -1100,7 +1100,14 @@ public class SvarogInstall {
 		mIsAlreadyInstalled = false;
 
 		try {
-			FileUtils.deleteDirectory(new File(SvConf.getConfPath()));
+			File confDir = new File(SvConf.getConfPath());
+			if (confDir.exists()) {
+				for (File currFile : confDir.listFiles()) {
+					if (!currFile.getName().equals("sdi"))
+						FileUtils.deleteDirectory(currFile);
+				}
+			}
+
 		} catch (IOException e) {
 			log4j.error("Error deleting conf resources ", e);
 		}
@@ -1184,6 +1191,17 @@ public class SvarogInstall {
 		}
 		SvParameter svp = null;
 		try {
+
+			// pre-install db handler call
+			Connection conn = null;
+			try {
+				conn = SvConf.getDBConnection();
+				String before = SvCore.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
+				log4j.info("Svarog DbHandler pre-upgrade:" + before);
+			} finally {
+				if (conn != null)
+					conn.close();
+			}
 			// if this isn't first time install then we can't set the upgrade
 			// running param
 			if (isSvarogInstalled()) {
@@ -1197,17 +1215,7 @@ public class SvarogInstall {
 				isRunning = svp.getParamString("svarog.upgrade.running");
 				svp.release();
 			}
-			// pre-install db handler call
-			Connection conn = null;
-			try {
-				conn = SvConf.getDBConnection();
-				String before = SvCore.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
-				log4j.info("Svarog DbHandler pre-upgrade:" + before);
-			} finally {
-				if (conn != null)
-					conn.close();
-			}
-
+			
 			// do the actual table creation, unless we run labels only upgrade
 			if (!labelsOnly)
 				if (!SvarogInstall.createMasterRepo()) {
