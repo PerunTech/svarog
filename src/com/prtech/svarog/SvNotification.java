@@ -23,10 +23,6 @@ import com.prtech.svarog_common.DbDataObject;
 public class SvNotification extends SvCore {
 
 	/**
-	 * The current session_id associated with the core
-	 */
-	String coreSessionId = null;
-	/**
 	 * Log4j instance used for logging
 	 */
 	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
@@ -37,7 +33,12 @@ public class SvNotification extends SvCore {
 	 * order to enforce the svarog security mechanisms based on the logged on
 	 * user.
 	 * 
-	 * @throws SvException Pass through of underlying exceptions
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
+	 * 
 	 */
 	public SvNotification(String session_id) throws SvException {
 		super(session_id);
@@ -47,7 +48,12 @@ public class SvNotification extends SvCore {
 	 * SvCore chained constructor. This constructor will re-use the JDBC
 	 * connection from the chained SvCore
 	 * 
+	 * 
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvNotification(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -57,7 +63,9 @@ public class SvNotification extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * 
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	SvNotification() throws SvException {
 		super(svCONST.systemUser, null);
