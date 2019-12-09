@@ -111,7 +111,12 @@ public class SvFileStore extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * 
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvFileStore(String session_id) throws SvException {
 		super(session_id);
@@ -122,7 +127,15 @@ public class SvFileStore extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * 
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvFileStore(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -132,7 +145,12 @@ public class SvFileStore extends SvCore {
 	 * Shared core Constructor. This constructor can be used only within the
 	 * svarog package since it will run with system priveleges.
 	 * 
+	 * 
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvFileStore(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -142,7 +160,9 @@ public class SvFileStore extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * 
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	SvFileStore() throws SvException {
 		super(svCONST.systemUser, null);
@@ -180,6 +200,8 @@ public class SvFileStore extends SvCore {
 	 *            The file data it self. It can be byte[] or InputStream. Svarog
 	 *            will not close the stream after successful save.
 	 * @throws SvException
+	 *             Pass through exception from
+	 *             {@link #saveFile(DbDataObject, DbDataObject, Object, Boolean)}
 	 */
 	@Deprecated
 	public void saveFile(DbDataObject fileDescriptor, Long objectId, Long objectType, byte[] fileData)
