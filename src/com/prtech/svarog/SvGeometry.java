@@ -651,7 +651,7 @@ public class SvGeometry extends SvCore {
 	 *             object has no geometry field while SvGeometry has
 	 *             allowNullGeometry set to false
 	 */
-	public void saveGeometry(DbDataArray dba) throws SvException {
+	public void saveGeometry(DbDataArray dba, Boolean isBatch) throws SvException {
 		SvWriter svw = null;
 		try {
 
@@ -659,7 +659,7 @@ public class SvGeometry extends SvCore {
 			svw.isInternal = true; // flag it as internal so can save SDI types
 			Geometry currentGeom = null;
 			for (DbDataObject dbo : dba.getItems()) {
-				if (!SvCore.hasGeometries(dbo.getObject_type()))
+				if (!SvCore.hasGeometries(dbo.getObjectType()))
 					throw (new SvException("system.error.sdi.non_sdi_type", instanceUser, dba, null));
 				currentGeom = getGeometry(dbo);
 				if (currentGeom != null) {
@@ -667,11 +667,15 @@ public class SvGeometry extends SvCore {
 				} else if (!allowNullGeometry)
 					throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
 			}
-			svw.saveObject(dba);
+			svw.saveObject(dba, isBatch);
 		} finally {
 			if (svw != null)
 				svw.release();
 		}
+	}
+
+	public void saveGeometry(DbDataArray dba) throws SvException {
+		saveGeometry(dba, false);
 	}
 
 	/**
