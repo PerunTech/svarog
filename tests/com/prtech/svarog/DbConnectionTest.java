@@ -12,7 +12,7 @@
  *   permissions and limitations under the License.
  *  
  *******************************************************************************/
- 
+
 package com.prtech.svarog;
 
 import static org.junit.Assert.*;
@@ -29,14 +29,13 @@ public class DbConnectionTest {
 			conn = SvConf.getDBConnection();
 			if (conn == null)
 				fail("Connection is null");
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			// TODO Auto-generated catch block
 			fail("DbConnection.getDBConnection() raised an exception");
-		}finally
-		{
-			if(conn!=null)
+		} finally {
+			if (conn != null)
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -47,67 +46,50 @@ public class DbConnectionTest {
 		}
 
 	}
-/*
-	@Test
-	public void testMSSQL() {
-		Connection con = null;
-		if (!SvConf.getDBType().equals("MSSQL"))
-			return;
 
-		try {
-			con = SvConf.getDBConnection();
-
-		} catch (SvException e) { // TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		try {
-
-			SQLServerDataTable stuTypeDT = new SQLServerDataTable();
-			stuTypeDT.addColumnMetadata("PKID", java.sql.Types.NUMERIC);
-			stuTypeDT.addColumnMetadata("META_PKID", java.sql.Types.NUMERIC);
-			stuTypeDT.addColumnMetadata("OBJECT_ID", java.sql.Types.NUMERIC);
-			stuTypeDT.addColumnMetadata("DT_INSERT", java.sql.Types.TIMESTAMP);
-			stuTypeDT.addColumnMetadata("DT_DELETE", java.sql.Types.TIMESTAMP);
-			stuTypeDT.addColumnMetadata("PARENT_ID", java.sql.Types.NUMERIC);
-			stuTypeDT.addColumnMetadata("OBJECT_TYPE", java.sql.Types.NUMERIC);
-			stuTypeDT.addColumnMetadata("STATUS", java.sql.Types.NVARCHAR);
-			stuTypeDT.addColumnMetadata("USER_ID", java.sql.Types.NUMERIC);
-
-			stuTypeDT.addRow(0L, 0L, 0L, new Timestamp((new DateTime()).getMillis()),
-					new Timestamp(svCONST.MAX_DATE.getMillis()), 0, 50, "VALID", -11);
-			stuTypeDT.addRow(0L, 0L, 0L, new Timestamp((new DateTime()).getMillis()),
-					new Timestamp(svCONST.MAX_DATE.getMillis()), 0, 50, "VALID", -11);
-
-			String ececStoredProc = "EXEC [insRepoData] ?";
-			SQLServerPreparedStatement pStmt = (SQLServerPreparedStatement) con.prepareStatement(ececStoredProc);
-			pStmt.setStructured(1, "[dbo].[RepoTableType]", stuTypeDT);
-			ResultSet rs = pStmt.executeQuery();
-
-			ResultSetMetaData rsmd = rs.getMetaData();
-			int columnCount = rsmd.getColumnCount();
-			if (rs.next()) {
-				do {
-					for (int i = 1; i <= columnCount; i++) { // Object key =
-																// rs.getObject("GENERATED_KEYS");
-						Object key1 = rs.getObject(i);
-						System.out.println("KEY " + i + " = " + key1);
-					}
-				} while (rs.next());
-			} else {
-				System.out.println("NO KEYS WERE GENERATED.");
-			}
-			rs.close();
-
-			pStmt.close();
-			con.commit();
-			con.close();
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-	}
-*/
+	/*
+	 * @Test public void testMSSQL() { Connection con = null; if
+	 * (!SvConf.getDBType().equals("MSSQL")) return;
+	 * 
+	 * try { con = SvConf.getDBConnection();
+	 * 
+	 * } catch (SvException e) { // TODO Auto-generated catch block
+	 * e.printStackTrace(); } try {
+	 * 
+	 * SQLServerDataTable stuTypeDT = new SQLServerDataTable();
+	 * stuTypeDT.addColumnMetadata("PKID", java.sql.Types.NUMERIC);
+	 * stuTypeDT.addColumnMetadata("META_PKID", java.sql.Types.NUMERIC);
+	 * stuTypeDT.addColumnMetadata("OBJECT_ID", java.sql.Types.NUMERIC);
+	 * stuTypeDT.addColumnMetadata("DT_INSERT", java.sql.Types.TIMESTAMP);
+	 * stuTypeDT.addColumnMetadata("DT_DELETE", java.sql.Types.TIMESTAMP);
+	 * stuTypeDT.addColumnMetadata("PARENT_ID", java.sql.Types.NUMERIC);
+	 * stuTypeDT.addColumnMetadata("OBJECT_TYPE", java.sql.Types.NUMERIC);
+	 * stuTypeDT.addColumnMetadata("STATUS", java.sql.Types.NVARCHAR);
+	 * stuTypeDT.addColumnMetadata("USER_ID", java.sql.Types.NUMERIC);
+	 * 
+	 * stuTypeDT.addRow(0L, 0L, 0L, new Timestamp((new DateTime()).getMillis()),
+	 * new Timestamp(svCONST.MAX_DATE.getMillis()), 0, 50, "VALID", -11);
+	 * stuTypeDT.addRow(0L, 0L, 0L, new Timestamp((new DateTime()).getMillis()),
+	 * new Timestamp(svCONST.MAX_DATE.getMillis()), 0, 50, "VALID", -11);
+	 * 
+	 * String ececStoredProc = "EXEC [insRepoData] ?";
+	 * SQLServerPreparedStatement pStmt = (SQLServerPreparedStatement)
+	 * con.prepareStatement(ececStoredProc); pStmt.setStructured(1,
+	 * "[dbo].[RepoTableType]", stuTypeDT); ResultSet rs = pStmt.executeQuery();
+	 * 
+	 * ResultSetMetaData rsmd = rs.getMetaData(); int columnCount =
+	 * rsmd.getColumnCount(); if (rs.next()) { do { for (int i = 1; i <=
+	 * columnCount; i++) { // Object key = // rs.getObject("GENERATED_KEYS");
+	 * Object key1 = rs.getObject(i); System.out.println("KEY " + i + " = " +
+	 * key1); } } while (rs.next()); } else {
+	 * System.out.println("NO KEYS WERE GENERATED."); } rs.close();
+	 * 
+	 * pStmt.close(); con.commit(); con.close();
+	 * 
+	 * } catch (Exception e) { e.printStackTrace(); }
+	 * 
+	 * }
+	 */
 	@Test
 	public void testGetsDriverName() {
 		if (!(SvConf.getDriverName().equals("org.postgresql.Driver")
@@ -140,6 +122,7 @@ public class DbConnectionTest {
 
 	@Test
 	public void testGetsDBType() {
+		testGetDBConnection();
 		String sType = SvConf.getDBType();
 		if (!(sType.equals("POSTGRES") || sType.equals("ORACLE") || sType.equals("MSSQL")))
 			fail("DbConnection.getDBType() didn't return the default type POSTGRES");
