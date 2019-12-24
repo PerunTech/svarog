@@ -379,14 +379,23 @@ public class SvGeometry extends SvCore {
 	 * @param tileParams
 	 *            Array of strings containing tile id or file path.
 	 * @return Instance of the tile, either from the cache of newly created
+
 	 */
-	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			{
 
 		Cache<String, SvSDITile> cache = null;
 		synchronized (sdiCache) {
 			cache = sdiCache.get(tileTypeId);
 			if (cache == null) {
-				DbDataObject dbt = getDbt(tileTypeId);
+				DbDataObject dbt = null;
+				try {
+					dbt = getDbt(tileTypeId);
+				} catch (SvException ex) {
+					if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
+						log4j.warn("Tile type id: " + tileTypeId.toString()
+								+ " is not representing a valid system object in the svarog tables list");
+				}
 				cache = cacheConfig(dbt);
 				((ConcurrentHashMap<Long, Cache<String, SvSDITile>>) sdiCache).putIfAbsent(tileTypeId, cache);
 			}

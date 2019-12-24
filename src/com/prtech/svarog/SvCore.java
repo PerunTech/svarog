@@ -569,7 +569,7 @@ public abstract class SvCore implements ISvCore {
 			}
 		} catch (Exception e) {
 			log4j.error("Can't find Database Handler named: " + SvConf.getParam("conn.dbHandlerClass"));
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
@@ -714,9 +714,18 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectTypeId
 	 *            The Id of the type
 	 * @return DbDataObject describing the object table storage
+	 * @throws SvException
+	 *             Exception with label "system.error.no_dbt_found" is raised if no object descriptor can be found for
+	 *             the DbDataObject instance
 	 */
-	public static DbDataObject getDbt(Long objectTypeId) {
-		return DbCache.getObject(objectTypeId, svCONST.OBJECT_TYPE_TABLE);
+	public static DbDataObject getDbt(Long objectTypeId) throws SvException {
+		DbDataObject dbt = null;
+		dbt = DbCache.getObject(objectTypeId, svCONST.OBJECT_TYPE_TABLE);
+		if (dbt == null) {
+			String exceptionMessage = "system.error.no_dbt_found";
+			throw (new SvException(exceptionMessage, svCONST.systemUser, null, objectTypeId));
+		}
+		return dbt;
 	}
 
 	/**
@@ -726,7 +735,7 @@ public abstract class SvCore implements ISvCore {
 	 *            The object for which the reference type will be returned
 	 * @return The @DbDataObject describing the reference type
 	 * @throws SvException
-	 *             Exception is raised if no object descriptor can be found for
+	 *             Exception with label "system.error.no_dbt_found" is raised if no object descriptor can be found for
 	 *             the DbDataObject instance
 	 */
 	public static DbDataObject getDbt(DbDataObject dbo) throws SvException {
@@ -1170,6 +1179,13 @@ public abstract class SvCore implements ISvCore {
 		}
 	}
 
+	/**
+	 * Method to initialise the system objects from the 3 core arrays, object, fields and link types
+	 * @param objectTypes The list of object types with appropriate configuration and table names
+	 * @param fieldTypes The list of field types in the system
+	 * @param linkTypes The available link t
+	 * @throws Exception
+	 */
 	private static void initSysObjects(DbDataArray objectTypes, DbDataArray fieldTypes, DbDataArray linkTypes)
 			throws Exception {
 		// perform initialisation of the basemaps
@@ -1209,7 +1225,7 @@ public abstract class SvCore implements ISvCore {
 					throw (new Exception("Misconfigured core tables. Svarog can not be initialised. Missing " + key));
 			}
 		}
-
+			
 	}
 
 	/**
@@ -1381,8 +1397,9 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectTypeId
 	 *            The ID of the object descriptor
 	 * @return DbDataArray containing the list of fields
+	 * @throws SvException Throws underlying exception from {@link #getDbt(Long)}
 	 */
-	public static DbDataArray getDbFields(Connection conn, Long objectTypeId) {
+	public static DbDataArray getDbFields(Connection conn, Long objectTypeId) throws SvException {
 		DbDataArray cachedFields = getFields(objectTypeId);
 		DbDataArray finalFields = new DbDataArray();
 		DbDataObject dbt = getDbt(objectTypeId);

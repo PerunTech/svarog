@@ -268,7 +268,7 @@ public class SvConf {
 			}
 		} catch (Exception e) {
 			log4j.error("Can't find Database Handler named: " + SvConf.getParam("conn.dbHandlerClass"));
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
