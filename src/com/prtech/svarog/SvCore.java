@@ -715,8 +715,9 @@ public abstract class SvCore implements ISvCore {
 	 *            The Id of the type
 	 * @return DbDataObject describing the object table storage
 	 * @throws SvException
-	 *             Exception with label "system.error.no_dbt_found" is raised if no object descriptor can be found for
-	 *             the DbDataObject instance
+	 *             Exception with label "system.error.no_dbt_found" is raised if
+	 *             no object descriptor can be found for the DbDataObject
+	 *             instance
 	 */
 	public static DbDataObject getDbt(Long objectTypeId) throws SvException {
 		DbDataObject dbt = null;
@@ -735,8 +736,9 @@ public abstract class SvCore implements ISvCore {
 	 *            The object for which the reference type will be returned
 	 * @return The @DbDataObject describing the reference type
 	 * @throws SvException
-	 *             Exception with label "system.error.no_dbt_found" is raised if no object descriptor can be found for
-	 *             the DbDataObject instance
+	 *             Exception with label "system.error.no_dbt_found" is raised if
+	 *             no object descriptor can be found for the DbDataObject
+	 *             instance
 	 */
 	public static DbDataObject getDbt(DbDataObject dbo) throws SvException {
 		DbDataObject dbt = null;
@@ -1180,10 +1182,16 @@ public abstract class SvCore implements ISvCore {
 	}
 
 	/**
-	 * Method to initialise the system objects from the 3 core arrays, object, fields and link types
-	 * @param objectTypes The list of object types with appropriate configuration and table names
-	 * @param fieldTypes The list of field types in the system
-	 * @param linkTypes The available link t
+	 * Method to initialise the system objects from the 3 core arrays, object,
+	 * fields and link types
+	 * 
+	 * @param objectTypes
+	 *            The list of object types with appropriate configuration and
+	 *            table names
+	 * @param fieldTypes
+	 *            The list of field types in the system
+	 * @param linkTypes
+	 *            The available link t
 	 * @throws Exception
 	 */
 	private static void initSysObjects(DbDataArray objectTypes, DbDataArray fieldTypes, DbDataArray linkTypes)
@@ -1225,7 +1233,7 @@ public abstract class SvCore implements ISvCore {
 					throw (new Exception("Misconfigured core tables. Svarog can not be initialised. Missing " + key));
 			}
 		}
-			
+
 	}
 
 	/**
@@ -1397,7 +1405,8 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectTypeId
 	 *            The ID of the object descriptor
 	 * @return DbDataArray containing the list of fields
-	 * @throws SvException Throws underlying exception from {@link #getDbt(Long)}
+	 * @throws SvException
+	 *             Throws underlying exception from {@link #getDbt(Long)}
 	 */
 	public static DbDataArray getDbFields(Connection conn, Long objectTypeId) throws SvException {
 		DbDataArray cachedFields = getFields(objectTypeId);
@@ -2942,8 +2951,14 @@ public abstract class SvCore implements ISvCore {
 		case NUMERIC:
 			if (value == null)
 				ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
-			else
-				ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).doubleValue()));
+			else {
+				Long fScale = (Long) dbf.getVal("FIELD_SCALE");
+				if (fScale != null && fScale > 0) {
+					double dbl = ((Number) value).doubleValue();
+					ps.setBigDecimal(bindAtPosition, new BigDecimal(dbl).setScale(fScale.intValue()));
+				} else
+					ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
+			}
 			break;
 		case DATE:
 		case TIME:

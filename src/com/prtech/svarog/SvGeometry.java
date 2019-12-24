@@ -629,10 +629,15 @@ public class SvGeometry extends SvCore {
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
 
-		dbo.setVal("AREA", geom.getArea());
-		dbo.setVal("AREA_HA", geom.getArea() / 10000);
-		dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for moemris
-		dbo.setVal("PERIMETER", geom.getLength());
+		//if area is not set or we have configured to override
+		if(dbo.getVal("AREA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA", geom.getArea());
+		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA_HA", geom.getArea() / 10000);
+		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for moemris
+		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
 
 		// admUnitClass dbo.setVal("CENTROID", centroid);

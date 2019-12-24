@@ -168,6 +168,7 @@ public class SvConf {
 	 */
 	private static String multiSelectSeparator = ";";
 	static int sdiGridSize;
+	static boolean sdiOverrideGeomCalc;
 
 	/**
 	 * Fields storing application information
@@ -268,7 +269,7 @@ public class SvConf {
 			}
 		} catch (Exception e) {
 			log4j.error("Can't find Database Handler named: " + SvConf.getParam("conn.dbHandlerClass"));
-			//e.printStackTrace();
+			// e.printStackTrace();
 		}
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
@@ -420,6 +421,8 @@ public class SvConf {
 			repoName = getProperty(mainProperties, "sys.masterRepo", "SVAROG").toUpperCase();
 			defaultSchema = getProperty(mainProperties, "conn.defaultSchema", "SVAROG").toUpperCase();
 			sdiGridSize = getProperty(mainProperties, "sys.gis.grid_size", 10);
+			sdiOverrideGeomCalc = getProperty(mainProperties, "sys.gis.override_user_area_perim", false);
+
 			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5) * 60 * 1000;
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
