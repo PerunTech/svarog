@@ -379,14 +379,23 @@ public class SvGeometry extends SvCore {
 	 * @param tileParams
 	 *            Array of strings containing tile id or file path.
 	 * @return Instance of the tile, either from the cache of newly created
+
 	 */
-	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			{
 
 		Cache<String, SvSDITile> cache = null;
 		synchronized (sdiCache) {
 			cache = sdiCache.get(tileTypeId);
 			if (cache == null) {
-				DbDataObject dbt = getDbt(tileTypeId);
+				DbDataObject dbt = null;
+				try {
+					dbt = getDbt(tileTypeId);
+				} catch (SvException ex) {
+					if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
+						log4j.warn("Tile type id: " + tileTypeId.toString()
+								+ " is not representing a valid system object in the svarog tables list");
+				}
 				cache = cacheConfig(dbt);
 				((ConcurrentHashMap<Long, Cache<String, SvSDITile>>) sdiCache).putIfAbsent(tileTypeId, cache);
 			}
@@ -620,10 +629,15 @@ public class SvGeometry extends SvCore {
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
 
-		dbo.setVal("AREA", geom.getArea());
-		dbo.setVal("AREA_HA", geom.getArea() / 10000);
-		dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for moemris
-		dbo.setVal("PERIMETER", geom.getLength());
+		//if area is not set or we have configured to override
+		if(dbo.getVal("AREA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA", geom.getArea());
+		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA_HA", geom.getArea() / 10000);
+		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for moemris
+		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
 
 		// admUnitClass dbo.setVal("CENTROID", centroid);
