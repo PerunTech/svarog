@@ -152,11 +152,14 @@ public class SvarogTest {
 			if (arrLinkedApp.size() > 0)
 				fail("Ammending app found!!!");
 
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			fail("Test failed with exception");
+		} catch (SvException ex) {
+			if (!ex.getLabelCode().equals("system.error.no_dbt_found")) {
+				ex.printStackTrace();
+				fail("Test failed with exception");
+			}
 		} finally {
-			svr.release();
+			if (svr != null)
+				svr.release();
 		}
 	}
 
@@ -235,9 +238,11 @@ public class SvarogTest {
 			if (asd.get(0).getVal("REFERENCE_DATE") != null)
 				fail("ref date should be null");
 			System.out.println(asd.toJson());
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail("Test failed with exception");
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				e.printStackTrace();
+				fail("Test failed with exception");
+			}
 		} finally {
 			if (svr != null)
 				svr.release();
@@ -346,20 +351,25 @@ public class SvarogTest {
 
 			// System.out.println(values.toSimpleJson());
 
-		} catch (Exception e) {
+		} catch (SvException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-			fail("Exception occured");
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+
+				e.printStackTrace();
+				fail("Exception occured");
+			}
 		} finally {
-			svw.release();
-			svr.release();
+			if (svw != null)
+				svw.release();
+			if (svr != null)
+				svr.release();
 		}
 		if (SvConnTracker.hasTrackedConnections())
 			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
-	public void getAnimalClaimsForAllMeasures() throws SvException {
+	public void getAnimalClaimsForAllMeasures() {
 		Long appid = 10150020L;
 		SvReader svr = null;
 		try {
@@ -384,6 +394,12 @@ public class SvarogTest {
 			if (!found)
 				fail("link data not found");
 			System.out.println(dbo.toJson());
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				fail("Test failed with exception: " + e.getLabelCode());
+			}
 		} finally {
 			if (svr != null)
 				svr.release();
@@ -637,13 +653,17 @@ public class SvarogTest {
 
 			// System.out.println(values.toSimpleJson());
 
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			fail("Exception occured");
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				fail("Exception occured");
+			}
 		} finally {
-			svw.release();
-			svr.release();
+			if (svw != null)
+				svw.release();
+			if (svr != null)
+				svr.release();
 		}
 		if (SvConnTracker.hasTrackedConnections())
 			fail("You have a connection leak, you dirty animal!");
@@ -679,9 +699,11 @@ public class SvarogTest {
 						"Get animal measures (" + dbr.size() + "):\t" + (double) (time2 - time1) / 1000000000.0);
 
 		} catch (SvException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			fail("Test raised exception");
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				fail("Test raised exception");
+			}
 		}
 
 	}
@@ -796,10 +818,12 @@ public class SvarogTest {
 			if (values.size() < 1)
 				fail("no data returned");
 
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			fail("Exception occured");
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				fail("Exception occured");
+			}
 		} finally {
 			// svw.release();
 			svr.release();
@@ -996,9 +1020,10 @@ public class SvarogTest {
 						"Get animal measures (" + dbr.size() + "):\t" + (double) (time2 - time1) / 1000000000.0);
 
 		} catch (SvException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			fail("Test raised exception");
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				e.printStackTrace();
+				fail("Test raised exception");
+			}
 		} finally {
 			svSec.release();
 			svr.release();
@@ -1912,9 +1937,11 @@ public class SvarogTest {
 					fail("could not load from cache");
 				System.out.println(scalarGroupId.toString() + "-" + arrScalarClass.toSimpleJson());
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail("Test raised an exception");
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				e.printStackTrace();
+				fail("Test raised an exception");
+			}
 
 		} finally {
 			if (svr != null)
@@ -2615,8 +2642,10 @@ public class SvarogTest {
 			DbDataArray allClaims = svr.getObjectsByParentId(2091383L, sclTypeId, null, 0, 0);
 
 		} catch (SvException e) {
-			e.printStackTrace();
-			fail("Unhandled exception");
+			if (!e.getLabelCode().equals("system.error.no_dbt_found")) {
+				e.printStackTrace();
+				fail("Unhandled exception");
+			}
 		} finally {
 			if (svr != null)
 				svr.release();
