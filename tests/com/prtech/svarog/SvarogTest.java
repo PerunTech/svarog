@@ -130,10 +130,11 @@ public class SvarogTest {
 
 	@Test
 	public void testLink() {
-		if (SvReader.getTypeIdByName("APPLICATION") == 0L)
-			return;
 		SvReader svr = null;
 		try {
+			if (SvReader.getTypeIdByName("APPLICATION") == 0L)
+				return;
+
 			svr = new SvReader();
 			DbDataArray arrLinkedApp = svr.getObjectsByLinkedId(20516159L, SvReader.getTypeIdByName("APPLICATION"),
 					SvLink.getLinkType("LINK NEW APPLICATION WITH OLD ONE", SvReader.getTypeIdByName("APPLICATION"),
@@ -219,16 +220,16 @@ public class SvarogTest {
 	@Test
 	public void testRefDate() {
 
-		Long appType = SvCore.getTypeIdByName("APPPLICATION");
-		if (appType == 0)
-			return;
-
-		Long farmTypeId = SvCore.getTypeIdByName("FARMER");
-		if (farmTypeId == 0)
-			return;
-
 		SvReader svr = null;
 		try {
+			Long appType = SvCore.getTypeIdByName("APPPLICATION");
+			if (appType == 0)
+				return;
+
+			Long farmTypeId = SvCore.getTypeIdByName("FARMER");
+			if (farmTypeId == 0)
+				return;
+
 			svr = new SvReader();
 			DbDataArray asd = svr.getObjectsByParentId(15461L, appType, null, 0, 0);
 			if (asd.get(0).getVal("REFERENCE_DATE") != null)
@@ -248,16 +249,17 @@ public class SvarogTest {
 
 	@Test
 	public void testLandClaim_2018() {
-		Long appTypeId = SvReader.getTypeIdByName("APPLICATION");
-		Long cadTypeId = SvReader.getTypeIdByName("CAD_PARCEL");
-
-		if (appTypeId.equals(0L) || cadTypeId.equals(0L))
-			return;
 
 		String uniqueCacheId = "TEST-LAND";
 		SvWriter svw = null;
 		SvReader svr = null;
 		try {
+			Long appTypeId = SvReader.getTypeIdByName("APPLICATION");
+			Long cadTypeId = SvReader.getTypeIdByName("CAD_PARCEL");
+
+			if (appTypeId.equals(0L) || cadTypeId.equals(0L))
+				return;
+
 			svr = new SvReader();
 			svw = new SvWriter(svr);
 			svw.setAutoCommit(false);
@@ -557,16 +559,17 @@ public class SvarogTest {
 
 	@Test
 	public void testLandClaim() {
-		Long appTypeId = SvReader.getTypeIdByName("APPLICATION");
-		Long cadTypeId = SvReader.getTypeIdByName("CAD_PARCEL");
-
-		if (appTypeId.equals(0L) || cadTypeId.equals(0L))
-			return;
 
 		String uniqueCacheId = "TEST-LAND";
 		SvWriter svw = null;
 		SvReader svr = null;
 		try {
+			Long appTypeId = SvReader.getTypeIdByName("APPLICATION");
+			Long cadTypeId = SvReader.getTypeIdByName("CAD_PARCEL");
+
+			if (appTypeId.equals(0L) || cadTypeId.equals(0L))
+				return;
+
 			svr = new SvReader();
 			svw = new SvWriter(svr);
 			svw.setAutoCommit(false);
@@ -1887,15 +1890,16 @@ public class SvarogTest {
 
 	@Test
 	public void testCache() {
-		Long typeId = SvReader.getTypeIdByName("APPLICATION");
-		if (typeId.equals(0L)) {
-			System.out.println("Environment does not support application objects");
-			return;
-		}
 
 		SvReader svr = null;
 		Long scalarGroupId = 273916L;
 		try {
+			Long typeId = SvReader.getTypeIdByName("APPLICATION");
+			if (typeId.equals(0L)) {
+				System.out.println("Environment does not support application objects");
+				return;
+			}
+
 			svr = new SvReader();
 			for (int i = 0; i < 10; i++) {
 
@@ -2599,24 +2603,25 @@ public class SvarogTest {
 
 	@Test
 	public void getClaimsTest() {
-		Long sclTypeId = SvReader.getTypeIdByName("SUPPORT_CLAIM");
-		if (!sclTypeId.equals(0L)) {
-			SvReader svr = null;
+		SvReader svr = null;
 
-			try {
-				svr = new SvReader();
-				DbDataArray allClaims = svr.getObjectsByParentId(2091383L, sclTypeId, null, 0, 0);
-
-			} catch (SvException e) {
-				e.printStackTrace();
-				fail("Unhandled exception");
-			} finally {
-				if (svr != null)
-					svr.release();
+		try {
+			Long sclTypeId = SvReader.getTypeIdByName("SUPPORT_CLAIM");
+			if (!sclTypeId.equals(0L)) {
+				System.out.println("Can't run claim test since the environment doesn't contain support claim object");
+				return;
 			}
-		} else {
-			System.out.println("Can't run claim test since the environment doesn't contain support claim object");
+			svr = new SvReader();
+			DbDataArray allClaims = svr.getObjectsByParentId(2091383L, sclTypeId, null, 0, 0);
+
+		} catch (SvException e) {
+			e.printStackTrace();
+			fail("Unhandled exception");
+		} finally {
+			if (svr != null)
+				svr.release();
 		}
+
 		if (SvConnTracker.hasTrackedConnections())
 			fail("You have a connection leak, you dirty animal!");
 	}
