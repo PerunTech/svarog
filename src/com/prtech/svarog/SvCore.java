@@ -874,8 +874,11 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectName
 	 *            The name of the object type (table name)
 	 * @return A object type descriptor
+	 * @throws SvException
+	 *             If the object type identified by name ObjectName is not found
+	 *             "system.error.no_dbt_found" exception is thrown
 	 */
-	public static Long getTypeIdByName(String objectName) {
+	public static Long getTypeIdByName(String objectName) throws SvException {
 		return getTypeIdByName(objectName, null);
 	}
 
@@ -887,15 +890,20 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectSchema
 	 *            The schema in which the table resides
 	 * @return Object Id of the object type descriptor
+	 * @throws SvException
+	 *             If the object type identified by name ObjectName is not found
+	 *             "system.error.no_dbt_found" exception is thrown
 	 */
-	public static Long getTypeIdByName(String objectName, String objectSchema) {
-		if (objectName == null)
-			return 0L;
-		DbDataObject objType = getDbtByName(objectName, objectSchema);
-		if (objType != null)
+	public static Long getTypeIdByName(String objectName, String objectSchema) throws SvException {
+		DbDataObject objType = null;
+		if (objectName != null)
+			objType = getDbtByName(objectName, objectSchema);
+
+		if (objType == null) {
+			String exceptionMessage = "system.error.no_dbt_found";
+			throw (new SvException(exceptionMessage, svCONST.systemUser, null, objectName));
+		} else
 			return objType.getObjectId();
-		else
-			return 0L;
 	}
 
 	/**
