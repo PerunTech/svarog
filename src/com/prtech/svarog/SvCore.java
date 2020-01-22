@@ -71,9 +71,17 @@ import com.vividsolutions.jts.io.WKBWriter;
 
 /**
  * 
- * SvCore is the svarog god class anti-pattern. Since svarog was designed to be
- * anti-pattern it just complies with basic design principles: fast, simple,
- * configurable while breaking all best practices and patterns.
+ * SvCore is core abstract class of the Svarog Platform. It provides all the
+ * basic functions to classes inheriting from it. It serves as basic
+ * configuration management tool, managing the list of object types, the list of
+ * fields, the constraint rules. It also handles all different methods related
+ * to management of Forms (except for reading forms which is assigned to the
+ * SvReader). It also ensures that proper SvCore chaining is validated and
+ * allows sharing JDBC connections between different cores. It also performs all
+ * Svarog related authorization processes which in turn implement the security
+ * enforcement via SVAROG ACLs. Internally it provides the basic reading of data
+ * from the database structure and transforming it into set of DbDataObject
+ * POJOs.
  * 
  */
 public abstract class SvCore implements ISvCore {

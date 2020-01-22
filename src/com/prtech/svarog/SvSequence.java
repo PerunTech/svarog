@@ -19,6 +19,15 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
+/**
+ * SvSequence is a class providing basic sequence generation with version
+ * fencing. It shall allow in transaction generation of sequence as well as
+ * generation of sequences outside of a transaction scope. The sequences can be
+ * guaranteed to be sequential if used in transaction scope.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvSequence extends SvCore {
 
 	/**
@@ -26,7 +35,8 @@ public class SvSequence extends SvCore {
 	 * This is the default constructor available to the public, in order to
 	 * enforce the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException Pass through of underlying exceptions
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvSequence(String session_id) throws SvException {
 		super(session_id);
@@ -81,18 +91,18 @@ public class SvSequence extends SvCore {
 	 *             Any underlying exception
 	 */
 	public static Long getSeqNextVal(String sequenceyKey, SvCore core) throws SvException {
-		Boolean isService = false; 
+		Boolean isService = false;
 		SvCore currentCore = core;
-		while(currentCore!=null)
-		{
-			isService=currentCore.isService();
-			if(isService)
+		while (currentCore != null) {
+			isService = currentCore.isService();
+			if (isService)
 				break;
-			currentCore=currentCore.getParentSvCore();
+			currentCore = currentCore.getParentSvCore();
 		}
-		
-//		if(!isService)
-//			throw (new SvException("system.error.core_isnot_service", core.instanceUser));
+
+		// if(!isService)
+		// throw (new SvException("system.error.core_isnot_service",
+		// core.instanceUser));
 
 		Long returnValue = null;
 		SvReader svr = new SvReader();

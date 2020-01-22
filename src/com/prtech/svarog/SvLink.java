@@ -25,6 +25,14 @@ import org.apache.logging.log4j.Logger;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog.svCONST;
 
+/**
+ * This class provides methods to link two DbDataObjects via a specific link
+ * type. It uses the basic link types managed by the SvCore to perform
+ * persistence of link information based on different link types.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvLink extends SvCore {
 
 	/**
