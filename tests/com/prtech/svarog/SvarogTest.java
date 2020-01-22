@@ -2678,8 +2678,13 @@ public class SvarogTest {
 
 			}
 
-			String codesfile = SvarogInstall.masterCodesPath + "codes.properties";
-			fis = SvCore.class.getResourceAsStream(codesfile);
+			String codesPath = SvarogInstall.masterCodesPath + "codes.properties";
+
+			fis = DbInit.class.getResourceAsStream("/" + codesPath);
+			if (fis == null)
+				fis = ClassLoader.getSystemClassLoader().getResourceAsStream(codesPath);
+
+			
 			byte[] fileData = IOUtils.toByteArray(fis);
 			DbDataObject fileDescriptor = new DbDataObject();
 			fileDescriptor.setObject_type(svCONST.OBJECT_TYPE_FILE);
