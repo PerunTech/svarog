@@ -17,6 +17,13 @@ package com.prtech.svarog;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 
+/**
+ * The implementation of workflows, such as movement of an object through
+ * different statuses is implemented by this class.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvWorkflow extends SvCore {
 
 	/**

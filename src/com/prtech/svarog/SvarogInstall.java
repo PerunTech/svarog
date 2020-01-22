@@ -72,6 +72,8 @@ import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_common.IDbInit;
 import com.prtech.svarog_common.SvCharId;
 import com.prtech.svarog_interfaces.ISvConfiguration;
+import com.prtech.svarog_interfaces.ISvCore;
+import com.prtech.svarog_interfaces.ISvConfiguration.UpdateType;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -128,7 +130,25 @@ public class SvarogInstall {
 
 	static ArrayList<Option> sysCoreOpts = new ArrayList<Option>();
 
+	/**
+	 * List of SvConfigurations available in the system
+	 */
 	static ArrayList<ISvConfiguration> iSvCfgs = null;
+
+	public static final String labelsFilePrefix = "20. master_labels_";
+	public static final String codesFile = "30. master_codes.json";
+	public static final String usersFile = "999. default_users.json";
+	public static final String masterRecordsPath = "records/";
+	public static final String masterDbtPath = "config/";
+	public static final String masterSDIPath = "sdi/";
+	public static final String masterLabelsPath = "labels/";
+	public static final String masterSecurityPath = "security/";
+	public static final String masterCodesPath = "com/prtech/svarog/codes/";
+	public static final String fileListName = "file_list.txt";
+	public static final String sdiGridFile = "grid.json";
+
+	public static final String aclFile = "acl.json";
+	public static final String aclSidFile = "acl_sid.json";
 
 	/**
 	 * Main entry point of the svarog install Supported operations: JSON - will
@@ -1231,6 +1251,7 @@ public class SvarogInstall {
 		Connection conn = null;
 		String schema = null;
 		String msg = "";
+		ISvCore svc = null;
 		if (iSvCfgs == null)
 			iSvCfgs = (ArrayList<ISvConfiguration>) DbInit
 					.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), ISvConfiguration.class);
@@ -1238,31 +1259,33 @@ public class SvarogInstall {
 		try {
 			conn = SvConf.getDBConnection();
 			schema = SvConf.getDefaultSchema();
+			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled())
+				svc = new SvReader();
 			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
 				switch (updateType) {
 				case SCHEMA:
-					msg = conf.beforeSchemaUpdate(conn, schema);
+					msg = conf.beforeSchemaUpdate(conn, svc, schema);
 					break;
 				case LABELS:
-					msg = conf.beforeLabelsUpdate(conn, schema);
+					msg = conf.beforeLabelsUpdate(conn, svc, schema);
 					break;
 				case CODES:
-					msg = conf.beforeCodesUpdate(conn, schema);
+					msg = conf.beforeCodesUpdate(conn, svc, schema);
 					break;
 				case TYPES:
-					msg = conf.beforeTypesUpdate(conn, schema);
+					msg = conf.beforeTypesUpdate(conn, svc, schema);
 					break;
 				case LINKTYPES:
-					msg = conf.beforeLinkTypesUpdate(conn, schema);
+					msg = conf.beforeLinkTypesUpdate(conn, svc, schema);
 					break;
 				case ACL:
-					msg = conf.beforeAclUpdate(conn, schema);
+					msg = conf.beforeAclUpdate(conn, svc, schema);
 					break;
 				case SIDACL:
-					msg = conf.beforeSidAclUpdate(conn, schema);
+					msg = conf.beforeSidAclUpdate(conn, svc, schema);
 					break;
 				case FINAL:
-					msg = conf.afterUpdate(conn, schema);
+					msg = conf.afterUpdate(conn, svc, schema);
 					break;
 				default:
 					break;
@@ -1270,6 +1293,8 @@ public class SvarogInstall {
 				log4j.info(msg);
 			}
 		} finally {
+			if (svc != null)
+				svc.release();
 			if (conn != null)
 				conn.close();
 		}
@@ -1757,12 +1782,12 @@ public class SvarogInstall {
 	 * @return
 	 */
 	static ArrayList<DbDataTable> readTablesFromConf() {
-		String confPath = SvConf.getConfPath() + svCONST.masterDbtPath;
+		String confPath = SvConf.getConfPath() + masterDbtPath;
 		InputStream flst = null;
 		ArrayList<DbDataTable> dbTables = null;
 		try {
 			// init the table configs
-			flst = new FileInputStream(new File(confPath + svCONST.fileListName));
+			flst = new FileInputStream(new File(confPath + fileListName));
 			String[] texFiles = IOUtils.toString(flst, "UTF-8").split("\n");
 
 			dbTables = new ArrayList<DbDataTable>();
@@ -2628,7 +2653,7 @@ public class SvarogInstall {
 			} else
 				installLocales();
 
-			String confPath = SvConf.getConfPath() + svCONST.masterRecordsPath;
+			String confPath = SvConf.getConfPath() + masterRecordsPath;
 			File confFolder = new File(confPath);
 			File[] confFiles = confFolder.listFiles();
 			DbDataArray allNonProcessed = new DbDataArray();
@@ -2638,7 +2663,7 @@ public class SvarogInstall {
 			Arrays.sort(confFiles);
 			// iterate over all files containing Labels and run upgrade
 			for (int i = 0; i < confFiles.length; i++) {
-				if (confFiles[i].getName().startsWith(svCONST.labelsFilePrefix)) {
+				if (confFiles[i].getName().startsWith(labelsFilePrefix)) {
 					upgradeLabels(confPath + confFiles[i].getName());
 				}
 			}
@@ -2649,7 +2674,7 @@ public class SvarogInstall {
 
 			executeConfiguration(ISvConfiguration.UpdateType.CODES);
 			// run the upgrade of the codes
-			upgradeCodes(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.codesFile);
+			upgradeCodes(SvConf.getConfPath() + masterRecordsPath + codesFile);
 
 			// if we wanted to run labels only upgrade, stop here
 			if (labelsOnly)
@@ -2765,8 +2790,7 @@ public class SvarogInstall {
 
 		SvWriter svw = null;
 		SvLink svl = null;
-		DbDataArray localUsers = getDbArrayFromFile(
-				SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.usersFile);
+		DbDataArray localUsers = getDbArrayFromFile(SvConf.getConfPath() + masterRecordsPath + usersFile);
 		try {
 			svw = new SvWriter();
 			svl = new SvLink(svw);
@@ -2836,8 +2860,8 @@ public class SvarogInstall {
 		log4j.info("Labels locale:" + filePath);
 		boolean retVal = false;
 		String locale = null;
-		if (filePath.indexOf(svCONST.labelsFilePrefix) > 0) {
-			locale = filePath.substring(filePath.indexOf(svCONST.labelsFilePrefix) + svCONST.labelsFilePrefix.length());
+		if (filePath.indexOf(labelsFilePrefix) > 0) {
+			locale = filePath.substring(filePath.indexOf(labelsFilePrefix) + labelsFilePrefix.length());
 			locale = locale.replace(".json", "");
 		}
 		DbDataArray locales = getLocaleList();
