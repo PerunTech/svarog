@@ -1259,7 +1259,7 @@ public class SvarogInstall {
 		try {
 			conn = SvConf.getDBConnection();
 			schema = SvConf.getDefaultSchema();
-			if (!updateType.equals(UpdateType.SCHEMA)||isSvarogInstalled())
+			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled())
 				svc = new SvReader();
 			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
 				switch (updateType) {
@@ -1293,6 +1293,8 @@ public class SvarogInstall {
 				log4j.info(msg);
 			}
 		} finally {
+			if (svc != null)
+				svc.release();
 			if (conn != null)
 				conn.close();
 		}
