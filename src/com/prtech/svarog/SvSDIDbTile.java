@@ -28,6 +28,15 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.WKBReader;
 
+/**
+ * The SvSDIDbTile allows loading of standard svarog objects represented by
+ * DbDataObject and DbDataArray from the reference database. This class supports
+ * loading tiles based on Envelope/BBOX as well as additional search parameters
+ * to filter the GIS objects.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvSDIDbTile extends SvSDITile {
 
 	DbSearch extSearch;

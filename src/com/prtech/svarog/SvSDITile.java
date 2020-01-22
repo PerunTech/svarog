@@ -38,6 +38,14 @@ import com.vividsolutions.jts.geom.prep.PreparedPolygon;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
+/**
+ * Abstract Spatial Data services are provided by this class. The SvSDITile
+ * shall be inherited by different Spatial Tile types which will be used by the
+ * SvGeometry to allow tiling of GIS datasets.
+ * 
+ * @author ristepejov
+ *
+ */
 public abstract class SvSDITile {
 	static final Logger log4j = LogManager.getLogger(SvSDITile.class.getName());
 
@@ -115,18 +123,19 @@ public abstract class SvSDITile {
 	}
 
 	public ArrayList<Geometry> getRelations(Geometry geom, SDIRelation relation) throws SvException {
-		return getRelations(geom,  relation, false);
+		return getRelations(geom, relation, false);
 	}
-	
-	public ArrayList<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal) throws SvException {
+
+	public ArrayList<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
+			throws SvException {
 		loadTile();
 		ArrayList<Geometry> l = new ArrayList<Geometry>();
 		List<PreparedGeometry> geoms = tileIndex.query(geom.getEnvelopeInternal());
 		boolean relates = false;
 		for (PreparedGeometry g : geoms) {
-			if(returnOnlyInternal && internalGeometries.contains(g.getGeometry()))
+			if (returnOnlyInternal && internalGeometries.contains(g.getGeometry()))
 				continue;
-			
+
 			switch (relation) {
 			case INTERSECTS:
 				relates = g.intersects(geom);
@@ -194,10 +203,9 @@ public abstract class SvSDITile {
 	}
 
 	public GeometryCollection getInternalGeomCollection() throws SvException {
-		ArrayList<Geometry> geoms=this.getInternalGeometries();
-		Geometry[] gArray=(Geometry[]) geoms.toArray(new Geometry[geoms.size()]);
-		GeometryCollection retGeometries = new GeometryCollection(gArray,
-				SvUtil.sdiFactory);
+		ArrayList<Geometry> geoms = this.getInternalGeometries();
+		Geometry[] gArray = (Geometry[]) geoms.toArray(new Geometry[geoms.size()]);
+		GeometryCollection retGeometries = new GeometryCollection(gArray, SvUtil.sdiFactory);
 		return retGeometries;
 	}
 

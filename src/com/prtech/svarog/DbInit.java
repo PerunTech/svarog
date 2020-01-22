@@ -5079,12 +5079,12 @@ public class DbInit {
 			DbDataTable dbt = dbtList.get(i);
 
 			String retval = saveMasterJson(
-					SvConf.getConfPath() + svCONST.masterDbtPath
+					SvConf.getConfPath() + SvarogInstall.masterDbtPath
 							+ dbt.getDbTableName().replace("{REPO_TABLE_NAME}", "master").toLowerCase() + "_repo.json",
 					dbt, false);
 
 			if (!retval.equals("")) {
-				fullRetval += fullRetval + "; " + SvConf.getConfPath() + svCONST.masterDbtPath
+				fullRetval += fullRetval + "; " + SvConf.getConfPath() + SvarogInstall.masterDbtPath
 						+ dbt.getDbTableName().replace("{REPO_TABLE_NAME}", "master") + "_repo.json";
 			}
 
@@ -5098,22 +5098,24 @@ public class DbInit {
 
 		File textFolder;
 		try {
-			textFolder = new File(SvConf.getConfPath() + svCONST.masterDbtPath);
+			textFolder = new File(SvConf.getConfPath() + SvarogInstall.masterDbtPath);
 			File[] texFiles = textFolder.listFiles();
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].getName().endsWith(".json"))
 					fileList += texFiles[i].getName() + "\n";
 			}
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterDbtPath + svCONST.fileListName, fileList);
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterDbtPath + SvarogInstall.fileListName,
+					fileList);
 			fileList = "";
-			textFolder = new File(SvConf.getConfPath() + svCONST.masterRecordsPath);
+			textFolder = new File(SvConf.getConfPath() + SvarogInstall.masterRecordsPath);
 			texFiles = textFolder.listFiles();
 			Arrays.sort(texFiles);
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].getName().endsWith(".json"))
 					fileList += texFiles[i].getName() + "\n";
 			}
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.fileListName, fileList);
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + SvarogInstall.fileListName,
+					fileList);
 
 		} catch (Exception e) {
 			System.out.println("Error Generating file list");
@@ -5328,8 +5330,8 @@ public class DbInit {
 
 				// load all custom JARs and try to load ACLs and ACL/SIDs from
 				// those
-				String aclFilePath = svCONST.masterSecurityPath + svCONST.aclFile;
-				String aclSidFilePath = svCONST.masterSecurityPath + svCONST.aclSidFile;
+				String aclFilePath = SvarogInstall.masterSecurityPath + SvarogInstall.aclFile;
+				String aclSidFilePath = SvarogInstall.masterSecurityPath + SvarogInstall.aclSidFile;
 
 				File customFolder = new File("custom/");
 				File[] customJars = customFolder.exists() ? customFolder.listFiles() : null;
@@ -5451,9 +5453,11 @@ public class DbInit {
 
 			}
 
-			testRetval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "90. " + svCONST.aclFile,
-					arrAcl, true);
-			testRetval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "91. " + svCONST.aclSidFile,
+			testRetval += saveMasterJson(
+					SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "90. " + SvarogInstall.aclFile, arrAcl,
+					true);
+			testRetval += saveMasterJson(
+					SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "91. " + SvarogInstall.aclSidFile,
 					arrAclSid, true);
 
 		} catch (Exception e) {
@@ -5462,6 +5466,61 @@ public class DbInit {
 		}
 		updateFileLists();
 		return testRetval;
+	}
+
+	static void loadInternalLabels(String localeId, HashMap<String, DbDataObject> mLabels) {
+		String labelFile = SvarogInstall.masterCodesPath + localeId + "Labels.properties";
+
+		InputStream iStr = DbInit.class.getResourceAsStream("/" + labelFile);
+		if (iStr == null)
+			iStr = ClassLoader.getSystemClassLoader().getResourceAsStream(labelFile);
+
+		Properties rb = null;
+
+		if (iStr != null) {
+			// load strings
+			try {
+				rb = new Properties();
+				rb.load(new InputStreamReader(iStr, "UTF-8"));
+				log4j.info("Loaded labels from: " + labelFile);
+			} catch (IOException e) {
+				log4j.trace("Error reading svarog root labels", e);
+			} finally {
+				try {
+					if (iStr != null)
+						iStr.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		if (rb != null) {
+			// load strings
+			Iterator<Object> pit = rb.keySet().iterator();
+			while (pit.hasNext()) {
+				String key = (String) pit.next();
+				if (key.endsWith("_l"))
+					continue;
+
+				DbDataObject dbo = new DbDataObject();
+				dbo.setStatus(svCONST.STATUS_VALID);
+				dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+				dbo.setDtDelete(SvConf.MAX_DATE);
+				dbo.setVal("label_code", key);
+				dbo.setVal("label_text", rb.getProperty(key));
+				dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
+
+				try {
+					dbo.setVal("label_descr", rb.getProperty(key + "_l"));
+				} catch (Exception e) {
+				}
+				;
+				dbo.setVal("locale_id", localeId);
+				mLabels.put(key, dbo);
+
+			}
+		}
 	}
 
 	/**
@@ -5486,6 +5545,8 @@ public class DbInit {
 			// master_locales.json", locales.toJson().toString());
 			for (DbDataObject entry : locales.getItems()) {
 				try {
+
+					loadInternalLabels((String) entry.getVal("locale_id"), mLabels);
 					// load labers from the custom folder
 					File customFolder = new File("custom/");
 					if (customFolder != null) {
@@ -5500,7 +5561,6 @@ public class DbInit {
 						}
 					}
 					// load labels from the svarog OSG bundles dir
-
 					customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
@@ -5514,48 +5574,6 @@ public class DbInit {
 						}
 					}
 
-					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id") + "Labels.properties";
-
-					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
-
-					Properties rb = null;
-
-					if (iStr != null) {
-						// load strings
-						try {
-							rb = new Properties();
-							rb.load(new InputStreamReader(iStr, "UTF-8"));
-							log4j.info("Loaded labels from: " + labelFile);
-						} finally {
-							iStr.close();
-						}
-					}
-					if (rb != null) {
-						// load strings
-						Iterator<Object> pit = rb.keySet().iterator();
-						while (pit.hasNext()) {
-							String key = (String) pit.next();
-							if (key.endsWith("_l"))
-								continue;
-
-							DbDataObject dbo = new DbDataObject();
-							dbo.setStatus(svCONST.STATUS_VALID);
-							dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
-							dbo.setDtDelete(SvConf.MAX_DATE);
-							dbo.setVal("label_code", key);
-							dbo.setVal("label_text", rb.getProperty(key));
-							dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
-
-							try {
-								dbo.setVal("label_descr", rb.getProperty(key + "_l"));
-							} catch (Exception e) {
-							}
-							;
-							dbo.setVal("locale_id", entry.getVal("locale_id"));
-							mLabels.put(key, dbo);
-
-						}
-					}
 				} catch (Exception e) {
 					log4j.debug("Error reading svarog root labels", e);
 				}
@@ -5563,8 +5581,8 @@ public class DbInit {
 				if (mLabels != null && mLabels.size() > 0) {
 					arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
 					String strRetval = "";
-					strRetval = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath
-							+ svCONST.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
+					strRetval = saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath
+							+ SvarogInstall.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
 					if (!strRetval.equals("")) {
 						testRetval += testRetval + strRetval + " json/records/20. master_labels_"
 								+ entry.getVal("locale_id") + ".json; ";
@@ -6058,7 +6076,7 @@ public class DbInit {
 					}
 					String errStr = "";
 					if (customObjests.size() > 0) {
-						errStr = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "4" + i + ". "
+						errStr = saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "4" + i + ". "
 								+ customJars[i].getName().replace(".jar", ".json"), customObjests, true);
 						customObjestsAll.getItems().addAll(customObjests.getItems());
 					}
@@ -6111,10 +6129,11 @@ public class DbInit {
 
 		addDefaultLinkTypes(defaultObjests);
 
-		retval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "40. master_records.json",
+		retval += saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "40. master_records.json",
 				defaultObjests, true);
 
-		retval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.usersFile, arrWF, true);
+		retval += saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + SvarogInstall.usersFile,
+				arrWF, true);
 
 		prepareACLs(defaultObjests, customObjestsAll);
 
@@ -6287,10 +6306,12 @@ public class DbInit {
 
 		try {
 
-			String codesPath = "/" + svCONST.masterCodesPath + "/codes.properties";
+			String codesPath = SvarogInstall.masterCodesPath + "codes.properties";
 			// File baseCodes = new File();
 
-			InputStream fis = DbInit.class.getResourceAsStream(codesPath);
+			InputStream fis = DbInit.class.getResourceAsStream("/" + codesPath);
+			if (fis == null)
+				fis = ClassLoader.getSystemClassLoader().getResourceAsStream(codesPath);
 
 			String json = IOUtils.toString(fis, "UTF-8");
 
@@ -6333,7 +6354,7 @@ public class DbInit {
 			JsonObject obj = ((Jsonable) arr).toJson();
 			String jsonCodes = gson.toJson(obj);
 			// save the array to disk
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + "30. master_codes.json",
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "30. master_codes.json",
 					jsonCodes);
 			codesStr[0] = jsonCodes;
 		} catch (Exception e) {
@@ -6351,9 +6372,10 @@ public class DbInit {
 		String geoJSONBounds = null;
 		InputStream is = null;
 		try {
-			is = DbInit.class.getResourceAsStream(SvConf.getConfPath() + svCONST.masterSDIPath + "/boundary.json");
+			is = DbInit.class
+					.getResourceAsStream(SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json");
 			if (is == null) {
-				String path = "./" + SvConf.getConfPath() + svCONST.masterSDIPath + "/boundary.json";
+				String path = "./" + SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json";
 				is = new FileInputStream(path);
 			}
 			if (is != null) {
@@ -6438,10 +6460,11 @@ public class DbInit {
 			GeometryCollection gcl = SvUtil.sdiFactory.createGeometryCollection(garr);
 			jtsWriter.setUseFeatureType(true);
 			jtsJson = jtsWriter.write(gcl);
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterSDIPath + svCONST.sdiGridFile, jtsJson);
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile,
+					jtsJson);
 			System.out.println("Number of tiles written:" + gridList.size());
-			System.out.println("Generating Tiles finished successfully (" + SvConf.getConfPath() + svCONST.masterSDIPath
-					+ svCONST.sdiGridFile + ")");
+			System.out.println("Generating Tiles finished successfully (" + SvConf.getConfPath()
+					+ SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile + ")");
 
 		} catch (com.vividsolutions.jts.io.ParseException e) {
 			retval = "Error generating grid";
