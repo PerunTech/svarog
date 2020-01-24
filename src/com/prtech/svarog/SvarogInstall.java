@@ -2491,7 +2491,7 @@ public class SvarogInstall {
 	 *            objects
 	 * @return True if upgrade is needed else false
 	 */
-	static boolean shouldUpgradeConfig(DbDataObject oldDbo, DbDataObject newDbo, DbDataArray dboFields,
+	public static boolean shouldUpgradeConfig(DbDataObject oldDbo, DbDataObject newDbo, DbDataArray dboFields,
 			Boolean avoidParentComparison) {
 		if (!avoidParentComparison)
 			if (!oldDbo.getParentId().equals(newDbo.getParentId()))
