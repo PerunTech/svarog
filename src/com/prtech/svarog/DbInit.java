@@ -6251,6 +6251,7 @@ public class DbInit {
 				String jsonCustom = IOUtils.toString(customIs, "UTF-8");
 				JsonObject customJobj = gson.fromJson(jsonCustom, JsonElement.class).getAsJsonObject();
 				mergeChildrenCodes(jCodes, customJobj);
+				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
 			}
 		} catch (Exception e1) {
 			log4j.error("Error loading codes from custom jar:" + jarPath);
