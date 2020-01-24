@@ -12,7 +12,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.0.3-SNAPSHOT</version>
+	<version>3.0.3</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -247,7 +247,7 @@
 		<dependency>
 			<groupId>svarog-interfaces</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>3.0.3-SNAPSHOT</version>
+			<version>3.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
