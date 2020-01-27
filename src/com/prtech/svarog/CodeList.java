@@ -44,7 +44,9 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            User session for which the CodeList is instantiated
+	 * @throws SvException
 	 *             Pass through for any underlying exception in the super
 	 *             contructor
 	 */
@@ -62,7 +64,7 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * @param sharedSvCore
 	 *            The shared SvCore instance which is used for the JDBC
 	 *            connection sharing
-	 * @throws Exception
+	 * @throws SvException
 	 *             Pass through for any underlying exception in the super
 	 *             contructor
 	 */
@@ -77,7 +79,7 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * @param sharedSvCore
 	 *            The shared SvCore instance which is used for the JDBC
 	 *            connection sharing
-	 * @throws Exception
+	 * @throws SvException
 	 *             Pass through for any underlying exception in the super
 	 *             contructor
 	 */
@@ -89,7 +91,7 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
 	 *             Pass through for any underlying exception in the super
 	 *             contructor
 	 */

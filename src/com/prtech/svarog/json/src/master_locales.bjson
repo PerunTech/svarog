@@ -1,0 +1,1797 @@
+{  "com.prtech.svarog_common.DbDataArray": {
+    "items": [
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Albanian"
+            },
+            {
+              "COUNTRY": "Albania"
+            },
+            {
+              "LOCALE_ID": "sq_AL"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Algeria"
+            },
+            {
+              "LOCALE_ID": "ar_DZ"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Bahrain"
+            },
+            {
+              "LOCALE_ID": "ar_BH"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Egypt"
+            },
+            {
+              "LOCALE_ID": "ar_EG"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Iraq"
+            },
+            {
+              "LOCALE_ID": "ar_IQ"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Jordan"
+            },
+            {
+              "LOCALE_ID": "ar_JO"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Kuwait"
+            },
+            {
+              "LOCALE_ID": "ar_KW"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Lebanon"
+            },
+            {
+              "LOCALE_ID": "ar_LB"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Libya"
+            },
+            {
+              "LOCALE_ID": "ar_LY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Morocco"
+            },
+            {
+              "LOCALE_ID": "ar_MA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Oman"
+            },
+            {
+              "LOCALE_ID": "ar_OM"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Qatar"
+            },
+            {
+              "LOCALE_ID": "ar_QA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Saudi Arabia"
+            },
+            {
+              "LOCALE_ID": "ar_SA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Sudan"
+            },
+            {
+              "LOCALE_ID": "ar_SD"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Syria"
+            },
+            {
+              "LOCALE_ID": "ar_SY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Tunisia"
+            },
+            {
+              "LOCALE_ID": "ar_TN"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "United Arab Emirates"
+            },
+            {
+              "LOCALE_ID": "ar_AE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Arabic"
+            },
+            {
+              "COUNTRY": "Yemen"
+            },
+            {
+              "LOCALE_ID": "ar_YE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Belarusian"
+            },
+            {
+              "COUNTRY": "Belarus"
+            },
+            {
+              "LOCALE_ID": "be_BY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Bulgarian"
+            },
+            {
+              "COUNTRY": "Bulgaria"
+            },
+            {
+              "LOCALE_ID": "bg_BG"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Catalan"
+            },
+            {
+              "COUNTRY": "Spain"
+            },
+            {
+              "LOCALE_ID": "ca_ES"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Chinese (Simplified)"
+            },
+            {
+              "COUNTRY": "China"
+            },
+            {
+              "LOCALE_ID": "zh_CN"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Chinese (Simplified)"
+            },
+            {
+              "COUNTRY": "Singapore"
+            },
+            {
+              "LOCALE_ID": "zh_SG"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Chinese (Traditional)"
+            },
+            {
+              "COUNTRY": "Hong Kong"
+            },
+            {
+              "LOCALE_ID": "zh_HK"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Chinese (Traditional)"
+            },
+            {
+              "COUNTRY": "Taiwan"
+            },
+            {
+              "LOCALE_ID": "zh_TW"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Croatian"
+            },
+            {
+              "COUNTRY": "Croatia"
+            },
+            {
+              "LOCALE_ID": "hr_HR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Czech"
+            },
+            {
+              "COUNTRY": "Czech Republic"
+            },
+            {
+              "LOCALE_ID": "cs_CZ"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Danish"
+            },
+            {
+              "COUNTRY": "Denmark"
+            },
+            {
+              "LOCALE_ID": "da_DK"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Dutch"
+            },
+            {
+              "COUNTRY": "Belgium"
+            },
+            {
+              "LOCALE_ID": "nl_BE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Dutch"
+            },
+            {
+              "COUNTRY": "Netherlands"
+            },
+            {
+              "LOCALE_ID": "nl_NL"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "Australia"
+            },
+            {
+              "LOCALE_ID": "en_AU"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "Canada"
+            },
+            {
+              "LOCALE_ID": "en_CA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "India"
+            },
+            {
+              "LOCALE_ID": "en_IN"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "Ireland"
+            },
+            {
+              "LOCALE_ID": "en_IE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "Malta"
+            },
+            {
+              "LOCALE_ID": "en_MT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "New Zealand"
+            },
+            {
+              "LOCALE_ID": "en_NZ"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "Philippines"
+            },
+            {
+              "LOCALE_ID": "en_PH"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "Singapore"
+            },
+            {
+              "LOCALE_ID": "en_SG"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "South Africa"
+            },
+            {
+              "LOCALE_ID": "en_ZA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "United Kingdom"
+            },
+            {
+              "LOCALE_ID": "en_GB"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "English"
+            },
+            {
+              "COUNTRY": "United States"
+            },
+            {
+              "LOCALE_ID": "en_US"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Estonian"
+            },
+            {
+              "COUNTRY": "Estonia"
+            },
+            {
+              "LOCALE_ID": "et_EE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Finnish"
+            },
+            {
+              "COUNTRY": "Finland"
+            },
+            {
+              "LOCALE_ID": "fi_FI"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "French"
+            },
+            {
+              "COUNTRY": "Belgium"
+            },
+            {
+              "LOCALE_ID": "fr_BE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "French"
+            },
+            {
+              "COUNTRY": "Canada"
+            },
+            {
+              "LOCALE_ID": "fr_CA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "French"
+            },
+            {
+              "COUNTRY": "France"
+            },
+            {
+              "LOCALE_ID": "fr_FR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "French"
+            },
+            {
+              "COUNTRY": "Luxembourg"
+            },
+            {
+              "LOCALE_ID": "fr_LU"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "French"
+            },
+            {
+              "COUNTRY": "Switzerland"
+            },
+            {
+              "LOCALE_ID": "fr_CH"
+            }
+          ]}
+      },
+{       "com.prtech.svarog_common.DbDataObject": {					
+        "dt_insert": "2000-01-01T00:00:00.000+01:00",
+        "dt_delete": "9999-12-31T01:00:00.000+01:00",
+        "object_type": {OBJECT_TYPE_LOCALE},
+        "status": "VALID","values": [
+            {
+              "LANGUAGE": "Kartuli"
+            },
+            {
+              "COUNTRY": "Georgia"
+            },
+            {
+              "LOCALE_ID": "ka_GE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "German"
+            },
+            {
+              "COUNTRY": "Austria"
+            },
+            {
+              "LOCALE_ID": "de_AT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "German"
+            },
+            {
+              "COUNTRY": "Germany"
+            },
+            {
+              "LOCALE_ID": "de_DE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "German"
+            },
+            {
+              "COUNTRY": "Luxembourg"
+            },
+            {
+              "LOCALE_ID": "de_LU"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "German"
+            },
+            {
+              "COUNTRY": "Switzerland"
+            },
+            {
+              "LOCALE_ID": "de_CH"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Greek"
+            },
+            {
+              "COUNTRY": "Cyprus"
+            },
+            {
+              "LOCALE_ID": "el_CY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Greek"
+            },
+            {
+              "COUNTRY": "Greece"
+            },
+            {
+              "LOCALE_ID": "el_GR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Hebrew"
+            },
+            {
+              "COUNTRY": "Israel"
+            },
+            {
+              "LOCALE_ID": "iw_IL"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Hindi"
+            },
+            {
+              "COUNTRY": "India"
+            },
+            {
+              "LOCALE_ID": "hi_IN"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Hungarian"
+            },
+            {
+              "COUNTRY": "Hungary"
+            },
+            {
+              "LOCALE_ID": "hu_HU"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Icelandic"
+            },
+            {
+              "COUNTRY": "Iceland"
+            },
+            {
+              "LOCALE_ID": "is_IS"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Indonesian"
+            },
+            {
+              "COUNTRY": "Indonesia"
+            },
+            {
+              "LOCALE_ID": "in_ID"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Irish"
+            },
+            {
+              "COUNTRY": "Ireland"
+            },
+            {
+              "LOCALE_ID": "ga_IE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Italian"
+            },
+            {
+              "COUNTRY": "Italy"
+            },
+            {
+              "LOCALE_ID": "it_IT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Italian"
+            },
+            {
+              "COUNTRY": "Switzerland"
+            },
+            {
+              "LOCALE_ID": "it_CH"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Japanese (Gregorian calendar)"
+            },
+            {
+              "COUNTRY": "Japan"
+            },
+            {
+              "LOCALE_ID": "ja_JP"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Japanese (Imperial calendar)"
+            },
+            {
+              "COUNTRY": "Japan"
+            },
+            {
+              "LOCALE_ID": "ja_JP_JP"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Korean"
+            },
+            {
+              "COUNTRY": "South Korea"
+            },
+            {
+              "LOCALE_ID": "ko_KR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Latvian"
+            },
+            {
+              "COUNTRY": "Latvia"
+            },
+            {
+              "LOCALE_ID": "lv_LV"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Lithuanian"
+            },
+            {
+              "COUNTRY": "Lithuania"
+            },
+            {
+              "LOCALE_ID": "lt_LT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Macedonian"
+            },
+            {
+              "COUNTRY": "Macedonia"
+            },
+            {
+              "LOCALE_ID": "mk_MK"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Malay"
+            },
+            {
+              "COUNTRY": "Malaysia"
+            },
+            {
+              "LOCALE_ID": "ms_MY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Maltese"
+            },
+            {
+              "COUNTRY": "Malta"
+            },
+            {
+              "LOCALE_ID": "mt_MT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Norwegian (Bokmål)"
+            },
+            {
+              "COUNTRY": "Norway"
+            },
+            {
+              "LOCALE_ID": "no_NO"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Norwegian (Nynorsk)"
+            },
+            {
+              "COUNTRY": "Norway"
+            },
+            {
+              "LOCALE_ID": "no_NO_NY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Polish"
+            },
+            {
+              "COUNTRY": "Poland"
+            },
+            {
+              "LOCALE_ID": "pl_PL"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Portuguese"
+            },
+            {
+              "COUNTRY": "Brazil"
+            },
+            {
+              "LOCALE_ID": "pt_BR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Portuguese"
+            },
+            {
+              "COUNTRY": "Portugal"
+            },
+            {
+              "LOCALE_ID": "pt_PT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Romanian"
+            },
+            {
+              "COUNTRY": "Romania"
+            },
+            {
+              "LOCALE_ID": "ro_RO"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Russian"
+            },
+            {
+              "COUNTRY": "Russia"
+            },
+            {
+              "LOCALE_ID": "ru_RU"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Serbian (Cyrillic)"
+            },
+            {
+              "COUNTRY": "Bosnia and Herzegovina"
+            },
+            {
+              "LOCALE_ID": "sr_BA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Serbian (Cyrillic)"
+            },
+            {
+              "COUNTRY": "Montenegro"
+            },
+            {
+              "LOCALE_ID": "sr_ME"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Serbian (Cyrillic)"
+            },
+            {
+              "COUNTRY": "Serbia"
+            },
+            {
+              "LOCALE_ID": "sr_RS"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Serbian (Latin)"
+            },
+            {
+              "COUNTRY": "Bosnia and Herzegovina"
+            },
+            {
+              "LOCALE_ID": "sr_Latn_BA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Serbian (Latin)"
+            },
+            {
+              "COUNTRY": "Montenegro"
+            },
+            {
+              "LOCALE_ID": "sr_Latn_ME"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Serbian (Latin)"
+            },
+            {
+              "COUNTRY": "Serbia"
+            },
+            {
+              "LOCALE_ID": "sr_Latn_RS"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Slovak"
+            },
+            {
+              "COUNTRY": "Slovakia"
+            },
+            {
+              "LOCALE_ID": "sk_SK"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Slovenian"
+            },
+            {
+              "COUNTRY": "Slovenia"
+            },
+            {
+              "LOCALE_ID": "sl_SI"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Argentina"
+            },
+            {
+              "LOCALE_ID": "es_AR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Bolivia"
+            },
+            {
+              "LOCALE_ID": "es_BO"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Chile"
+            },
+            {
+              "LOCALE_ID": "es_CL"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Colombia"
+            },
+            {
+              "LOCALE_ID": "es_CO"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Costa Rica"
+            },
+            {
+              "LOCALE_ID": "es_CR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Dominican Republic"
+            },
+            {
+              "LOCALE_ID": "es_DO"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Ecuador"
+            },
+            {
+              "LOCALE_ID": "es_EC"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "El Salvador"
+            },
+            {
+              "LOCALE_ID": "es_SV"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Guatemala"
+            },
+            {
+              "LOCALE_ID": "es_GT"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Honduras"
+            },
+            {
+              "LOCALE_ID": "es_HN"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Mexico"
+            },
+            {
+              "LOCALE_ID": "es_MX"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Nicaragua"
+            },
+            {
+              "LOCALE_ID": "es_NI"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Panama"
+            },
+            {
+              "LOCALE_ID": "es_PA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Paraguay"
+            },
+            {
+              "LOCALE_ID": "es_PY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Peru"
+            },
+            {
+              "LOCALE_ID": "es_PE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Puerto Rico"
+            },
+            {
+              "LOCALE_ID": "es_PR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Spain"
+            },
+            {
+              "LOCALE_ID": "es_ES"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "United States"
+            },
+            {
+              "LOCALE_ID": "es_US"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Uruguay"
+            },
+            {
+              "LOCALE_ID": "es_UY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Spanish"
+            },
+            {
+              "COUNTRY": "Venezuela"
+            },
+            {
+              "LOCALE_ID": "es_VE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Swedish"
+            },
+            {
+              "COUNTRY": "Sweden"
+            },
+            {
+              "LOCALE_ID": "sv_SE"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Thai (Western digits)"
+            },
+            {
+              "COUNTRY": "Thailand"
+            },
+            {
+              "LOCALE_ID": "th_TH"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Thai (Thai digits)"
+            },
+            {
+              "COUNTRY": "Thailand"
+            },
+            {
+              "LOCALE_ID": "th_TH_TH"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Turkish"
+            },
+            {
+              "COUNTRY": "Turkey"
+            },
+            {
+              "LOCALE_ID": "tr_TR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Ukrainian"
+            },
+            {
+              "COUNTRY": "Ukraine"
+            },
+            {
+              "LOCALE_ID": "uk_UA"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Vietnamese"
+            },
+            {
+              "COUNTRY": "Vietnam"
+            },
+            {
+              "LOCALE_ID": "vi_VN"
+            }
+          ]}
+      }
+    ]
+  }
+}

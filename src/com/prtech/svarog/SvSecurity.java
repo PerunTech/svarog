@@ -33,6 +33,9 @@ import com.prtech.svarog_common.DbQueryObject.DbJoinType;
  * SvSecurity is inherited from SvCore but unlike the SvReader and alike, it
  * does provide a constructor to enable using it even without user session.
  * 
+ * The SvSecurity's main role which should be used without a user session is to
+ * authenticate a user against the Svarog framework
+ * 
  * @author PR01
  *
  */
@@ -964,8 +967,8 @@ public class SvSecurity extends SvCore {
 	 * @param pinNo
 	 *            the pin number entered in the user registration form
 	 * @return True if the user identified by the pin exists.
-	 * @throws SvException Passthrough
-	 *             of underlying SvException
+	 * @throws SvException
+	 *             Passthrough of underlying SvException
 	 */
 	public Boolean checkIfUserExistsByPin(String pinNo) throws SvException {
 		return checkIfUserExistsByPin(pinNo, null);
