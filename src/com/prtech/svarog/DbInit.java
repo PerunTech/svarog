@@ -27,6 +27,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1231,7 +1232,7 @@ public class DbInit {
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM);
 		dbe.setLabel_code("master_repo.param");
-		// dbe.setParent_id(svCONST.OBJECT_TYPE_JOB);
+		// dbe.setParentId(svCONST.OBJECT_TYPE_JOB);
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -1290,7 +1291,7 @@ public class DbInit {
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM_VALUE);
 		dbe.setLabel_code("master_repo.param_value");
-		// dbe.setParent_id(svCONST.OBJECT_TYPE_PARAM);
+		// dbe.setParentId(svCONST.OBJECT_TYPE_PARAM);
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -5031,9 +5032,22 @@ public class DbInit {
 		return dbtList;
 	}
 
+	/**
+	 * Method to get all class instances implementing the IDbInit interface
+	 * 
+	 * @param subDir
+	 *            Directory in which the method should scan the jar files for
+	 *            IDbInit
+	 * @return List of instances found
+	 */
+	@SuppressWarnings("unchecked")
 	static ArrayList<IDbInit> getCustomDbInit(String subDir) {
+		return (ArrayList<IDbInit>) loadClass(subDir, IDbInit.class);
+	}
+
+	static ArrayList<?> loadClass(String subDir, Class<?> clazz) {
 		File customFolder = new File(subDir);
-		ArrayList<IDbInit> dbiResult = new ArrayList<IDbInit>();
+		ArrayList<Object> dbiResult = new ArrayList<>();
 		if (!customFolder.exists())
 			return dbiResult;
 		File[] customJars = customFolder.listFiles();
@@ -5041,8 +5055,8 @@ public class DbInit {
 			Arrays.sort(customJars);
 			for (int i = 0; i < customJars.length; i++) {
 				if (customJars[i].getName().endsWith(".jar")) {
-					ArrayList<IDbInit> dbi = DbInit.loadCustomDbInit(customJars[i].getAbsolutePath());
-					dbiResult.addAll(dbi);
+					ArrayList<Object> dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), clazz);
+					dbiResult.addAll((Collection<?>) dbi);
 				}
 			}
 		}
@@ -5065,12 +5079,12 @@ public class DbInit {
 			DbDataTable dbt = dbtList.get(i);
 
 			String retval = saveMasterJson(
-					SvConf.getConfPath() + svCONST.masterDbtPath
+					SvConf.getConfPath() + SvarogInstall.masterDbtPath
 							+ dbt.getDbTableName().replace("{REPO_TABLE_NAME}", "master").toLowerCase() + "_repo.json",
 					dbt, false);
 
 			if (!retval.equals("")) {
-				fullRetval += fullRetval + "; " + SvConf.getConfPath() + svCONST.masterDbtPath
+				fullRetval += fullRetval + "; " + SvConf.getConfPath() + SvarogInstall.masterDbtPath
 						+ dbt.getDbTableName().replace("{REPO_TABLE_NAME}", "master") + "_repo.json";
 			}
 
@@ -5084,22 +5098,24 @@ public class DbInit {
 
 		File textFolder;
 		try {
-			textFolder = new File(SvConf.getConfPath() + svCONST.masterDbtPath);
+			textFolder = new File(SvConf.getConfPath() + SvarogInstall.masterDbtPath);
 			File[] texFiles = textFolder.listFiles();
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].getName().endsWith(".json"))
 					fileList += texFiles[i].getName() + "\n";
 			}
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterDbtPath + svCONST.fileListName, fileList);
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterDbtPath + SvarogInstall.fileListName,
+					fileList);
 			fileList = "";
-			textFolder = new File(SvConf.getConfPath() + svCONST.masterRecordsPath);
+			textFolder = new File(SvConf.getConfPath() + SvarogInstall.masterRecordsPath);
 			texFiles = textFolder.listFiles();
 			Arrays.sort(texFiles);
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].getName().endsWith(".json"))
 					fileList += texFiles[i].getName() + "\n";
 			}
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.fileListName, fileList);
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + SvarogInstall.fileListName,
+					fileList);
 
 		} catch (Exception e) {
 			System.out.println("Error Generating file list");
@@ -5153,11 +5169,11 @@ public class DbInit {
 
 						DbDataObject dbo = new DbDataObject();
 						dbo.setStatus(svCONST.STATUS_VALID);
-						dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-						dbo.setDt_delete(SvConf.MAX_DATE);
+						dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+						dbo.setDtDelete(SvConf.MAX_DATE);
 						dbo.setVal("label_code", (String) pair.getKey());
 						dbo.setVal("label_text", (String) pair.getValue());
-						dbo.setObject_type(svCONST.OBJECT_TYPE_LABEL);
+						dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
 						try {
 							dbo.setVal("label_descr", prop.getProperty((String) pair.getKey() + "_l"));
@@ -5229,14 +5245,14 @@ public class DbInit {
 	public static DbDataObject createAclFromDbt(DbDataObject dbt, SvAccess accessLevel) {
 		DbDataObject dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-		dbo.setDt_delete(SvConf.MAX_DATE);
+		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", accessLevel.toString());
 		dbo.setVal("acl_object_id", (String) dbt.getVal("TABLE_NAME"));
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", null);
 		dbo.setVal("label_code", (String) dbt.getVal("TABLE_NAME") + "." + accessLevel.toString());
-		dbo.setObject_type(svCONST.OBJECT_TYPE_ACL);
+		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		return dbo;
 
 	}
@@ -5244,38 +5260,38 @@ public class DbInit {
 	public static void prepareSystemACLs(DbDataArray acls) {
 		DbDataObject dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-		dbo.setDt_delete(SvConf.MAX_DATE);
+		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
 		dbo.setVal("acl_object_id", 0L);
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.SUDO_ACL);
 		dbo.setVal("label_code", svCONST.SUDO_ACL);
-		dbo.setObject_type(svCONST.OBJECT_TYPE_ACL);
+		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-		dbo.setDt_delete(SvConf.MAX_DATE);
+		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
 		dbo.setVal("acl_object_id", 0L);
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.INSECURE_SQL_ACL);
 		dbo.setVal("label_code", svCONST.INSECURE_SQL_ACL);
-		dbo.setObject_type(svCONST.OBJECT_TYPE_ACL);
+		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-		dbo.setDt_delete(SvConf.MAX_DATE);
+		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
 		dbo.setVal("acl_object_id", 0L);
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.NULL_GEOMETRY_ACL);
 		dbo.setVal("label_code", svCONST.NULL_GEOMETRY_ACL);
-		dbo.setObject_type(svCONST.OBJECT_TYPE_ACL);
+		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 	}
@@ -5314,8 +5330,8 @@ public class DbInit {
 
 				// load all custom JARs and try to load ACLs and ACL/SIDs from
 				// those
-				String aclFilePath = svCONST.masterSecurityPath + svCONST.aclFile;
-				String aclSidFilePath = svCONST.masterSecurityPath + svCONST.aclSidFile;
+				String aclFilePath = SvarogInstall.masterSecurityPath + SvarogInstall.aclFile;
+				String aclSidFilePath = SvarogInstall.masterSecurityPath + SvarogInstall.aclSidFile;
 
 				File customFolder = new File("custom/");
 				File[] customJars = customFolder.exists() ? customFolder.listFiles() : null;
@@ -5381,8 +5397,8 @@ public class DbInit {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
 								dbo.setStatus(svCONST.STATUS_VALID);
-								dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-								dbo.setDt_delete(SvConf.MAX_DATE);
+								dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
 										? aclItem.get("ACCESS_TYPE").getAsString() : null);
 								dbo.setVal("acl_object_id", aclItem.get("acl_object_id") != null
@@ -5393,7 +5409,7 @@ public class DbInit {
 										? aclItem.get("acl_config_unq").getAsString() : null);
 								dbo.setVal("label_code", aclItem.get("label_code") != null
 										? aclItem.get("label_code").getAsString() : null);
-								dbo.setObject_type(svCONST.OBJECT_TYPE_ACL);
+								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
 							}
 						} else
@@ -5413,8 +5429,8 @@ public class DbInit {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
 								dbo.setStatus(svCONST.STATUS_VALID);
-								dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-								dbo.setDt_delete(SvConf.MAX_DATE);
+								dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("sid_object_id", aclItem.get("sid_object_id") != null
 										? aclItem.get("sid_object_id").getAsString() : null);
 								if (aclItem.get("status") != null)
@@ -5424,7 +5440,7 @@ public class DbInit {
 										? aclItem.get("acl_label_code").getAsString() : null);
 								dbo.setVal("group_name", aclItem.get("group_name") != null
 										? aclItem.get("group_name").getAsString() : null);
-								dbo.setObject_type(svCONST.OBJECT_TYPE_SID_ACL);
+								dbo.setObjectType(svCONST.OBJECT_TYPE_SID_ACL);
 								arrAclSid.addDataItem(dbo);
 							}
 						} else
@@ -5437,9 +5453,11 @@ public class DbInit {
 
 			}
 
-			testRetval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "90. " + svCONST.aclFile,
-					arrAcl, true);
-			testRetval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "91. " + svCONST.aclSidFile,
+			testRetval += saveMasterJson(
+					SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "90. " + SvarogInstall.aclFile, arrAcl,
+					true);
+			testRetval += saveMasterJson(
+					SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "91. " + SvarogInstall.aclSidFile,
 					arrAclSid, true);
 
 		} catch (Exception e) {
@@ -5448,6 +5466,61 @@ public class DbInit {
 		}
 		updateFileLists();
 		return testRetval;
+	}
+
+	static void loadInternalLabels(String localeId, HashMap<String, DbDataObject> mLabels) {
+		String labelFile = SvarogInstall.masterCodesPath + localeId + "Labels.properties";
+
+		InputStream iStr = DbInit.class.getResourceAsStream("/" + labelFile);
+		if (iStr == null)
+			iStr = ClassLoader.getSystemClassLoader().getResourceAsStream(labelFile);
+
+		Properties rb = null;
+
+		if (iStr != null) {
+			// load strings
+			try {
+				rb = new Properties();
+				rb.load(new InputStreamReader(iStr, "UTF-8"));
+				log4j.info("Loaded labels from: " + labelFile);
+			} catch (IOException e) {
+				log4j.trace("Error reading svarog root labels", e);
+			} finally {
+				try {
+					if (iStr != null)
+						iStr.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		if (rb != null) {
+			// load strings
+			Iterator<Object> pit = rb.keySet().iterator();
+			while (pit.hasNext()) {
+				String key = (String) pit.next();
+				if (key.endsWith("_l"))
+					continue;
+
+				DbDataObject dbo = new DbDataObject();
+				dbo.setStatus(svCONST.STATUS_VALID);
+				dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+				dbo.setDtDelete(SvConf.MAX_DATE);
+				dbo.setVal("label_code", key);
+				dbo.setVal("label_text", rb.getProperty(key));
+				dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
+
+				try {
+					dbo.setVal("label_descr", rb.getProperty(key + "_l"));
+				} catch (Exception e) {
+				}
+				;
+				dbo.setVal("locale_id", localeId);
+				mLabels.put(key, dbo);
+
+			}
+		}
 	}
 
 	/**
@@ -5472,6 +5545,8 @@ public class DbInit {
 			// master_locales.json", locales.toJson().toString());
 			for (DbDataObject entry : locales.getItems()) {
 				try {
+
+					loadInternalLabels((String) entry.getVal("locale_id"), mLabels);
 					// load labers from the custom folder
 					File customFolder = new File("custom/");
 					if (customFolder != null) {
@@ -5486,7 +5561,6 @@ public class DbInit {
 						}
 					}
 					// load labels from the svarog OSG bundles dir
-
 					customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 					if (customFolder != null) {
 						File[] customJars = customFolder.listFiles();
@@ -5500,48 +5574,6 @@ public class DbInit {
 						}
 					}
 
-					String labelFile = "/" + svCONST.masterCodesPath + entry.getVal("locale_id") + "Labels.properties";
-
-					InputStream iStr = DbInit.class.getResourceAsStream(labelFile);
-
-					Properties rb = null;
-
-					if (iStr != null) {
-						// load strings
-						try {
-							rb = new Properties();
-							rb.load(new InputStreamReader(iStr, "UTF-8"));
-							log4j.info("Loaded labels from: " + labelFile);
-						} finally {
-							iStr.close();
-						}
-					}
-					if (rb != null) {
-						// load strings
-						Iterator<Object> pit = rb.keySet().iterator();
-						while (pit.hasNext()) {
-							String key = (String) pit.next();
-							if (key.endsWith("_l"))
-								continue;
-
-							DbDataObject dbo = new DbDataObject();
-							dbo.setStatus(svCONST.STATUS_VALID);
-							dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-							dbo.setDt_delete(SvConf.MAX_DATE);
-							dbo.setVal("label_code", key);
-							dbo.setVal("label_text", rb.getProperty(key));
-							dbo.setObject_type(svCONST.OBJECT_TYPE_LABEL);
-
-							try {
-								dbo.setVal("label_descr", rb.getProperty(key + "_l"));
-							} catch (Exception e) {
-							}
-							;
-							dbo.setVal("locale_id", entry.getVal("locale_id"));
-							mLabels.put(key, dbo);
-
-						}
-					}
 				} catch (Exception e) {
 					log4j.debug("Error reading svarog root labels", e);
 				}
@@ -5549,8 +5581,8 @@ public class DbInit {
 				if (mLabels != null && mLabels.size() > 0) {
 					arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
 					String strRetval = "";
-					strRetval = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath
-							+ svCONST.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
+					strRetval = saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath
+							+ SvarogInstall.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
 					if (!strRetval.equals("")) {
 						testRetval += testRetval + strRetval + " json/records/20. master_labels_"
 								+ entry.getVal("locale_id") + ".json; ";
@@ -5626,12 +5658,12 @@ public class DbInit {
 		for (int i = 0; i < dbtList.size(); i++) {
 			DbDataTable dbt = dbtList.get(i);
 			DbDataObject dbo = new DbDataObject();
-			dbo.setObject_type(svCONST.OBJECT_TYPE_TABLE);
+			dbo.setObjectType(svCONST.OBJECT_TYPE_TABLE);
 
-			dbo.setObject_id(dbt.getObjectId());
+			dbo.setObjectId(dbt.getObjectId());
 			dbo.setStatus(svCONST.STATUS_VALID);
-			dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-			dbo.setDt_delete(SvConf.MAX_DATE);
+			dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+			dbo.setDtDelete(SvConf.MAX_DATE);
 			dbo.setVal("system_table", dbt.getIsSystemTable());
 			dbo.setVal("repo_table", dbt.getIsRepoTable());
 			dbo.setVal("table_name", dbt.getDbTableName().toUpperCase());
@@ -5682,14 +5714,14 @@ public class DbInit {
 				}
 
 				dbo = new DbDataObject();
-				dbo.setObject_type(svCONST.OBJECT_TYPE_FIELD);
-				dbo.setParent_id(dbt.getObjectId());
+				dbo.setObjectType(svCONST.OBJECT_TYPE_FIELD);
+				dbo.setParentId(dbt.getObjectId());
 
-				dbo.setObject_id(svObjectId);
+				dbo.setObjectId(svObjectId);
 				svObjectId++;
 				dbo.setStatus(svCONST.STATUS_VALID);
-				dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-				dbo.setDt_delete(SvConf.MAX_DATE);
+				dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+				dbo.setDtDelete(SvConf.MAX_DATE);
 
 				dbo.setVal("field_name", dbf.getDbFieldName());
 				dbo.setVal("field_type", dbf.getDbFieldType());
@@ -5713,7 +5745,7 @@ public class DbInit {
 
 				for (DbDataObject dbl : defaultCodes.getItems()) {
 					if (dbl.getVal("CODE_VALUE").equals(dbf.getCode_user_code()))
-						dbo.setVal("code_list_id", dbl.getObject_id());
+						dbo.setVal("code_list_id", dbl.getObjectId());
 
 				}
 				dbo.setVal("code_list_mnemonic", dbf.getCode_user_code());
@@ -5751,11 +5783,11 @@ public class DbInit {
 		defaultObjests.fromJson(jobj);
 
 		for (DbDataObject dbo : defaultObjests.getItems()) {
-			if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_TABLE)) {
+			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_TABLE)) {
 				dbo.setVal("TABLE_NAME", ((String) dbo.getVal("TABLE_NAME")).toUpperCase());
 				dbo.setVal("SCHEMA", ((String) dbo.getVal("SCHEMA")).toUpperCase());
 			}
-			dbo.setIs_dirty(false);
+			dbo.setIsDirty(false);
 		}
 		if (defaultCodes.getItems().size() > 0) {
 			json = defaultCodes.toJson().toString();
@@ -5765,7 +5797,7 @@ public class DbInit {
 			jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 			defaultCodes.fromJson(jobj);
 			for (DbDataObject dbo : defaultCodes.getItems())
-				dbo.setIs_dirty(false);
+				dbo.setIsDirty(false);
 		}
 	}
 
@@ -5777,7 +5809,7 @@ public class DbInit {
 	public static void addDefaultLinkTypes(DbDataArray defaultObjests) {
 
 		DbDataObject dbl = new DbDataObject();
-		dbl.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbl.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dbl.setStatus(svCONST.STATUS_VALID);
 		dbl.setVal("LINK_TYPE", "USER_DEFAULT_GROUP");
 		dbl.setVal("LINK_TYPE_DESCRIPTION", "User group default membership");
@@ -5786,7 +5818,7 @@ public class DbInit {
 		defaultObjests.addDataItem(dbl);
 
 		DbDataObject dbGroup = new DbDataObject();
-		dbGroup.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbGroup.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dbGroup.setStatus(svCONST.STATUS_VALID);
 		dbGroup.setVal("LINK_TYPE", "USER_GROUP");
 		dbGroup.setVal("LINK_TYPE_DESCRIPTION", "User group additional membership");
@@ -5795,7 +5827,7 @@ public class DbInit {
 		defaultObjests.addDataItem(dbGroup);
 
 		DbDataObject dblFormParent = new DbDataObject();
-		dblFormParent.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblFormParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFormParent.setStatus(svCONST.STATUS_VALID);
 		dblFormParent.setVal("LINK_TYPE", "FORM_TYPE_PARENT");
 		dblFormParent.setVal("link_type_description",
@@ -5805,7 +5837,7 @@ public class DbInit {
 		defaultObjests.addDataItem(dblFormParent);
 
 		DbDataObject dblFFieldParent = new DbDataObject();
-		dblFFieldParent.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblFFieldParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFFieldParent.setStatus(svCONST.STATUS_VALID);
 		dblFFieldParent.setVal("link_type_description",
 				"Link between form field and form type to signify which fields should be shown on a form");
@@ -5817,7 +5849,7 @@ public class DbInit {
 		// BATCH EXECUTION ENGINE LINKS
 
 		DbDataObject dbl_bee_1 = new DbDataObject();
-		dbl_bee_1.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbl_bee_1.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dbl_bee_1.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_1.setVal("LINK_TYPE", "LINK_JOB_TASK");
 		dbl_bee_1.setVal("LINK_TYPE_DESCRIPTION", "Link between job and task");
@@ -5827,7 +5859,7 @@ public class DbInit {
 		defaultObjests.addDataItem(dbl_bee_1);
 
 		DbDataObject dbl_bee_2 = new DbDataObject();
-		dbl_bee_2.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbl_bee_2.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dbl_bee_2.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_2.setVal("LINK_TYPE", "LINK_FILE");
 		dbl_bee_2.setVal("LINK_TYPE_DESCRIPTION", "Link between job and file");
@@ -5837,7 +5869,7 @@ public class DbInit {
 		defaultObjests.addDataItem(dbl_bee_2);
 
 		DbDataObject dbl_bee_3 = new DbDataObject();
-		dbl_bee_3.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbl_bee_3.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dbl_bee_3.setStatus(svCONST.STATUS_VALID);
 		dbl_bee_3.setVal("LINK_TYPE", "LINK_JOB_OBJECT_WITH_TASK");
 		dbl_bee_3.setVal("LINK_TYPE_DESCRIPTION", "Link between job_object and task");
@@ -5850,7 +5882,7 @@ public class DbInit {
 		// DbDataArray arrActionFileTypes = new DbDataArray();
 
 		DbDataObject dbaf1 = new DbDataObject();
-		dbaf1.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbaf1.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dbaf1.setStatus(svCONST.STATUS_VALID);
 		dbaf1.setVal("LINK_TYPE", "LINK_FILE");
 		dbaf1.setVal("LINK_TYPE_DESCRIPTION", "file link to table");
@@ -5860,7 +5892,7 @@ public class DbInit {
 		defaultObjests.addDataItem(dbaf1);
 
 		DbDataObject dblAdminHQ = new DbDataObject();
-		dblAdminHQ.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblAdminHQ.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblAdminHQ.setStatus(svCONST.STATUS_VALID);
 		dblAdminHQ.setVal("LINK_TYPE", "POA");
 		dblAdminHQ.setVal("LINK_TYPE_DESCRIPTION", "Power of attorney link for user on behalf of a OU");
@@ -5870,7 +5902,7 @@ public class DbInit {
 
 		// Parameters link
 		DbDataObject dblinkParam = new DbDataObject();
-		dblinkParam.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblinkParam.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblinkParam.setStatus(svCONST.STATUS_VALID);
 		dblinkParam.setVal("LINK_TYPE", "LINK_CONFOBJ_WITH_PARAM_TYPE");
 		dblinkParam.setVal("LINK_TYPE_DESCRIPTION", "link job type with param type");
@@ -5880,7 +5912,7 @@ public class DbInit {
 
 		// Notification link
 		DbDataObject dblNotificationUser = new DbDataObject();
-		dblNotificationUser.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblNotificationUser.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblNotificationUser.setStatus(svCONST.STATUS_VALID);
 		dblNotificationUser.setVal("LINK_TYPE", "LINK_NOTIFICATION_USER");
 		dblNotificationUser.setVal("LINK_TYPE_DESCRIPTION", "link notification and user");
@@ -5890,7 +5922,7 @@ public class DbInit {
 
 		// Notification link 2
 		DbDataObject dblNotificationUserGroup = new DbDataObject();
-		dblNotificationUserGroup.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblNotificationUserGroup.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblNotificationUserGroup.setStatus(svCONST.STATUS_VALID);
 		dblNotificationUserGroup.setVal("LINK_TYPE", "LINK_NOTIFICATION_GROUP");
 		dblNotificationUserGroup.setVal("LINK_TYPE_DESCRIPTION", "link notification and user group");
@@ -5900,7 +5932,7 @@ public class DbInit {
 
 		// BATCH LINK
 		DbDataObject dblPrint = new DbDataObject();
-		dblPrint.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dblPrint.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblPrint.setStatus(svCONST.STATUS_VALID);
 		dblPrint.setVal("LINK_TYPE", "LINK_JOB_UI_STRUCT");
 		dblPrint.setVal("LINK_TYPE_DESCRIPTION", "job_type link to ui_struct");
@@ -5910,7 +5942,7 @@ public class DbInit {
 		/*
 		 * // link conversation and user DbDataObject dblConversationUser = new
 		 * DbDataObject();
-		 * dblNotificationUser.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		 * dblNotificationUser.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		 * dblNotificationUser.setStatus(svCONST.STATUS_VALID);
 		 * dblNotificationUser.setVal("LINK_TYPE",
 		 * "LINK_CONVERSATION_ATTACHMENT");
@@ -5923,7 +5955,7 @@ public class DbInit {
 		 * 
 		 * // link conversation and org unit DbDataObject dblConversationOrgUnit
 		 * = new DbDataObject();
-		 * dblConversationOrgUnit.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		 * dblConversationOrgUnit.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		 * dblConversationOrgUnit.setStatus(svCONST.STATUS_VALID);
 		 * dblConversationOrgUnit.setVal("LINK_TYPE",
 		 * "LINK_CONVERSATION_ATTACHMENT");
@@ -5940,16 +5972,16 @@ public class DbInit {
 
 		// HQ plus default link
 		DbDataObject dboHQ = new DbDataObject();
-		dboHQ.setObject_type(svCONST.OBJECT_TYPE_ORG_UNITS);
-		dboHQ.setObject_id(svCONST.OBJECT_ID_HEADQUARTER);
+		dboHQ.setObjectType(svCONST.OBJECT_TYPE_ORG_UNITS);
+		dboHQ.setObjectId(svCONST.OBJECT_ID_HEADQUARTER);
 		dboHQ.setVal("ORG_UNIT_TYPE", "HEADQUARTER");
 		dboHQ.setVal("NAME", "HEADQUARTER");
 		arrWF.addDataItem(dboHQ);
 
 		// default user groups
 		DbDataObject dboAdminGroup = new DbDataObject();
-		dboAdminGroup.setObject_type(svCONST.OBJECT_TYPE_GROUP);
-		dboAdminGroup.setObject_id(svCONST.SID_ADMINISTRATORS);
+		dboAdminGroup.setObjectType(svCONST.OBJECT_TYPE_GROUP);
+		dboAdminGroup.setObjectId(svCONST.SID_ADMINISTRATORS);
 		dboAdminGroup.setVal("GROUP_TYPE", "ADMINISTRATORS");
 		dboAdminGroup.setVal("GROUP_UID", svCONST.SID_ADMINISTRATORS_UID);
 		dboAdminGroup.setVal("GROUP_NAME", "ADMINISTRATORS");
@@ -5957,8 +5989,8 @@ public class DbInit {
 		dboAdminGroup.setVal("GROUP_SECURITY_TYPE", "FULL");
 
 		DbDataObject dboUserGroup = new DbDataObject();
-		dboUserGroup.setObject_type(svCONST.OBJECT_TYPE_GROUP);
-		dboUserGroup.setObject_id(svCONST.SID_USERS);
+		dboUserGroup.setObjectType(svCONST.OBJECT_TYPE_GROUP);
+		dboUserGroup.setObjectId(svCONST.SID_USERS);
 		dboUserGroup.setVal("GROUP_TYPE", "USERS");
 		dboUserGroup.setVal("GROUP_UID", svCONST.SID_USERS_UID);
 		dboUserGroup.setVal("GROUP_NAME", "USERS");
@@ -5972,8 +6004,8 @@ public class DbInit {
 		// dbo.setRepo_name(dbt.getDbRepoName());
 		// dbo.setTable_name(dbt.getDbRepoName() + "_tables");
 		// dbo.setSchema(dbt.getDbSchema());
-		dboAdminUser.setObject_type(svCONST.OBJECT_TYPE_USER);
-		dboAdminUser.setObject_id(svObjectId);
+		dboAdminUser.setObjectType(svCONST.OBJECT_TYPE_USER);
+		dboAdminUser.setObjectId(svObjectId);
 		svObjectId++;
 		dboAdminUser.setVal("USER_TYPE", "INTERNAL");
 		dboAdminUser.setVal("USER_UID", UUID.randomUUID().toString());
@@ -6015,26 +6047,26 @@ public class DbInit {
 			for (int i = 0; i < customJars.length; i++) {
 				if (customJars[i].getName().endsWith(".jar")) {
 					log4j.info("Trying to load IDbInit from jar: " + customJars[i].getName());
-					ArrayList<IDbInit> dbi = DbInit.loadCustomDbInit(customJars[i].getAbsolutePath());
+					ArrayList<Object> dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), IDbInit.class);
 					if (dbi.size() > 0)
 						log4j.info("Found IDbInit instance in jar: " + customJars[i].getName());
 					customObjests.getItems().clear();
-					for (IDbInit idb : dbi) {
-						svObjectId = dbTables2DbDataArray(idb.getCustomObjectTypes(), customObjests, defaultCodes,
-								svObjectId, errMsg);
+					for (Object idb : (ArrayList<Object>) dbi) {
+						svObjectId = dbTables2DbDataArray(((IDbInit) idb).getCustomObjectTypes(), customObjests,
+								defaultCodes, svObjectId, errMsg);
 						if (!errMsg.toString().equals("")) {
 							log4j.error("Error creating DbDataArray from custom IDbInit:" + customJars[i].getName()
 									+ "." + errMsg.toString());
 							return svObjectId;
 						}
 
-						for (DbDataObject dboCustom : idb.getCustomObjectInstances()) {
+						for (DbDataObject dboCustom : ((IDbInit) idb).getCustomObjectInstances()) {
 							for (DbDataObject dbl : defaultCodes.getItems()) {
 
-								if (dboCustom.getObject_type().equals(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE)) {
+								if (dboCustom.getObjectType().equals(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE)) {
 									String codeVal = (String) dboCustom.getVal("code_list_id");
 									if (dbl.getVal("CODE_VALUE").equals(codeVal))
-										dboCustom.setVal("code_list_id", dbl.getObject_id());
+										dboCustom.setVal("code_list_id", dbl.getObjectId());
 								}
 
 							}
@@ -6044,7 +6076,7 @@ public class DbInit {
 					}
 					String errStr = "";
 					if (customObjests.size() > 0) {
-						errStr = saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "4" + i + ". "
+						errStr = saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "4" + i + ". "
 								+ customJars[i].getName().replace(".jar", ".json"), customObjests, true);
 						customObjestsAll.getItems().addAll(customObjests.getItems());
 					}
@@ -6097,10 +6129,11 @@ public class DbInit {
 
 		addDefaultLinkTypes(defaultObjests);
 
-		retval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + "40. master_records.json",
+		retval += saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "40. master_records.json",
 				defaultObjests, true);
 
-		retval += saveMasterJson(SvConf.getConfPath() + svCONST.masterRecordsPath + svCONST.usersFile, arrWF, true);
+		retval += saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + SvarogInstall.usersFile,
+				arrWF, true);
 
 		prepareACLs(defaultObjests, customObjestsAll);
 
@@ -6112,7 +6145,7 @@ public class DbInit {
 			JsonElement parentCodeValue) {
 		Long parent_id = 0L;
 		if (items.size() > 0)
-			parent_id = items.get(items.size() - 1).getObject_id();
+			parent_id = items.get(items.size() - 1).getObjectId();
 
 		// the starting object id
 		Long object_id = startingObjId;
@@ -6128,20 +6161,20 @@ public class DbInit {
 			// dbo.setSchema("{DEFAULT_SCHEMA}");
 			dbo.setStatus(svCONST.STATUS_VALID);
 
-			dbo.setObject_id(object_id);
-			dbo.setObject_type(svCONST.OBJECT_TYPE_CODE);
+			dbo.setObjectId(object_id);
+			dbo.setObjectType(svCONST.OBJECT_TYPE_CODE);
 
-			dbo.setParent_id(parent_id);
-			dbo.setDt_insert(new DateTime("2000-01-01T00:00:00"));
-			dbo.setDt_delete(SvConf.MAX_DATE);
+			dbo.setParentId(parent_id);
+			dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+			dbo.setDtDelete(SvConf.MAX_DATE);
 			JsonObject inObj = obj.get(i).getAsJsonObject();
 
 			if (inObj.get("user_code").getAsString().equals("UNQ_LEVEL"))
-				dbo.setObject_id(svCONST.CODES_UNIQUE_LEVEL);
+				dbo.setObjectId(svCONST.CODES_UNIQUE_LEVEL);
 			else if (inObj.get("user_code").getAsString().equals("FIELD_TYPES"))
-				dbo.setObject_id(svCONST.CODES_FIELD_DATATYPES);
+				dbo.setObjectId(svCONST.CODES_FIELD_DATATYPES);
 			else if (inObj.get("user_code").getAsString().equals("FILE_TYPES"))
-				dbo.setObject_id(svCONST.CODES_FILE_TYPES);
+				dbo.setObjectId(svCONST.CODES_FILE_TYPES);
 
 			dbo.setVal("code_value", inObj.get("user_code").getAsString());
 			dbo.setVal("label_code", inObj.get("label_code").getAsString());
@@ -6218,6 +6251,7 @@ public class DbInit {
 				String jsonCustom = IOUtils.toString(customIs, "UTF-8");
 				JsonObject customJobj = gson.fromJson(jsonCustom, JsonElement.class).getAsJsonObject();
 				mergeChildrenCodes(jCodes, customJobj);
+				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
 			}
 		} catch (Exception e1) {
 			log4j.error("Error loading codes from custom jar:" + jarPath);
@@ -6256,7 +6290,7 @@ public class DbInit {
 	public static DbDataObject createLinkType(String linkType, String linkDesc, Long objectTypeId1, Long objectTypeId2,
 			Boolean deferSecurity, SvWriter svw) throws SvException {
 		DbDataObject dboLinkType = new DbDataObject();
-		dboLinkType.setObject_type(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dboLinkType.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dboLinkType.setVal("link_type", linkType);
 		dboLinkType.setVal("link_type_description", linkDesc);
 		dboLinkType.setVal("link_obj_type_1", objectTypeId1);
@@ -6273,10 +6307,12 @@ public class DbInit {
 
 		try {
 
-			String codesPath = "/" + svCONST.masterCodesPath + "/codes.properties";
+			String codesPath = SvarogInstall.masterCodesPath + "codes.properties";
 			// File baseCodes = new File();
 
-			InputStream fis = DbInit.class.getResourceAsStream(codesPath);
+			InputStream fis = DbInit.class.getResourceAsStream("/" + codesPath);
+			if (fis == null)
+				fis = ClassLoader.getSystemClassLoader().getResourceAsStream(codesPath);
 
 			String json = IOUtils.toString(fis, "UTF-8");
 
@@ -6311,7 +6347,7 @@ public class DbInit {
 				parseDefaultCodes(children.getAsJsonArray(), items, startingObjId, null);
 			}
 			if (items.size() > 0)
-				startingObjId = items.get(items.size() - 1).getObject_id();
+				startingObjId = items.get(items.size() - 1).getObjectId();
 			arr.setItems(items);
 
 			// System.out.println("labels/"+entry.getValues().get("locale_id")+"Labels");
@@ -6319,7 +6355,7 @@ public class DbInit {
 			JsonObject obj = ((Jsonable) arr).toJson();
 			String jsonCodes = gson.toJson(obj);
 			// save the array to disk
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterRecordsPath + "30. master_codes.json",
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterRecordsPath + "30. master_codes.json",
 					jsonCodes);
 			codesStr[0] = jsonCodes;
 		} catch (Exception e) {
@@ -6337,9 +6373,10 @@ public class DbInit {
 		String geoJSONBounds = null;
 		InputStream is = null;
 		try {
-			is = DbInit.class.getResourceAsStream(SvConf.getConfPath() + svCONST.masterSDIPath + "/boundary.json");
+			is = DbInit.class
+					.getResourceAsStream(SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json");
 			if (is == null) {
-				String path = "./" + SvConf.getConfPath() + svCONST.masterSDIPath + "/boundary.json";
+				String path = "./" + SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json";
 				is = new FileInputStream(path);
 			}
 			if (is != null) {
@@ -6424,10 +6461,11 @@ public class DbInit {
 			GeometryCollection gcl = SvUtil.sdiFactory.createGeometryCollection(garr);
 			jtsWriter.setUseFeatureType(true);
 			jtsJson = jtsWriter.write(gcl);
-			SvUtil.saveStringToFile(SvConf.getConfPath() + svCONST.masterSDIPath + svCONST.sdiGridFile, jtsJson);
+			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile,
+					jtsJson);
 			System.out.println("Number of tiles written:" + gridList.size());
-			System.out.println("Generating Tiles finished successfully (" + SvConf.getConfPath() + svCONST.masterSDIPath
-					+ svCONST.sdiGridFile + ")");
+			System.out.println("Generating Tiles finished successfully (" + SvConf.getConfPath()
+					+ SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile + ")");
 
 		} catch (com.vividsolutions.jts.io.ParseException e) {
 			retval = "Error generating grid";
@@ -6445,8 +6483,8 @@ public class DbInit {
 	 * @return ArrayList holding all classes implementing IDbInit in the
 	 *         external jar
 	 */
-	public static ArrayList<IDbInit> loadCustomDbInit(String pathToJar) {
-		ArrayList<IDbInit> dbi = new ArrayList<IDbInit>();
+	public static ArrayList<Object> loadClassFromJar(String pathToJar, Class<?> clazz) {
+		ArrayList<Object> dbi = new ArrayList<>();
 
 		JarFile jarFile;
 		if (pathToJar != null && !pathToJar.equals("")) {
@@ -6468,8 +6506,8 @@ public class DbInit {
 					className = className.replace('/', '.');
 					try {
 						Class<?> c = cl.loadClass(className);
-						if (IDbInit.class.isAssignableFrom(c)) {
-							dbi.add((IDbInit) c.newInstance());
+						if (clazz.isAssignableFrom(c)) {
+							dbi.add(c.newInstance());
 
 						}
 					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError ex) {

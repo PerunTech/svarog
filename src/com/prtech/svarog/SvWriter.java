@@ -43,6 +43,18 @@ import com.prtech.svarog_common.ISvOnSave;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
+/**
+ * General Writer class of the Svarog framework. The SvWriter is responsible for
+ * persisting DbDataObject and DbDataArray instances in the target database.
+ * According to the information existing in the DbDataObject, like the object
+ * type, the writer should decide in which underlying table the meta-data should
+ * be saved. If proper configuration exists the SvWriter shall successfully
+ * persist DbDataObjects which can be retrieved in identical maner by the
+ * SvReader.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvWriter extends SvCore {
 	/**
 	 * Log4j instance used for logging
@@ -50,22 +62,24 @@ public class SvWriter extends SvCore {
 	static final Logger log4j = SvConf.getLogger(SvWriter.class);
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
+	 * Constructor to create a SvWriter object according to a user session. This
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException Pass through of underlying exceptions
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvWriter(String session_id) throws SvException {
 		super(session_id);
 	}
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
+	 * Constructor to create a SvWriter object according to a user session. This
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException Pass through of underlying exceptions
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvWriter(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -575,8 +589,8 @@ public class SvWriter extends SvCore {
 	void setKeys(DbDataArray dba, Long pkid, Long objectId, int objectIndex) {
 		dba.getItems().get(objectIndex).setObjectId(objectId);
 		dba.getItems().get(objectIndex).setPkid(pkid);
-		dba.getItems().get(objectIndex).setUserId(
-				this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId());
+		dba.getItems().get(objectIndex)
+				.setUserId(this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId());
 		if (log4j.isDebugEnabled()) {
 			log4j.debug("Generated keys (pkid):" + pkid.toString());
 			log4j.debug("Generated keys (object_id)" + objectId.toString());

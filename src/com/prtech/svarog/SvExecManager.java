@@ -155,7 +155,11 @@ public class SvExecManager extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+
+	 * @throws SvException Pass through exception from the super class constructor 
 	 */
 	public SvExecManager(String session_id) throws SvException {
 		super(session_id);
@@ -166,7 +170,13 @@ public class SvExecManager extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
+	 * @throws SvException Pass through exception from the super class constructor 
 	 */
 	public SvExecManager(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -176,7 +186,10 @@ public class SvExecManager extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @throws SvException
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
+	 *  @throws SvException Pass through exception from the super class constructor 
 	 */
 	public SvExecManager(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -186,7 +199,7 @@ public class SvExecManager extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @throws SvException
+	 * @throws SvException Pass through exception from the super class constructor 
 	 */
 	SvExecManager() throws SvException {
 		super();
@@ -622,8 +635,6 @@ public class SvExecManager extends SvCore {
 	 *            Parameters which will be passed to the execution
 	 * @param referenceDate
 	 *            The reference date on which the Executor must be valid.
-	 * @param returnType
-	 *            The return type of the result
 	 * @return Object instance of class type described by return type
 	 * @throws SvException
 	 *             If the executor is not found Svarog will raise
@@ -659,8 +670,6 @@ public class SvExecManager extends SvCore {
 	 *            Parameters which will be passed to the execution
 	 * @param referenceDate
 	 *            The reference date on which the Executor must be valid.
-	 * @param returnType
-	 *            The return type of the result
 	 * @return Object instance of class type described by return type
 	 * @throws SvException
 	 *             If the executor is not found Svarog will raise

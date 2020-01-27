@@ -71,9 +71,17 @@ import com.vividsolutions.jts.io.WKBWriter;
 
 /**
  * 
- * SvCore is the svarog god class anti-pattern. Since svarog was designed to be
- * anti-pattern it just complies with basic design principles: fast, simple,
- * configurable while breaking all best practices and patterns.
+ * SvCore is core abstract class of the Svarog Platform. It provides all the
+ * basic functions to classes inheriting from it. It serves as basic
+ * configuration management tool, managing the list of object types, the list of
+ * fields, the constraint rules. It also handles all different methods related
+ * to management of Forms (except for reading forms which is assigned to the
+ * SvReader). It also ensures that proper SvCore chaining is validated and
+ * allows sharing JDBC connections between different cores. It also performs all
+ * Svarog related authorization processes which in turn implement the security
+ * enforcement via SVAROG ACLs. Internally it provides the basic reading of data
+ * from the database structure and transforming it into set of DbDataObject
+ * POJOs.
  * 
  */
 public abstract class SvCore implements ISvCore {
@@ -569,7 +577,7 @@ public abstract class SvCore implements ISvCore {
 			}
 		} catch (Exception e) {
 			log4j.error("Can't find Database Handler named: " + SvConf.getParam("conn.dbHandlerClass"));
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
@@ -714,9 +722,19 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectTypeId
 	 *            The Id of the type
 	 * @return DbDataObject describing the object table storage
+	 * @throws SvException
+	 *             Exception with label "system.error.no_dbt_found" is raised if
+	 *             no object descriptor can be found for the DbDataObject
+	 *             instance
 	 */
-	public static DbDataObject getDbt(Long objectTypeId) {
-		return DbCache.getObject(objectTypeId, svCONST.OBJECT_TYPE_TABLE);
+	public static DbDataObject getDbt(Long objectTypeId) throws SvException {
+		DbDataObject dbt = null;
+		dbt = DbCache.getObject(objectTypeId, svCONST.OBJECT_TYPE_TABLE);
+		if (dbt == null) {
+			String exceptionMessage = "system.error.no_dbt_found";
+			throw (new SvException(exceptionMessage, svCONST.systemUser, null, objectTypeId));
+		}
+		return dbt;
 	}
 
 	/**
@@ -726,8 +744,9 @@ public abstract class SvCore implements ISvCore {
 	 *            The object for which the reference type will be returned
 	 * @return The @DbDataObject describing the reference type
 	 * @throws SvException
-	 *             Exception is raised if no object descriptor can be found for
-	 *             the DbDataObject instance
+	 *             Exception with label "system.error.no_dbt_found" is raised if
+	 *             no object descriptor can be found for the DbDataObject
+	 *             instance
 	 */
 	public static DbDataObject getDbt(DbDataObject dbo) throws SvException {
 		DbDataObject dbt = null;
@@ -863,8 +882,11 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectName
 	 *            The name of the object type (table name)
 	 * @return A object type descriptor
+	 * @throws SvException
+	 *             If the object type identified by name ObjectName is not found
+	 *             "system.error.no_dbt_found" exception is thrown
 	 */
-	public static Long getTypeIdByName(String objectName) {
+	public static Long getTypeIdByName(String objectName) throws SvException {
 		return getTypeIdByName(objectName, null);
 	}
 
@@ -876,15 +898,20 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectSchema
 	 *            The schema in which the table resides
 	 * @return Object Id of the object type descriptor
+	 * @throws SvException
+	 *             If the object type identified by name ObjectName is not found
+	 *             "system.error.no_dbt_found" exception is thrown
 	 */
-	public static Long getTypeIdByName(String objectName, String objectSchema) {
-		if (objectName == null)
-			return 0L;
-		DbDataObject objType = getDbtByName(objectName, objectSchema);
-		if (objType != null)
+	public static Long getTypeIdByName(String objectName, String objectSchema) throws SvException {
+		DbDataObject objType = null;
+		if (objectName != null)
+			objType = getDbtByName(objectName, objectSchema);
+
+		if (objType == null) {
+			String exceptionMessage = "system.error.no_dbt_found";
+			throw (new SvException(exceptionMessage, svCONST.systemUser, null, objectName));
+		} else
 			return objType.getObjectId();
-		else
-			return 0L;
 	}
 
 	/**
@@ -1170,6 +1197,19 @@ public abstract class SvCore implements ISvCore {
 		}
 	}
 
+	/**
+	 * Method to initialise the system objects from the 3 core arrays, object,
+	 * fields and link types
+	 * 
+	 * @param objectTypes
+	 *            The list of object types with appropriate configuration and
+	 *            table names
+	 * @param fieldTypes
+	 *            The list of field types in the system
+	 * @param linkTypes
+	 *            The available link t
+	 * @throws Exception
+	 */
 	private static void initSysObjects(DbDataArray objectTypes, DbDataArray fieldTypes, DbDataArray linkTypes)
 			throws Exception {
 		// perform initialisation of the basemaps
@@ -1381,8 +1421,10 @@ public abstract class SvCore implements ISvCore {
 	 * @param objectTypeId
 	 *            The ID of the object descriptor
 	 * @return DbDataArray containing the list of fields
+	 * @throws SvException
+	 *             Throws underlying exception from {@link #getDbt(Long)}
 	 */
-	public static DbDataArray getDbFields(Connection conn, Long objectTypeId) {
+	public static DbDataArray getDbFields(Connection conn, Long objectTypeId) throws SvException {
 		DbDataArray cachedFields = getFields(objectTypeId);
 		DbDataArray finalFields = new DbDataArray();
 		DbDataObject dbt = getDbt(objectTypeId);
@@ -2925,8 +2967,14 @@ public abstract class SvCore implements ISvCore {
 		case NUMERIC:
 			if (value == null)
 				ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
-			else
-				ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).doubleValue()));
+			else {
+				Long fScale = (Long) dbf.getVal("FIELD_SCALE");
+				if (fScale != null && fScale > 0) {
+					double dbl = ((Number) value).doubleValue();
+					ps.setBigDecimal(bindAtPosition, new BigDecimal(dbl).setScale(fScale.intValue()));
+				} else
+					ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
+			}
 			break;
 		case DATE:
 		case TIME:
