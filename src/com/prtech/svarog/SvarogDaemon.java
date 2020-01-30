@@ -274,9 +274,9 @@ public class SvarogDaemon {
 			}
 			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
 			
-			//Svarog shout down executing list of executors
+			//Svarog shut down executing list of executors
 			if(shutdown) {
-				SvarogDaemon.execSvarogShoutDownHooks((String) configProps.get(SVAROG_SHUTDOWN_HOOK_PROP));
+				SvarogDaemon.execSvarogShutDownHooks((String) configProps.get(SVAROG_SHUTDOWN_HOOK_PROP));
 			}
 			// Otherwise, exit.
 			System.exit(0);
@@ -443,7 +443,7 @@ public class SvarogDaemon {
 		}
 	}
 	
-	private static void execSvarogShoutDownHooks(String shoudDownExec) {
+	private static void execSvarogShutDownHooks(String shoudDownExec) {
 		SvExecManager sve = null;
 		if (shoudDownExec != null && shoudDownExec.length() > 1) {
 			String[] list = shoudDownExec.trim().split(";");
@@ -453,13 +453,13 @@ public class SvarogDaemon {
 					for (String execKey : Arrays.asList(list)) {
 						try {
 							sve.execute(execKey.toUpperCase(), null, new DateTime());
-							log4j.info("Executed shout down executor: " + execKey);
+							log4j.info("Executed shut down executor: " + execKey);
 						} catch (Exception e) {
-							log4j.info("Could not execute shout down executor: " + execKey, e);
+							log4j.info("Could not execute shut down executor: " + execKey, e);
 						}
 					}
 				} catch (SvException e) {
-					log4j.info("Error Svarog shout down", e);
+					log4j.info("Error Svarog shut down", e);
 				} finally {
 					if (sve != null) {
 						sve.release();
