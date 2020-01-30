@@ -27,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.joda.time.DateTime;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
@@ -58,6 +59,11 @@ public class SvarogDaemon {
 	 * shutdown hook.
 	 **/
 	public static final String SHUTDOWN_HOOK_PROP = "felix.shutdown.hook";
+	/**
+	 * The property name used to specify whether the launcher should execute a
+	 * svarog shutdown hook.
+	 **/
+	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
 	/**
 	 * The property name used to specify an URL to the system property file.
 	 **/
@@ -267,6 +273,11 @@ public class SvarogDaemon {
 				}
 			}
 			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
+			
+			//Svarog shout down executing list of executors
+			if(shutdown) {
+				SvarogDaemon.execSvarogShoutDownHooks((String) configProps.get(SVAROG_SHUTDOWN_HOOK_PROP));
+			}
 			// Otherwise, exit.
 			System.exit(0);
 		} catch (Exception ex) {
@@ -428,6 +439,32 @@ public class SvarogDaemon {
 			String key = (String) e.nextElement();
 			if (key.startsWith("felix.") || key.startsWith("org.osgi.framework.")) {
 				configProps.put(key, System.getProperty(key));
+			}
+		}
+	}
+	
+	private static void execSvarogShoutDownHooks(String shoudDownExec) {
+		SvExecManager sve = null;
+		if (shoudDownExec != null && shoudDownExec.length() > 1) {
+			String[] list = shoudDownExec.trim().split(";");
+			if (list.length > 0) {
+				try {
+					sve = new SvExecManager();
+					for (String execKey : Arrays.asList(list)) {
+						try {
+							sve.execute(execKey.toUpperCase(), null, new DateTime());
+							log4j.info("Executed shout down executor: " + execKey);
+						} catch (Exception e) {
+							log4j.info("Could not execute shout down executor: " + execKey, e);
+						}
+					}
+				} catch (SvException e) {
+					log4j.info("Error Svarog shout down", e);
+				} finally {
+					if (sve != null) {
+						sve.release();
+					}
+				}
 			}
 		}
 	}
