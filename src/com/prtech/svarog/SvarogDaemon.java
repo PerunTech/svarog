@@ -443,6 +443,14 @@ public class SvarogDaemon {
 		}
 	}
 	
+	/**
+	 * Method to execute list of shut down executors loaded from
+	 * svarog.properties.
+	 * 
+	 * @param shoudDownExec
+	 *            List of key of svarog executors. Semicolon is the list
+	 *            separator
+	 */
 	private static void execSvarogShutDownHooks(String shoudDownExec) {
 		SvExecManager sve = null;
 		if (shoudDownExec != null && shoudDownExec.length() > 1) {
@@ -450,12 +458,12 @@ public class SvarogDaemon {
 			if (list.length > 0) {
 				try {
 					sve = new SvExecManager();
-					for (String execKey : Arrays.asList(list)) {
+					for (int i = 0; i < list.length; i++) {
 						try {
-							sve.execute(execKey.toUpperCase(), null, new DateTime());
-							log4j.info("Executed shut down executor: " + execKey);
+							sve.execute(list[i].toUpperCase(), null, new DateTime());
+							log4j.info("Executed shut down executor: " + list[i]);
 						} catch (Exception e) {
-							log4j.info("Could not execute shut down executor: " + execKey, e);
+							log4j.info("Could not execute shut down executor: " + list[i], e);
 						}
 					}
 				} catch (SvException e) {
