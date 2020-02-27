@@ -194,8 +194,7 @@ public class SvLock {
 		if (alwaysUnlock && !lockReleased) {
 			if (lock != null)
 				lock.unlock();
-			log4j.warn(
-					(lock == null ? "NO lock" : "Forced release") + " under key:" + key + ", lock:" + lock.toString());
+			log4j.warn((lock == null ? "NO lock" : "Forced release") + " under key:" + key);
 
 		}
 

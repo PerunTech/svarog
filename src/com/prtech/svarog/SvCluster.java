@@ -152,6 +152,7 @@ public class SvCluster extends SvCore implements Runnable {
 			synchronized (SvCluster.isRunning) {
 				SvReader svr = null;
 				SvWriter svw = null;
+				PreparedStatement ps = null;
 				try {
 					svr = new SvReader();
 					Connection conn = svr.dbGetConn();
@@ -192,7 +193,7 @@ public class SvCluster extends SvCore implements Runnable {
 					sbr.setLength(sbr.length() - 1);
 					sbr.append(")");
 					conn.setAutoCommit(false);
-					PreparedStatement ps = conn.prepareStatement(sbr.toString());
+					ps = conn.prepareStatement(sbr.toString());
 					svw = new SvWriter(svr);
 					ps.execute();
 					svw.saveObject(updatedList, false);
@@ -202,6 +203,11 @@ public class SvCluster extends SvCore implements Runnable {
 				} catch (Exception e) {
 					log4j.error("Svarog cluster maintenance failed!", e);
 				} finally {
+					try {
+						SvCore.closeResource(ps, svCONST.systemUser);
+					} catch (SvException e) {
+						log4j.error("Svarog cluster maintenance failed!", e);
+					}
 					if (svr != null)
 						svr.release();
 					if (svw != null)

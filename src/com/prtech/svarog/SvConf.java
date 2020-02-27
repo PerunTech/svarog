@@ -419,10 +419,10 @@ public class SvConf {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
 				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
 				Context initialContext = new InitialContext();
-				dataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
+				sysDataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
 			} else {
 				log4j.info("DB connection type is JDBC, using DBCP2");
-				dataSource = configureDBCP(mainProperties);
+				configureDBCP(mainProperties);
 			}
 			hasErrors = false;
 			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
@@ -454,7 +454,7 @@ public class SvConf {
 		else {
 			synchronized (config) {
 				if (sysDataSource == null)
-					sysDataSource = initDataSource(config);
+					initDataSource(config);
 				return sysDataSource;
 			}
 		}
@@ -619,34 +619,34 @@ public class SvConf {
 	 */
 	static DataSource configureDBCP(Properties mainProperties) {
 
-		DataSource coreDataSource = new BasicDataSource();
-		((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
-		((BasicDataSource) coreDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
-		((BasicDataSource) coreDataSource).setUsername(mainProperties.getProperty("user.name").trim());
-		((BasicDataSource) coreDataSource).setPassword(mainProperties.getProperty("user.password").trim());
+		sysDataSource = new BasicDataSource();
+		((BasicDataSource) sysDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
+		((BasicDataSource) sysDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
+		((BasicDataSource) sysDataSource).setUsername(mainProperties.getProperty("user.name").trim());
+		((BasicDataSource) sysDataSource).setPassword(mainProperties.getProperty("user.password").trim());
 
 		// Parameters for connection pooling
-		((BasicDataSource) coreDataSource).setInitialSize(getProperty(mainProperties, "dbcp.init.size", 10));
-		((BasicDataSource) coreDataSource).setMaxTotal(getProperty(mainProperties, "dbcp.max.total", 200));
-		((BasicDataSource) coreDataSource).setTestOnBorrow(getProperty(mainProperties, "dbcp.test.borrow", true));
-		((BasicDataSource) coreDataSource).setTestWhileIdle(getProperty(mainProperties, "dbcp.test.idle", true));
+		((BasicDataSource) sysDataSource).setInitialSize(getProperty(mainProperties, "dbcp.init.size", 10));
+		((BasicDataSource) sysDataSource).setMaxTotal(getProperty(mainProperties, "dbcp.max.total", 200));
+		((BasicDataSource) sysDataSource).setTestOnBorrow(getProperty(mainProperties, "dbcp.test.borrow", true));
+		((BasicDataSource) sysDataSource).setTestWhileIdle(getProperty(mainProperties, "dbcp.test.idle", true));
 		String defaultValidationQuery = "SELECT 1" + (svDbType.equals(SvDbType.ORACLE) ? " FROM DUAL" : "");
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setValidationQuery(getProperty(mainProperties, "dbcp.validation.query", defaultValidationQuery));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setValidationQueryTimeout(getProperty(mainProperties, "dbcp.validation.timoeut", 3000));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setAccessToUnderlyingConnectionAllowed(getProperty(mainProperties, "dbcp.access.conn", true));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedOnBorrow(getProperty(mainProperties, "dbcp.remove.abandoned", true));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedOnMaintenance(getProperty(mainProperties, "dbcp.remove.abandoned", true));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 3000));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setTimeBetweenEvictionRunsMillis(getProperty(mainProperties, "dbcp.eviction.time", 3000));
-		((BasicDataSource) coreDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
-		return coreDataSource;
+		((BasicDataSource) sysDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
+		return sysDataSource;
 	}
 
 	/**
