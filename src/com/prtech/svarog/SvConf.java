@@ -103,6 +103,35 @@ public class SvConf {
 	private static int maxLockCount;
 
 	/**
+	 * Maximum time before the node will perform cluster maintenance.
+	 */
+	private static int clusterMaintenanceInterval;
+
+	/**
+	 * TCP/IP port on which the server will listen for heartbeat.
+	 */
+	private static int heartBeatPort;
+
+	/**
+	 * The heart beat interval between two heart beats for configuring the
+	 * cluster client
+	 */
+	private static int heartBeatInterval;
+
+	/**
+	 * The maximum timeout which shall we wait before declaring the peer as dead
+	 */
+	private static int heartBeatTimeOut;
+
+	public static int getHeartBeatTimeOut() {
+		return heartBeatTimeOut;
+	}
+
+	public static void setHeartBeatTimeOut(int heartBeatTimeOut) {
+		SvConf.heartBeatTimeOut = heartBeatTimeOut;
+	}
+
+	/**
 	 * Flag to mark if SDI is enabled
 	 */
 	private static boolean sdiEnabled = false;
@@ -164,19 +193,38 @@ public class SvConf {
 	private static volatile DataSource sysDataSource = null;
 
 	/**
-	 * Set the default multi select separator
+	 * Set the default multi select separator. It is used to separate selected
+	 * values when stored in the d
 	 */
 	private static String multiSelectSeparator = ";";
+
+	/**
+	 * Size of the generated grid of the territory covered by the spatial
+	 * modules
+	 */
 	static int sdiGridSize;
+	/**
+	 * Flag to enable svarog to recalculate geometry area/perimeter
+	 */
 	static boolean sdiOverrideGeomCalc;
 
 	/**
 	 * Fields storing application information
 	 */
 	static final String appName = loadInfo("application.name");
+	/**
+	 * Fields storing Application version
+	 */
 	static final String appVersion = loadInfo("application.version");
+	/**
+	 * Fields storing Application build number
+	 */
 	static final String appBuild = loadInfo("application.build");
 
+	/**
+	 * Array holding the list of service classes allowed to switch to the
+	 * Service user without being authenticated
+	 */
 	static ArrayList<String> serviceClasses = new ArrayList<String>();
 	/**
 	 * Properties object holding the svarog master configuration
@@ -230,7 +278,15 @@ public class SvConf {
 		return maxDate;
 	}
 
+	/**
+	 * Final field representing the Maximum date time value used in Svarog.
+	 * Includes time zone
+	 */
 	public static final DateTime MAX_DATE = getMaxDate();
+
+	/**
+	 * SQL Timestamp version of the MAX DATE used for SQL queries
+	 */
 	public static final Timestamp MAX_DATE_SQL = new Timestamp(MAX_DATE.getMillis());
 
 	/**
@@ -427,7 +483,10 @@ public class SvConf {
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
-
+			clusterMaintenanceInterval = getProperty(mainProperties, "sys.cluster.max_maintenance", 60);
+			heartBeatPort = getProperty(mainProperties, "sys.cluster.heartbeat_port", 6783);
+			heartBeatInterval = getProperty(mainProperties, "sys.cluster.heartbeat_interval", 1000);
+			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
 			// configure svarog service classes
 			String svcClass = mainProperties.getProperty("sys.service_class");
 			if (svcClass != null && svcClass.length() > 1) {
@@ -638,6 +697,11 @@ public class SvConf {
 		}
 	}
 
+	/**
+	 * Method to get the SDI srid configured in svarog properties
+	 * 
+	 * @return
+	 */
 	public static int getSDISrid() {
 		if (sdiSrid == null) {
 			try {
@@ -763,9 +827,16 @@ public class SvConf {
 		coreIdleTimeout = timeoutMilis;
 	}
 
+	public static int getClusterMaintenanceInterval() {
+		return clusterMaintenanceInterval;
+	}
+
+	public static void setClusterMaintenanceInterval(int clusterMaintenanceInterval) {
+		SvConf.clusterMaintenanceInterval = clusterMaintenanceInterval;
+	}
+
 	public static String getMasterRepo() {
 		return repoName;
-		// return config.getProperty("sys.masterRepo").trim();
 	}
 
 	public static String getCustomJar() {
@@ -865,4 +936,19 @@ public class SvConf {
 		SvConf.maxLockCount = maxLockCount;
 	}
 
+	public static int getHeartBeatPort() {
+		return heartBeatPort;
+	}
+
+	public static void setHeartBeatPort(int heartBeatPort) {
+		SvConf.heartBeatPort = heartBeatPort;
+	}
+
+	public static int getHeartBeatInterval() {
+		return heartBeatInterval;
+	}
+
+	public static void setHeartBeatInterval(int heartBeatInterval) {
+		SvConf.heartBeatInterval = heartBeatInterval;
+	}
 }

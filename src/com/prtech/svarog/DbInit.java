@@ -69,6 +69,87 @@ public class DbInit {
 	}
 
 	//
+	private static DbDataTable getMasterCluster() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName("{REPO_TABLE_NAME}_cluster");
+		dbt.setDbRepoName("{MASTER_REPO}");
+		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_CLUSTER);
+		dbt.setIsRepoTable(false);
+		dbt.setLabel_code("master_repo.cluster");
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code("master_repo.table_meta_pkid");
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName("LOCAL_IP");
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(200);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code("master_repo.cluster_node_ip");
+
+		// f3
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName("NODE_INFO");
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(1000);
+		dbf3.setIsNull(false);
+		dbf3.setLabel_code("master_repo.executor_name");
+
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("JOIN_TIME");
+		dbf4.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf4.setDbFieldSize(3);
+		dbf4.setIsNull(false);
+		dbf4.setLabel_code("master_repo.node_join_time");
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName("PART_TIME");
+		dbf5.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf5.setDbFieldSize(3);
+		dbf5.setIsNull(false);
+		dbf5.setLabel_code("master_repo.node_part_time");
+
+		// f3
+		DbDataField dbf6 = new DbDataField();
+		dbf6.setDbFieldName("LAST_MAINTENANCE");
+		dbf6.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf6.setDbFieldSize(3);
+		dbf6.setIsNull(false);
+		dbf6.setLabel_code("master_repo.node_last_maintenance");
+
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName("NEXT_MAINTENANCE");
+		dbf7.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf7.setDbFieldSize(3);
+		dbf7.setIsNull(false);
+		dbf7.setLabel_code("master_repo.node_next_maintenance");
+
+		DbDataField[] dbTableFields = new DbDataField[7];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf3;
+		dbTableFields[3] = dbf4;
+		dbTableFields[4] = dbf5;
+		dbTableFields[5] = dbf6;
+		dbTableFields[6] = dbf7;
+
+		dbt.setDbTableFields(dbTableFields);
+
+		return dbt;
+	}
+
+	//
 	private static DbDataTable getMasterExecutors() {
 		DbDataTable dbt = new DbDataTable();
 		dbt.setDbTableName("{REPO_TABLE_NAME}_executors");
@@ -96,7 +177,6 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
-		dbf2.setIndexName("exec_name_cat");
 		dbf2.setIsUnique(true);
 		dbf2.setLabel_code("master_repo.executor_category");
 
@@ -105,7 +185,6 @@ public class DbInit {
 		dbf3.setDbFieldName("NAME");
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(100);
-		dbf3.setIndexName("exec_name_cat");
 		dbf3.setIsUnique(true);
 		dbf3.setIsNull(false);
 		dbf3.setLabel_code("master_repo.executor_name");
@@ -4998,6 +5077,9 @@ public class DbInit {
 		dbtt = getMasterExecutors();
 		dbtList.add(addSortOrder(dbtt));
 
+		dbtt = getMasterCluster();
+		dbtList.add(addSortOrder(dbtt));
+
 		// Add SDI structure
 		if (SvConf.isSdiEnabled()) {
 			dbtt = getSDIMasterRepoObject();
@@ -5939,6 +6021,19 @@ public class DbInit {
 		dblPrint.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_JOB_TYPE);
 		dblPrint.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_UI_STRUCTURE_SOURCE);
 		defaultObjests.addDataItem(dblPrint);
+
+		DbDataObject coordinator = new DbDataObject();
+		dblPrint.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
+		dblPrint.setObjectType(svCONST.OBJECT_TYPE_CLUSTER);
+		dblPrint.setStatus(svCONST.STATUS_VALID);
+		dblPrint.setVal("LOCAL_IP", "0.0.0.0");
+		dblPrint.setVal("NODE_INFO", "N/A");
+		dblPrint.setVal("join_time", new DateTime());
+		dblPrint.setVal("part_time", new DateTime());
+		dblPrint.setVal("last_maintenance", new DateTime());
+		dblPrint.setVal("next_maintenance", new DateTime());
+		
+		defaultObjests.addDataItem(coordinator);
 		/*
 		 * // link conversation and user DbDataObject dblConversationUser = new
 		 * DbDataObject();

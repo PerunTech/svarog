@@ -1,0 +1,361 @@
+package com.prtech.svarog;
+
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
+import org.zeromq.SocketType;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ;
+
+import com.google.gson.JsonObject;
+import com.prtech.svarog_common.DbDataArray;
+import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbSearch;
+import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+
+/**
+ * Class for managing the svarog cluster infrastructure. Provides basic
+ * synchronization methods between multiple svarog nodes.
+ * 
+ * @author ristepejov
+ *
+ */
+public class SvCluster extends SvCore implements Runnable {
+	static final byte MSG_UNKNOWN = -2;
+	static final byte MSG_FAIL = -1;
+	static final byte MSG_SUCCESS = 0;
+	static final byte MSG_HEARTBEAT = 1;
+	static final byte MSG_LOCK = 2;
+	static final byte MSG_AUTH_TOKEN_PUT = 3;
+	static final byte MSG_AUTH_TOKEN_GET = 4;
+	static final byte MSG_AUTH_TOKEN_SET = 6;
+	static final byte MSG_DIRTY_OBJECT = 7;
+	static final byte MSG_LOGOFF = 8;
+	static final byte MSG_LOCK_RELEASE = 9;
+	static final byte MSG_JOIN = 10;
+	static final byte MSG_PART = 11;
+
+	static DateTime nextMaintenance = new DateTime();
+
+	/**
+	 * Timeout interval on the socket receive
+	 */
+	static final int sockeReceiveTimeout = SvConf.getHeartBeatInterval() / 2;
+
+	/**
+	 * Flag to know if the current node is coordinator or worker.
+	 */
+	static boolean runMaintenanceThread = true;
+
+	/**
+	 * Flag to know if the current node is coordinator or worker.
+	 */
+	static boolean isCoordinator = false;
+
+	/**
+	 * Flag if the client is running
+	 */
+	static AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(SvCluster.class);
+
+	/**
+	 * Reference to the coordinator node
+	 */
+	static DbDataObject coordinatorNode = null;
+	/**
+	 * Reference to the current node descriptor. If the current node is
+	 * coordinator, the references should be equal.
+	 */
+	static DbDataObject currentNode = null;
+
+	static final String ipAddrDelimiter = ";";
+
+	static private Thread heartBeatThread = null;
+	static private Thread notifierThread = null;
+	static Thread maintenanceThread = null;
+
+	/**
+	 * Reference to the coordinator node
+	 */
+	static boolean autoStartClient = true;
+
+	/**
+	 * Default Constructor. This constructor can be used only within the svarog
+	 * package since it will run with system privileges.
+	 * 
+	 * @throws SvException
+	 */
+	SvCluster() throws SvException {
+		super(svCONST.systemUser, null);
+	}
+
+	static DbDataObject getCurrentNodeInfo() {
+		DbDataObject cNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
+		cNode.setVal("join_time", new DateTime());
+		cNode.setVal("part_time", SvConf.getMaxDate());
+		cNode.setVal("last_maintenance", new DateTime());
+		nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
+		cNode.setVal("next_maintenance", nextMaintenance);
+		String localIp = "0.0.0.0:" + SvConf.getHeartBeatPort();
+		try {
+			localIp = SvUtil.getIpAdresses(true, ipAddrDelimiter);
+		} catch (UnknownHostException e) {
+			log4j.error("Can't get node IP Address!", e);
+		}
+		cNode.setVal("local_ip", localIp);
+		JsonObject json = new JsonObject();
+		json.addProperty("pid", ManagementFactory.getRuntimeMXBean().getName());
+		json.addProperty("version", SvConf.appVersion);
+		json.addProperty("build", SvConf.appBuild);
+		json.addProperty("ip", localIp);
+		cNode.setVal("node_info", json.toString());
+		return cNode;
+	}
+
+	static boolean becomeCoordinator(SvCore svc) throws SvException {
+		SvWriter svw = null;
+		boolean success = false;
+		try {
+			svw = new SvWriter(svc);
+			coordinatorNode.setValuesMap(currentNode.getValuesMap());
+			svw.saveObject(coordinatorNode, true);
+			success = true;
+		} catch (SvException e) {
+			// if the object is not update-able, another node became
+			// coordinator and we should register a worker node
+			if (!e.getLabelCode().equals("system.error.obj_not_updateable"))
+				throw (e);
+			else
+				success = false;
+
+		} finally {
+			if (svw != null)
+				svw.release();
+		}
+		return success;
+	}
+
+	static void clusterListMaintenance() {
+		// we are the coordinator and the Heart Beat server is running
+		if (isCoordinator && SvClusterServer.isRunning.get()) {
+			synchronized (SvCluster.isRunning) {
+				SvReader svr = null;
+				SvWriter svw = null;
+				try {
+					svr = new SvReader();
+					Connection conn = svr.dbGetConn();
+
+					// DbSearch dbs = new DbSearchCriterion("part_time",
+					// DbCompareOperand.GREATER_EQUAL, DateTime.now());
+					DbDataArray dba = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
+
+					StringBuilder sbr = new StringBuilder();
+					sbr.append("DELETE FROM ");
+					sbr.append(SvConf.getDefaultSchema() + ".");
+					sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME")
+							+ " WHERE PKID NOT IN (");
+
+					DbDataArray updatedList = new DbDataArray();
+					for (DbDataObject node : dba.getItems()) {
+						// do try to get a valid coordinator
+						updatedList.addDataItem(node);
+						boolean nodeRemoved = false;
+						node.setVal("last_maintenance", DateTime.now());
+						node.setVal("next_maintenance",
+								DateTime.now().plusSeconds(SvConf.getClusterMaintenanceInterval()));
+
+						if (!node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID)
+								&& !SvClusterServer.nodeHeartBeats.containsKey(node.getObjectId())) {
+							node.setVal("part_time", DateTime.now());
+							nodeRemoved = true;
+						}
+
+						if (!isRunning.get() && node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
+							node.setVal("part_time", DateTime.now());
+						// if the node is not removed or it is the coordinator
+						// record make sure we keep it
+						if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
+							sbr.append(node.getPkid().toString() + ",");
+					}
+
+					sbr.setLength(sbr.length() - 1);
+					sbr.append(")");
+					conn.setAutoCommit(false);
+					PreparedStatement ps = conn.prepareStatement(sbr.toString());
+					svw = new SvWriter(svr);
+					ps.execute();
+					svw.saveObject(updatedList, false);
+					svw.dbCommit();
+					nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
+
+				} catch (Exception e) {
+					log4j.error("Svarog cluster maintenance failed!", e);
+				} finally {
+					if (svr != null)
+						svr.release();
+					if (svw != null)
+						svw.release();
+				}
+			}
+
+		}
+	}
+
+	static boolean initCluster() {
+		if (!isRunning.compareAndSet(false, true)) {
+			log4j.error("Cluster is already initialised and active. Shutdown first");
+			return false;
+		}
+		boolean result = false;
+		SvReader svr = null;
+		SvWriter svw = null;
+		isCoordinator = false;
+		try {
+			svr = new SvReader();
+			// do try to get a valid coordinator
+			while (coordinatorNode == null) {
+				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
+				currentNode = getCurrentNodeInfo();
+				DateTime nextMaintenance = (DateTime) coordinatorNode.getVal("next_maintenance");
+				// the next maintenance is in the past means there's no active
+				// coordinator, we will try to become a coordinator
+				if (nextMaintenance.isBeforeNow()) {
+					isCoordinator = becomeCoordinator(svr);
+					// lets try to refreshe the coordinator node infor
+					if (!isCoordinator) {
+						DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
+						coordinatorNode = null;
+						log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
+								+ coordinatorNode.getVal("next_maintenance"));
+						log4j.warn("Sleeping 5s before re-check");
+						Thread.sleep(5000);
+					} else
+						log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal("node_info"));
+				} else
+					log4j.info("Valid coordinator record found: " + coordinatorNode.getVal("node_info"));
+			}
+			// if the local IP including the hb port is the same ... means that
+			// the coordinator record is related to this node, but maybe a core
+			// dump caused the server to fail. So lets try to become coordinator
+			String hbAddress = (String) coordinatorNode.getVal("local_ip");
+			if (isCoordinator || (!isCoordinator && SvUtil.getIpAdresses(true, ipAddrDelimiter).equals(hbAddress))) {
+				isCoordinator = SvClusterServer.initServer() && SvClusterNotifierProxy.initServer();
+				if (isCoordinator) {
+					heartBeatThread = new Thread(new SvClusterServer());
+					heartBeatThread.setName("SvClusterServerThread");
+					heartBeatThread.start();
+					notifierThread = new Thread(new SvClusterNotifierProxy());
+					notifierThread.setName("SvClusterNotifierProxyThread");
+					notifierThread.start();
+					if (runMaintenanceThread) {
+						maintenanceThread = new Thread(new SvCluster());
+						maintenanceThread.start();
+					}
+					result = true;
+				} else {
+					log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster shutdown.");
+					shutdown();
+					result = false;
+				}
+			} else if (autoStartClient) {
+				result = SvClusterClient.initClient(hbAddress) && SvClusterNotifierClient.initClient(hbAddress);
+				if (result) {
+					heartBeatThread = new Thread(new SvClusterClient());
+					heartBeatThread.start();
+					notifierThread = new Thread(new SvClusterNotifierClient());
+					notifierThread.start();
+				} else {
+					log4j.info("Svarog Cluster Clients initialisation failed. Initiating Cluster shutdown.");
+					shutdown();
+					result = false;
+				}
+
+			}
+			if (isCoordinator)
+				currentNode.setParentId(coordinatorNode.getObjectId());
+
+		} catch (Exception e) {
+			log4j.error("Svarog cluster could not be initialised. Cluster not running!", e);
+			result = false;
+		} finally {
+			if (svr != null)
+				svr.release();
+			if (svw != null)
+				svw.release();
+		}
+
+		return result;
+	}
+
+	/**
+	 * Method to shutdown the Svarog cluster. The cluster shutdown will in turn:
+	 * 1. Check the current node is a cluster coordinator. 2. If we are a
+	 * cluster coordinator then we shall shutdown the SvClusterServer and
+	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall
+	 * shutdown the SvClusterClient and SvClusterNotifierClient
+	 */
+	static void shutdown() {
+		if (!isRunning.compareAndSet(true, false)) {
+			log4j.error("Svarog Cluster not running. Init first");
+			return;
+		}
+		clusterListMaintenance();
+		if (!isCoordinator) {
+			if (autoStartClient) {
+				if (SvClusterClient.isRunning.get())
+					SvClusterClient.shutdown();
+				if (SvClusterNotifierClient.isRunning.get())
+					SvClusterNotifierClient.shutdown();
+			}
+		} else {
+			if (SvClusterServer.isRunning.get())
+				SvClusterServer.shutdown();
+			if (SvClusterNotifierProxy.isRunning.get())
+				SvClusterNotifierProxy.shutdown();
+		}
+		if (heartBeatThread != null)
+			try {
+				heartBeatThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				log4j.info("Interrupted heart beat thread join.", e);
+			}
+		if (notifierThread != null)
+			try {
+				notifierThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				log4j.info("Interrupted notifier thread join.", e);
+			}
+		heartBeatThread = null;
+		notifierThread = null;
+		coordinatorNode = null;
+		maintenanceThread = null;
+	}
+
+	@Override
+	public void run() {
+
+		while (isRunning.get()) {
+			try {
+				Thread.sleep((SvConf.getClusterMaintenanceInterval() - 2) * 1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				// e.printStackTrace();
+			}
+			clusterListMaintenance();
+		}
+
+	}
+}
