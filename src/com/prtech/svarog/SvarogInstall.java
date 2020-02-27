@@ -2592,7 +2592,7 @@ public class SvarogInstall {
 						objType2 = (Long) dbo.getVal("link_obj_type_2");
 
 					boolean shouldSaveType = true;
-					if (!isSvarogInstalled() && existingTypes != null && existingTypes.size() > 0) {
+					if (existingTypes != null && existingTypes.size() > 0) {
 						DbDataArray linkFields = SvCore.getFields(svCONST.OBJECT_TYPE_LINK_TYPE);
 						linkFields.rebuildIndex("FIELD_NAME");
 						for (DbDataObject oldLink : existingTypes.getItems()) {
