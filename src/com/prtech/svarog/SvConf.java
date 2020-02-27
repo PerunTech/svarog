@@ -256,7 +256,7 @@ public class SvConf {
 		DateTime maxDate = new DateTime("9999-12-31T00:00:00+00");
 		String timezone = SvConf.getParam("sys.force_timezone");
 
-		if (timezone != null) {
+		if (timezone != null && !timezone.trim().isEmpty()) {
 			try {
 				// forID(timezone)
 				DateTimeZone dtz = DateTimeZone.getDefault();
