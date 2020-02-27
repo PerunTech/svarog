@@ -91,6 +91,11 @@ public class SvarogDaemon {
 	public static int svarogDaemonStatus = -13;
 
 	/**
+	 * Local field to keep reference to the internal hearbeat client
+	 */
+	static Thread internalClient = null;
+
+	/**
 	 * <p>
 	 * This method performs the main task of constructing an framework instance
 	 * and starting its execution or running the install/management process. The
@@ -181,9 +186,14 @@ public class SvarogDaemon {
 
 		// set svarog daemon flag, to prevent cleanup on its own.
 		SvCore.svDaemonRunning.compareAndSet(false, true);
+		// if the daemon was started without params, assume -dm to start the
+		// daemon and enable integration with the Svarog Install
 		if (args.length == 0)
 			args = new String[] { "-dm" };
 
+		// since the Daemon main should be a single point of entry, we simply
+		// pass it to the install class. If the install class returns the daemon
+		// status then no SvarogInstall operation was required
 		int cmdLineStatus = SvarogInstall.main(args);
 		if (cmdLineStatus != svarogDaemonStatus)
 			System.exit(cmdLineStatus);
@@ -246,15 +256,35 @@ public class SvarogDaemon {
 			log4j.info("Starting OSGI auto-deploy from directory:"
 					+ configProps.get(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 			AutoProcessor.process(configProps, osgiFramework.getBundleContext());
-			FrameworkEvent event;
-			// Start the framework.
+			FrameworkEvent event = null;
+			// Start the OSGI framework.
 			osgiFramework.start();
+
+			// ensure that the Cluster doesn't run the maintenance thread, but
+			// we will perform maintenance in this thread
+			SvCluster.runMaintenanceThread = false;
+			SvCluster.maintenanceThread = Thread.currentThread();
+
+			// Set the proxy to process the notifications it self
+			SvClusterNotifierProxy.processNotification = true;
+			SvCluster.initCluster();
+
 			boolean shutdown = false;
 			while (!shutdown) {
-				// Wait for framework to stop to exit the VM.
-				event = osgiFramework.waitForStop(SvConf.getCoreIdleTimeout());
-				if (event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
+				// Wait for framework to stop to exit the VM. Wait just enough
+				// to run the cluster maintenance as well as tracked connection
+				// cleanup.
+				try {
+					shutdown = true;
+					event = osgiFramework.waitForStop((SvConf.getClusterMaintenanceInterval() - 2) * 1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					// e.printStackTrace();
+					shutdown = false;
+				}
+				if (shutdown == false || event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
 					SvCore.trackedConnCleanup(true);
+					SvCluster.clusterListMaintenance();
 					shutdown = false;
 				} else
 					shutdown = true;

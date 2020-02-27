@@ -113,11 +113,6 @@ public class SvarogInstall {
 	static String operation = null;
 
 	/**
-	 * Flag to mark if the usergetO requested a fresh install
-	 */
-	static boolean firstInstall = false;
-
-	/**
 	 * Flag to mark if any existing upgrades should be overwritten
 	 */
 	static boolean forceUpgrade = false;
@@ -189,7 +184,6 @@ public class SvarogInstall {
 						if (returnStatus == 0 && line.hasOption("d"))
 							returnStatus = SvarogInstall.cleanDb() == true ? 0 : -1;
 						if (returnStatus == 0) {
-							firstInstall = true;
 							if (line.hasOption("a"))
 								returnStatus = generateJsonCfg();
 							if (returnStatus == 0)
@@ -902,7 +896,6 @@ public class SvarogInstall {
 	}
 
 	static int runUpgrade(CommandLine line) {
-		firstInstall = false;
 		boolean labelsOnlyUpgrade = false;
 		int returnStatus = 0;
 		if (line.hasOption("f"))
@@ -1203,9 +1196,6 @@ public class SvarogInstall {
 			try {
 				conn = SvConf.getDBConnection();
 				if (!dbObjectExists(SvConf.getMasterRepo(), conn)) {
-					if (!firstInstall)
-						log4j.error("Master repo table do not exists in DB, can't run upgrade. "
-								+ "Svarog install should be run.");
 					mIsAlreadyInstalled = false;
 				}
 			} catch (Exception e) {
@@ -1309,7 +1299,6 @@ public class SvarogInstall {
 		// forse reset of the flag.
 		mIsAlreadyInstalled = null;
 		operation = (isSvarogInstalled() ? "install" : "upgrade");
-		firstInstall = !isSvarogInstalled();
 
 		/*
 		 * (if (!(firstInstall ^ isSvarogInstalled())) { log4j.error("Svarog " +
@@ -2585,7 +2574,7 @@ public class SvarogInstall {
 			svw.isInternal = true;
 			DbDataArray toSave = new DbDataArray();
 			DbDataArray existingTypes = null;
-			if (!firstInstall)
+			if (isSvarogInstalled())
 				existingTypes = svr.getObjects(null, svCONST.OBJECT_TYPE_LINK_TYPE, null, 0, 0);
 			for (DbDataObject dbo : dba.getItems()) {
 				if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK_TYPE)) {
@@ -2603,7 +2592,7 @@ public class SvarogInstall {
 						objType2 = (Long) dbo.getVal("link_obj_type_2");
 
 					boolean shouldSaveType = true;
-					if (!firstInstall && existingTypes != null && existingTypes.size() > 0) {
+					if (!isSvarogInstalled() && existingTypes != null && existingTypes.size() > 0) {
 						DbDataArray linkFields = SvCore.getFields(svCONST.OBJECT_TYPE_LINK_TYPE);
 						linkFields.rebuildIndex("FIELD_NAME");
 						for (DbDataObject oldLink : existingTypes.getItems()) {
@@ -2647,7 +2636,7 @@ public class SvarogInstall {
 		try {
 			// if not first install, then init the core
 			// else boot strap the local installation
-			if (!firstInstall) {
+			if (isSvarogInstalled()) {
 				sysLocales = null;
 				SvCore.initSvCore(true);
 			} else
@@ -2669,7 +2658,7 @@ public class SvarogInstall {
 			}
 			// if not first install, perform re-initialisation to refresh the
 			// labels
-			if (!firstInstall)
+			if (isSvarogInstalled())
 				SvCore.initSvCoreImpl(true);
 
 			executeConfiguration(ISvConfiguration.UpdateType.CODES);
@@ -2684,7 +2673,7 @@ public class SvarogInstall {
 			// for each config file run the upgrade against the database
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("4")) {
-					if (!firstInstall)
+					if (isSvarogInstalled())
 						SvCore.initSvCore(true);
 					String upgradeFile = confPath + confFiles[i].getName();
 					DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
@@ -2700,7 +2689,7 @@ public class SvarogInstall {
 							+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
 					if (allObjects.size() > 0) {
 						allNonProcessed.getItems().addAll(allObjects.getItems());
-						log4j.info("Non-processed objects: " + allObjects.toSimpleJson().toString());
+						log4j.debug("Non-processed objects: " + allObjects.toSimpleJson().toString());
 					}
 
 				}
@@ -2741,9 +2730,9 @@ public class SvarogInstall {
 
 				}
 			}
-			if (firstInstall) {
+			if (!isSvarogInstalled()) {
 				SvCore.initSvCore(true);
-				installLocalUsers(allNonProcessed);
+				installLocalData(allNonProcessed);
 			}
 
 			executeConfiguration(ISvConfiguration.UpdateType.SIDACL);
@@ -2779,13 +2768,14 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to perform initial Locale install
+	 * Method to perform initial Local install such users, groups and the
+	 * initial cluster record
 	 * 
 	 * @return True if there was no error
 	 * @throws SvException
 	 *             Raised exception from SvWriter
 	 */
-	static Boolean installLocalUsers(DbDataArray nonProcessed) throws SvException {
+	static Boolean installLocalData(DbDataArray nonProcessed) throws SvException {
 		log4j.info("Install of system locales started");
 
 		SvWriter svw = null;
@@ -2811,6 +2801,11 @@ public class SvarogInstall {
 			DbDataArray otherGroups = extractType(nonProcessed, svCONST.OBJECT_TYPE_GROUP, false);
 			if (otherGroups.size() > 0)
 				svw.saveObject(otherGroups);
+
+			// this is to initialise the cluster record.
+			DbDataArray cluster = extractType(nonProcessed, svCONST.OBJECT_TYPE_CLUSTER, false);
+			if (cluster.size() > 0)
+				svw.saveObject(cluster);
 
 			svw.dbCommit();
 		} finally {

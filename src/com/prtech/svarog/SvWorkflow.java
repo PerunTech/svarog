@@ -134,7 +134,8 @@ public class SvWorkflow extends SvCore {
 			svw.saveRepoData(dbt, dba, false, false);
 
 			// Invoke the cache cleanup
-			svw.cacheCleanup(dbo, dbt);
+			svw.cacheCleanup(dbo);
+			svw.executeAfterSaveCallbacks(dbo);
 		} finally {
 			svw.release();
 		}
