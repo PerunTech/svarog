@@ -753,7 +753,7 @@ public class ClusterTest {
 					SvCluster.currentNode.getObjectType(), new DateTime());
 			SvClusterClient.shutdown();
 			// invoke maintenance
-			SvCluster.maintenanceThread.interrupt();
+			// SvCluster.maintenanceThread.interrupt();
 			node = svr.getObjectById(SvCluster.currentNode.getObjectId(), SvCluster.currentNode.getObjectType(),
 					new DateTime());
 
