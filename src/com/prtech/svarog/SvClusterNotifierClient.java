@@ -165,40 +165,44 @@ public class SvClusterNotifierClient implements Runnable {
 	 * 
 	 */
 	static void publishDirtyArray(DbDataArray dba, ZMQ.Socket socket) {
-		ByteBuffer msgBuffer = null;
-		Long currentType = 0L;
-		int objectCount = 0;
-		int totalCount = 0;
-		for (DbDataObject dbo : dba.getItems()) {
-			if (currentType != dbo.getObjectType()) {
-				if (objectCount > 0 && msgBuffer != null) {
-					byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-							(1 + Long.BYTES + (Long.BYTES * objectCount)));
-					// send the previous buffer
-					if (log4j.isDebugEnabled())
-						log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
-								+ " to coordinator");
-					if (!socket.send(finalBytes, ZMQ.DONTWAIT))
-						log4j.error("Error publishing message to coordinator node");
+		if (pubServerSock != null) {
+			ByteBuffer msgBuffer = null;
+			Long currentType = 0L;
+			int objectCount = 0;
+			int totalCount = 0;
+			for (DbDataObject dbo : dba.getItems()) {
+				if (currentType != dbo.getObjectType()) {
+					if (objectCount > 0 && msgBuffer != null) {
+						byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
+								(1 + Long.BYTES + (Long.BYTES * objectCount)));
+						// send the previous buffer
+						if (log4j.isDebugEnabled())
+							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
+									+ " to coordinator");
+						if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+							log4j.error("Error publishing message to coordinator node");
+					}
+					objectCount = 0;
+					currentType = dbo.getObjectType();
+					msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Long.BYTES * (dba.size() - totalCount)));
+					msgBuffer.put(SvCluster.MSG_DIRTY_OBJECT);
+					msgBuffer.putLong(currentType);
 				}
-				objectCount = 0;
-				currentType = dbo.getObjectType();
-				msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Long.BYTES * (dba.size() - totalCount)));
-				msgBuffer.put(SvCluster.MSG_DIRTY_OBJECT);
-				msgBuffer.putLong(currentType);
+				msgBuffer.putLong(dbo.getObjectId());
+				totalCount++;
+				objectCount++;
 			}
-			msgBuffer.putLong(dbo.getObjectId());
-			totalCount++;
-			objectCount++;
-		}
-		// the array was finished so lets send the left over buffer if any
-		if (objectCount > 0 && msgBuffer != null) {
-			byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0, (1 + Long.BYTES + (Long.BYTES * objectCount)));
-			// send the previous buffer
-			if (log4j.isDebugEnabled())
-				log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
-			if (!socket.send(finalBytes, ZMQ.DONTWAIT))
-				log4j.error("Error publishing message to coordinator node");
+			// the array was finished so lets send the left over buffer if any
+			if (objectCount > 0 && msgBuffer != null) {
+				byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
+						(1 + Long.BYTES + (Long.BYTES * objectCount)));
+				// send the previous buffer
+				if (log4j.isDebugEnabled())
+					log4j.debug(
+							"Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
+				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+					log4j.error("Error publishing message to coordinator node");
+			}
 		}
 	}
 
@@ -212,14 +216,16 @@ public class SvClusterNotifierClient implements Runnable {
 	 *            The type of the dirty object
 	 */
 	static public void publishDirtyObject(long objectId, long objectTypeId) {
-		ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
-		msgBuffer.put(SvCluster.MSG_DIRTY_OBJECT);
-		msgBuffer.putLong(objectTypeId);
-		msgBuffer.putLong(objectId);
-		if (log4j.isDebugEnabled())
-			log4j.debug("Sent dirty notification of object with id:" + objectId + " to coordinator");
-		if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
-			log4j.error("Error publishing message to coordinator node");
+		if (pubServerSock != null) {
+			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
+			msgBuffer.put(SvCluster.MSG_DIRTY_OBJECT);
+			msgBuffer.putLong(objectTypeId);
+			msgBuffer.putLong(objectId);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Sent dirty notification of object with id:" + objectId + " to coordinator");
+			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				log4j.error("Error publishing message to coordinator node");
+		}
 	}
 
 	/**
@@ -229,15 +235,17 @@ public class SvClusterNotifierClient implements Runnable {
 	 *            String representation of the user session/token
 	 */
 	static public void publishLogoff(String sessionId) {
-		ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
-		msgBuffer.put(SvCluster.MSG_LOGOFF);
-		UUID uuid = UUID.fromString(sessionId);
-		msgBuffer.putLong(uuid.getMostSignificantBits());
-		msgBuffer.putLong(uuid.getLeastSignificantBits());
-		if (log4j.isDebugEnabled())
-			log4j.debug("Sent logoff notification with token:" + uuid.toString() + " to the coordinator");
-		if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
-			log4j.error("Error publishing message to coordinator node");
+		if (pubServerSock != null) {
+			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
+			msgBuffer.put(SvCluster.MSG_LOGOFF);
+			UUID uuid = UUID.fromString(sessionId);
+			msgBuffer.putLong(uuid.getMostSignificantBits());
+			msgBuffer.putLong(uuid.getLeastSignificantBits());
+			if (log4j.isDebugEnabled())
+				log4j.debug("Sent logoff notification with token:" + uuid.toString() + " to the coordinator");
+			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				log4j.error("Error publishing message to coordinator node");
+		}
 	}
 
 	@Override
