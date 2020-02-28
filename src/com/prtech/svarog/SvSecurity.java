@@ -16,6 +16,7 @@ package com.prtech.svarog;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -351,9 +352,9 @@ public class SvSecurity extends SvCore {
 				dbsUnq = new DbSearchCriterion("acl_config_unq", DbCompareOperand.ISNULL);
 
 			DbSearchCriterion dbsOid = new DbSearchCriterion("acl_object_id", DbCompareOperand.EQUAL,
-					secureObject.getObject_id());
+					secureObject.getObjectId());
 			DbSearchCriterion dbsTypeId = new DbSearchCriterion("acl_object_type", DbCompareOperand.EQUAL,
-					secureObject.getObject_type());
+					secureObject.getObjectType());
 
 			dbx.addDbSearchItem(dbsTypeId).addDbSearchItem(dbsOid).addDbSearchItem(dbsUnq);
 
@@ -422,9 +423,9 @@ public class SvSecurity extends SvCore {
 
 				DbDataObject aclSid = new DbDataObject(svCONST.OBJECT_TYPE_SID_ACL);
 
-				aclSid.setVal("SID_OBJECT_ID", sid.getObject_id());
-				aclSid.setVal("SID_TYPE_ID", sid.getObject_type());
-				aclSid.setVal("ACL_OBJECT_ID", acl.getObject_id());
+				aclSid.setVal("SID_OBJECT_ID", sid.getObjectId());
+				aclSid.setVal("SID_TYPE_ID", sid.getObjectType());
+				aclSid.setVal("ACL_OBJECT_ID", acl.getObjectId());
 				svw.saveObject(aclSid);
 			}
 		} finally {
@@ -471,11 +472,11 @@ public class SvSecurity extends SvCore {
 						DbJoinType.INNER);
 				DbSearchExpression dbx = new DbSearchExpression()
 						.addDbSearchItem(
-								new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, sid.getObject_id()))
+								new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, sid.getObjectId()))
 						.addDbSearchItem(
-								new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObject_type()))
+								new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObjectType()))
 						.addDbSearchItem(
-								new DbSearchCriterion("ACL_OBJECT_ID", DbCompareOperand.EQUAL, acl.getObject_id()));
+								new DbSearchCriterion("ACL_OBJECT_ID", DbCompareOperand.EQUAL, acl.getObjectId()));
 				dqoSidAcl.setSearch(dbx);
 				DbDataArray sidAcls = svr.getObjects(dqoSidAcl, 0, 0);
 
@@ -564,29 +565,30 @@ public class SvSecurity extends SvCore {
 
 			if (ret.getItems().size() > 0) {
 				userData = ret.getItems().get(0);
-				if (userData.getStatus().equals(SvWriter.getDefaultStatus(getDbt(userData.getObject_type())))) {
+				if (userData.getStatus().equals(SvWriter.getDefaultStatus(getDbt(userData.getObjectType())))) {
 
 					sessionToken = SvUtil.getUUID();
 
-					DbDataObject audit = new DbDataObject();
-					audit.setObject_type(svCONST.OBJECT_TYPE_SECURITY_LOG);
+					DbDataObject audit = new DbDataObject(svCONST.OBJECT_TYPE_SECURITY_LOG);
 					audit.setVal("session_id", sessionToken);
-					audit.setVal("user_object_id", userData.getObject_id());
+					audit.setVal("user_object_id", userData.getObjectId());
 					audit.setVal("ACTIVITY_TYPE", "login");
-
 					svw.isInternal = true;
 					svw.saveObject(audit);
+					audit.setVal("last_refresh", DateTime.now());
 
-					userData.setIs_dirty(false);
-					audit.setIs_dirty(false);
+					userData.setIsDirty(false);
+					audit.setIsDirty(false);
 					DboFactory.makeDboReadOnly(userData);
 					DboFactory.makeDboReadOnly(audit);
 					DbCache.addObject(userData);
 					DbCache.addObject(audit, sessionToken);
+					// distribute the token to the cluster
+					if (SvCluster.isActive.get() && !SvCluster.isCoordinator)
+						SvClusterClient.putToken(audit);
 				} else
 					throw (new SvException("system.error.user_status_invalid", instanceUser, userData, expr));
 			} else {
-				// throw no user
 				throw (new SvException("system.error.no_user_found", instanceUser, ret, expr));
 			}
 			return sessionToken;
@@ -653,8 +655,12 @@ public class SvSecurity extends SvCore {
 	public void logoff(String sessionId) {
 		DbDataObject svToken = DbCache.getObject(sessionId, svCONST.OBJECT_TYPE_SECURITY_LOG);
 		if (svToken != null) {
-			DbCache.removeObject(svToken.getObject_id(), sessionId, svCONST.OBJECT_TYPE_SECURITY_LOG);
+			DbCache.removeObject(svToken.getObjectId(), sessionId, svCONST.OBJECT_TYPE_SECURITY_LOG);
 			DbCache.removeByParentId(svCONST.OBJECT_TYPE_ACL, (Long) svToken.getVal("user_object_id"));
+			// distribute the token to the cluster
+			if (SvCluster.isActive.get() && !SvCluster.isCoordinator)
+				SvClusterNotifierClient.publishLogoff(sessionId);
+
 		}
 	}
 
@@ -744,10 +750,9 @@ public class SvSecurity extends SvCore {
 				else
 					dboUser = uExisting.getItems().get(0);
 			} else {
-				dboUser = new DbDataObject();
+				dboUser = new DbDataObject(svCONST.OBJECT_TYPE_USER);
 				dboUser.setVal("USER_NAME", userName);
 				dboUser.setVal("USER_TYPE", userType);
-				dboUser.setObject_type(svCONST.OBJECT_TYPE_USER);
 				dboUser.setVal("USER_UID", SvUtil.getUUID());
 				if (userType.equals("EXTERNAL"))
 					status = "PENDING";
