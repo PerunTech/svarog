@@ -36,11 +36,14 @@ public class ClusterTest {
 
 			if (!SvClusterClient.lastContact.isAfter(hbStartTime))
 				fail("The heart beat client didn't establish contact");
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
@@ -51,8 +54,8 @@ public class ClusterTest {
 			SvCore.initSvCore();
 			SvCluster.autoStartClient = false;
 			SvCluster.initCluster();
-			
-			SvClusterClient.initClient("127.0.0.1:"+SvConf.getHeartBeatPort());
+
+			SvClusterClient.initClient("127.0.0.1:" + SvConf.getHeartBeatPort());
 			// SvClusterClient.nodeId = 666;
 			Thread clientThread = new Thread(new SvClusterClient());
 			// start the heart beat thread and sleep for 3 intervals
@@ -62,15 +65,18 @@ public class ClusterTest {
 
 			if (!SvClusterClient.lastContact.isAfter(hbStartTime))
 				fail("The heart beat client didn't establish contact");
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
+
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
-	
 	@Test
 	public void promoteToCoordinator() {
 		System.out.print("Test promoteToCoordinator");
@@ -96,13 +102,16 @@ public class ClusterTest {
 			if (!(SvCluster.isCoordinator && SvClusterServer.isRunning.get()))
 				fail("Client didn't promote the server");
 
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 			// return heart beat to normal for other tests
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
@@ -131,12 +140,16 @@ public class ClusterTest {
 
 			if (SvClusterClient.isRunning.get())
 				fail("Client didn't detect server was shutting down");
-			SvCluster.shutdown();
 			// return heart beat to normal for other tests
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
@@ -194,15 +207,16 @@ public class ClusterTest {
 			if (!SvClusterServer.nodeHeartBeats.containsKey(SvClusterClient.nodeId))
 				fail("client did not rejoin after being removed");
 
-			// the client should have restarted
-
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 			// return heart beat to normal for other tests
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
@@ -259,13 +273,16 @@ public class ClusterTest {
 			if (lockHash == 0)
 				fail("cant get lock although the first lock should have been removed as timeout");
 
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 			// return heart beat to normal for other tests
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
@@ -311,6 +328,9 @@ public class ClusterTest {
 		} finally {
 			if (svs != null)
 				svs.release();
+			SvClusterNotifierClient.shutdown();
+			SvCluster.shutdown();
+
 		}
 	}
 
@@ -362,8 +382,6 @@ public class ClusterTest {
 			if (dboToken != null)
 				fail("Dirty object 2 still in cache!");
 
-			SvClusterNotifierClient.shutdown();
-			SvCluster.shutdown();
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -373,6 +391,8 @@ public class ClusterTest {
 		} finally {
 			if (svs != null)
 				svs.release();
+			SvClusterNotifierClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
 
@@ -406,15 +426,15 @@ public class ClusterTest {
 		// SvClusterClient.nodeId = 666;
 		clientThread = new Thread(new SvClusterClient());
 		clientThread.start();
-		// sleep to let the heartbeat start
-		SvClusterClient.shutdown();
-		SvCluster.shutdown();
 		try {
 			Thread.sleep(200);
 			SvCluster.shutdown();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
 		}
 
 	}
@@ -467,15 +487,15 @@ public class ClusterTest {
 			if (SvClusterClient.refreshToken(newToken))
 				fail("Refresh token was success after logoff");
 
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
-
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
 
@@ -522,16 +542,16 @@ public class ClusterTest {
 			if (localToken != null)
 				fail("Logoff failed!");
 
-			SvClusterClient.shutdown();
-			SvClusterNotifierClient.shutdown();
-			SvCluster.shutdown();
-
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			SvClusterClient.shutdown();
+			SvClusterNotifierClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
 
@@ -566,14 +586,15 @@ public class ClusterTest {
 			if (!lockOnServer(lockKey, lockHash, false, SvClusterClient.nodeId))
 				fail("Lock was present on the Cluster after release");
 
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
 
@@ -652,14 +673,15 @@ public class ClusterTest {
 			if (!lockOnServer(lockKey, lockHash, false, 888L))
 				fail("Lock was present on the Cluster after release");
 
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
 
@@ -700,14 +722,15 @@ public class ClusterTest {
 			if (!lockOnServer(lockKey, lockHash, false, SvClusterClient.nodeId))
 				fail("Lock was present on the Cluster after release");
 
-			SvClusterClient.shutdown();
-			SvCluster.shutdown();
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
 
@@ -738,12 +761,13 @@ public class ClusterTest {
 				fail("Client has shutdown, but maintenance did not mark it as parted"
 						+ ((DateTime) node.getVal("part_time")).toString());
 
-			SvCluster.shutdown();
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
+		} finally {
+			SvClusterClient.shutdown();
+			SvCluster.shutdown();
 		}
 	}
-	
-	
+
 }
