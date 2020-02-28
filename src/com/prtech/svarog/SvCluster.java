@@ -206,7 +206,10 @@ public class SvCluster extends SvCore implements Runnable {
 
 				} catch (Exception e) {
 					log4j.error("Svarog cluster maintenance failed! Shutting down cluster", e);
-					shutdown();
+					if (e instanceof SvException) {
+						shutdown(false);
+						initCluster();
+					}
 				} finally {
 					try {
 						SvCore.closeResource(ps, svCONST.systemUser);
@@ -322,12 +325,25 @@ public class SvCluster extends SvCore implements Runnable {
 	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall
 	 * shutdown the SvClusterClient and SvClusterNotifierClient
 	 */
+
 	static void shutdown() {
+		shutdown(true);
+	}
+
+	/**
+	 * Method to shutdown the Svarog cluster. The cluster shutdown will in turn:
+	 * 1. Check the current node is a cluster coordinator. 2. If we are a
+	 * cluster coordinator then we shall shutdown the SvClusterServer and
+	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall
+	 * shutdown the SvClusterClient and SvClusterNotifierClient
+	 */
+	static void shutdown(boolean doMaintenance) {
 		if (!isRunning.compareAndSet(true, false)) {
 			log4j.error("Svarog Cluster not running. Init first");
 			return;
 		}
-		clusterListMaintenance();
+		if (doMaintenance)
+			clusterListMaintenance();
 		if (!isCoordinator) {
 			if (autoStartClient) {
 				if (SvClusterClient.isRunning.get())
