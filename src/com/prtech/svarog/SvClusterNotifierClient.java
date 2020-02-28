@@ -144,12 +144,27 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a dirty array notification to the other nodes in the
 	 * cluster
 	 * 
-	 * @param objectId
-	 *            The id of the dirty object
-	 * @param objectTypeId
-	 *            The type of the dirty object
+	 * @param dba
+	 *            The DbDataArray instance which should be published as dirty
 	 */
 	static public void publishDirtyArray(DbDataArray dba) {
+		publishDirtyArray(dba, pubServerSock);
+	}
+
+	/**
+	 * Method to publish a dirty array notification to the other nodes in the
+	 * cluster
+	 * 
+	 * @param dba
+	 *            The DbDataArray instance which should be published as dirty
+	 * @param socket
+	 *            The socket on which the dirty IDs should be sent (if the node
+	 *            is coordinator, it shall send on the proxy socket. If the node
+	 *            is worker, then it will publish on the publish socket of the
+	 *            NotifierClient
+	 * 
+	 */
+	static void publishDirtyArray(DbDataArray dba, ZMQ.Socket socket) {
 		ByteBuffer msgBuffer = null;
 		Long currentType = 0L;
 		int objectCount = 0;
@@ -163,7 +178,7 @@ public class SvClusterNotifierClient implements Runnable {
 					if (log4j.isDebugEnabled())
 						log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
 								+ " to coordinator");
-					if (!pubServerSock.send(finalBytes, ZMQ.DONTWAIT))
+					if (!socket.send(finalBytes, ZMQ.DONTWAIT))
 						log4j.error("Error publishing message to coordinator node");
 				}
 				objectCount = 0;
@@ -182,7 +197,7 @@ public class SvClusterNotifierClient implements Runnable {
 			// send the previous buffer
 			if (log4j.isDebugEnabled())
 				log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
-			if (!pubServerSock.send(finalBytes, ZMQ.DONTWAIT))
+			if (!socket.send(finalBytes, ZMQ.DONTWAIT))
 				log4j.error("Error publishing message to coordinator node");
 		}
 	}

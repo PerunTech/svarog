@@ -8,6 +8,8 @@ import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 
+import com.prtech.svarog_common.DbDataArray;
+
 /**
  * The Notifier Proxy shall establish a XPUB/XSUB proxy on the coordinator node
  * which will be used for sharing notifications accross the nodes. Each node
@@ -105,6 +107,10 @@ public class SvClusterNotifierProxy implements Runnable {
 
 	}
 
+	static public void publishDirtyArray(DbDataArray dba) {
+		SvClusterNotifierClient.publishDirtyArray(dba, pubServerSock);
+	}
+
 	/**
 	 * Overriden runnable method to execute the Notifier Proxy in a separate
 	 * thread. This method basically proxies messages to provide pass through of
@@ -142,6 +148,7 @@ public class SvClusterNotifierProxy implements Runnable {
 							// publish it to the cluster and handle multiparts
 							if (!pubServerSock.send(msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
 								log4j.error("Error sending notification to cluster!");
+
 						}
 						if (!hasMoreMessages) {
 							break;

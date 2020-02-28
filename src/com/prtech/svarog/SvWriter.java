@@ -628,6 +628,10 @@ public class SvWriter extends SvCore {
 		Long objParent = dbo.getParentId() == null ? 0 : dbo.getParentId();
 		Long oldMetaPKID = repoObjects != null && withMetaUpdate == false ? (Long) repoObjects[4] : 0L;
 		Long userId = this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId();
+
+		dbo.setDtInsert(new DateTime(dtInsert));
+		dbo.setDtDelete(SvConf.MAX_DATE);
+
 		int paramCount = 1;
 		if (!dbHandler.getOverrideInsertRepo()) { // if the handler does not
 													// override the insert repo
@@ -1110,6 +1114,17 @@ public class SvWriter extends SvCore {
 			cacheCleanup(dbo);
 			executeAfterSaveCallbacks(dbo);
 		}
+		// broadcast the dirty objects to the cluster
+		// if we are coordinator, broadcast through the proxy otherwise
+		// broadcast through the client
+		if (SvCluster.isActive.get()) {
+			if (!SvCluster.isCoordinator)
+				SvClusterNotifierClient.publishDirtyArray(dba);
+			else
+				SvClusterNotifierProxy.publishDirtyArray(dba);
+
+		}
+
 	}
 
 	/**

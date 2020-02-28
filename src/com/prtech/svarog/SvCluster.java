@@ -60,10 +60,14 @@ public class SvCluster extends SvCore implements Runnable {
 	static boolean isCoordinator = false;
 
 	/**
-	 * Flag if the client is running
+	 * Flag if the cluster is running
 	 */
 	static AtomicBoolean isRunning = new AtomicBoolean(false);
 
+	/**
+	 * Flag if the client is running
+	 */
+	static AtomicBoolean isActive = new AtomicBoolean(false);
 	/**
 	 * Log4j instance used for logging
 	 */
@@ -201,7 +205,8 @@ public class SvCluster extends SvCore implements Runnable {
 					nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
 
 				} catch (Exception e) {
-					log4j.error("Svarog cluster maintenance failed!", e);
+					log4j.error("Svarog cluster maintenance failed! Shutting down cluster", e);
+					shutdown();
 				} finally {
 					try {
 						SvCore.closeResource(ps, svCONST.systemUser);
@@ -291,6 +296,12 @@ public class SvCluster extends SvCore implements Runnable {
 			if (isCoordinator)
 				currentNode.setParentId(coordinatorNode.getObjectId());
 
+			// if the cluster is running and hasn't shut down, mark it as active
+			if (isRunning.get())
+				if (!isActive.compareAndSet(false, true)) {
+					log4j.error("Cluster could not be activated");
+					return false;
+				}
 		} catch (Exception e) {
 			log4j.error("Svarog cluster could not be initialised. Cluster not running!", e);
 			result = false;
@@ -348,6 +359,11 @@ public class SvCluster extends SvCore implements Runnable {
 		notifierThread = null;
 		coordinatorNode = null;
 		maintenanceThread = null;
+
+		if (!isRunning.get())
+			if (!isActive.compareAndSet(true, false)) {
+				log4j.error("Cluster could not be de-activated");
+			}
 	}
 
 	@Override
