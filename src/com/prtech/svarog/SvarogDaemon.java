@@ -282,7 +282,7 @@ public class SvarogDaemon {
 					// e.printStackTrace();
 					shutdown = false;
 				}
-				if (shutdown == false || event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
+				if (event != null && shutdown == false || event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
 					SvCore.trackedConnCleanup(true);
 					SvCluster.clusterListMaintenance();
 					shutdown = false;
@@ -291,7 +291,7 @@ public class SvarogDaemon {
 				// if the system bundle was restarted due to update then restart
 				// it and mark
 				// shutdown as false
-				if (event.getType() == FrameworkEvent.STOPPED_UPDATE) {
+				if (event != null && event.getType() == FrameworkEvent.STOPPED_UPDATE) {
 					osgiFramework.start();
 					shutdown = false;
 				}

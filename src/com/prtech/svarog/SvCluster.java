@@ -263,25 +263,34 @@ public class SvCluster extends SvCore implements Runnable {
 			// the coordinator record is related to this node, but maybe a core
 			// dump caused the server to fail. So lets try to become coordinator
 			String hbAddress = (String) coordinatorNode.getVal("local_ip");
+			boolean initHb=false;
+			boolean initNotif= false;
 			if (isCoordinator || (!isCoordinator && SvUtil.getIpAdresses(true, ipAddrDelimiter).equals(hbAddress))) {
-				isCoordinator = SvClusterServer.initServer() && SvClusterNotifierProxy.initServer();
-				if (isCoordinator) {
-					heartBeatThread = new Thread(new SvClusterServer());
-					heartBeatThread.setName("SvClusterServerThread");
-					heartBeatThread.start();
-					notifierThread = new Thread(new SvClusterNotifierProxy());
-					notifierThread.setName("SvClusterNotifierProxyThread");
-					notifierThread.start();
-					if (runMaintenanceThread) {
-						maintenanceThread = new Thread(new SvCluster());
-						maintenanceThread.start();
-					}
-					result = true;
-				} else {
+				initHb = SvClusterServer.initServer();
+				initNotif = SvClusterNotifierProxy.initServer();
+				if (initHb && initNotif) {
+					isCoordinator = true;
+				}
+				else
+				{
 					log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster shutdown.");
 					shutdown();
-					result = false;
 				}
+
+
+			}
+			if (isCoordinator) {
+				heartBeatThread = new Thread(new SvClusterServer());
+				heartBeatThread.setName("SvClusterServerThread");
+				heartBeatThread.start();
+				notifierThread = new Thread(new SvClusterNotifierProxy());
+				notifierThread.setName("SvClusterNotifierProxyThread");
+				notifierThread.start();
+				if (runMaintenanceThread) {
+					maintenanceThread = new Thread(new SvCluster());
+					maintenanceThread.start();
+				}
+				result = true;
 			} else if (autoStartClient) {
 				result = SvClusterClient.initClient(hbAddress) && SvClusterNotifierClient.initClient(hbAddress);
 				if (result) {
