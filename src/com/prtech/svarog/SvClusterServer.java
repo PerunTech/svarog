@@ -235,7 +235,8 @@ public class SvClusterServer implements Runnable {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(nodeId);
 			clusterCleanUp(nodeId);
-			SvCluster.maintenanceThread.interrupt();
+			if (!SvCluster.maintenanceInProgress.get())
+				SvCluster.maintenanceThread.interrupt();
 		}
 		return respBuffer;
 	}

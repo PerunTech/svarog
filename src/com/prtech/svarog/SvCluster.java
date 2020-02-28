@@ -65,6 +65,12 @@ public class SvCluster extends SvCore implements Runnable {
 	static AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	/**
+	 * Flag if the maintenance is in progress
+	 */
+	static AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
+
+	
+	/**
 	 * Flag if the client is running
 	 */
 	static AtomicBoolean isActive = new AtomicBoolean(false);

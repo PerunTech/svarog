@@ -283,8 +283,11 @@ public class SvarogDaemon {
 					shutdown = false;
 				}
 				if (event != null && shutdown == false || event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
-					SvCore.trackedConnCleanup(true);
-					SvCluster.clusterListMaintenance();
+					if (SvCluster.maintenanceInProgress.compareAndSet(false, true)) {
+						SvCore.trackedConnCleanup(true);
+						SvCluster.clusterListMaintenance();
+						SvCluster.maintenanceInProgress.compareAndSet(true, false);
+					}
 					shutdown = false;
 				} else
 					shutdown = true;
