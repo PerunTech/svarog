@@ -521,7 +521,7 @@ public class ClusterTest {
 			notifierThread.start();
 
 			// sleep to let the heartbeat start
-			Thread.sleep(200);
+			Thread.sleep(500);
 
 			// validate a random token and see if the validation fails
 			DbDataObject token = null;
@@ -535,7 +535,7 @@ public class ClusterTest {
 			SvClusterNotifierClient.publishLogoff(newToken);
 
 			// sleep to let the logoff become effective
-			Thread.sleep(200);
+			Thread.sleep(500);
 
 			localToken = DbCache.getObject(newToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
 			// now the token should be invalid
