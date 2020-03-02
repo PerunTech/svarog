@@ -244,7 +244,7 @@ public class ClusterTest {
 			int lockHash = SvClusterClient.getLock(lockKey);
 			if (lockHash == 0)
 				fail("cant get lock");
-			Thread.sleep(2 * SvClusterServer.heartBeatTimeOut);
+			Thread.sleep(3 * SvClusterServer.heartBeatTimeOut);
 
 			// server should have removed the client by now since the heart beat
 			// interval was 5seconds
