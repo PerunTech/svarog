@@ -211,8 +211,9 @@ public class SvarogTest {
 				fail("Failed getting label text");
 
 		} catch (SvException e) {
-			fail("Failed with exception");
 			e.printStackTrace();
+			fail("Failed with exception");
+
 		}
 
 		if (SvConnTracker.hasTrackedConnections())
@@ -2684,7 +2685,6 @@ public class SvarogTest {
 			if (fis == null)
 				fis = ClassLoader.getSystemClassLoader().getResourceAsStream(codesPath);
 
-			
 			byte[] fileData = IOUtils.toByteArray(fis);
 			DbDataObject fileDescriptor = new DbDataObject();
 			fileDescriptor.setObject_type(svCONST.OBJECT_TYPE_FILE);

@@ -63,6 +63,10 @@ public class SvLock {
 			public void onRemoval(RemovalNotification<String, ReentrantLock> removal) {
 				if (log4j.isDebugEnabled())
 					log4j.trace("Removing key:" + removal.getKey() + ", lock:" + removal.getValue().toString());
+				// if we are the cluster coordinator, then remove the lock from
+				// the map of distributed locks
+				if (SvCluster.isCoordinator && SvClusterServer.distributedLocks.containsKey(removal.getKey()))
+					SvClusterServer.distributedLocks.remove(removal.getKey());
 			}
 		});
 		return (LoadingCache<String, ReentrantLock>) builder
@@ -190,8 +194,7 @@ public class SvLock {
 		if (alwaysUnlock && !lockReleased) {
 			if (lock != null)
 				lock.unlock();
-			log4j.warn(
-					(lock == null ? "NO lock" : "Forced release") + " under key:" + key + ", lock:" + lock.toString());
+			log4j.warn((lock == null ? "NO lock" : "Forced release") + " under key:" + key);
 
 		}
 
@@ -209,8 +212,8 @@ public class SvLock {
 	 *            The lock reference acquired from
 	 *            {@link #getLock(String, Boolean, long)}
 	 */
-	public static void releaseLock(String key, ReentrantLock lock) {
-		releaseLock(key, lock, false);
+	public static boolean releaseLock(String key, ReentrantLock lock) {
+		return releaseLock(key, lock, false);
 	}
 
 	/**
@@ -230,4 +233,44 @@ public class SvLock {
 		releaseLock(key, null, false);
 	}
 
+	/**
+	 * Method to get a cluster wide, distributed lock for a specific key in the
+	 * Svarog cluster. The distributed locks are by default non-blocking.
+	 * 
+	 * @param key
+	 *            The key to identify the lock with
+	 * @return hash code of the acquired lock. If the value is 0, the lock
+	 *         wasn't acquired
+	 * 
+	 */
+	public static int getDistributedLock(String lockKey) {
+		int lockHash = 0;
+		if (SvCluster.isCoordinator) {
+			lockHash = (new SvClusterServer()).getDistributedLock(lockKey);
+		} else {
+			lockHash = SvClusterClient.getLock(lockKey);
+		}
+		return lockHash;
+
+	}
+
+	/**
+	 * Method to get a cluster wide, distributed lock for a specific key in the
+	 * Svarog cluster. The distributed locks are by default non-blocking.
+	 * 
+	 * @param key
+	 *            The key to identify the lock with
+	 * @return False if the lock wasn't acquired
+	 * 
+	 */
+	public static boolean releaseDistributedLock(int lockHash) {
+		boolean lockReleased = false;
+		if (SvCluster.isCoordinator) {
+			lockReleased = (new SvClusterServer()).releaseDistributedLock(lockHash);
+		} else {
+			lockReleased = SvClusterClient.releaseLock(lockHash);
+		}
+		return lockReleased;
+
+	}
 }

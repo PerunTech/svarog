@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
+import java.awt.List;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,7 +25,12 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
@@ -134,7 +140,10 @@ public class SvUtil {
 			Gson gson = new Gson();
 			jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 		} catch (IOException e) {
-			System.out.println("File "+fileName+" was not found or its not readable");// TODO Auto-generated catch block
+			System.out.println("File " + fileName + " was not found or its not readable");// TODO
+																							// Auto-generated
+																							// catch
+																							// block
 			e.printStackTrace();
 		} finally {
 			if (fis != null)
@@ -195,4 +204,114 @@ public class SvUtil {
 
 	}
 
+	/**
+	 * Method to produce a string with list of IP addresses of the system
+	 * 
+	 * @param includHeartBeatPort
+	 *            If the flag is set, the heart beat port will be appended at
+	 *            the end of the ip delimited by colon
+	 * @param delimiter
+	 *            The string delimiter will be used to delimit ip addesses. The
+	 *            colon can not be used as IP delimiter
+	 * @return String of ip addresses concatenated with delimiter.
+	 * @throws UnknownHostException
+	 */
+	static String getIpAdresses(boolean includHeartBeatPort, String delimiter) throws UnknownHostException {
+		StringBuilder sbr = new StringBuilder();
+		for (InetAddress ad : SvUtil.getLocalHostLANAddress()) {
+			sbr.append(ad.getHostAddress().toString() + (includHeartBeatPort ? ":" + SvConf.getHeartBeatPort() : "")
+					+ delimiter);
+		}
+		sbr.setLength(sbr.length() - 1);
+		return sbr.toString();
+
+	}
+
+	/**
+	 * Returns an <code>InetAddress</code> object encapsulating what is most
+	 * likely the machine's LAN IP address.
+	 * <p/>
+	 * This method is intended for use as a replacement of JDK method
+	 * <code>InetAddress.getLocalHost</code>, because that method is ambiguous
+	 * on Linux systems. Linux systems enumerate the loopback network interface
+	 * the same way as regular LAN network interfaces, but the JDK
+	 * <code>InetAddress.getLocalHost</code> method does not specify the
+	 * algorithm used to select the address returned under such circumstances,
+	 * and will often return the loopback address, which is not valid for
+	 * network communication. Details <a href=
+	 * "http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4665037">here</a>.
+	 * <p/>
+	 * This method will scan all IP addresses on all network interfaces on the
+	 * host machine to determine the IP address most likely to be the machine's
+	 * LAN address. If the machine has multiple IP addresses, this method will
+	 * prefer a site-local IP address (e.g. 192.168.x.x or 10.10.x.x, usually
+	 * IPv4) if the machine has one (and will return the first site-local
+	 * address if the machine has more than one), but if the machine does not
+	 * hold a site-local address, this method will return simply the first
+	 * non-loopback address found (IPv4 or IPv6).
+	 * <p/>
+	 * If this method cannot find a non-loopback address using this selection
+	 * algorithm, it will fall back to calling and returning the result of JDK
+	 * method <code>InetAddress.getLocalHost</code>.
+	 * <p/>
+	 *
+	 * @throws UnknownHostException
+	 *             If the LAN address of the machine cannot be found.
+	 */
+	static ArrayList<InetAddress> getLocalHostLANAddress() throws UnknownHostException {
+		ArrayList<InetAddress> addressList = new ArrayList<InetAddress>();
+		try {
+			InetAddress candidateAddress = null;
+			// Iterate all NICs (network interface cards)...
+			for (Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces(); ifaces
+					.hasMoreElements();) {
+				NetworkInterface iface = (NetworkInterface) ifaces.nextElement();
+				// Iterate all IP addresses assigned to each card...
+				for (Enumeration<?> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements();) {
+					InetAddress inetAddr = (InetAddress) inetAddrs.nextElement();
+					if (!inetAddr.isLoopbackAddress()) {
+
+						if (inetAddr.isSiteLocalAddress()) {
+							// Found non-loopback site-local address. Return it
+							// immediately...
+							addressList.add(inetAddr);
+						} else if (candidateAddress == null) {
+							// Found non-loopback address, but not necessarily
+							// site-local.
+							// Store it as a candidate to be returned if
+							// site-local address is not subsequently found...
+							candidateAddress = inetAddr;
+							// Note that we don't repeatedly assign non-loopback
+							// non-site-local addresses as candidates,
+							// only the first. For subsequent iterations,
+							// candidate will be non-null.
+						}
+					}
+				}
+			}
+			if (candidateAddress != null && addressList.size() == 0) {
+				// We did not find a site-local address, but we found some other
+				// non-loopback address.
+				// Server might have a non-site-local address assigned to its
+				// NIC (or it might be running
+				// IPv6 which deprecates the "site-local" concept).
+				// Return this non-loopback candidate address...
+				addressList.add(candidateAddress);
+			}
+			// At this point, we did not find a non-loopback address.
+			// Fall back to returning whatever InetAddress.getLocalHost()
+			// returns...
+			InetAddress jdkSuppliedAddress = InetAddress.getLocalHost();
+			if (jdkSuppliedAddress == null) {
+				throw new UnknownHostException("The JDK InetAddress.getLocalHost() method unexpectedly returned null.");
+			} else if (addressList.size() == 0)
+				addressList.add(jdkSuppliedAddress);
+			return addressList;
+		} catch (Exception e) {
+			UnknownHostException unknownHostException = new UnknownHostException(
+					"Failed to determine LAN address: " + e);
+			unknownHostException.initCause(e);
+			throw unknownHostException;
+		}
+	}
 }
