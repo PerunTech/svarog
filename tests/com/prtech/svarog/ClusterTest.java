@@ -268,7 +268,7 @@ public class ClusterTest {
 			clientThread = new Thread(new SvClusterClient());
 			// start the heart beat thread and sleep for 3 intervals
 			clientThread.start();
-			Thread.sleep(2);
+			Thread.sleep(200);
 			lockHash = SvClusterClient.getLock(lockKey);
 			if (lockHash == 0)
 				fail("cant get lock although the first lock should have been removed as timeout");
