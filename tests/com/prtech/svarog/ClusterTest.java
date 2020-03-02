@@ -268,7 +268,7 @@ public class ClusterTest {
 			clientThread = new Thread(new SvClusterClient());
 			// start the heart beat thread and sleep for 3 intervals
 			clientThread.start();
-			Thread.sleep(2);
+			Thread.sleep(200);
 			lockHash = SvClusterClient.getLock(lockKey);
 			if (lockHash == 0)
 				fail("cant get lock although the first lock should have been removed as timeout");
@@ -521,7 +521,7 @@ public class ClusterTest {
 			notifierThread.start();
 
 			// sleep to let the heartbeat start
-			Thread.sleep(200);
+			Thread.sleep(500);
 
 			// validate a random token and see if the validation fails
 			DbDataObject token = null;
@@ -535,7 +535,7 @@ public class ClusterTest {
 			SvClusterNotifierClient.publishLogoff(newToken);
 
 			// sleep to let the logoff become effective
-			Thread.sleep(200);
+			Thread.sleep(500);
 
 			localToken = DbCache.getObject(newToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
 			// now the token should be invalid
