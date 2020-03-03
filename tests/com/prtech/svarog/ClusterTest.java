@@ -315,8 +315,13 @@ public class ClusterTest {
 			// now check the cache again ... the token shouldn't be there
 			dboToken = DbCache.getObject(dboToken.getObjectId(), dboToken.getObjectType());
 
-			if (dboToken != null)
-				fail("Dirty object still in cache!");
+			if (dboToken != null) {
+				Thread.sleep(200);
+				// now check the cache again ... the token shouldn't be there
+				dboToken = DbCache.getObject(dboToken.getObjectId(), dboToken.getObjectType());
+				if (dboToken != null)
+					fail("Dirty object still in cache!");
+			}
 
 			SvClusterNotifierClient.shutdown();
 			SvCluster.shutdown();
