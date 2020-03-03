@@ -42,6 +42,9 @@ public class SvCluster extends SvCore implements Runnable {
 	static final byte MSG_JOIN = 10;
 	static final byte MSG_PART = 11;
 
+	/**
+	 * Timestamp of the next planned maintenance of the cluster table in the DB
+	 */
 	static DateTime nextMaintenance = new DateTime();
 
 	/**
@@ -69,7 +72,6 @@ public class SvCluster extends SvCore implements Runnable {
 	 */
 	static AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
 
-	
 	/**
 	 * Flag if the client is running
 	 */
@@ -91,6 +93,9 @@ public class SvCluster extends SvCore implements Runnable {
 
 	static final String ipAddrDelimiter = ";";
 
+	/**
+	 * Member fields holding reference to the heart beat thread
+	 */
 	static private Thread heartBeatThread = null;
 	static private Thread notifierThread = null;
 	static Thread maintenanceThread = null;
@@ -110,6 +115,11 @@ public class SvCluster extends SvCore implements Runnable {
 		super(svCONST.systemUser, null);
 	}
 
+	/**
+	 * Method to generate a DBO describing the current node
+	 * 
+	 * @return A DbDataObject descriptor of the current node
+	 */
 	static DbDataObject getCurrentNodeInfo() {
 		DbDataObject cNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
 		cNode.setVal("join_time", new DateTime());
@@ -133,12 +143,28 @@ public class SvCluster extends SvCore implements Runnable {
 		return cNode;
 	}
 
+	/**
+	 * Method to perform coordinator promotion of the current node
+	 * 
+	 * @param svc
+	 *            A reference to an SvCore (the read/write of the nodes has to
+	 *            be in the same transaction)
+	 * @return True if the current node was promoted to coordinator
+	 * @throws SvException
+	 *             any underlying exception (except object not updateable, which
+	 *             would mean someone else got promoted in meantime)
+	 */
 	static boolean becomeCoordinator(SvCore svc) throws SvException {
 		SvWriter svw = null;
 		boolean success = false;
 		try {
 			svw = new SvWriter(svc);
+			if (coordinatorNode == null) {
+				coordinatorNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
+				coordinatorNode.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
+			}
 			coordinatorNode.setValuesMap(currentNode.getValuesMap());
+			svw.isInternal = true;
 			svw.saveObject(coordinatorNode, true);
 			success = true;
 		} catch (SvException e) {
@@ -156,6 +182,11 @@ public class SvCluster extends SvCore implements Runnable {
 		return success;
 	}
 
+	/**
+	 * Method to maintain the table of cluster nodes. It will first delete any
+	 * old redundant records, then update the current cluster state based on the
+	 * nodes which have been reporting via heartbeat in the last interval
+	 */
 	static void clusterListMaintenance() {
 		// we are the coordinator and the Heart Beat server is running
 		if (isCoordinator && SvClusterServer.isRunning.get()) {
@@ -232,6 +263,16 @@ public class SvCluster extends SvCore implements Runnable {
 		}
 	}
 
+	/**
+	 * Method to initialise the Svarog Cluster. This method shall try to locate
+	 * a valid coordinator node, or become one if there isn't any. If it becomes
+	 * a coordinator then it will start the heart beat listener and the notifier
+	 * proxy servers. If the current node doesn't manage to become a coordinator
+	 * then it will start a Heart Beat client and notifier client and try to
+	 * connect to the coordinator
+	 * 
+	 * @return True if the cluster was properly initialised.
+	 */
 	static boolean initCluster() {
 		if (!isRunning.compareAndSet(false, true)) {
 			log4j.error("Cluster is already initialised and active. Shutdown first");
@@ -247,10 +288,11 @@ public class SvCluster extends SvCore implements Runnable {
 			while (coordinatorNode == null) {
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 				currentNode = getCurrentNodeInfo();
-				DateTime nextMaintenance = (DateTime) coordinatorNode.getVal("next_maintenance");
+				DateTime nextMaintenance = coordinatorNode != null
+						? (DateTime) coordinatorNode.getVal("next_maintenance") : null;
 				// the next maintenance is in the past means there's no active
 				// coordinator, we will try to become a coordinator
-				if (nextMaintenance.isBeforeNow()) {
+				if (nextMaintenance == null || nextMaintenance.isBeforeNow()) {
 					isCoordinator = becomeCoordinator(svr);
 					// lets try to refreshe the coordinator node infor
 					if (!isCoordinator) {
@@ -269,20 +311,17 @@ public class SvCluster extends SvCore implements Runnable {
 			// the coordinator record is related to this node, but maybe a core
 			// dump caused the server to fail. So lets try to become coordinator
 			String hbAddress = (String) coordinatorNode.getVal("local_ip");
-			boolean initHb=false;
-			boolean initNotif= false;
+			boolean initHb = false;
+			boolean initNotif = false;
 			if (isCoordinator || (!isCoordinator && SvUtil.getIpAdresses(true, ipAddrDelimiter).equals(hbAddress))) {
 				initHb = SvClusterServer.initServer();
 				initNotif = SvClusterNotifierProxy.initServer();
 				if (initHb && initNotif) {
 					isCoordinator = true;
-				}
-				else
-				{
+				} else {
 					log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster shutdown.");
 					shutdown();
 				}
-
 
 			}
 			if (isCoordinator) {
