@@ -229,6 +229,7 @@ public class ClusterTest {
 			SvClusterServer.heartBeatTimeOut = 1000;
 			SvClusterClient.heartBeatInterval = 3000;
 			SvCluster.initCluster();
+			Thread.sleep(5);
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 			// we turn off the promotion to allow testing of failure
 			SvClusterClient.forcePromotionOnShutDown = false;
@@ -240,7 +241,7 @@ public class ClusterTest {
 			Thread clientThread = new Thread(new SvClusterClient());
 			// start the heart beat thread and sleep for 3 intervals
 			clientThread.start();
-			Thread.sleep(2);
+			Thread.sleep(5);
 			int lockHash = SvClusterClient.getLock(lockKey);
 			if (lockHash == 0)
 				fail("cant get lock");
@@ -445,13 +446,14 @@ public class ClusterTest {
 			SvCore.initSvCore();
 			SvCluster.autoStartClient = false;
 			SvCluster.initCluster();
+			Thread.sleep(5);
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 			SvClusterClient.initClient(ipAddressList);
 			SvClusterClient.nodeId = 666;
 			Thread clientThread = new Thread(new SvClusterClient());
 			clientThread.start();
 			// sleep to let the heartbeat start
-			Thread.sleep(200);
+			Thread.sleep(5);
 
 			// validate a random token and see if the validation fails
 			DbDataObject token = SvClusterClient.getToken(UUID.randomUUID().toString());
