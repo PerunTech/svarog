@@ -434,6 +434,16 @@ public class SvClusterClient implements Runnable {
 							if (SvCluster.isRunning.get()) {
 								SvCluster.shutdown();
 							}
+							DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
+							// if shut down in progress, wait to finish.
+							while (tsTimeout.isAfterNow()) {
+								if (SvCluster.isActive.get())
+									try {
+										Thread.sleep(heartBeatInterval);
+									} catch (InterruptedException e) {
+										log4j.error("Heart beat thread sleep raised exception!", e);
+									}
+							}
 							SvCluster.initCluster();
 						}
 						continue;
