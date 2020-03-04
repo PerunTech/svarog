@@ -24,26 +24,26 @@ public class ClusterTest {
 		try {
 			SvCore.initSvCore();
 			SvCluster.autoStartClient = false;
-			SvCluster.initCluster();
-			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
-			SvClusterClient.initClient(ipAddressList);
-			// SvClusterClient.nodeId = 666;
-			Thread clientThread = new Thread(new SvClusterClient());
-			// start the heart beat thread and sleep for 3 intervals
-			clientThread.start();
-			DateTime hbStartTime = DateTime.now();
-			Thread.sleep(3 * SvConf.getHeartBeatInterval());
+			if (SvCluster.initCluster()) {
+				String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
+				SvClusterClient.initClient(ipAddressList);
+				// SvClusterClient.nodeId = 666;
+				Thread clientThread = new Thread(new SvClusterClient());
+				// start the heart beat thread and sleep for 3 intervals
+				clientThread.start();
+				DateTime hbStartTime = DateTime.now();
+				Thread.sleep(3 * SvConf.getHeartBeatInterval());
 
-			if (!SvClusterClient.lastContact.isAfter(hbStartTime))
-				fail("The heart beat client didn't establish contact");
+				if (!SvClusterClient.lastContact.isAfter(hbStartTime))
+					fail("The heart beat client didn't establish contact");
+			} else
+				fail("Can't init cluster");
 		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
 		} finally {
-
 			SvClusterClient.shutdown();
 			SvCluster.shutdown();
-
 		}
 	}
 
@@ -172,6 +172,7 @@ public class ClusterTest {
 			SvCluster.autoStartClient = false;
 			SvClusterServer.heartBeatTimeOut = 1000;
 			SvClusterClient.heartBeatInterval = 3000;
+			
 			SvCluster.initCluster();
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 			// we turn off the promotion to allow testing of failure
@@ -182,14 +183,14 @@ public class ClusterTest {
 			Thread clientThread = new Thread(new SvClusterClient());
 			// start the heart beat thread and sleep for 3 intervals
 			clientThread.start();
-			Thread.sleep(2 * SvClusterServer.heartBeatTimeOut);
+			Thread.sleep(3 * SvClusterServer.heartBeatTimeOut);
 
 			// server should have removed the client by now since the heart beat
 			// interval was 5seconds
 			if (SvClusterServer.nodeHeartBeats.containsKey(SvClusterClient.nodeId))
 				fail("client was not removed as result of time out");
 
-			Thread.sleep(2 * SvClusterServer.heartBeatTimeOut);
+			Thread.sleep(3 * SvClusterServer.heartBeatTimeOut);
 			if (SvClusterClient.isRunning.get())
 				fail("Client should have shut down!");
 
@@ -203,7 +204,7 @@ public class ClusterTest {
 			clientThread = new Thread(new SvClusterClient());
 			// start the heart beat thread and sleep for 3 intervals
 			clientThread.start();
-			Thread.sleep(2000);
+			Thread.sleep(SvClusterServer.heartBeatTimeOut);
 
 			// server should have removed the client by now since the heart beat
 			// interval was 5seconds
@@ -213,7 +214,7 @@ public class ClusterTest {
 			// force removal from the cluster
 			SvClusterServer.nodeHeartBeats.remove(SvClusterClient.nodeId);
 			// sleep and wait for client to rejoin
-			Thread.sleep(2000);
+			Thread.sleep(SvClusterServer.heartBeatTimeOut);
 			// see if the client rejoined
 			if (!SvClusterServer.nodeHeartBeats.containsKey(SvClusterClient.nodeId))
 				fail("client did not rejoin after being removed");
@@ -263,7 +264,7 @@ public class ClusterTest {
 			if (SvClusterServer.nodeHeartBeats.containsKey(SvClusterClient.nodeId))
 				fail("client was not removed as result of time out");
 
-			Thread.sleep(2 * SvClusterServer.heartBeatTimeOut);
+			Thread.sleep(3 * SvClusterServer.heartBeatTimeOut);
 			if (SvClusterClient.isRunning.get())
 				fail("Client should have shut down!");
 
@@ -310,6 +311,7 @@ public class ClusterTest {
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 
 			SvClusterClient.rejoinOnFailedHeartBeat = true; // set to rejoin on
+			SvClusterClient.nodeId = 0L;
 			SvClusterClient.initClient(ipAddressList);
 			try {
 				Thread clientThread = new Thread(new SvClusterClient());
