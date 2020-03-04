@@ -411,8 +411,11 @@ public class SvClusterClient implements Runnable {
 						heartBeatFailed = true;
 						if (!rejoinOnFailedHeartBeat)
 							shutdown(false);
-						else
+						else {
+							if (log4j.isDebugEnabled())
+								log4j.debug("Received failed heartbeat from coordinator. Trying to re-join");
 							joinCluster();
+						}
 					} else {
 						lastContact = DateTime.now();
 						if (log4j.isDebugEnabled()) {

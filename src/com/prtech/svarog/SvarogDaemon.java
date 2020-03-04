@@ -273,6 +273,7 @@ public class SvarogDaemon {
 
 			// Set the proxy to process the notifications it self
 			SvClusterNotifierProxy.processNotification = true;
+			SvClusterClient.rejoinOnFailedHeartBeat = true;
 			SvCluster.initCluster();
 
 			boolean shutdown = false;
@@ -306,9 +307,9 @@ public class SvarogDaemon {
 				}
 			}
 			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
-			
-			//Svarog shut down executing list of executors
-			if(shutdown) {
+
+			// Svarog shut down executing list of executors
+			if (shutdown) {
 				SvarogDaemon.execSvarogShutDownHooks((String) configProps.get(SVAROG_SHUTDOWN_HOOK_PROP));
 			}
 			// Otherwise, exit.
@@ -475,7 +476,7 @@ public class SvarogDaemon {
 			}
 		}
 	}
-	
+
 	/**
 	 * Method to execute list of shut down executors loaded from
 	 * svarog.properties.

@@ -528,8 +528,12 @@ public class SvClusterServer implements Runnable {
 		DateTime tsTimeout = lastGCTime.withDurationAdded(heartBeatTimeOut, 1);
 		if (tsTimeout.isBeforeNow()) {
 			synchronized (isRunning) {
+				if (log4j.isDebugEnabled())
+					log4j.debug(
+							"Performing cluster cleanup. Node must have sent a heartbeat after" + tsTimeout.toString());
+
 				for (Entry<Long, DateTime> hbs : nodeHeartBeats.entrySet())
-					if (hbs.getValue().isBefore(tsTimeout)) {
+					if (hbs.getValue().isAfter(tsTimeout)) {
 						nodeHeartBeats.remove(hbs.getKey(), hbs.getValue());
 						clusterCleanUp(hbs.getKey());
 						if (log4j.isDebugEnabled())
