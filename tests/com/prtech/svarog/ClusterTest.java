@@ -84,11 +84,13 @@ public class ClusterTest {
 			SvCore.initSvCore();
 			SvCluster.autoStartClient = false;
 
-			SvCluster.initCluster();
+			if (!SvCluster.initCluster())
+				fail("Can't init cluster");
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 			SvClusterClient.heartBeatTimeOut = 1000;
 			SvClusterClient.forcePromotionOnShutDown = true;
-			SvClusterClient.initClient(ipAddressList);
+			if (!SvClusterClient.initClient(ipAddressList))
+				fail("Can't init client");
 			// SvClusterClient.nodeId = 666;
 
 			Thread clientThread = new Thread(new SvClusterClient());
@@ -97,11 +99,18 @@ public class ClusterTest {
 			Thread.sleep(2 * SvConf.getHeartBeatInterval());
 
 			SvCluster.shutdown();
-			Thread.sleep(2 * SvConf.getHeartBeatInterval());
+			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
+			boolean didWePromote = false;
+			while (tsTimeout.isAfterNow()) {
+				if (SvCluster.isCoordinator && SvClusterServer.isRunning.get()) {
+					didWePromote = true;
+					break;
+				}
+				Thread.sleep(500);
+			}
 
-			if (!(SvCluster.isCoordinator && SvClusterServer.isRunning.get()))
-				fail("Client didn't promote the server");
-
+			if (!didWePromote)
+				fail("Promotion to coordinator failed");
 			// return heart beat to normal for other tests
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 		} catch (SvException | InterruptedException e) {
