@@ -289,7 +289,7 @@ public class SvarogDaemon {
 					// e.printStackTrace();
 					shutdown = false;
 				}
-				if (event != null && shutdown == false || event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
+				if ((event != null && event.getType() == FrameworkEvent.WAIT_TIMEDOUT) || shutdown == false) {
 					if (SvCluster.maintenanceInProgress.compareAndSet(false, true)) {
 						SvCore.trackedConnCleanup(true);
 						SvCluster.clusterListMaintenance();
