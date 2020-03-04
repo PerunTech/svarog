@@ -361,7 +361,10 @@ public class SvClusterClient implements Runnable {
 			byte[] msgJoin = null;
 			if (hbClientSock.send(joinBuffer.array())) {
 				msgJoin = hbClientSock.recv(0);
-				joinBuffer = ByteBuffer.wrap(msgJoin);
+				if (msgJoin != null)
+					joinBuffer = ByteBuffer.wrap(msgJoin);
+				else
+					joinBuffer = null;
 			} else
 				joinBuffer = null;
 

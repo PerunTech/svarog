@@ -532,15 +532,18 @@ public class SvClusterServer implements Runnable {
 					log4j.debug(
 							"Performing cluster cleanup. Node must have sent a heartbeat after" + tsTimeout.toString());
 
-				for (Entry<Long, DateTime> hbs : nodeHeartBeats.entrySet())
-					if (hbs.getValue().isAfter(tsTimeout)) {
+				for (Entry<Long, DateTime> hbs : nodeHeartBeats.entrySet()) {
+					if (log4j.isDebugEnabled())
+						log4j.debug("Last beat from " + hbs.getKey().toString() + " was" + hbs.getValue().toString());
+					if (hbs.getValue().withDurationAdded(heartBeatTimeOut, 1).isBefore(tsTimeout)) {
 						nodeHeartBeats.remove(hbs.getKey(), hbs.getValue());
 						clusterCleanUp(hbs.getKey());
 						if (log4j.isDebugEnabled())
 							log4j.debug("Node hasn't send a heart beat in " + heartBeatTimeOut
 									+ " miliseconds. Removing " + hbs.toString());
 					}
-				lastGCTime = DateTime.now();
+					lastGCTime = DateTime.now();
+				}
 			}
 		}
 	}
