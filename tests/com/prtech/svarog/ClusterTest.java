@@ -86,9 +86,11 @@ public class ClusterTest {
 
 			if (!SvCluster.initCluster())
 				fail("Can't init cluster");
+			Thread.sleep(100);
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 			SvClusterClient.heartBeatTimeOut = 1000;
 			SvClusterClient.forcePromotionOnShutDown = true;
+
 			if (!SvClusterClient.initClient(ipAddressList))
 				fail("Can't init client");
 			// SvClusterClient.nodeId = 666;
@@ -97,8 +99,8 @@ public class ClusterTest {
 			// start the heart beat thread and sleep for 3 intervals
 			clientThread.start();
 			Thread.sleep(2 * SvConf.getHeartBeatInterval());
-
 			SvCluster.shutdown();
+
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 			boolean didWePromote = false;
 			while (tsTimeout.isAfterNow()) {
