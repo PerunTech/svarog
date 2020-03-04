@@ -321,18 +321,19 @@ public class ClusterTest {
 			// send dirty notification
 			SvClusterNotifierClient.publishDirtyObject(dboToken.getObjectId(), dboToken.getObjectType());
 
-			// sleep few milis to ensure the message passed through the proxy
-			Thread.sleep(200);
-			// now check the cache again ... the token shouldn't be there
+			// get the timeout
+			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
+			// if shut down in progress, wait to finish.
 			dboToken = DbCache.getObject(dboToken.getObjectId(), dboToken.getObjectType());
-
-			if (dboToken != null) {
+			while (tsTimeout.isAfterNow() && dboToken != null) {
+				// sleep few milis to ensure the message passed through the
+				// proxy
 				Thread.sleep(200);
-				// now check the cache again ... the token shouldn't be there
 				dboToken = DbCache.getObject(dboToken.getObjectId(), dboToken.getObjectType());
-				if (dboToken != null)
-					fail("Dirty object still in cache!");
 			}
+			// now check the cache again ... the token shouldn't be there
+			if (dboToken != null)
+				fail("Dirty object still in cache!");
 
 			SvClusterNotifierClient.shutdown();
 			SvCluster.shutdown();
