@@ -299,6 +299,42 @@ public class ClusterTest {
 	}
 
 	@Test
+	public void ClusterLongHearBeatTest() {
+		System.out.print("Test ClusterLongHeartBeat");
+		try {
+			SvCore.initSvCore();
+			SvCluster.autoStartClient = false;
+			SvClusterClient.heartBeatInterval = 500;
+			SvClusterServer.heartBeatTimeOut = 2000;
+			SvCluster.initCluster();
+			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
+
+			SvClusterClient.rejoinOnFailedHeartBeat = true; // set to rejoin on
+			SvClusterClient.initClient(ipAddressList);
+			try {
+				Thread clientThread = new Thread(new SvClusterClient());
+				clientThread.start();
+				while (SvClusterClient.nodeId == 0L)
+					Thread.sleep(200);
+				Long nid = SvClusterClient.nodeId;
+				Thread.sleep(4000);
+				if (!nid.equals(SvClusterClient.nodeId))
+					fail("nodeId has changed, due to re-join");
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			SvClusterNotifierClient.shutdown();
+			SvCluster.shutdown();
+
+		}
+	}
+
+	@Test
 	public void ClusterDirtyObjectTest() {
 		System.out.print("Test ClusterDirtyObjectTest");
 		SvCluster.shutdown();
