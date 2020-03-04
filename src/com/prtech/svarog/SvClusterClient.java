@@ -432,19 +432,25 @@ public class SvClusterClient implements Runnable {
 						if (forcePromotionOnShutDown) {
 							log4j.info("Restarting SvCluster node to force re-election of coordinator");
 							if (SvCluster.isRunning.get()) {
+								if (log4j.isDebugEnabled())
+									log4j.debug("Cluster is running, initiate shutdown");
 								SvCluster.shutdown();
 							}
 							DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 							// if shut down in progress, wait to finish.
-							while (tsTimeout.isAfterNow()) {
-								if (SvCluster.isActive.get())
-									try {
-										Thread.sleep(heartBeatInterval);
-									} catch (InterruptedException e) {
-										log4j.error("Heart beat thread sleep raised exception!", e);
-									}
+							while (tsTimeout.isAfterNow() && SvCluster.isActive.get()) {
+								if (log4j.isDebugEnabled())
+									log4j.debug("Cluster is still active, waiting for it to shutdown");
+
+								try {
+									Thread.sleep(heartBeatInterval);
+								} catch (InterruptedException e) {
+									log4j.error("Heart beat thread sleep raised exception!", e);
+								}
 							}
-							SvCluster.initCluster();
+							if (!SvCluster.initCluster())
+								log4j.error("SvCluster initialisation failed. Check logs");
+
 						}
 						continue;
 					}

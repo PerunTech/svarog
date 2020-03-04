@@ -429,7 +429,7 @@ public class SvCluster extends SvCore implements Runnable {
 		notifierThread = null;
 		coordinatorNode = null;
 		maintenanceThread = null;
-
+		isCoordinator = false;
 		if (!isRunning.get())
 			if (!isActive.compareAndSet(true, false)) {
 				log4j.error("Cluster could not be de-activated");

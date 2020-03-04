@@ -119,7 +119,7 @@ public class ClusterTest {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
 		} finally {
-
+			System.out.print("Perform cleanup");
 			SvClusterClient.shutdown();
 			SvCluster.shutdown();
 
