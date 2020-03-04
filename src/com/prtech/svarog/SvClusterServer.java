@@ -542,9 +542,10 @@ public class SvClusterServer implements Runnable {
 							log4j.debug("Node hasn't send a heart beat in " + heartBeatTimeOut
 									+ " miliseconds. Removing " + hbs.toString());
 					}
-					lastGCTime = DateTime.now();
+
 				}
 			}
+			lastGCTime = DateTime.now();
 		}
 	}
 
