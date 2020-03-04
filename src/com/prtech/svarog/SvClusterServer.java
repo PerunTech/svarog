@@ -486,6 +486,7 @@ public class SvClusterServer implements Runnable {
 
 	@Override
 	public void run() {
+
 		if (!isRunning.compareAndSet(false, true)) {
 			log4j.error("Heartbeat thread is already running. Shutdown first");
 			return;
@@ -496,6 +497,7 @@ public class SvClusterServer implements Runnable {
 			log4j.error("Heartbeat socket not available, ensure proper initialisation");
 			return;
 		}
+		lastGCTime = DateTime.now();
 		log4j.info("Heartbeat server started");
 		while (isRunning.get()) {
 			byte[] msg = hbServerSock.recv(0);
