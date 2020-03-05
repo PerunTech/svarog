@@ -119,6 +119,11 @@ public class SvConf {
 	private static int heartBeatInterval;
 
 	/**
+	 * Filed to register the IP of the VM Bridge. Svarog will not register this
+	 * IP as valid ip for heartbeat connections
+	 */
+	private static String vmBridgeIPAddress;
+	/**
 	 * The maximum timeout which shall we wait before declaring the peer as dead
 	 */
 	private static int heartBeatTimeOut;
@@ -252,7 +257,7 @@ public class SvConf {
 	 * 
 	 * @return the maximum date time for the specific time zone
 	 */
-	public static DateTime getMaxDate() {
+	private static DateTime getMaxDate() {
 		DateTime maxDate = new DateTime("9999-12-31T00:00:00+00");
 		String timezone = SvConf.getParam("sys.force_timezone");
 
@@ -487,6 +492,8 @@ public class SvConf {
 			heartBeatPort = getProperty(mainProperties, "sys.cluster.heartbeat_port", 6783);
 			heartBeatInterval = getProperty(mainProperties, "sys.cluster.heartbeat_interval", 1000);
 			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
+			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
+
 			// configure svarog service classes
 			String svcClass = mainProperties.getProperty("sys.service_class");
 			if (svcClass != null && svcClass.length() > 1) {
@@ -950,5 +957,13 @@ public class SvConf {
 
 	public static void setHeartBeatInterval(int heartBeatInterval) {
 		SvConf.heartBeatInterval = heartBeatInterval;
+	}
+
+	public static String getVmBridgeIPAddress() {
+		return vmBridgeIPAddress;
+	}
+
+	public static void setVmBridgeIPAddress(String vmBridgeIPAddress) {
+		SvConf.vmBridgeIPAddress = vmBridgeIPAddress;
 	}
 }
