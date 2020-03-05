@@ -457,9 +457,10 @@ public abstract class SvCore implements ISvCore {
 
 		this.autoCommit = (srcCore != null ? srcCore.autoCommit : this.autoCommit);
 
-		if (!isSystem() && SvarogDaemon.osgiFramework != null && !SvCluster.isActive.get())
-			throw (new SvException("system.error.cluster_inactive", instanceUser));
-
+		if ((SvarogDaemon.osgiFramework != null && !SvCluster.isActive.get())) {
+			if ((srcCore != null && !srcCore.isInternal))
+				throw (new SvException("system.error.cluster_inactive", instanceUser));
+		}
 		// if the svarog core is not in valid state we should start the
 		// initialisation
 		if (!isValid.get())

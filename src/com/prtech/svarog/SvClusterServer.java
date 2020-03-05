@@ -213,6 +213,10 @@ public class SvClusterServer implements Runnable {
 				try {
 					node = SvCluster.getCurrentNodeInfo();
 					node.setVal("node_info", nodeInfo);
+					Gson g = new Gson();
+					JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
+					String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
+					node.setVal("local_ip", remoteIp);
 					svw = new SvWriter();
 					svw.saveObject(node, true);
 					nodeHeartBeats.put(node.getObjectId(), DateTime.now());
@@ -234,6 +238,7 @@ public class SvClusterServer implements Runnable {
 			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(nodeId);
+			nodeHeartBeats.remove(nodeId);
 			clusterCleanUp(nodeId);
 			if (!SvCluster.maintenanceInProgress.get())
 				SvCluster.maintenanceThread.interrupt();
