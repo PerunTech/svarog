@@ -233,7 +233,7 @@ public class SvarogDaemon {
 					SvarogDaemon.execSvarogShutDownHooks((String) configProps.get(SVAROG_SHUTDOWN_HOOK_PROP));
 					log4j.info("Shutting down svarog");
 					SvCluster.resignCoordinator();
-					SvCluster.shutdown();
+					SvCluster.shutdown(false);
 					if (osgiFramework != null) {
 						osgiFramework.stop();
 						osgiFramework.waitForStop(0);

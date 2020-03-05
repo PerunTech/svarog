@@ -200,8 +200,9 @@ public class SvCluster extends SvCore implements Runnable {
 		boolean success = false;
 		try {
 			if (isCoordinator) {
-				svw = new SvWriter();
-				svr = new SvReader(svw);
+				svr = new SvReader();
+				svr.isInternal = true;
+				svw = new SvWriter(svr);
 				DbCache.removeObject(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER);
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 				coordinatorNode.setVal("last_maintenance", DateTime.now());
@@ -330,6 +331,7 @@ public class SvCluster extends SvCore implements Runnable {
 		isCoordinator = false;
 		try {
 			svr = new SvReader();
+			svr.isInternal = true;
 			// do try to get a valid coordinator
 			// force purge of the cache to get the coordinator
 			DbCache.removeObject(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER);
