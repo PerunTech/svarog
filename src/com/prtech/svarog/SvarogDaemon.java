@@ -89,7 +89,7 @@ public class SvarogDaemon {
 	/**
 	 * The felix instance reference
 	 */
-	private static Framework osgiFramework = null;
+	static Framework osgiFramework = null;
 
 	/**
 	 * Satus code used by svarog installed to notify that the daemon should run
