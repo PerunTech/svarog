@@ -219,8 +219,9 @@ public class SvUtil {
 	static String getIpAdresses(boolean includHeartBeatPort, String delimiter) throws UnknownHostException {
 		StringBuilder sbr = new StringBuilder();
 		for (InetAddress ad : SvUtil.getLocalHostLANAddress()) {
-			sbr.append(ad.getHostAddress().toString() + (includHeartBeatPort ? ":" + SvConf.getHeartBeatPort() : "")
-					+ delimiter);
+			if (!ad.getHostAddress().toString().equals(SvConf.getVmBridgeIPAddress()))
+				sbr.append(ad.getHostAddress().toString() + (includHeartBeatPort ? ":" + SvConf.getHeartBeatPort() : "")
+						+ delimiter);
 		}
 		sbr.setLength(sbr.length() - 1);
 		return sbr.toString();

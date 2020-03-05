@@ -51,6 +51,12 @@ public class SvClusterClient implements Runnable {
 	 * Flag if the client is running
 	 */
 	static AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	/**
+	 * Flag if the client has joined a cluster
+	 */
+	static AtomicBoolean isActive = new AtomicBoolean(false);
+
 	/**
 	 * Delimiter to be used for split of the address list
 	 */
@@ -109,19 +115,30 @@ public class SvClusterClient implements Runnable {
 					break;
 				}
 			}
+
+			// send joing message
+			if (log4j.isDebugEnabled())
+				log4j.debug("Joining cluster with IP:" + lastIpAddressList);
+			isActive.compareAndSet(false, joinCluster());
+			if (!isActive.get()) {
+				if (log4j.isDebugEnabled()) {
+					log4j.debug("Client failed joining cluster with IP:" + lastIpAddressList);
+				}
+			} else
+				log4j.debug("Successfully joined cluster with IP:" + lastIpAddressList);
 		} catch (Exception e) {
 			log4j.error("The node can't connect heart beat socket to:" + ipAddressList, e);
 		} finally {
 			if (svw != null)
 				svw.release();
 		}
-		boolean result = (hbClientSock != null);
-		if (!result) {
+
+		if (!isActive.get()) {
 			context.close();
 			context = null;
 			hbClientSock = null;
 		}
-		return result;
+		return isActive.get();
 	}
 
 	/**
@@ -165,7 +182,8 @@ public class SvClusterClient implements Runnable {
 				context = null;
 				log4j.info("Heartbeat client shutdown");
 			}
-
+		// mark the client as in-active
+		isActive.set(false);
 	}
 
 	/**
@@ -352,27 +370,36 @@ public class SvClusterClient implements Runnable {
 	 * 
 	 * @return True if the node joined the cluster successfully
 	 */
-	boolean joinCluster() {
+	static boolean joinCluster() {
 		synchronized (hbClientSock) {
 			byte[] nodeInfo = SvCluster.currentNode.getVal("node_info").toString().getBytes(ZMQ.CHARSET);
 			ByteBuffer joinBuffer = ByteBuffer.allocate(1 + nodeInfo.length);
 			joinBuffer.put(SvCluster.MSG_JOIN);
 			joinBuffer.put(nodeInfo);
 			byte[] msgJoin = null;
-			if (hbClientSock.send(joinBuffer.array())) {
-				msgJoin = hbClientSock.recv(0);
-				if (msgJoin != null)
-					joinBuffer = ByteBuffer.wrap(msgJoin);
-				else
+			try {
+				if (hbClientSock.send(joinBuffer.array())) {
+					msgJoin = hbClientSock.recv(0);
+					if (msgJoin != null)
+						joinBuffer = ByteBuffer.wrap(msgJoin);
+					else
+						joinBuffer = null;
+				} else
 					joinBuffer = null;
-			} else
-				joinBuffer = null;
+				byte respMsg = SvCluster.MSG_FAIL;
+				if (joinBuffer != null)
+					respMsg = joinBuffer.get();
 
-			if (joinBuffer != null && joinBuffer.get() != SvCluster.MSG_SUCCESS) {
-				log4j.error("Failed to join cluster.");
+				if (respMsg == SvCluster.MSG_FAIL) {
+					log4j.error("Failed to join cluster.");
+					nodeId = 0L;
+					return false;
+				} else
+					nodeId = joinBuffer.getLong();
+			} catch (Exception e) {
+				nodeId = 0L;
 				return false;
-			} else
-				nodeId = joinBuffer.getLong();
+			}
 		}
 		return true;
 	}
@@ -390,10 +417,6 @@ public class SvClusterClient implements Runnable {
 			log4j.error("Heartbeat socket not available, ensure proper initialisation");
 			return;
 		}
-		boolean heartBeatFailed = false;
-		// send joing message
-		joinCluster();
-
 		while (isRunning.get() && hbClientSock != null) {
 			synchronized (hbClientSock) {
 				ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES);
@@ -411,7 +434,6 @@ public class SvClusterClient implements Runnable {
 					long dstNode = msgBuffer.getLong();
 					if (msgType != SvCluster.MSG_SUCCESS) {
 						log4j.error("Error receiving heartbeat from coordinator node");
-						heartBeatFailed = true;
 						if (!rejoinOnFailedHeartBeat)
 							shutdown(false);
 						else {
@@ -454,9 +476,12 @@ public class SvClusterClient implements Runnable {
 									log4j.error("Heart beat thread sleep raised exception!", e);
 								}
 							}
-							if (!SvCluster.initCluster())
-								log4j.error("SvCluster initialisation failed. Check logs");
-
+							if (!SvCluster.maintenanceInProgress.get()) {
+								if (SvCluster.maintenanceThread != null)
+									SvCluster.maintenanceThread.interrupt();
+								else
+									SvCluster.initCluster();
+							}
 						}
 						continue;
 					}
@@ -468,6 +493,7 @@ public class SvClusterClient implements Runnable {
 				log4j.error("Heart beat thread sleep raised exception!", e);
 			}
 		}
+
 	}
 
 }
