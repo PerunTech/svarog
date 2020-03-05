@@ -381,7 +381,7 @@ public class SvCluster extends SvCore implements Runnable {
 				}
 
 			}
-			if (autoStartClient) {
+			if (!isCoordinator && autoStartClient) {
 				initHb = SvClusterClient.initClient(hbAddress);
 				initNotif = initHb ? SvClusterNotifierClient.initClient(hbAddress) : false;
 				if (initHb && initNotif) {
