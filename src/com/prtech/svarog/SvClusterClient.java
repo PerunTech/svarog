@@ -286,9 +286,16 @@ public class SvClusterClient implements Runnable {
 			byte[] msg = hbClientSock.recv(0);
 			msgBuffer = ByteBuffer.wrap(msg);
 			msgType = msgBuffer.get();
-
 			if (log4j.isDebugEnabled())
-				log4j.debug("Token refresh:" + (msgType == SvCluster.MSG_SUCCESS ? "succeded" : "failed"));
+				log4j.debug("Token refresh:"
+						+ (msgType == SvCluster.MSG_SUCCESS ? "succeded" : "failed, lets put the session"));
+
+			if (msgType == SvCluster.MSG_FAIL) {
+				DbDataObject svToken = DbCache.getObject(token, svCONST.OBJECT_TYPE_SECURITY_LOG);
+				if(SvClusterClient.putToken(svToken))
+					msgType = SvCluster.MSG_SUCCESS;
+			}
+
 		}
 		return msgType == SvCluster.MSG_SUCCESS;
 	}

@@ -1477,24 +1477,40 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getUserBySession(String session_id) throws SvException {
 		DbDataObject svToken = DbCache.getObject(session_id, svCONST.OBJECT_TYPE_SECURITY_LOG);
-		DbDataObject dbu = null;
-		if (svToken == null)
-			throw (new SvException("error.invalid_session", svCONST.systemUser));
-
-		// if the last refresh + the interval is in the past, send a refresh in
-		// the cluster
-		if (!SvCluster.isCoordinator && SvCluster.isActive.get())
-			if (((DateTime) svToken.getVal("last_refresh")).withDurationAdded(sessionDebounceInterval, 1)
-					.isBeforeNow()) {
-				if (SvClusterClient.refreshToken(session_id)) {
-					DboUnderground.revertReadOnly(svToken, new SvReader());
+		if (!SvCluster.isCoordinator && SvCluster.isActive.get()) {
+			// we are not coordinator so lets communucate our session
+			// management with the coordinator
+			if (svToken != null) {
+				// we found a local session, and send refresh to coordinator
+				if (((DateTime) svToken.getVal("last_refresh")).withDurationAdded(sessionDebounceInterval, 1)
+						.isBeforeNow()) {
+					if (SvClusterClient.refreshToken(session_id)) {
+						DboUnderground.revertReadOnly(svToken, new SvReader());
+						svToken.setVal("last_refresh", DateTime.now());
+						svToken.setIsDirty(false);
+						DboFactory.makeDboReadOnly(svToken);
+						DbCache.addObject(svToken, session_id);
+					}
+				}
+			} else // no local session was found get one from coordinator
+			{
+				svToken = SvClusterClient.getToken(session_id);
+				if (svToken != null) {
 					svToken.setVal("last_refresh", DateTime.now());
 					svToken.setIsDirty(false);
 					DboFactory.makeDboReadOnly(svToken);
 					DbCache.addObject(svToken, session_id);
 				}
+
 			}
-		// TODO
+		}
+
+		if (svToken == null)
+			throw (new SvException("error.invalid_session", svCONST.systemUser));
+
+		DbDataObject dbu = null;
+		// if the last refresh + the interval is in the past, send a refresh in
+		// the cluster
 		SvSecurity svs = null;
 		try {
 			svs = new SvSecurity();
