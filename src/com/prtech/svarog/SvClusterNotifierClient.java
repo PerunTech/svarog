@@ -3,7 +3,9 @@ package com.prtech.svarog;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -205,6 +207,83 @@ public class SvClusterNotifierClient implements Runnable {
 			}
 		}
 	}
+	/**
+	 * Method to publish a dirty tiles notification to the other nodes in the
+	 * cluster
+	 * 
+	 * @param dba
+	 *            The DbDataArray instance which should be published as dirty
+	 * @param socket
+	 *            The socket on which the dirty IDs should be sent (if the node
+	 *            is coordinator, it shall send on the proxy socket. If the node
+	 *            is worker, then it will publish on the publish socket of the
+	 *            NotifierClient
+	 * 
+	 */
+	static void publishDirtyTileArray(List<SvSDITile> tiles) 
+	{
+		publishDirtyTileArray(tiles, pubServerSock);
+	}
+	/**
+	 * Method to publish a dirty tiles notification to the other nodes in the
+	 * cluster
+	 * 
+	 * @param dba
+	 *            The DbDataArray instance which should be published as dirty
+	 * @param socket
+	 *            The socket on which the dirty IDs should be sent (if the node
+	 *            is coordinator, it shall send on the proxy socket. If the node
+	 *            is worker, then it will publish on the publish socket of the
+	 *            NotifierClient
+	 * 
+	 */
+	static void publishDirtyTileArray(List<SvSDITile> tiles, ZMQ.Socket socket) {
+		if (pubServerSock != null) {
+			ByteBuffer msgBuffer = null;
+			Long currentType = 0L;
+			int objectCount = 0;
+			int totalCount = 0;
+			for (SvSDITile tile : tiles) {
+				if (currentType != tile.getTileTypeId()) {
+					if (objectCount > 0 && msgBuffer != null) {
+						byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
+								(1 + Long.BYTES + (Long.BYTES * objectCount)));
+						// send the previous buffer
+						if (log4j.isDebugEnabled())
+							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
+									+ " to coordinator");
+						if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+							log4j.error("Error publishing message to coordinator node");
+					}
+					objectCount = 0;
+					currentType = tile.getTileTypeId();
+					// every message will have the message type, the tile type
+					// (long) and two integers for the cell multiplied by the
+					// number of tiles
+					msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Integer.BYTES * 2 * (tiles.size() - totalCount)));
+					msgBuffer.put(SvCluster.MSG_DIRTY_TILE);
+					msgBuffer.putLong(currentType);
+				}
+				int[] cell = new int[2];
+				tile.getTilelId(cell);
+				msgBuffer.putInt(cell[0]);
+				msgBuffer.putInt(cell[1]);
+				totalCount++;
+				objectCount++;
+			}
+			// the array was finished so lets send the left over buffer if any
+			if (objectCount > 0 && msgBuffer != null) {
+				byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
+						(1 + Long.BYTES + (Integer.BYTES * 2 * objectCount)));
+				// send the previous buffer
+				if (log4j.isDebugEnabled())
+					log4j.debug(
+							"Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
+				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+					log4j.error("Error publishing message to coordinator node");
+			}
+		}
+	}
 
 	/**
 	 * Method to publish a dirty object notification to the other nodes in the
@@ -301,6 +380,25 @@ public class SvClusterNotifierClient implements Runnable {
 				} catch (BufferUnderflowException ex) {
 					hasObjects = false;
 					log4j.debug("Received dirty notification for " + objectCount + " objects of type " + objectTypeId);
+				}
+			}
+
+		} else if (msgType == SvCluster.MSG_DIRTY_TILE) {
+			long tileTypeId = msgBuffer.getLong();
+			while (hasObjects) {
+				try {
+					int[] cell = new int[2];
+					cell[0] = msgBuffer.getInt();
+					cell[1] = msgBuffer.getInt();
+					if (log4j.isDebugEnabled())
+						log4j.debug("Received dirty notification for tile with id:" + cell + " and type " + tileTypeId);
+					SvGeometry.markDirtyTile(tileTypeId, cell);
+
+					objectCount++;
+				} catch (BufferUnderflowException ex) {
+					hasObjects = false;
+					log4j.debug(
+							"Received dirty notification " + msgBuffer.toString() + " objects of type " + tileTypeId);
 				}
 			}
 

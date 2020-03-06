@@ -1,6 +1,8 @@
 package com.prtech.svarog;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.Logger;
@@ -111,6 +113,10 @@ public class SvClusterNotifierProxy implements Runnable {
 		SvClusterNotifierClient.publishDirtyArray(dba, pubServerSock);
 	}
 
+	
+	static public void publishDirtyTileArray(List<SvSDITile> dba) {
+		SvClusterNotifierClient.publishDirtyTileArray(dba, pubServerSock);
+	}
 	/**
 	 * Overriden runnable method to execute the Notifier Proxy in a separate
 	 * thread. This method basically proxies messages to provide pass through of

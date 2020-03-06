@@ -41,6 +41,7 @@ public class SvCluster extends SvCore implements Runnable {
 	static final byte MSG_LOCK_RELEASE = 9;
 	static final byte MSG_JOIN = 10;
 	static final byte MSG_PART = 11;
+	static final byte MSG_DIRTY_TILE = 12;
 
 	/**
 	 * Timestamp of the next planned maintenance of the cluster table in the DB
