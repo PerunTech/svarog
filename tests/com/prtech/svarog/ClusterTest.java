@@ -172,7 +172,7 @@ public class ClusterTest {
 			SvCluster.autoStartClient = false;
 			SvClusterServer.heartBeatTimeOut = 1000;
 			SvClusterClient.heartBeatInterval = 3000;
-			
+
 			SvCluster.initCluster();
 			String ipAddressList = (String) SvCluster.coordinatorNode.getVal("local_ip");
 			// we turn off the promotion to allow testing of failure
@@ -474,6 +474,13 @@ public class ClusterTest {
 		} catch (SvException e1) {
 			// TODO Auto-generated catch block
 			fail("Can't initialise Svarog");
+		}
+
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 		if (!SvCluster.initCluster())
 			fail("Can't init cluster");
