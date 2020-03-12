@@ -820,6 +820,7 @@ public class ClusterTest {
 
 			String lockKey = "TEST_LOCK_SINGLE";
 			// validate a random token and see if the validation fails
+			Thread.sleep(50);
 
 			int lockHash = SvLock.getDistributedLockImpl(lockKey, false, SvClusterClient.nodeId);
 			if (lockHash == 0)
@@ -835,6 +836,9 @@ public class ClusterTest {
 				fail("Lock was present on the Cluster after release");
 
 		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
