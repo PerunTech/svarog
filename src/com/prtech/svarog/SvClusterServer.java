@@ -1,8 +1,14 @@
 package com.prtech.svarog;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,6 +23,7 @@ import org.zeromq.ZMQ;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.prtech.svarog.SvCluster.DistributedLock;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DboFactory;
 
@@ -29,40 +36,25 @@ import com.prtech.svarog_common.DboFactory;
  *
  */
 public class SvClusterServer implements Runnable {
-
-	/**
-	 * Class to wrap the standard locks in order to support the distributed
-	 * locking of the svarog cluster. The key of the lock as well as the node
-	 * which holds the lock are the needed information
-	 * 
-	 * @author ristepejov
-	 *
-	 */
-	class DistributedLock {
-		public String key;
-		public Long nodeId;
-		public ReentrantLock lock;
-
-		DistributedLock(String key, Long nodeId, ReentrantLock lock) {
-			this.nodeId = nodeId;
-			this.lock = lock;
-			this.key = key;
-		}
-	}
-
+	static int clusterMainentanceInterval = SvConf.getClusterMaintenanceInterval();
 	/**
 	 * Map of distributed locks
 	 */
-	static final ConcurrentHashMap<String, DistributedLock> distributedLocks = new ConcurrentHashMap<String, DistributedLock>();
+	static final ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks = new ConcurrentHashMap<String, SvCluster.DistributedLock>();
 	/**
 	 * Map of locks grouped by node. If a node dies, we remove all locks
 	 */
-	static final ConcurrentHashMap<Long, CopyOnWriteArrayList<DistributedLock>> nodeLocks = new ConcurrentHashMap<Long, CopyOnWriteArrayList<DistributedLock>>();
+	static final ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks = new ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>>();
 
 	/**
 	 * Map holding the last heart beat of each node in the cluster
 	 */
 	static final ConcurrentHashMap<Long, DateTime> nodeHeartBeats = new ConcurrentHashMap<Long, DateTime>();
+
+	/**
+	 * Map holding the last heart beat of each node in the cluster
+	 */
+	static final ConcurrentHashMap<Long, DateTime> missedHeartBeats = new ConcurrentHashMap<Long, DateTime>();
 
 	/**
 	 * Log4j instance used for logging
@@ -91,6 +83,7 @@ public class SvClusterServer implements Runnable {
 		}
 		if (context == null)
 			context = new ZContext();
+		nodeHeartBeats.clear();
 		// Socket to talk to clients
 		hbServerSock = null;
 		ZMQ.Socket tmpSock = context.createSocket(SocketType.REP);
@@ -190,6 +183,74 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
+	 * Method to handle JOIN messages between the cluster nodes and the
+	 * coordinator
+	 * 
+	 * @param msgType
+	 *            The received message type (join or part)
+	 * @param nodeId
+	 *            The node which sent the message
+	 * @param msgBuffer
+	 *            The rest of the message buffer
+	 * @return A response message buffer
+	 */
+	private List<ByteBuffer> processJoin(long nodeId, ByteBuffer msgBuffer) {
+		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+		List<ByteBuffer> response = new ArrayList<ByteBuffer>();
+		String nodeInfo = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES, msgBuffer.array().length),
+				ZMQ.CHARSET);
+		SvWriter svw = null;
+		DbDataObject node = null;
+		synchronized (SvClusterServer.isRunning) {
+			try {
+				node = SvCluster.getCurrentNodeInfo();
+				node.setVal("node_info", nodeInfo);
+				Gson g = new Gson();
+				JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
+				String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
+				node.setVal("local_ip", remoteIp);
+				svw = new SvWriter();
+				svw.saveObject(node, true);
+				nodeHeartBeats.put(node.getObjectId(), DateTime.now());
+			} catch (SvException e) {
+				log4j.error("Error registering new node in db!", e);
+			} finally {
+				if (svw != null)
+					svw.release();
+			}
+		}
+
+		if (node != null && node.getObjectId() > 0L) {
+			// migrate server locks from old ID to new node id
+			SvCluster.migrateLocks(node.getObjectId(), nodeId, nodeLocks);
+			// promote local local locks to the server and confirm them
+
+			respBuffer.put(SvCluster.MSG_SUCCESS);
+			respBuffer.putLong(node.getObjectId());
+			response.add(respBuffer);
+
+			for (Entry<String, DistributedLock> entry : SvClusterServer.distributedLocks.entrySet()) {
+				if (!entry.getValue().nodeId.equals(node.getObjectId())) {
+					byte[] key = null;
+					key = entry.getKey().getBytes(ZMQ.CHARSET);
+					// allocate one byte for message type, one long for node Id
+					// and the rest for the token
+					respBuffer = ByteBuffer.allocate(Long.BYTES + Integer.BYTES + (key != null ? key.length : 0));
+					respBuffer.putLong(entry.getValue().nodeId);
+					respBuffer.putInt(entry.getValue().lockHash);
+					respBuffer.put(key);
+					response.add(respBuffer);
+				}
+			}
+		} else {
+			respBuffer.put(SvCluster.MSG_FAIL);
+			respBuffer.putLong(0L);
+			response.add(respBuffer);
+		}
+		return response;
+	}
+
+	/**
 	 * Method to handle JOIN/PART messages between the cluster nodes and the
 	 * coordinator
 	 * 
@@ -201,46 +262,15 @@ public class SvClusterServer implements Runnable {
 	 *            The rest of the message buffer
 	 * @return A response message buffer
 	 */
-	private ByteBuffer processJoinPart(byte msgType, long nodeId, ByteBuffer msgBuffer) {
+	private ByteBuffer processPart(byte msgType, long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
-		if (SvCluster.MSG_JOIN == msgType) {
-
-			String nodeInfo = new String(Arrays.copyOfRange(msgBuffer.array(), 1, msgBuffer.array().length),
-					ZMQ.CHARSET);
-			SvWriter svw = null;
-			DbDataObject node = null;
-			synchronized (SvCluster.isRunning) {
-				try {
-					node = SvCluster.getCurrentNodeInfo();
-					node.setVal("node_info", nodeInfo);
-					Gson g = new Gson();
-					JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
-					String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
-					node.setVal("local_ip", remoteIp);
-					svw = new SvWriter();
-					svw.saveObject(node, true);
-					nodeHeartBeats.put(node.getObjectId(), DateTime.now());
-				} catch (SvException e) {
-					log4j.error("Error registering new node in db!", e);
-				} finally {
-					if (svw != null)
-						svw.release();
-				}
-			}
-			if (node != null && node.getObjectId() > 0L) {
-				respBuffer.put(SvCluster.MSG_SUCCESS);
-				respBuffer.putLong(node.getObjectId());
-			} else {
-				respBuffer.put(SvCluster.MSG_FAIL);
-				respBuffer.putLong(0L);
-			}
-		} else {
+		{
 			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(nodeId);
 			nodeHeartBeats.remove(nodeId);
 			clusterCleanUp(nodeId);
-			if (!SvCluster.maintenanceInProgress.get())
+			if (!SvCluster.getMaintenanceInProgress().get())
 				SvCluster.maintenanceThread.interrupt();
 		}
 		return respBuffer;
@@ -277,30 +307,13 @@ public class SvClusterServer implements Runnable {
 	 *            The hash of the lock
 	 * @param nodeId
 	 *            The node id which acquires the lock
-	 * @return True if the log was acquired.
+	 * 
+	 * @return The lock key if the lock was released with success, otherwise
+	 *         null
 	 */
-	boolean releaseDistributedLock(Integer lockHash, long nodeId) {
-		boolean lockReleased = false;
-		CopyOnWriteArrayList<DistributedLock> nodeLock = nodeLocks.get(nodeId);
-		DistributedLock currentLock = null;
-		if (nodeLock != null) {
-			for (DistributedLock dLock : nodeLock)
-				if (lockHash.equals(dLock.lock.hashCode())) {
-					currentLock = dLock;
-					break;
-				}
-		}
-		if (currentLock != null) {
-			lockReleased = SvLock.releaseLock(currentLock.key, currentLock.lock);
-			if (currentLock.lock.getHoldCount() == 0) {
-				synchronized (distributedLocks) {
-					distributedLocks.remove(currentLock.key, currentLock);
-				}
-				nodeLock.remove(currentLock);
-			}
-		} else
-			log4j.error("Lock with hash " + lockHash.toString() + ", does not exist in the list of distributed locks");
-		return lockReleased;
+	static String releaseDistributedLock(Integer lockHash, Long nodeId) {
+		return SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
+
 	}
 
 	/**
@@ -318,26 +331,18 @@ public class SvClusterServer implements Runnable {
 		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
 		Integer lockHash = msgBuffer.getInt();
 
-		boolean lockReleased = releaseDistributedLock(lockHash, nodeId);
+		// unlock the lock using the server lists of locks
+		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
 		respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
-		if (lockReleased)
+		if (lockKey != null) {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
-		else
+			// send a broadcast that the lock was acquired
+			SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_RELEASED, lockHash, nodeId, lockKey);
+		} else
 			respBuffer.put(SvCluster.MSG_FAIL);
 
 		respBuffer.putLong(nodeId);
 		return respBuffer;
-	}
-
-	/**
-	 * Method to release a lock on the Cluster server
-	 * 
-	 * @param lockHash
-	 *            The hash identifier of the lock
-	 * @return True if the release was successful
-	 */
-	boolean releaseDistributedLock(int lockHash) {
-		return releaseDistributedLock(lockHash, SvCluster.currentNode.getObjectId());
 	}
 
 	/**
@@ -347,62 +352,13 @@ public class SvClusterServer implements Runnable {
 	 *            The string identifier of the lock
 	 * @return the hash code of the lock
 	 */
-	int getDistributedLock(String lockKey) {
+	static int getDistributedLock(String lockKey, Long nodeId) {
 		Long[] extendedInfo = new Long[1];
-		ReentrantLock lck = acquireDistributedLock(lockKey, SvCluster.currentNode.getObjectId(), extendedInfo);
+		ReentrantLock lck = SvCluster.acquireDistributedLock(lockKey, nodeId, extendedInfo, nodeLocks, distributedLocks,
+				null);
 		if (lck == null && log4j.isDebugEnabled())
 			log4j.debug("Lock not acquired! Lock is held by node:" + Long.toString(extendedInfo[0]));
 		return lck != null ? lck.hashCode() : 0;
-	}
-
-	/**
-	 * Method to acquire a distributed lock from the svarog cluster (this is
-	 * server agnostic). It is called also by SvLock in order to synchronize
-	 * properly the distributed locks
-	 * 
-	 * @param lockKey
-	 *            The lock key which should be locked.
-	 * @param nodeId
-	 *            The id of the node which shall acquire the lock
-	 * @param extendedInfo
-	 *            The id of the node which already holds the lock (available
-	 *            only if the lock fails)
-	 * @return Instance of re-entrant lock if the lock was acquired. Otherwise
-	 *         null. If null the extendedInfo is populated with the node holding
-	 *         the lock
-	 */
-
-	ReentrantLock acquireDistributedLock(String lockKey, Long nodeId, Long[] extendedInfo) {
-		ReentrantLock lock = null;
-		DistributedLock dlock = null;
-		synchronized (distributedLocks) {
-			dlock = distributedLocks.get(lockKey);
-			if (dlock != null && dlock.nodeId.equals(nodeId)) {
-				// same node is locking the re-entrant lock again
-				lock = SvLock.getLock(lockKey, false, 0L);
-			} else {
-				if (dlock == null) // brand new lock
-				{
-					lock = SvLock.getLock(lockKey, false, 0L);
-					if (lock != null) {
-						dlock = new DistributedLock(lockKey, nodeId, lock);
-						distributedLocks.put(lockKey, dlock);
-					}
-				} else {
-					if (extendedInfo.length > 0)
-						extendedInfo[0] = dlock.nodeId;
-				}
-			}
-		}
-		if (lock != null) {
-			CopyOnWriteArrayList<DistributedLock> currentNode = new CopyOnWriteArrayList<DistributedLock>();
-			CopyOnWriteArrayList<DistributedLock> oldNode = nodeLocks.putIfAbsent(nodeId, currentNode);
-			if (oldNode != null)
-				currentNode = oldNode;
-			currentNode.addIfAbsent(dlock);
-		}
-		return lock;
-
 	}
 
 	/**
@@ -421,20 +377,38 @@ public class SvClusterServer implements Runnable {
 		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES, msgBuffer.array().length),
 				ZMQ.CHARSET);
 		Long[] extNodeInfo = new Long[1];
-		ReentrantLock lock = acquireDistributedLock(lockKey, nodeId, extNodeInfo);
+
+		// acquire the lock using the server side lists
+		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, distributedLocks,
+				null);
 
 		respBuffer = ByteBuffer.allocate(1 + Long.BYTES + (lock == null ? Long.BYTES : Integer.BYTES));
 		if (lock == null)
 			respBuffer.put(SvCluster.MSG_FAIL);
-		else
-			respBuffer.put(SvCluster.MSG_SUCCESS);
+		else {
+			byte lockResult = SvCluster.MSG_SUCCESS;
+			Set<Long> nodes = null;
+			nodes = new HashSet<Long>();
+			nodes.addAll(nodeHeartBeats.keySet());
+			SvClusterNotifierProxy.nodeAcks.put(lock.hashCode(), nodes);
+			SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_ACQUIRED, lock.hashCode(), nodeId, lockKey);
+			if (!SvClusterNotifierProxy.waitForAck(nodes, lock.hashCode(), heartBeatTimeOut))
+				lockResult = SvCluster.MSG_FAIL;
+
+			respBuffer.put(lockResult);
+		}
 		// add the node id
 		respBuffer.putLong(nodeId);
 
 		if (lock == null) // if the lock has failed add the node which holds it
 			respBuffer.putLong(extNodeInfo[0]);
-		else
+		else {
 			respBuffer.putInt(lock.hashCode());
+			// send a broadcast that the lock was acquired
+			// SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_ACQUIRED,
+			// lock.hashCode(), nodeId, lockKey);
+		}
+
 		return respBuffer;
 	}
 
@@ -451,40 +425,39 @@ public class SvClusterServer implements Runnable {
 	 */
 	private byte[] processMessage(byte msgType, long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = null;
+		if (log4j.isDebugEnabled())
+			log4j.debug("Received message " + Integer.toString(msgType) + " from node " + nodeId);
 		// if the node is not in the cluster and the message isn't join, reject
 		// the message by responding FAIL
-		if (!nodeHeartBeats.containsKey(nodeId) && msgType != SvCluster.MSG_JOIN) {
+		if (!nodeHeartBeats.containsKey(nodeId)) {
 			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
 			respBuffer.put(SvCluster.MSG_FAIL);
 			respBuffer.putLong(nodeId);
-		}
-		switch (msgType) {
-		case SvCluster.MSG_HEARTBEAT:
-			respBuffer = processHeartBeat(msgType, nodeId, msgBuffer);
-			break;
-		case SvCluster.MSG_JOIN:
-		case SvCluster.MSG_PART:
-			respBuffer = processJoinPart(msgType, nodeId, msgBuffer);
-			break;
-		case SvCluster.MSG_AUTH_TOKEN_GET:
-		case SvCluster.MSG_AUTH_TOKEN_PUT:
-		case SvCluster.MSG_AUTH_TOKEN_SET:
-			respBuffer = processAuthentication(msgType, nodeId, msgBuffer);
-			break;
-		case SvCluster.MSG_LOCK:
-			respBuffer = processLock(msgType, nodeId, msgBuffer);
-			break;
-		case SvCluster.MSG_LOCK_RELEASE:
-			respBuffer = processReleaseLock(msgType, nodeId, msgBuffer);
-			break;
-		default:
-			respBuffer = ByteBuffer.allocate(1);
-			respBuffer.put(SvCluster.MSG_UNKNOWN);
-		}
+		} else
+			switch (msgType) {
+			case SvCluster.MSG_HEARTBEAT:
+				respBuffer = processHeartBeat(msgType, nodeId, msgBuffer);
+				break;
+			case SvCluster.MSG_PART:
+				respBuffer = processPart(msgType, nodeId, msgBuffer);
+				break;
+			case SvCluster.MSG_AUTH_TOKEN_GET:
+			case SvCluster.MSG_AUTH_TOKEN_PUT:
+			case SvCluster.MSG_AUTH_TOKEN_SET:
+				respBuffer = processAuthentication(msgType, nodeId, msgBuffer);
+				break;
+			case SvCluster.MSG_LOCK:
+				respBuffer = processLock(msgType, nodeId, msgBuffer);
+				break;
+			case SvCluster.MSG_LOCK_RELEASE:
+				respBuffer = processReleaseLock(msgType, nodeId, msgBuffer);
+				break;
+			default:
+				respBuffer = ByteBuffer.allocate(1);
+				respBuffer.put(SvCluster.MSG_UNKNOWN);
+			}
 		if (log4j.isDebugEnabled())
-			log4j.debug("Received message " + Integer.toString(msgType) + " from node " + nodeId
-					+ " and response message was " + respBuffer.get(0));
-
+			log4j.debug("Response to node " + nodeId + " was " + respBuffer.get(0));
 		return respBuffer.array();
 
 	}
@@ -510,9 +483,23 @@ public class SvClusterServer implements Runnable {
 				ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
 				byte msgType = msgBuffer.get();
 				long nodeId = msgBuffer.getLong();
-				byte[] response = processMessage(msgType, nodeId, msgBuffer);
-				if (!hbServerSock.send(response))
-					log4j.error("Error sending message to node:" + Long.toString(nodeId));
+				int sockFlag;
+				if (msgType == SvCluster.MSG_JOIN) {
+					Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
+					sockFlag = ZMQ.SNDMORE;
+					while (iterator.hasNext()) {
+						ByteBuffer b = iterator.next();
+
+						if (!iterator.hasNext())
+							sockFlag = 0;
+						if (!hbServerSock.send(b.array(), sockFlag))
+							log4j.error("Error sending message to node:" + Long.toString(nodeId));
+					}
+				} else {
+					byte[] response = processMessage(msgType, nodeId, msgBuffer);
+					if (!hbServerSock.send(response))
+						log4j.error("Error sending message to node:" + Long.toString(nodeId));
+				}
 			} else
 				clusterMaintenance();
 
@@ -542,16 +529,43 @@ public class SvClusterServer implements Runnable {
 						log4j.debug("Last beat from " + hbs.getKey().toString() + " was" + hbs.getValue().toString());
 					if (hbs.getValue().withDurationAdded(heartBeatTimeOut, 1).isBefore(tsTimeout)) {
 						nodeHeartBeats.remove(hbs.getKey(), hbs.getValue());
-						clusterCleanUp(hbs.getKey());
+						missedHeartBeats.put(hbs.getKey(), hbs.getValue());
 						if (log4j.isDebugEnabled())
-							log4j.debug("Node hasn't send a heart beat in " + heartBeatTimeOut
-									+ " miliseconds. Removing " + hbs.toString());
+							log4j.debug("Removing node " + hbs.toString() + " no heart beat was sent in "
+									+ heartBeatTimeOut + " miliseconds.");
 					}
 
 				}
+				for (Entry<Long, DateTime> missHbs : missedHeartBeats.entrySet()) {
+					if (missHbs.getValue().plusSeconds(clusterMainentanceInterval).isBeforeNow()) {
+						if (log4j.isDebugEnabled())
+							log4j.debug(
+									"Node didn't respond within cluster maintenance interval. Locks cleanup is performed for node"
+											+ missHbs.getKey().toString() + " was" + missHbs.getValue().toString());
+						clusterCleanUp(missHbs.getKey());
+						missedHeartBeats.remove(missHbs.getKey(), missHbs.getValue());
+					}
+				}
+
 			}
 			lastGCTime = DateTime.now();
 		}
+	}
+
+	/**
+	 * Method to update a distributed lock. This is invoked when the Notifier
+	 * client is processing lock acknowledgments and needs to update the list of
+	 * distributed locks by the SvLock on the coordinator node.
+	 * 
+	 * @param lockHash
+	 *            The hash of the lock
+	 * @param lockKey
+	 *            The key of the lock
+	 * 
+	 * @return True if the lock was updated
+	 */
+	static boolean updateDistributedLock(String lockKey, Integer lockHash) {
+		return SvCluster.updateDistributedLock(lockKey, lockHash, distributedLocks);
 	}
 
 	/**
@@ -560,18 +574,8 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId
 	 *            The node for which the distributed locks shall be cleaned
 	 */
-	private void clusterCleanUp(Long nodeId) {
-		{
-			CopyOnWriteArrayList<DistributedLock> nodeLock = nodeLocks.get(nodeId);
-			if (nodeLock != null) {
-				for (DistributedLock dstLock : nodeLock) {
-					SvLock.releaseLock(dstLock.key, dstLock.lock);
-					synchronized (distributedLocks) {
-						distributedLocks.remove(dstLock.key, dstLock);
-					}
-				}
-				nodeLocks.remove(nodeId);
-			}
-		}
+	static void clusterCleanUp(Long nodeId) {
+		SvCluster.clusterCleanUp(nodeId, SvClusterServer.nodeLocks, SvClusterServer.distributedLocks);
 	}
+
 }

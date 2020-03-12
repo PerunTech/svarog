@@ -285,12 +285,12 @@ public class SvarogDaemon {
 				try {
 					shutdown = true;
 
-					if (!SvCluster.isActive.get())
+					if (!SvCluster.getIsActive().get())
 						SvCluster.initCluster();
 					// if we are members of a cluster, then align with
 					// maintenance interval otherwise repeat the initialisation
 					// within the heart beat timeout
-					long timeout = SvCluster.isActive.get() ? (SvConf.getClusterMaintenanceInterval() - 2) * 1000
+					long timeout = SvCluster.getIsActive().get() ? (SvConf.getClusterMaintenanceInterval() - 2) * 1000
 							: SvConf.getHeartBeatTimeOut();
 					event = osgiFramework.waitForStop(timeout);
 					// if we aren't in a cluster, then try to join
@@ -301,10 +301,10 @@ public class SvarogDaemon {
 				}
 
 				if ((event != null && event.getType() == FrameworkEvent.WAIT_TIMEDOUT) || shutdown == false) {
-					if (SvCluster.maintenanceInProgress.compareAndSet(false, true)) {
+					if (SvCluster.getMaintenanceInProgress().compareAndSet(false, true)) {
 						SvCore.trackedConnCleanup(true);
 						SvCluster.clusterListMaintenance();
-						SvCluster.maintenanceInProgress.compareAndSet(true, false);
+						SvCluster.getMaintenanceInProgress().compareAndSet(true, false);
 					}
 					shutdown = false;
 				} else
