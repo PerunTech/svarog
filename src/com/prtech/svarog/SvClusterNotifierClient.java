@@ -6,8 +6,10 @@ import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.Logger;
 import org.zeromq.SocketType;
@@ -167,7 +169,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 * 
 	 */
 	static void publishDirtyArray(DbDataArray dba, ZMQ.Socket socket) {
-		if (pubServerSock != null) {
+		if (socket != null) {
 			ByteBuffer msgBuffer = null;
 			Long currentType = 0L;
 			int objectCount = 0;
@@ -187,7 +189,7 @@ public class SvClusterNotifierClient implements Runnable {
 					objectCount = 0;
 					currentType = dbo.getObjectType();
 					msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Long.BYTES * (dba.size() - totalCount)));
-					msgBuffer.put(SvCluster.MSG_DIRTY_OBJECT);
+					msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
 					msgBuffer.putLong(currentType);
 				}
 				msgBuffer.putLong(dbo.getObjectId());
@@ -205,8 +207,10 @@ public class SvClusterNotifierClient implements Runnable {
 				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
 			}
-		}
+		} else if (log4j.isDebugEnabled())
+			log4j.debug("Publisher socke is null! Notifier client not started!");
 	}
+
 	/**
 	 * Method to publish a dirty tiles notification to the other nodes in the
 	 * cluster
@@ -220,10 +224,10 @@ public class SvClusterNotifierClient implements Runnable {
 	 *            NotifierClient
 	 * 
 	 */
-	static void publishDirtyTileArray(List<SvSDITile> tiles) 
-	{
+	static void publishDirtyTileArray(List<SvSDITile> tiles) {
 		publishDirtyTileArray(tiles, pubServerSock);
 	}
+
 	/**
 	 * Method to publish a dirty tiles notification to the other nodes in the
 	 * cluster
@@ -238,7 +242,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 * 
 	 */
 	static void publishDirtyTileArray(List<SvSDITile> tiles, ZMQ.Socket socket) {
-		if (pubServerSock != null) {
+		if (socket != null) {
 			ByteBuffer msgBuffer = null;
 			Long currentType = 0L;
 			int objectCount = 0;
@@ -246,8 +250,12 @@ public class SvClusterNotifierClient implements Runnable {
 			for (SvSDITile tile : tiles) {
 				if (currentType != tile.getTileTypeId()) {
 					if (objectCount > 0 && msgBuffer != null) {
-						byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-								(1 + Long.BYTES + (Long.BYTES * objectCount)));
+						byte[] finalBytes = null;
+						if ((1 + Long.BYTES + (Integer.BYTES * 2 * objectCount)) < msgBuffer.capacity())
+							finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
+									(1 + Long.BYTES + (Integer.BYTES * 2 * objectCount)));
+						else
+							finalBytes = msgBuffer.array();
 						// send the previous buffer
 						if (log4j.isDebugEnabled())
 							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
@@ -261,7 +269,7 @@ public class SvClusterNotifierClient implements Runnable {
 					// (long) and two integers for the cell multiplied by the
 					// number of tiles
 					msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Integer.BYTES * 2 * (tiles.size() - totalCount)));
-					msgBuffer.put(SvCluster.MSG_DIRTY_TILE);
+					msgBuffer.put(SvCluster.NOTE_DIRTY_TILE);
 					msgBuffer.putLong(currentType);
 				}
 				int[] cell = new int[2];
@@ -282,7 +290,8 @@ public class SvClusterNotifierClient implements Runnable {
 				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
 			}
-		}
+		} else if (log4j.isDebugEnabled())
+			log4j.debug("Publisher socke is null! Notifier client not started!");
 	}
 
 	/**
@@ -297,14 +306,15 @@ public class SvClusterNotifierClient implements Runnable {
 	static public void publishDirtyObject(long objectId, long objectTypeId) {
 		if (pubServerSock != null) {
 			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
-			msgBuffer.put(SvCluster.MSG_DIRTY_OBJECT);
+			msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
 			msgBuffer.putLong(objectTypeId);
 			msgBuffer.putLong(objectId);
 			if (log4j.isDebugEnabled())
 				log4j.debug("Sent dirty notification of object with id:" + objectId + " to coordinator");
 			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
 				log4j.error("Error publishing message to coordinator node");
-		}
+		} else if (log4j.isDebugEnabled())
+			log4j.debug("Publisher socke is null! Notifier client not started!");
 	}
 
 	/**
@@ -316,7 +326,7 @@ public class SvClusterNotifierClient implements Runnable {
 	static public void publishLogoff(String sessionId) {
 		if (pubServerSock != null) {
 			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
-			msgBuffer.put(SvCluster.MSG_LOGOFF);
+			msgBuffer.put(SvCluster.NOTE_LOGOFF);
 			UUID uuid = UUID.fromString(sessionId);
 			msgBuffer.putLong(uuid.getMostSignificantBits());
 			msgBuffer.putLong(uuid.getLeastSignificantBits());
@@ -324,9 +334,36 @@ public class SvClusterNotifierClient implements Runnable {
 				log4j.debug("Sent logoff notification with token:" + uuid.toString() + " to the coordinator");
 			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
 				log4j.error("Error publishing message to coordinator node");
-		}
+		} else if (log4j.isDebugEnabled())
+			log4j.debug("Publisher socke is null! Notifier client not started!");
 	}
 
+	/**
+	 * Method to publish a logoff notification to the other nodes in the cluster
+	 * 
+	 * @param sessionId
+	 *            String representation of the user session/token
+	 */
+	static public void publishAck(Integer ackValue, byte successMsg) {
+		if (pubServerSock != null) {
+			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Integer.BYTES + 1);
+			msgBuffer.put(SvCluster.NOTE_ACK);
+			msgBuffer.putLong(SvClusterClient.nodeId);
+			msgBuffer.putInt(ackValue);
+			msgBuffer.put(successMsg);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Sent ack notification with value:" + Integer.toString(ackValue) + " to the coordinator");
+			if (!pubServerSock.send(msgBuffer.array()))
+				log4j.error("Error publishing message to coordinator node");
+		} else if (log4j.isDebugEnabled())
+			log4j.debug("Publisher socket is null! Notifier client not started!");
+	}
+
+	/**
+	 * Runnable method for running the main Notifier client thread. It will
+	 * receive messages from the subscriber socked, process them through the
+	 * processMessage method, the
+	 */
 	@Override
 	public void run() {
 		if (!isRunning.compareAndSet(false, true)) {
@@ -353,6 +390,50 @@ public class SvClusterNotifierClient implements Runnable {
 	}
 
 	/**
+	 * Method for processing lock notification NOTE_LOCK_ACQUIRED
+	 * 
+	 * @param msgBuffer
+	 *            The buffer associated with the lock acquired message
+	 * @return If the message was processed, return true
+	 */
+	private static boolean processLockAcquired(ByteBuffer msgBuffer) {
+		Long remoteNodeId = msgBuffer.getLong();
+		Integer ackValue = msgBuffer.getInt();
+		String lockKey = new String(
+				Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES + Integer.BYTES, msgBuffer.array().length),
+				ZMQ.CHARSET);
+		byte lockResult = SvCluster.MSG_FAIL;
+		// get the key then acquire, then update the hash
+		if (!remoteNodeId.equals(SvClusterClient.nodeId)) {
+			ReentrantLock lock = SvClusterClient.acquireDistributedLock(lockKey, remoteNodeId);
+			if (lock != null && SvClusterClient.updateDistributedLock(lockKey, ackValue))
+				lockResult = SvCluster.MSG_SUCCESS;
+		} else if (SvClusterClient.updateDistributedLock(lockKey, ackValue))
+			lockResult = SvCluster.MSG_SUCCESS;
+
+		publishAck(ackValue, lockResult);
+		return lockResult == SvCluster.MSG_SUCCESS;
+	}
+
+	/**
+	 * Method for processing lock notification NOTE_LOCK_ACQUIRED
+	 * 
+	 * @param msgBuffer
+	 *            The buffer associated with the lock acquired message
+	 * @return If the message was processed, return true
+	 */
+	private static boolean processLockReleased(ByteBuffer msgBuffer) {
+		Long remoteNodeId = msgBuffer.getLong();
+		Integer ackValue = msgBuffer.getInt();
+		// get the key then acquire, then update the hash
+		if (!remoteNodeId.equals(SvClusterClient.nodeId)) {
+			String lock = SvClusterClient.releaseDistributedLock(ackValue, remoteNodeId);
+			return lock != null;
+		} else
+			return true;
+	}
+
+	/**
 	 * Method to process the notification messages. This method handles the
 	 * DIRTY_OBJECT and LOGOFF messages. Processing DIRTY_OBJECT: the method it
 	 * self calls the SvWriter.cacheCleanup to remove dirty objects from the
@@ -365,7 +446,9 @@ public class SvClusterNotifierClient implements Runnable {
 		boolean hasObjects = true;
 		byte msgType = msgBuffer.get();
 		int objectCount = 0;
-		if (msgType == SvCluster.MSG_DIRTY_OBJECT) {
+		switch (msgType) {
+		case SvCluster.NOTE_DIRTY_OBJECT: {
+
 			long objectTypeId = msgBuffer.getLong();
 			while (hasObjects) {
 				try {
@@ -383,7 +466,9 @@ public class SvClusterNotifierClient implements Runnable {
 				}
 			}
 
-		} else if (msgType == SvCluster.MSG_DIRTY_TILE) {
+		}
+			break;
+		case SvCluster.NOTE_DIRTY_TILE: {
 			long tileTypeId = msgBuffer.getLong();
 			while (hasObjects) {
 				try {
@@ -402,7 +487,9 @@ public class SvClusterNotifierClient implements Runnable {
 				}
 			}
 
-		} else if (msgType == SvCluster.MSG_LOGOFF) {
+		}
+			break;
+		case SvCluster.NOTE_LOGOFF: {
 			long mostSigBits = msgBuffer.getLong();
 			long leastSigBits = msgBuffer.getLong();
 			UUID uuid = new UUID(mostSigBits, leastSigBits);
@@ -419,6 +506,17 @@ public class SvClusterNotifierClient implements Runnable {
 					svs.release();
 			}
 		}
+			break;
+		case SvCluster.NOTE_LOCK_ACQUIRED: {
+			processLockAcquired(msgBuffer);
+		}
+			break;
+		case SvCluster.NOTE_LOCK_RELEASED: {
+			processLockReleased(msgBuffer);
+		}
+			break;
+		}
+
 	}
 
 }

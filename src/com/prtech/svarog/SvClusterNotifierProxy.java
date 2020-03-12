@@ -3,9 +3,12 @@ package com.prtech.svarog;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
@@ -31,6 +34,11 @@ public class SvClusterNotifierProxy implements Runnable {
 	 * Log4j instance used for logging
 	 */
 	static final Logger log4j = SvConf.getLogger(SvClusterNotifierProxy.class);
+
+	/**
+	 * Map holding the last heart beat of each node in the cluster
+	 */
+	static final ConcurrentHashMap<Integer, Set<Long>> nodeAcks = new ConcurrentHashMap<Integer, Set<Long>>();
 
 	static final int subscriberPort = SvConf.getHeartBeatPort() + 1;
 	static final int publisherPort = SvConf.getHeartBeatPort() + 2;
@@ -109,14 +117,48 @@ public class SvClusterNotifierProxy implements Runnable {
 
 	}
 
-	static public void publishDirtyArray(DbDataArray dba) {
-		SvClusterNotifierClient.publishDirtyArray(dba, pubServerSock);
+	/**
+	 * Method to publish a lock action to the cluster. The action type is the
+	 * message type which should be NOTE_LOCK_ACQUIRED or NOTE_LOCK_RELEASED
+	 * 
+	 * @param actionType
+	 *            Acquired or Relesead (SvCluster.NOTE_LOCK_ACQUIRED or
+	 *            SvCluster.NOTE_LOCK_RELEASED)
+	 * @param hashCode
+	 *            The hash code of the lock
+	 * @param nodeId
+	 *            The node which has performed the action
+	 * @param lockKey
+	 *            The text id of the lock
+	 */
+
+	static public void publishLockAction(byte actionType, int hashCode, long nodeId, String lockKey) {
+		if (pubServerSock != null) {
+			byte[] key = null;
+			key = lockKey.getBytes(ZMQ.CHARSET);
+			// allocate one byte for message type, one long for node Id and the
+			// rest for the token
+			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Integer.BYTES + Long.BYTES + (key != null ? key.length : 0));
+			msgBuffer.put(actionType);
+			msgBuffer.putLong(nodeId);
+			msgBuffer.putInt(hashCode);
+			msgBuffer.put(key);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Broadcast lock action " + Byte.toString(actionType) + " notification with key:" + lockKey
+						+ " and node:" + Long.toString(nodeId));
+			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				log4j.error("Error publishing message to cluster");
+		}
 	}
 
-	
-	static public void publishDirtyTileArray(List<SvSDITile> dba) {
-		SvClusterNotifierClient.publishDirtyTileArray(dba, pubServerSock);
+	static public void publishDirtyArray(DbDataArray dba) {
+		SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
 	}
+
+	static public void publishDirtyTileArray(List<SvSDITile> dba) {
+		SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
+	}
+
 	/**
 	 * Overriden runnable method to execute the Notifier Proxy in a separate
 	 * thread. This method basically proxies messages to provide pass through of
@@ -136,6 +178,7 @@ public class SvClusterNotifierProxy implements Runnable {
 			subs[0] = 1;
 			subServerSock.send(subs);
 			boolean hasMoreMessages = false;
+			boolean shouldForward = false;
 			log4j.info("NotifierProxy started");
 			try {
 				while (isRunning.get()) {
@@ -150,10 +193,13 @@ public class SvClusterNotifierProxy implements Runnable {
 							if (processNotification) {
 								ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
 								SvClusterNotifierClient.processMessage(msgBuffer);
+								msgBuffer.rewind();
+								shouldForward = serverProcessMsg(msgBuffer);
 							}
 							// publish it to the cluster and handle multiparts
-							if (!pubServerSock.send(msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
-								log4j.error("Error sending notification to cluster!");
+							if (shouldForward)
+								if (!pubServerSock.send(msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
+									log4j.error("Error sending notification to cluster!");
 
 						}
 						if (!hasMoreMessages) {
@@ -167,6 +213,94 @@ public class SvClusterNotifierProxy implements Runnable {
 			}
 		} else
 			log4j.error("Pub/Sub sockets not available, ensure proper initialisation");
+	}
+
+	/**
+	 * Method to process messages on the server side.
+	 * 
+	 * @param msgBuffer
+	 *            The message buffer to be processed.
+	 * @return If the message should be proxied to the cluster or its for
+	 *         internal use only
+	 */
+	private boolean serverProcessMsg(ByteBuffer msgBuffer) {
+		// TODO Auto-generated method stub
+		boolean shouldForward = true;
+		byte msgType = msgBuffer.get();
+		switch (msgType) {
+		case SvCluster.NOTE_ACK:
+			shouldForward = processAckNote(msgBuffer);
+			break;
+		}
+		return shouldForward;
+	}
+
+	/**
+	 * Method for processing acknowledgments from the coordinator
+	 * 
+	 * @param msgBuffer
+	 *            The acknowledgement buffer
+	 * @return True if the message should be forwarded to the cluster
+	 */
+	private boolean processAckNote(ByteBuffer msgBuffer) {
+		Long nodeId = msgBuffer.getLong();
+		Integer ackValue = msgBuffer.getInt();
+		byte ackResult = msgBuffer.get();
+		if (log4j.isDebugEnabled())
+			log4j.debug("Notification " + (ackResult == SvCluster.MSG_FAIL ? "DENIED" : "ACKNOWLEDGED") + " from node"
+					+ Long.toString(nodeId) + ". With value:" + Integer.toString(ackValue));
+		Set<Long> nodes = nodeAcks.get(ackValue);
+		if (nodes != null) {
+			if (ackResult == SvCluster.MSG_FAIL) {
+				nodeAcks.remove(ackValue);
+				synchronized (nodes) {
+					nodes.notify();
+				}
+			} else {
+				nodes.remove(nodeId);
+				if (nodes.size() == 0) {
+					nodeAcks.remove(ackValue);
+					log4j.debug("Interrupting client lock thread for lock:" + Integer.toString(ackValue) + "");
+					synchronized (nodes) {
+						nodes.notify();
+					}
+				}
+			}
+		}
+		return false;
+
+	}
+
+	/**
+	 * Method which awaits for MSG_ACK from set of nodes.
+	 * 
+	 * @param nodes
+	 *            The set of nodes from which we shall wait for acknowledgment
+	 * @param ackValue
+	 *            The value which is acknowledged by the nodes
+	 * @param timeout
+	 *            Milliseconds to wait for ackowledgement
+	 * @return true if the value has been acknowledged, false if the timeout has
+	 *         been reached
+	 * @throws SvException
+	 */
+	public static boolean waitForAck(Set<Long> nodes, int ackValue, long timeout) {
+		if (log4j.isDebugEnabled())
+			log4j.debug("Waiting ack on " + nodes.toString() + ". Nodes which should respond:"
+					+ Integer.toString(nodes.size()) + "");
+		try {
+			synchronized (nodes) {
+				nodes.wait(timeout);
+			}
+			if (log4j.isDebugEnabled())
+				log4j.debug("Acknowledge completed. Nodes which didn't respond:" + Integer.toString(nodes.size()) + "");
+			nodeAcks.remove(ackValue);
+		} catch (InterruptedException e) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Thread Interrupted. Nodes left:" + nodes.size());
+		}
+
+		return nodes.size() == 0;
 	}
 
 }

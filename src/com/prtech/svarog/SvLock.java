@@ -28,6 +28,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.prtech.svarog.SvCluster.DistributedLock;
 import com.prtech.svarog_common.DbDataObject;
 
 /***
@@ -46,7 +47,14 @@ public class SvLock {
 	/**
 	 * Map holding locks over long running ops over objects.
 	 */
-	private static final LoadingCache<String, ReentrantLock> sysLocks = initSyslockCache();
+	private static final LoadingCache<String, ReentrantLock> sysLocks = initSyslockCache(
+			SvClusterServer.distributedLocks, SvClusterServer.nodeLocks);
+
+	/**
+	 * Map holding locks over long running ops over objects.
+	 */
+	static final LoadingCache<String, ReentrantLock> localSysLocks = initSyslockCache(
+			SvClusterClient.localDistributedLocks, SvClusterClient.localNodeLocks);
 
 	/**
 	 * Private method to initialise the SvExecutors cache.
@@ -54,7 +62,9 @@ public class SvLock {
 	 * @return
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private static LoadingCache<String, ReentrantLock> initSyslockCache() {
+	private static LoadingCache<String, ReentrantLock> initSyslockCache(
+			final ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks,
+			final ConcurrentHashMap<Long, CopyOnWriteArrayList<DistributedLock>> nodeLocks) {
 		CacheBuilder builder = CacheBuilder.newBuilder();
 		builder = builder.maximumSize(SvConf.getMaxLockCount());
 		builder = builder.expireAfterAccess(SvConf.getMaxLockTimeout(), TimeUnit.MILLISECONDS);
@@ -65,8 +75,15 @@ public class SvLock {
 					log4j.trace("Removing key:" + removal.getKey() + ", lock:" + removal.getValue().toString());
 				// if we are the cluster coordinator, then remove the lock from
 				// the map of distributed locks
-				if (SvCluster.isCoordinator && SvClusterServer.distributedLocks.containsKey(removal.getKey()))
-					SvClusterServer.distributedLocks.remove(removal.getKey());
+				if (distributedLocks.containsKey(removal.getKey())) {
+					DistributedLock dlock = distributedLocks.remove(removal.getKey());
+					if (dlock != null) {
+						CopyOnWriteArrayList<DistributedLock> locks = nodeLocks.get(dlock.nodeId);
+						if (locks != null)
+							locks.remove(dlock);
+					}
+				}
+
 			}
 		});
 		return (LoadingCache<String, ReentrantLock>) builder
@@ -125,6 +142,11 @@ public class SvLock {
 	 * 
 	 */
 	public static ReentrantLock getLock(String key, Boolean isBlocking, long timeout) {
+		return getLock(key, isBlocking, timeout, sysLocks);
+	}
+
+	public static ReentrantLock getLock(String key, Boolean isBlocking, long timeout,
+			LoadingCache<String, ReentrantLock> locks) {
 		if (log4j.isDebugEnabled())
 			log4j.trace("Lock acquiring requested for key:" + key + ", blocking:" + isBlocking.toString() + ", timeout:"
 					+ timeout);
@@ -133,7 +155,7 @@ public class SvLock {
 		ReentrantLock retLock = null;
 
 		try {
-			retLock = sysLocks.get(key);
+			retLock = locks == null ? sysLocks.get(key) : locks.get(key);
 			if (log4j.isDebugEnabled())
 				log4j.trace("New lock key:" + key + ", generated");
 
@@ -172,11 +194,16 @@ public class SvLock {
 	 *            if the lock is not matched in the System Locks hashmap
 	 */
 	public static boolean releaseLock(String key, ReentrantLock lock, boolean alwaysUnlock) {
+		return releaseLock(key, lock, alwaysUnlock, sysLocks);
+	}
+
+	public static boolean releaseLock(String key, ReentrantLock lock, boolean alwaysUnlock,
+			LoadingCache<String, ReentrantLock> locks) {
 		if (log4j.isDebugEnabled())
 			log4j.debug("Lock release requested for key:" + key);
 		boolean lockReleased = false;
 		if (lock != null || alwaysUnlock) {
-			ReentrantLock mapLock = sysLocks.getIfPresent(key);
+			ReentrantLock mapLock = locks == null ? sysLocks.getIfPresent(key) : locks.getIfPresent(key);
 			if (mapLock == null) {
 				log4j.error("No lock to release under key:" + key);
 			} else {
@@ -244,14 +271,67 @@ public class SvLock {
 	 * 
 	 */
 	public static int getDistributedLock(String lockKey) {
+		return getDistributedLockImpl(lockKey, SvCluster.isCoordinator(),
+				SvCluster.isCoordinator() ? SvCluster.getCoordinatorNode().getObjectId() : SvClusterClient.nodeId);
+
+	}
+
+	/**
+	 * Implementation method to get a cluster wide, distributed lock for a
+	 * specific key in the Svarog cluster. The distributed locks are by default
+	 * non-blocking.
+	 * 
+	 * @param key
+	 *            The key to identify the lock with
+	 * @param isCoordinator
+	 *            Flag if the lock is to be acquired by a worker or coordinator
+	 *            node
+	 * @param nodeId
+	 *            The node under which this lock shall be registered
+	 * @return hash code of the acquired lock. If the value is 0, the lock
+	 *         wasn't acquired
+	 * 
+	 */
+	static int getDistributedLockImpl(String lockKey, boolean isCoordinator, Long nodeId) {
+		if (!SvCluster.getIsActive().get()) {
+			log4j.error("Can't acquire a distributed lock when cluster is not active");
+			return 0;
+		}
+
 		int lockHash = 0;
-		if (SvCluster.isCoordinator) {
-			lockHash = (new SvClusterServer()).getDistributedLock(lockKey);
+
+		if (isCoordinator) {
+			// the coordinator gets the lock directly from the cluster server
+			lockHash = SvClusterServer.getDistributedLock(lockKey, nodeId);
 		} else {
-			lockHash = SvClusterClient.getLock(lockKey);
+			ReentrantLock lck = null;
+			try {
+				// first acquire local
+				lck = SvClusterClient.acquireDistributedLock(lockKey, SvClusterClient.nodeId);
+				// if acquired, then acquire cluster wide
+				if (lck != null)
+					lockHash = SvClusterClient.getLock(lockKey);
+				// update the local lock with the unique hash from the
+				// coordinator
+
+			} finally {
+				// if we've got it locally, but didn't acquire cluster wide,
+				// then release
+				if (lck != null && lockHash == 0)
+					SvClusterClient.releaseDistributedLock(lck.hashCode());
+			}
+
 		}
 		return lockHash;
 
+	}
+
+	/**
+	 * Internal method to help unit testing to clear all locks after test
+	 */
+	static void clearLocks() {
+		sysLocks.invalidateAll();
+		localSysLocks.invalidateAll();
 	}
 
 	/**
@@ -264,11 +344,38 @@ public class SvLock {
 	 * 
 	 */
 	public static boolean releaseDistributedLock(int lockHash) {
+		return releaseDistributedLockImpl(lockHash, SvCluster.isCoordinator(),
+				SvCluster.isCoordinator() ? SvCluster.getCoordinatorNode().getObjectId() : SvClusterClient.nodeId);
+	}
+
+	/**
+	 * Implementation method to get a cluster wide, distributed lock for a
+	 * specific key in the Svarog cluster. The distributed locks are by default
+	 * non-blocking.
+	 * 
+	 * @param key
+	 *            The key to identify the lock with
+	 * @param isCoordinator
+	 *            Flag if the lock is to be acquired by a worker or coordinator
+	 *            node
+	 * @return False if the lock wasn't acquired
+	 * 
+	 */
+	static boolean releaseDistributedLockImpl(int lockHash, boolean isCoordinator, Long nodeId) {
+		if (!SvCluster.getIsActive().get()) {
+			log4j.error("Can't release a distributed lock when cluster is not active");
+			return false;
+		}
+
 		boolean lockReleased = false;
-		if (SvCluster.isCoordinator) {
-			lockReleased = (new SvClusterServer()).releaseDistributedLock(lockHash);
+		if (isCoordinator) {
+			lockReleased = SvClusterServer.releaseDistributedLock(lockHash, nodeId) != null;
 		} else {
+			// release the lock from the distributed list
+			SvClusterClient.releaseDistributedLock(lockHash);
+
 			lockReleased = SvClusterClient.releaseLock(lockHash);
+
 		}
 		return lockReleased;
 
