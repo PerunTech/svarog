@@ -462,6 +462,26 @@ public class SvClusterServer implements Runnable {
 
 	}
 
+	private static void promoteLocalLocks() {
+
+		SvClusterServer.distributedLocks.putAll(SvClusterClient.localDistributedLocks);
+		if (SvClusterClient.localDistributedLocks.size() > 0) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Promoting locks from the local worker cache. Total locks count:"
+						+ SvClusterClient.localDistributedLocks.size());
+
+			for (Entry<Long, CopyOnWriteArrayList<DistributedLock>> entry : SvClusterClient.localNodeLocks.entrySet()) {
+				CopyOnWriteArrayList<DistributedLock> myLocks = entry.getValue();
+				if (myLocks != null)
+					for (DistributedLock d : myLocks) {
+						int lockHash = SvClusterServer.getDistributedLock(d.key, d.nodeId);
+						SvClusterServer.updateDistributedLock(d.key, d.lockHash);
+					}
+			}
+		}
+
+	}
+
 	@Override
 	public void run() {
 
@@ -475,6 +495,10 @@ public class SvClusterServer implements Runnable {
 			log4j.error("Heartbeat socket not available, ensure proper initialisation");
 			return;
 		}
+		// make sure we promote any locks if we got promoted from Worker to
+		// Coordinator
+		promoteLocalLocks();
+
 		lastGCTime = DateTime.now();
 		log4j.info("Heartbeat server started");
 		while (isRunning.get()) {
@@ -504,8 +528,22 @@ public class SvClusterServer implements Runnable {
 				clusterMaintenance();
 
 		}
+		//make sure we clear the locks on shutdown
+		clearDistributedLocks();
 		log4j.info("Heartbeat server shut down");
 		// the result of the binding is the status
+
+	}
+
+	/**
+	 * Method to clear all disributed locks and unlock the object in SvLocks
+	 */
+	private void clearDistributedLocks() {
+		for (Entry<String, DistributedLock> entry : SvClusterServer.distributedLocks.entrySet())
+			SvLock.releaseLock(entry.getValue().key, entry.getValue().lock);
+
+		SvClusterServer.nodeLocks.clear();
+		SvClusterServer.distributedLocks.clear();
 
 	}
 

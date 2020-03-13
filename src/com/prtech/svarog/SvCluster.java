@@ -402,7 +402,6 @@ public class SvCluster extends SvCore implements Runnable {
 				if (initHb && initNotif) {
 					isCoordinator = true;
 					// promote the local locks from the old node id
-					promoteLocalLocks();
 					heartBeatThread = new Thread(new SvClusterServer());
 					heartBeatThread.setName("SvClusterServerThread");
 					heartBeatThread.start();
@@ -453,22 +452,6 @@ public class SvCluster extends SvCore implements Runnable {
 		return isActive.get();
 	}
 
-	private static void promoteLocalLocks() {
-		SvClusterServer.distributedLocks.clear();
-		SvClusterServer.distributedLocks.putAll(SvClusterClient.localDistributedLocks);
-		
-		if (SvClusterClient.localDistributedLocks.size() > 0) {
-			for (Entry<Long, CopyOnWriteArrayList<DistributedLock>> entry : SvClusterClient.localNodeLocks.entrySet()) {
-				CopyOnWriteArrayList<DistributedLock> myLocks = entry.getValue();
-				if (myLocks != null)
-					for (DistributedLock d : myLocks) {
-						int lockHash = SvClusterServer.getDistributedLock(d.key, d.nodeId);
-						SvClusterServer.updateDistributedLock(d.key, d.lockHash);
-					}
-			}
-		}
-
-	}
 
 	/**
 	 * Method to update a distributed lock. This is invoked when the Notifier
