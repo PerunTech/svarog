@@ -463,6 +463,8 @@ public class SvClusterClient implements Runnable {
 	 */
 	static boolean joinCluster() {
 		synchronized (hbClientSock) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Joining cluster with old nodeId:" + Long.toString(nodeId));
 			byte[] nodeInfo = SvCluster.getCurrentNodeInfo().getVal("node_info").toString().getBytes(ZMQ.CHARSET);
 			ByteBuffer joinBuffer = ByteBuffer.allocate(1 + Long.BYTES + nodeInfo.length);
 			joinBuffer.put(SvCluster.MSG_JOIN);
@@ -483,6 +485,10 @@ public class SvClusterClient implements Runnable {
 							int lockHash = lockBuffer.getInt();
 							String lockKey = new String(Arrays.copyOfRange(lockBuffer.array(),
 									Long.BYTES + Integer.BYTES, lockBuffer.array().length), ZMQ.CHARSET);
+							if (log4j.isDebugEnabled())
+								log4j.debug("Receiving existing locks on join:" + lockKey + ", hash:"
+										+ Integer.toString(lockHash));
+
 							if (SvClusterClient.acquireDistributedLock(lockKey, locknode) != null)
 								SvClusterClient.updateDistributedLock(lockKey, lockHash);
 							else if (log4j.isDebugEnabled())
