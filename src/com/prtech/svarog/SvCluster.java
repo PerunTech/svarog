@@ -5,7 +5,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -13,7 +17,9 @@ import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 
+import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonObject;
+import com.prtech.svarog.SvCluster.DistributedLock;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearch;
@@ -32,16 +38,45 @@ public class SvCluster extends SvCore implements Runnable {
 	static final byte MSG_FAIL = -1;
 	static final byte MSG_SUCCESS = 0;
 	static final byte MSG_HEARTBEAT = 1;
-	static final byte MSG_LOCK = 2;
+
 	static final byte MSG_AUTH_TOKEN_PUT = 3;
 	static final byte MSG_AUTH_TOKEN_GET = 4;
 	static final byte MSG_AUTH_TOKEN_SET = 6;
-	static final byte MSG_DIRTY_OBJECT = 7;
-	static final byte MSG_LOGOFF = 8;
-	static final byte MSG_LOCK_RELEASE = 9;
+
 	static final byte MSG_JOIN = 10;
 	static final byte MSG_PART = 11;
-	static final byte MSG_DIRTY_TILE = 12;
+
+	static final byte MSG_LOCK = 20;
+	static final byte MSG_LOCK_RELEASE = 21;
+	static final byte NOTE_LOCK_ACQUIRED = 22;
+	static final byte NOTE_LOCK_RELEASED = 23;
+
+	static final byte NOTE_DIRTY_OBJECT = 30;
+	static final byte NOTE_LOGOFF = 31;
+	static final byte NOTE_DIRTY_TILE = 32;
+	static final byte NOTE_ACK = 33;
+
+	/**
+	 * Class to wrap the standard locks in order to support the distributed
+	 * locking of the svarog cluster. The key of the lock as well as the node
+	 * which holds the lock are the needed information
+	 * 
+	 * @author ristepejov
+	 *
+	 */
+	static class DistributedLock {
+		public String key;
+		public Long nodeId;
+		public ReentrantLock lock;
+		public int lockHash;
+
+		DistributedLock(String key, Long nodeId, ReentrantLock lock, int lockHash) {
+			this.nodeId = nodeId;
+			this.lock = lock;
+			this.key = key;
+			this.lockHash = lockHash;
+		}
+	}
 
 	/**
 	 * Timestamp of the next planned maintenance of the cluster table in the DB
@@ -61,22 +96,22 @@ public class SvCluster extends SvCore implements Runnable {
 	/**
 	 * Flag to know if the current node is coordinator or worker.
 	 */
-	static boolean isCoordinator = false;
+	private static boolean isCoordinator = false;
 
 	/**
 	 * Flag if the cluster is running
 	 */
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	private static AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the maintenance is in progress
 	 */
-	static AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
+	private static AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the client is running
 	 */
-	static AtomicBoolean isActive = new AtomicBoolean(false);
+	private static AtomicBoolean isActive = new AtomicBoolean(false);
 	/**
 	 * Log4j instance used for logging
 	 */
@@ -85,12 +120,12 @@ public class SvCluster extends SvCore implements Runnable {
 	/**
 	 * Reference to the coordinator node
 	 */
-	static DbDataObject coordinatorNode = null;
+	private static DbDataObject coordinatorNode = null;
 	/**
 	 * Reference to the current node descriptor. If the current node is
 	 * coordinator, the references should be equal.
 	 */
-	static DbDataObject currentNode = null;
+	// static DbDataObject currentNode = null;
 
 	static final String ipAddrDelimiter = ";";
 
@@ -164,7 +199,7 @@ public class SvCluster extends SvCore implements Runnable {
 				coordinatorNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
 				coordinatorNode.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
 			}
-			coordinatorNode.setValuesMap(currentNode.getValuesMap());
+			coordinatorNode.setValuesMap(getCurrentNodeInfo().getValuesMap());
 			svw.isInternal = true;
 			svw.saveObject(coordinatorNode, true);
 			success = true;
@@ -337,7 +372,7 @@ public class SvCluster extends SvCore implements Runnable {
 			// force purge of the cache to get the coordinator
 			DbCache.removeObject(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER);
 			coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
-			currentNode = getCurrentNodeInfo();
+			// currentNode = getCurrentNodeInfo();
 			DateTime nextMaintenance = coordinatorNode != null ? (DateTime) coordinatorNode.getVal("next_maintenance")
 					: null;
 			// the next maintenance is in the past means there's no active
@@ -366,6 +401,7 @@ public class SvCluster extends SvCore implements Runnable {
 				initNotif = SvClusterNotifierProxy.initServer();
 				if (initHb && initNotif) {
 					isCoordinator = true;
+					// promote the local locks from the old node id
 					heartBeatThread = new Thread(new SvClusterServer());
 					heartBeatThread.setName("SvClusterServerThread");
 					heartBeatThread.start();
@@ -376,7 +412,7 @@ public class SvCluster extends SvCore implements Runnable {
 						maintenanceThread = new Thread(new SvCluster());
 						maintenanceThread.start();
 					}
-					currentNode.setParentId(coordinatorNode.getObjectId());
+					// currentNode.setParentId(coordinatorNode.getObjectId());
 					isRunning.set(true);
 				} else {
 					log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster shutdown.");
@@ -414,6 +450,28 @@ public class SvCluster extends SvCore implements Runnable {
 		}
 		isActive.set(isRunning.get());
 		return isActive.get();
+	}
+
+
+	/**
+	 * Method to update a distributed lock. This is invoked when the Notifier
+	 * client is processing lock acknowledgments and needs to update the list of
+	 * distributed locks by the SvLock on the coordinator node.
+	 * 
+	 * @param lockHash
+	 *            The hash of the lock
+	 * @param lockKey
+	 *            The key of the lock
+	 * 
+	 * @return True if the lock was updated
+	 */
+	static boolean updateDistributedLock(String lockKey, Integer lockHash,
+			ConcurrentHashMap<String, SvCluster.DistributedLock> distLocks) {
+		DistributedLock dlock = distLocks.get(lockKey);
+		if (dlock != null)
+			dlock.lockHash = lockHash;
+		return dlock != null;
+
 	}
 
 	/**
@@ -478,6 +536,182 @@ public class SvCluster extends SvCore implements Runnable {
 		isActive.set(false);
 	}
 
+	/**
+	 * Method to release a distributed lock. This is invoked when the
+	 * clusterServer processes releaseLock message. This method is also invoked
+	 * by the SvLock on the coordinator node.
+	 * 
+	 * @param lockHash
+	 *            The hash of the lock
+	 * @param nodeId
+	 *            The node id which acquires the lock
+	 * @param nodeLocks
+	 *            The map of nodes which contains locks held by node
+	 * @param distributedLocks
+	 *            The map of distributed nodes in the cluster to be used for
+	 *            releasing the lock
+	 * @return Null if the lock was NOT released, otherwise the lock key.
+	 */
+	static String releaseDistributedLock(Integer lockHash, long nodeId,
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks,
+			ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks,
+			LoadingCache<String, ReentrantLock> sysLocks) {
+		boolean lockReleased = false;
+		CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = nodeLocks.get(nodeId);
+		SvCluster.DistributedLock currentLock = null;
+		if (nodeLock != null) {
+			for (SvCluster.DistributedLock dLock : nodeLock)
+				if (lockHash.equals(dLock.lockHash)) {
+					currentLock = dLock;
+					break;
+				}
+		}
+		if (currentLock != null) {
+			lockReleased = SvLock.releaseLock(currentLock.key, currentLock.lock, false, sysLocks);
+			if (currentLock.lock.getHoldCount() == 0) {
+				synchronized (distributedLocks) {
+					distributedLocks.remove(currentLock.key, currentLock);
+				}
+				nodeLock.remove(currentLock);
+			}
+		} else
+			log4j.error("Lock with hash " + lockHash.toString() + ", does not exist in the list of distributed locks");
+		return lockReleased ? currentLock.key : null;
+	}
+
+	/**
+	 * Method to acquire a distributed lock from the svarog cluster (this is
+	 * server agnostic). It is called also by SvLock in order to synchronize
+	 * properly the distributed locks
+	 * 
+	 * @param lockKey
+	 *            The lock key which should be locked.
+	 * @param nodeId
+	 *            The id of the node which shall acquire the lock
+	 * @param extendedInfo
+	 *            The id of the node which already holds the lock (available
+	 *            only if the lock fails)
+	 * @param nodeLocks
+	 *            The map of nodes which contains locks held by node
+	 * @param distributedLocks
+	 *            The map of distributed nodes in the cluster to be used for
+	 *            releasing the lock
+	 * @return Instance of re-entrant lock if the lock was acquired. Otherwise
+	 *         null. If null the extendedInfo is populated with the node holding
+	 *         the lock
+	 */
+
+	static ReentrantLock acquireDistributedLock(String lockKey, Long nodeId, Long[] extendedInfo,
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks,
+			ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks,
+			LoadingCache<String, ReentrantLock> sysLocks) {
+		ReentrantLock lock = null;
+		SvCluster.DistributedLock dlock = null;
+		synchronized (distributedLocks) {
+			dlock = distributedLocks.get(lockKey);
+			if (dlock != null && dlock.nodeId.equals(nodeId)) {
+				// same node is locking the re-entrant lock again
+				lock = SvLock.getLock(lockKey, false, 0L, sysLocks);
+				if (lock == null)
+					extendedInfo[0] = dlock.nodeId;
+			} else {
+				if (dlock == null) // brand new lock
+				{
+					lock = SvLock.getLock(lockKey, false, 0L, sysLocks);
+					if (lock != null) {
+						dlock = new SvCluster.DistributedLock(lockKey, nodeId, lock, lock.hashCode());
+						distributedLocks.put(lockKey, dlock);
+					}
+				} else {
+					if (extendedInfo.length > 0)
+						extendedInfo[0] = dlock.nodeId;
+				}
+			}
+		}
+		if (lock != null) {
+			CopyOnWriteArrayList<SvCluster.DistributedLock> currentNode = new CopyOnWriteArrayList<SvCluster.DistributedLock>();
+			CopyOnWriteArrayList<SvCluster.DistributedLock> oldNode = nodeLocks.putIfAbsent(nodeId, currentNode);
+			if (oldNode != null)
+				currentNode = oldNode;
+			currentNode.addIfAbsent(dlock);
+		}
+		return lock;
+
+	}
+
+	/**
+	 * Method to clean up the distributed locks acquired by a node
+	 * 
+	 * @param nodeId
+	 *            The node for which the distributed locks shall be cleaned
+	 */
+	static void clusterCleanUp(Long nodeId,
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks,
+			ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks) {
+		{
+			CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = nodeLocks.get(nodeId);
+			if (nodeLock != null) {
+				for (SvCluster.DistributedLock dstLock : nodeLock) {
+					SvLock.releaseLock(dstLock.key, dstLock.lock);
+					synchronized (distributedLocks) {
+						distributedLocks.remove(dstLock.key, dstLock);
+					}
+				}
+				nodeLocks.remove(nodeId);
+			}
+		}
+	}
+
+	/**
+	 * Method to migrate locks from one node to another. This is useful if the
+	 * node has lost a heart beat, then re-joined with a new node ID. In this
+	 * case we'll just migrate the locks from the old node id to the new one
+	 * 
+	 * @param nodeId
+	 *            The node under which the locks shall be moved
+	 * @param oldNodeId
+	 *            The node from which the locks will be moved
+	 * @param nodeLocks
+	 *            The map fo locks which shall be used (Server or Client side)
+	 */
+	static void migrateLocks(Long nodeId, Long oldNodeId,
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks) {
+		{
+			CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = nodeLocks.remove(oldNodeId);
+			if (nodeLock != null) {
+				for (SvCluster.DistributedLock dstLock : nodeLock) {
+					dstLock.nodeId = nodeId;
+				}
+				nodeLocks.put(nodeId, nodeLock);
+			}
+		}
+	}
+
+	/**
+	 * Method to migrate locks from one node to another. This is useful if the
+	 * node has lost a heart beat, then re-joined with a new node ID. In this
+	 * case we'll just migrate the locks from the old node id to the new one
+	 * 
+	 * @param nodeId
+	 *            The node under which the locks shall be moved
+	 * @param oldNodeId
+	 *            The node from which the locks will be moved
+	 * @param nodeLocks
+	 *            The map fo locks which shall be used (Server or Client side)
+	 */
+	static void copyLocalLocks(Long nodeId, Long oldNodeId,
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks) {
+		{
+			CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = localNodeLocks.remove(oldNodeId);
+			if (nodeLock != null) {
+				for (SvCluster.DistributedLock dstLock : nodeLock) {
+					SvLock.getDistributedLockImpl(dstLock.key, SvCluster.isCoordinator, nodeId);
+				}
+
+			}
+		}
+	}
+
 	@Override
 	public void run() {
 
@@ -492,4 +726,48 @@ public class SvCluster extends SvCore implements Runnable {
 		}
 
 	}
+
+	public static boolean isCoordinator() {
+		return isCoordinator;
+	}
+
+	public static void setCoordinator(boolean isCoordinator) {
+		SvCluster.isCoordinator = isCoordinator;
+	}
+
+	public static AtomicBoolean getIsRunning() {
+		return isRunning;
+	}
+
+	public static void setIsRunning(AtomicBoolean isRunning) {
+		SvCluster.isRunning = isRunning;
+	}
+
+	public static AtomicBoolean getMaintenanceInProgress() {
+		return maintenanceInProgress;
+	}
+
+	public static void setMaintenanceInProgress(AtomicBoolean maintenanceInProgress) {
+		SvCluster.maintenanceInProgress = maintenanceInProgress;
+	}
+
+	public static AtomicBoolean getIsActive() {
+		if (isCoordinator)
+			return isActive;
+		else
+			return SvClusterClient.isActive;
+	}
+
+	public static void setIsActive(AtomicBoolean isActive) {
+		SvCluster.isActive = isActive;
+	}
+
+	public static DbDataObject getCoordinatorNode() {
+		return coordinatorNode;
+	}
+
+	public static void setCoordinatorNode(DbDataObject coordinatorNode) {
+		SvCluster.coordinatorNode = coordinatorNode;
+	}
+
 }

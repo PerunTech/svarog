@@ -584,7 +584,7 @@ public class SvSecurity extends SvCore {
 					DbCache.addObject(userData);
 					DbCache.addObject(audit, sessionToken);
 					// distribute the token to the cluster
-					if (SvCluster.isActive.get() && !SvCluster.isCoordinator)
+					if (SvCluster.getIsActive().get() && !SvCluster.isCoordinator())
 						SvClusterClient.putToken(audit);
 				} else
 					throw (new SvException("system.error.user_status_invalid", instanceUser, userData, expr));
@@ -658,7 +658,7 @@ public class SvSecurity extends SvCore {
 			DbCache.removeObject(svToken.getObjectId(), sessionId, svCONST.OBJECT_TYPE_SECURITY_LOG);
 			DbCache.removeByParentId(svCONST.OBJECT_TYPE_ACL, (Long) svToken.getVal("user_object_id"));
 			// distribute the token to the cluster
-			if (SvCluster.isActive.get() && !SvCluster.isCoordinator)
+			if (SvCluster.getIsActive().get() && !SvCluster.isCoordinator())
 				SvClusterNotifierClient.publishLogoff(sessionId);
 
 		}

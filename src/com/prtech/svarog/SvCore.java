@@ -457,7 +457,7 @@ public abstract class SvCore implements ISvCore {
 
 		this.autoCommit = (srcCore != null ? srcCore.autoCommit : this.autoCommit);
 
-		if ((SvarogDaemon.osgiFramework != null && !SvCluster.isActive.get())) {
+		if ((SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
 			if ((srcCore != null && !srcCore.isInternal))
 				throw (new SvException("system.error.cluster_inactive", instanceUser));
 		}
@@ -1477,7 +1477,7 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getUserBySession(String session_id) throws SvException {
 		DbDataObject svToken = DbCache.getObject(session_id, svCONST.OBJECT_TYPE_SECURITY_LOG);
-		if (!SvCluster.isCoordinator && SvCluster.isActive.get()) {
+		if (!SvCluster.isCoordinator() && SvCluster.getIsActive().get()) {
 			// we are not coordinator so lets communucate our session
 			// management with the coordinator
 			if (svToken != null) {

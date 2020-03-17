@@ -1117,8 +1117,8 @@ public class SvWriter extends SvCore {
 		// broadcast the dirty objects to the cluster
 		// if we are coordinator, broadcast through the proxy otherwise
 		// broadcast through the client
-		if (SvCluster.isActive.get()) {
-			if (!SvCluster.isCoordinator)
+		if (SvCluster.getIsActive().get()) {
+			if (!SvCluster.isCoordinator())
 				SvClusterNotifierClient.publishDirtyArray(dba);
 			else
 				SvClusterNotifierProxy.publishDirtyArray(dba);

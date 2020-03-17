@@ -711,8 +711,8 @@ public class SvGeometry extends SvCore {
 		// broadcast the dirty objects to the cluster
 		// if we are coordinator, broadcast through the proxy otherwise
 		// broadcast through the client
-		if (SvCluster.isActive.get()) {
-			if (!SvCluster.isCoordinator)
+		if (SvCluster.getIsActive().get()) {
+			if (!SvCluster.isCoordinator())
 				SvClusterNotifierClient.publishDirtyTileArray(tileList);
 			else
 				SvClusterNotifierProxy.publishDirtyTileArray(tileList);
