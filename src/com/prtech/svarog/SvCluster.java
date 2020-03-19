@@ -56,6 +56,12 @@ public class SvCluster extends SvCore implements Runnable {
 	static final byte NOTE_DIRTY_TILE = 32;
 	static final byte NOTE_ACK = 33;
 
+	static final String JOIN_TIME = "join_time";
+	static final String PART_TIME = "part_time";
+	static final String LAST_MAINTENANCE = "last_maintenance";
+	static final String NEXT_MAINTENANCE = "next_maintenance";
+	static final String NODE_INFO = "node_info";
+
 	/**
 	 * Class to wrap the standard locks in order to support the distributed
 	 * locking of the svarog cluster. The key of the lock as well as the node
@@ -86,7 +92,7 @@ public class SvCluster extends SvCore implements Runnable {
 	/**
 	 * Timeout interval on the socket receive
 	 */
-	static final int sockeReceiveTimeout = SvConf.getHeartBeatInterval() / 2;
+	static final int SOCKET_RECV_TIMEOUT = SvConf.getHeartBeatInterval() / 2;
 
 	/**
 	 * Flag to know if the current node is coordinator or worker.
@@ -127,7 +133,7 @@ public class SvCluster extends SvCore implements Runnable {
 	 */
 	// static DbDataObject currentNode = null;
 
-	static final String ipAddrDelimiter = ";";
+	static final String IP_ADDR_DELIMITER = ";";
 
 	/**
 	 * Member fields holding reference to the heart beat thread
@@ -158,14 +164,14 @@ public class SvCluster extends SvCore implements Runnable {
 	 */
 	static DbDataObject getCurrentNodeInfo() {
 		DbDataObject cNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
-		cNode.setVal("join_time", new DateTime());
-		cNode.setVal("part_time", SvConf.MAX_DATE);
-		cNode.setVal("last_maintenance", new DateTime());
+		cNode.setVal(JOIN_TIME, new DateTime());
+		cNode.setVal(PART_TIME, SvConf.MAX_DATE);
+		cNode.setVal(LAST_MAINTENANCE, new DateTime());
 		nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
-		cNode.setVal("next_maintenance", nextMaintenance);
+		cNode.setVal(NEXT_MAINTENANCE, nextMaintenance);
 		String localIp = "0.0.0.0:" + SvConf.getHeartBeatPort();
 		try {
-			localIp = SvUtil.getIpAdresses(true, ipAddrDelimiter);
+			localIp = SvUtil.getIpAdresses(true, IP_ADDR_DELIMITER);
 		} catch (UnknownHostException e) {
 			log4j.error("Can't get node IP Address!", e);
 		}
@@ -175,7 +181,7 @@ public class SvCluster extends SvCore implements Runnable {
 		json.addProperty("version", SvConf.appVersion);
 		json.addProperty("build", SvConf.appBuild);
 		json.addProperty("ip", localIp);
-		cNode.setVal("node_info", json.toString());
+		cNode.setVal(NODE_INFO, json.toString());
 		return cNode;
 	}
 
@@ -241,9 +247,9 @@ public class SvCluster extends SvCore implements Runnable {
 				svw = new SvWriter(svr);
 				DbCache.removeObject(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER);
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
-				coordinatorNode.setVal("last_maintenance", DateTime.now());
-				coordinatorNode.setVal("next_maintenance", DateTime.now());
-				coordinatorNode.setVal("part_time", DateTime.now());
+				coordinatorNode.setVal(LAST_MAINTENANCE, DateTime.now());
+				coordinatorNode.setVal(NEXT_MAINTENANCE, DateTime.now());
+				coordinatorNode.setVal(PART_TIME, DateTime.now());
 				svw.isInternal = true;
 				svw.saveObject(coordinatorNode, true);
 				success = true;
@@ -282,7 +288,7 @@ public class SvCluster extends SvCore implements Runnable {
 					svr = new SvReader();
 					Connection conn = svr.dbGetConn();
 
-					// DbSearch dbs = new DbSearchCriterion("part_time",
+					// DbSearch dbs = new DbSearchCriterion(PART_TIME,
 					// DbCompareOperand.GREATER_EQUAL, DateTime.now());
 					DbDataArray dba = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
 
@@ -297,18 +303,18 @@ public class SvCluster extends SvCore implements Runnable {
 						// do try to get a valid coordinator
 						updatedList.addDataItem(node);
 						boolean nodeRemoved = false;
-						node.setVal("last_maintenance", DateTime.now());
-						node.setVal("next_maintenance",
+						node.setVal(LAST_MAINTENANCE, DateTime.now());
+						node.setVal(NEXT_MAINTENANCE,
 								DateTime.now().plusSeconds(SvConf.getClusterMaintenanceInterval()));
 
 						if (!node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID)
 								&& !SvClusterServer.nodeHeartBeats.containsKey(node.getObjectId())) {
-							node.setVal("part_time", DateTime.now());
+							node.setVal(PART_TIME, DateTime.now());
 							nodeRemoved = true;
 						}
 
 						if (!isRunning.get() && node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
-							node.setVal("part_time", DateTime.now());
+							node.setVal(PART_TIME, DateTime.now());
 						// if the node is not removed or it is the coordinator
 						// record make sure we keep it
 						if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
@@ -373,7 +379,7 @@ public class SvCluster extends SvCore implements Runnable {
 			DbCache.removeObject(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER);
 			coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 			// currentNode = getCurrentNodeInfo();
-			DateTime nextMaintenance = coordinatorNode != null ? (DateTime) coordinatorNode.getVal("next_maintenance")
+			DateTime nextMaintenance = coordinatorNode != null ? (DateTime) coordinatorNode.getVal(NEXT_MAINTENANCE)
 					: null;
 			// the next maintenance is in the past means there's no active
 			// coordinator, we will try to become a coordinator
@@ -384,11 +390,11 @@ public class SvCluster extends SvCore implements Runnable {
 					DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
 					coordinatorNode = null;
 					log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
-							+ coordinatorNode.getVal("next_maintenance"));
+							+ coordinatorNode.getVal(NEXT_MAINTENANCE));
 				} else
-					log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal("node_info"));
+					log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal(NODE_INFO));
 			} else
-				log4j.info("Valid coordinator record found: " + coordinatorNode.getVal("node_info"));
+				log4j.info("Valid coordinator record found: " + coordinatorNode.getVal(NODE_INFO));
 
 			// if the local IP including the hb port is the same ... means that
 			// the coordinator record is related to this node, but maybe a core
@@ -396,7 +402,7 @@ public class SvCluster extends SvCore implements Runnable {
 			String hbAddress = (String) coordinatorNode.getVal("local_ip");
 			boolean initHb = false;
 			boolean initNotif = false;
-			if (isCoordinator || (!isCoordinator && SvUtil.getIpAdresses(true, ipAddrDelimiter).equals(hbAddress))) {
+			if (isCoordinator || (!isCoordinator && SvUtil.getIpAdresses(true, IP_ADDR_DELIMITER).equals(hbAddress))) {
 				initHb = SvClusterServer.initServer();
 				initNotif = SvClusterNotifierProxy.initServer();
 				if (initHb && initNotif) {
@@ -451,7 +457,6 @@ public class SvCluster extends SvCore implements Runnable {
 		isActive.set(isRunning.get());
 		return isActive.get();
 	}
-
 
 	/**
 	 * Method to update a distributed lock. This is invoked when the Notifier

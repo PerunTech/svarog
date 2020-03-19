@@ -78,7 +78,7 @@ public class SvClusterNotifierProxy implements Runnable {
 		if (subSock == null)
 			log4j.error("Notification subscriber socket can't bind on port:" + subscriberPort);
 		else
-			subSock.setReceiveTimeOut(SvCluster.sockeReceiveTimeout);
+			subSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 
 		if (pubSock == null)
 			log4j.error("Notification publisher socket can't bind on port:" + publisherPort);
@@ -105,7 +105,7 @@ public class SvClusterNotifierProxy implements Runnable {
 		}
 		try {
 			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.sockeReceiveTimeout);
+			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
 		} catch (InterruptedException e) {
 			log4j.error("Notifier shutdown interrupted", e);
 		}

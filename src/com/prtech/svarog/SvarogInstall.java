@@ -91,7 +91,7 @@ public class SvarogInstall {
 	/**
 	 * Path of the JSON file containing list of system Locales
 	 */
-	static final String localesPath = "/com/prtech/svarog/json/src/master_locales.bjson";
+	static final String LOCALE_PATH = "/com/prtech/svarog/json/src/master_locales.bjson";
 	/**
 	 * The map of fields in the repo table
 	 */
@@ -1242,9 +1242,15 @@ public class SvarogInstall {
 		String schema = null;
 		String msg = "";
 		ISvCore svc = null;
-		if (iSvCfgs == null)
-			iSvCfgs = (ArrayList<ISvConfiguration>) DbInit
-					.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), ISvConfiguration.class);
+		if (iSvCfgs == null) {
+			iSvCfgs = new ArrayList<ISvConfiguration>();
+			ArrayList<Object> cfgs = DbInit.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY),
+					ISvConfiguration.class);
+			if (cfgs != null)
+				for (Object o : cfgs)
+					if (o instanceof ISvConfiguration)
+						iSvCfgs.add((ISvConfiguration) o);
+		}
 		// pre-install db handler call
 		try {
 			conn = SvConf.getDBConnection();
@@ -3292,7 +3298,7 @@ public class SvarogInstall {
 		if (sysLocales == null) {
 			if (!isSvarogInstalled()) {
 				DbDataArray locales = new DbDataArray();
-				InputStream fis = SvCore.class.getResourceAsStream(localesPath);
+				InputStream fis = SvCore.class.getResourceAsStream(LOCALE_PATH);
 				String json;
 				try {
 					json = IOUtils.toString(fis, "UTF-8");
