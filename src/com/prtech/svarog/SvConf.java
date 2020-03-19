@@ -874,11 +874,6 @@ public class SvConf {
 		return svDbType;
 	}
 
-	@Deprecated
-	public static String getDBType() {
-		return dbType;
-	}
-
 	public static String getDefaultLocale() {
 		return config.getProperty("sys.defaultLocale").trim();
 	}

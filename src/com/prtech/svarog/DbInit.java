@@ -56,7 +56,6 @@ import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
-
 public class DbInit {
 	/**
 	 * Log4j instance used for logging
@@ -6647,10 +6646,10 @@ public class DbInit {
 	 *            The path of the JAR on the file system,
 	 * @param jarItems
 	 *            The vector holding the items found in the jar file
-	 * @return The class loader specific for this jar
+	 * @return The URL[] to the specific for this jar
 	 */
-	private static ClassLoader loadJar(String pathToJar, Vector<JarEntry> jarItems) {
-		URLClassLoader cl = null;
+	private static URL[] loadJar(String pathToJar, Vector<JarEntry> jarItems) {
+		URL[] urls = new URL[1];
 		JarFile jr = null;
 		if (pathToJar != null && !pathToJar.equals("")) {
 			try {
@@ -6660,8 +6659,7 @@ public class DbInit {
 					while (e.hasMoreElements()) {
 						jarItems.add(e.nextElement());
 					}
-				URL[] urls = { new URL("jar:file:" + pathToJar + "!/") };
-				cl = URLClassLoader.newInstance(urls, DbInit.class.getClassLoader());
+				urls[0] = new URL("jar:file:" + pathToJar + "!/");
 
 			} catch (Exception e) {
 				if (log4j.isDebugEnabled())
@@ -6679,7 +6677,7 @@ public class DbInit {
 			}
 		}
 
-		return cl;
+		return urls;
 	}
 
 	/**
@@ -6694,25 +6692,35 @@ public class DbInit {
 		ArrayList<Object> dbi = new ArrayList<>();
 
 		Vector<JarEntry> list = new Vector<JarEntry>();
-		Enumeration<JarEntry> en = list.elements();
-		ClassLoader cl = loadJar(pathToJar, list);
-		while (en.hasMoreElements()) {
-			String className = getClassName(en);
-			if (className != null)
-				try {
+		URLClassLoader cl = null;
+		try {
+
+			cl = new URLClassLoader(loadJar(pathToJar, list), DbInit.class.getClassLoader());
+			Enumeration<JarEntry> en = list.elements();
+			while (en.hasMoreElements()) {
+				String className = getClassName(en);
+				if (className != null) {
 					Class<?> c = cl.loadClass(className);
 					if (clazz.isAssignableFrom(c)) {
 						dbi.add(c.newInstance());
 
 					}
-				} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
-						| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-					if (log4j.isDebugEnabled())
-						log4j.trace("Error loading class", ex);
 				}
 
+			}
+		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+			if (log4j.isDebugEnabled())
+				log4j.trace("Error loading class", ex);
+		} finally {
+			if (cl != null)
+				try {
+					cl.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					log4j.trace("Error closing URLClassLoaeder", e);
+				}
 		}
-
 		return dbi;
 	}
 
@@ -6727,23 +6735,25 @@ public class DbInit {
 		ISvarogExecutable svExec = null;
 
 		Vector<JarEntry> list = new Vector<JarEntry>();
+		ClassLoader cl = URLClassLoader.newInstance(loadJar(pathToJar, list), DbInit.class.getClassLoader());
+
 		Enumeration<JarEntry> en = list.elements();
-		ClassLoader cl = loadJar(pathToJar, list);
-		while (en.hasMoreElements()) {
-			String className = getClassName(en);
-			if (className != null)
-				try {
+
+		try {
+			while (en.hasMoreElements()) {
+				String className = getClassName(en);
+				if (className != null) {
 					Class<?> c = cl.loadClass(className);
 					if (ISvarogExecutable.class.isAssignableFrom(c)) {
 						svExec = ((ISvarogExecutable) c.newInstance());
 
 					}
-				} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
-						| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-					if (log4j.isDebugEnabled())
-						log4j.trace("Error loading class", ex);
 				}
-
+			}
+		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+			if (log4j.isDebugEnabled())
+				log4j.trace("Error loading class", ex);
 		}
 
 		return svExec;
@@ -6751,7 +6761,7 @@ public class DbInit {
 
 	public static InputStream loadCustomResources(String pathToJar, String resourceName) {
 
-		JarFile jarFile;
+		JarFile jarFile = null;
 		InputStream is = null;
 		if (pathToJar != null && !pathToJar.equals("")) {
 			try {
@@ -6773,6 +6783,13 @@ public class DbInit {
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
+			} finally {
+				if (jarFile != null)
+					try {
+						jarFile.close();
+					} catch (IOException e) {
+						log4j.trace("Error closing file", e);
+					}
 			}
 		}
 		return is;

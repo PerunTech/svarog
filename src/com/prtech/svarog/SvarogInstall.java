@@ -1424,14 +1424,26 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			if (conn != null)
-				try {
+
+			try {
+				if (rs != null)
 					rs.close();
+			} catch (SQLException e) {
+				log4j.error("Can't close JDBC connection", e);
+			}
+			try {
+				if (st != null)
 					st.close();
+			} catch (SQLException e) {
+				log4j.error("Can't close JDBC connection", e);
+			}
+			try {
+				if (conn != null)
 					conn.close();
-				} catch (SQLException e) {
-					log4j.error("Can't close JDBC connection", e);
-				}
+			} catch (SQLException e) {
+				log4j.error("Can't close JDBC connection", e);
+			}
+
 		}
 
 	}
@@ -1529,17 +1541,22 @@ public class SvarogInstall {
 	static boolean dropIndexes(String tableName, String schemaName) {
 		log4j.info("Dropping indexes for table:" + tableName);
 		SvReader svr = null;
+		Statement st = null;
 		try {
 			svr = new SvReader();
 			Connection conn = svr.dbGetConn();
 			HashMap<String, String> indexNames = getIndexListFromDb(conn, tableName, schemaName);
 
 			for (Entry<String, String> index : indexNames.entrySet()) {
-				Statement st = conn.createStatement();
-				if (index.getValue() != null)
-					st.executeQuery(
-							"ALTER TABLE " + schemaName + "." + tableName + " DROP CONSTRAINT " + index.getValue());
-				st.executeQuery("DROP INDEX " + schemaName + "." + index.getKey());
+				st = conn.createStatement();
+				if (index.getValue() != null) {
+					String sqlQ = "ALTER TABLE " + schemaName + "." + tableName + " DROP CONSTRAINT "
+							+ index.getValue();
+					st.executeQuery(sqlQ);
+					sqlQ = "DROP INDEX " + schemaName + "." + index.getKey();
+					st.executeQuery(sqlQ);
+
+				}
 			}
 			log4j.info("Indexes for table:" + tableName + " dropped with success");
 			return true;
@@ -1547,6 +1564,13 @@ public class SvarogInstall {
 			log4j.error("Can't drop indexes for table:" + tableName, e);
 			return false;
 		} finally {
+			if (st != null)
+				try {
+					st.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					log4j.error("Can't drop indexes for table:" + tableName, e);
+				}
 			if (svr != null)
 				svr.release();
 		}
@@ -1753,17 +1777,24 @@ public class SvarogInstall {
 			log4j.error("Can't clean the DB schema");
 			e.printStackTrace();
 		} finally {
-			if (conn != null)
-				try {
-					if (st != null)
-						st.close();
-					if (rs != null)
-						rs.close();
+			try {
+				if (rs != null)
+					rs.close();
+			} catch (Exception e) {
+				log4j.error("Connection can't be released!", e);
+			}
+			try {
+				if (st != null)
+					st.close();
+			} catch (Exception e) {
+				log4j.error("Connection can't be released!", e);
+			}
+			try {
+				if (conn != null)
 					conn.close();
-				} catch (Exception e) {
-					log4j.error("Connection can't be released!", e);
-				}
-			;
+			} catch (Exception e) {
+				log4j.error("Connection can't be released!", e);
+			}
 
 		}
 
@@ -2947,6 +2978,7 @@ public class SvarogInstall {
 		DbDataArray dbTables = null;
 		DbDataArray dbRepos = new DbDataArray();
 		SvReader svr = null;
+		PreparedStatement ps = null;
 		try {
 			svr = new SvReader();
 			dbTables = svr.getObjects(null, svCONST.OBJECT_TYPE_TABLE, null, 0, 0);
@@ -2965,8 +2997,9 @@ public class SvarogInstall {
 			for (DbDataObject repo : dbRepos.getItems()) {
 				String tableName = (String) repo.getVal("table_name");
 				log4j.info("Analysing repo " + tableName + ", repo " + count + " of " + dbRepos.getItems().size());
-				PreparedStatement ps = conn.prepareStatement("SELECT count(*), object_type from "
-						+ (String) repo.getVal("schema") + "." + tableName + " GROUP BY object_type");
+				String sqlQuery = "SELECT count(*), object_type from " + (String) repo.getVal("schema") + "."
+						+ tableName + " GROUP BY object_type";
+				ps = conn.prepareStatement(sqlQuery);
 				ResultSet rs = ps.executeQuery();
 				while (rs.next()) {
 					Long objCount = rs.getLong(1);
@@ -2990,6 +3023,12 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			log4j.error("Sync of the repo tables failed with exception", e);
 		} finally {
+			try {
+				if (ps != null)
+					ps.close();
+			} catch (SQLException e) {
+				log4j.error("Closing prepared statement failed with exception", e);
+			}
 			if (svr != null)
 				svr.release();
 		}
@@ -3002,6 +3041,8 @@ public class SvarogInstall {
 
 	public static int repoSync(HashMap<DbDataObject, DbDataObject> tables2Sync) {
 		log4j.info("Executing migration of objects between the updated repo tables. This will take a while.");
+		PreparedStatement ps1 = null;
+		PreparedStatement ps2 = null;
 		int retval = 0;
 		if (tables2Sync.size() < 1) {
 			log4j.error("The instance doesn't contain misconfigured objects to migrate!");
@@ -3023,8 +3064,6 @@ public class SvarogInstall {
 					fields.append(field.getVal("field_name") + ",");
 				}
 				fields.setLength(fields.length() - 1);
-
-				PreparedStatement ps = null;
 				for (Entry<DbDataObject, DbDataObject> entry : tables2Sync.entrySet()) {
 					try {
 						DbDataObject table = entry.getKey();
@@ -3042,8 +3081,8 @@ public class SvarogInstall {
 						sqlMigrate.append("EXISTS (SELECT 1 FROM " + table.getVal("schema") + "."
 								+ table.getVal("table_name") + " t1 WHERE t1.pkid=r1.meta_pkid)");
 						log4j.info("Executing " + sqlMigrate.toString());
-						ps = conn.prepareStatement(sqlMigrate.toString());
-						ps.execute();
+						ps1 = conn.prepareStatement(sqlMigrate.toString());
+						ps1.execute();
 						sqlMigrate = new StringBuilder();
 						if (dropIndexes((String) oldRepo.getVal("table_name"), (String) oldRepo.getVal("schema"))) {
 
@@ -3052,8 +3091,8 @@ public class SvarogInstall {
 							sqlMigrate.append("r1.meta_pkid in (SELECT t1.pkid FROM " + table.getVal("schema") + "."
 									+ table.getVal("table_name") + " t1)");
 							log4j.info("Executing " + sqlMigrate.toString());
-							ps = conn.prepareStatement(sqlMigrate.toString());
-							ps.execute();
+							ps2 = conn.prepareStatement(sqlMigrate.toString());
+							ps2.execute();
 
 							log4j.info("Repo data successfully migrated, commiting changes");
 							conn.commit();
@@ -3070,6 +3109,18 @@ public class SvarogInstall {
 				log4j.error("Sync of the repo tables failed with exception", e);
 				retval = -3;
 			} finally {
+				try {
+					if (ps1 != null)
+						ps1.close();
+				} catch (SQLException e) {
+					log4j.error("Closing of prepared statements failed with exception", e);
+				}
+				try {
+					if (ps1 != null)
+						ps1.close();
+				} catch (SQLException e) {
+					log4j.error("Closing of prepared statements failed with exception", e);
+				}
 				if (svr != null)
 					svr.release();
 			}
@@ -4017,8 +4068,9 @@ public class SvarogInstall {
 	 * @return The content of the file (byte[])
 	 */
 	public static byte[] getBytesFromFile(File file) {
+		InputStream is = null;
 		try {
-			InputStream is = new FileInputStream(file);
+			is = new FileInputStream(file);
 
 			// Get the size of the file
 			long length = file.length();
@@ -4044,10 +4096,17 @@ public class SvarogInstall {
 			}
 
 			// Close the input stream and return bytes
-			is.close();
 			return bytes;
 		} catch (Exception ex) {
 			log4j.error("Error reading file:" + file.getAbsolutePath(), ex);
+		} finally {
+			if (is != null)
+				try {
+					is.close();
+				} catch (IOException e) {
+					System.out.println("Error closing file reader!");
+					e.printStackTrace();
+				}
 		}
 		return null;
 	}
@@ -4060,8 +4119,9 @@ public class SvarogInstall {
 	 * @return The content of the file (char[])
 	 */
 	public static char[] getStringFromFile(File file) {
+		FileReader is = null;
 		try {
-			FileReader is = new FileReader(file);
+			is = new FileReader(file);
 
 			// Get the size of the file
 			long length = file.length();
@@ -4087,10 +4147,18 @@ public class SvarogInstall {
 			}
 
 			// Close the input stream and return bytes
-			is.close();
+
 			return bytes;
 		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
+		} finally {
+			if (is != null)
+				try {
+					is.close();
+				} catch (IOException e) {
+					System.out.println("Error closing file reader!");
+					e.printStackTrace();
+				}
 		}
 		return null;
 	}
