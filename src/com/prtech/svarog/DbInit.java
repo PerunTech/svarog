@@ -251,7 +251,7 @@ public class DbInit {
 		dbt.setDbRepoName("{MASTER_REPO}");
 		dbt.setDbSchema("{DEFAULT_SCHEMA}");
 		dbt.setIsSystemTable(true);
-		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTORS);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_GROUP);
 		dbt.setIsRepoTable(false);
 		dbt.setLabel_code("master_repo.executor_group");
 		dbt.setUse_cache(false);
