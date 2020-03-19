@@ -107,7 +107,9 @@ public class ClusterTest {
 			Thread notifierThread = new Thread(new SvClusterNotifierClient());
 			notifierThread.start();
 
-			String lockKey = "TEST_LOCK_SINGLE";
+			Thread.sleep(50); //some milis to start all threads properly and we don't hit the slow joiner syndrome
+			String lockKey = "TEST_LOCK_SINGLE_PROMOTION";
+
 			// validate a random token and see if the validation fails
 			int lockHash = SvLock.getDistributedLockImpl(lockKey, false, SvClusterClient.nodeId);
 			if (!lockOnServer(lockKey, lockHash, true, SvClusterClient.nodeId))
