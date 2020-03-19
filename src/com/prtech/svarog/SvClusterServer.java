@@ -96,7 +96,7 @@ public class SvClusterServer implements Runnable {
 		if (hbServerSock == null)
 			log4j.info("Heartbeat socket bind on port:" + SvConf.getHeartBeatPort());
 		else
-			hbServerSock.setReceiveTimeOut(SvCluster.sockeReceiveTimeout);
+			hbServerSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 		// start the internal hearbeat client
 		return (hbServerSock != null);
 	}
@@ -108,7 +108,7 @@ public class SvClusterServer implements Runnable {
 		}
 		try {
 			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.sockeReceiveTimeout);
+			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
 		} catch (InterruptedException e) {
 			log4j.error("Shutdown interrupted", e);
 		}
