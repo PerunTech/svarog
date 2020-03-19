@@ -833,6 +833,7 @@ public class DbInit {
 		dbe2.setDbFieldSize(100);
 		dbe2.setIsUnique(true);
 		dbe2.setUnique_level("TABLE");
+		dbe2.setGui_metadata("{\"react\":{\"filterable\":true,\"width\":270,\"visible\":true,\"resizable\":true,\"inline_editable\":true,\"editable\":true}}");
 		dbe2.setLabel_code("form_type.short_description");
 
 		// Column 3
@@ -843,6 +844,7 @@ public class DbInit {
 		dbe4.setDbFieldSize(50);
 		dbe4.setIsNull(false);
 		dbe4.setCode_list_user_code("FORM_CATEGORY");
+		dbe4.setGui_metadata("{\"react\":{\"filterable\":true,\"width\":270,\"visible\":true,\"resizable\":true,\"inline_editable\":true,\"editable\":true}}");
 		dbe4.setLabel_code("form_type.category");
 
 		// Column 4
