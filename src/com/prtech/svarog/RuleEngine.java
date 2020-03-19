@@ -16,8 +16,10 @@ package com.prtech.svarog;
 
 import java.lang.reflect.Array;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -264,6 +266,46 @@ public class RuleEngine extends SvCore {
 		}
 
 	}
+	
+	/**
+	 * Method to create and execute an Executor.
+	 * 
+	 * @param currentAction
+	 *            The current executing action descriptor
+	 * @param obj
+	 *            The object over which the action is executed
+	 * @param actionResults
+	 *            The array holding the action results
+	 * @param params
+	 *            Additional parameters passed to the action
+	 * @param fileData
+	 *            The fileData containing the jar byte code
+	 * @throws SvException
+	 */
+	private void execExecutor(DbDataObject currentAction, DbDataObject obj,
+			DbDataArray actionResults, Map<Object, Object> params) throws SvException {
+		SvExecManager sve = null;
+		try {
+			HashMap<String, Object> exeParams = new HashMap<>();
+			sve = new SvExecManager();
+			sve.switchUser(this.getInstanceUser());
+			String executorKey = currentAction.getVal("METHOD_NAME").toString();
+			for (Entry<Object, Object> entry : params.entrySet()) {
+				exeParams.put(entry.getKey().toString(), entry.getValue());
+			}
+			exeParams.put("OBJECT", obj);
+			Object result = sve.execute(executorKey, exeParams, null, Object.class);
+			addResults(result, actionResults, currentAction.getObjectId());
+		} catch (Exception e) {
+			if (e instanceof SvException)
+				throw (e);
+			else
+				throw (new SvException("system.error.java_exec_err", instanceUser, obj, currentAction, e));
+		} finally {
+			if (sve != null)
+				sve.release();
+		}
+	}
 
 	/**
 	 * Method to fetch the File data containing the source code or byte code for
@@ -367,8 +409,12 @@ public class RuleEngine extends SvCore {
 
 					for (DbDataObject currentAction : dbActions.getSortedItems("SORT_ORDER")) {
 						byte[] fileData = getActionFile(currentAction);
-						if (fileData == null)
+						if (fileData == null) {
+							if(currentAction.getVal("code_type").toString().endsWith("Executor")) {
+								execExecutor(currentAction, obj, actionResults, params);
+							}
 							continue;
+						}
 						try {
 							// execute JavaScript action
 							switch ((String) currentAction.getVal("code_type")) {
