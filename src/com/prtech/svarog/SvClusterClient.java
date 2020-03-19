@@ -590,8 +590,8 @@ public class SvClusterClient implements Runnable {
 									log4j.debug("Cluster is still active, waiting for it to shutdown");
 
 								try {
-									synchronized (SvCluster.getIsActive()) {
-										SvCluster.getIsActive().wait(heartBeatInterval);
+									synchronized (SvCluster.IP_ADDR_DELIMITER) {
+										SvCluster.IP_ADDR_DELIMITER.wait(heartBeatInterval);
 									}
 								} catch (InterruptedException e) {
 									log4j.error("Heart beat thread sleep raised exception!", e);
