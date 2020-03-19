@@ -16,6 +16,9 @@ package com.prtech.svarog;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.DbSearchExpression;
 
 /**
  * The implementation of workflows, such as movement of an object through
@@ -124,22 +127,57 @@ public class SvWorkflow extends SvCore {
 	 */
 	void moveObjectImpl(DbDataObject dbo, String newStatus) throws SvException {
 
-		DbDataObject dbt = getDbt(dbo);
-		dbo.setStatus(newStatus);
-		DbDataArray dba = new DbDataArray();
-		dba.addDataItem(dbo);
+		if (checkTransitionValidity(dbo, newStatus)) {
+			DbDataObject dbt = getDbt(dbo);
+			dbo.setStatus(newStatus);
+			DbDataArray dba = new DbDataArray();
+			dba.addDataItem(dbo);
 
-		SvWriter svw = new SvWriter(this);
-		try {
-			svw.saveRepoData(dbt, dba, false, false);
+			SvWriter svw = new SvWriter(this);
+			try {
+				svw.saveRepoData(dbt, dba, false, false);
 
-			// Invoke the cache cleanup
-			svw.cacheCleanup(dbo);
-			svw.executeAfterSaveCallbacks(dbo);
-		} finally {
-			svw.release();
+				// in case we are moving a link, we need to invalidate the link
+				// cache
+				if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_LINK))
+					svw.removeLinkCache(dbo);
+			} finally {
+				svw.release();
+			}
 		}
 		// TODO add movement specific business rules and other things
+	}
+
+	Boolean checkTransitionValidity(DbDataObject dbo, String newStatus) throws SvException {
+		Boolean result = false;
+		SvReader svr = new SvReader(this);
+		try {
+			if (dbo != null) {
+				DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
+						svCONST.OBJECT_TYPE_WORKFLOW, null);
+				if (objectValidTransitions == null || objectValidTransitions.isEmpty()) {
+					result = true;
+				} else {
+					DbSearchCriterion cr1 = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL,
+							dbo.getObjectType());
+					DbSearchCriterion cr2 = new DbSearchCriterion("ORIGINATING_STATUS", DbCompareOperand.EQUAL,
+							dbo.getStatus());
+					DbSearchCriterion cr3 = new DbSearchCriterion("DESTINATION_STATUS", DbCompareOperand.EQUAL,
+							newStatus);
+
+					DbSearchExpression dbs = new DbSearchExpression().addDbSearchItem(cr1).addDbSearchItem(cr2)
+							.addDbSearchItem(cr3);
+					DbDataArray requestedTransition = svr.getObjects(dbs, svCONST.OBJECT_TYPE_WORKFLOW, null, 0, 0);
+					if (requestedTransition != null && !requestedTransition.isEmpty()) {
+						result = true;
+					}
+				}
+			}
+		} finally {
+			if (svr != null)
+				svr.release();
+		}
+		return result;
 	}
 
 }
