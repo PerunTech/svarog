@@ -1305,8 +1305,9 @@ public class SvWriter extends SvCore {
 			String repo_name = dbt.getVal("repo_name").toString();
 			DateTime dt_insert = new DateTime();
 
+			String sqlDel = "UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?";
 			if (dbo.getPkid() != 0) {
-				ps = conn.prepareStatement("UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
+				ps = conn.prepareStatement(sqlDel);
 				ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
 				ps.setLong(2, dbo.getPkid());
 				int invalidatedRows = ps.executeUpdate();

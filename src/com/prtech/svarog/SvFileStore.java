@@ -168,8 +168,6 @@ public class SvFileStore extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-	
-
 	/**
 	 * Initialiser method for the file cache
 	 * 
@@ -610,14 +608,11 @@ public class SvFileStore extends SvCore {
 			String tblName = SvConf.getParam("filestore.table");
 			String seqName = tblName + "_pkid";
 			String schema = SvConf.getParam("filestore.conn.defaultSchema");
-
-			ps = conn.prepareStatement(
-					"insert into " + (schema != null ? schema : SvConf.getDefaultSchema()) + "." + tblName
-							+ "(pkid, data) values("
-							+ SvConf.getSqlkw().getString("SEQ_NEXTVAL").replace("{SEQUENCE_NAME}",
-									(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName)
-							+ ",?)",
-					new String[] { "pkid" });
+			String sqlQuery = "insert into " + (schema != null ? schema : SvConf.getDefaultSchema()) + "." + tblName
+					+ "(pkid, data) values(" + SvConf.getSqlkw().getString("SEQ_NEXTVAL").replace("{SEQUENCE_NAME}",
+							(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName)
+					+ ",?)";
+			ps = conn.prepareStatement(sqlQuery, new String[] { "pkid" });
 
 			if (streamData != null)
 				ps.setBinaryStream(1, streamData);

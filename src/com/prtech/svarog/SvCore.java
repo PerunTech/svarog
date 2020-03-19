@@ -985,13 +985,15 @@ public abstract class SvCore implements ISvCore {
 		} finally {
 			try {
 				closeResource((AutoCloseable) rs, svCONST.systemUser);
-				closeResource((AutoCloseable) ps, svCONST.systemUser);
-				/*
-				 * if (rs != null) rs.close(); if (ps != null) ps.close();
-				 */
 			} catch (Exception e) {
 				log4j.error("Recordset can't be released!", e);
 			}
+			try {
+				closeResource((AutoCloseable) ps, svCONST.systemUser);
+			} catch (Exception e) {
+				log4j.error("Recordset can't be released!", e);
+			}
+
 		}
 		return false;
 	}

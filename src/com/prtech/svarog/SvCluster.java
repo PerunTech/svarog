@@ -538,7 +538,10 @@ public class SvCluster extends SvCore implements Runnable {
 		if (runMaintenanceThread)
 			maintenanceThread = null;
 		isCoordinator = false;
-		isActive.set(false);
+		synchronized (SvCluster.getIsActive()) {
+			isActive.set(false);
+			isActive.notify();
+		}
 	}
 
 	/**
