@@ -538,9 +538,8 @@ public class SvCluster extends SvCore implements Runnable {
 		if (runMaintenanceThread)
 			maintenanceThread = null;
 		isCoordinator = false;
-		synchronized (SvCluster.getIsActive()) {
-			isActive.set(false);
-			isActive.notify();
+		synchronized (SvCluster.IP_ADDR_DELIMITER) {
+			IP_ADDR_DELIMITER.notify();
 		}
 	}
 
