@@ -966,6 +966,24 @@ public class SvReader extends SvCore {
 	}
 
 	/**
+	 * Overridden simplified method for fetching records based on parent child
+	 * relationship, without sortOrder (legacy)
+	 * 
+	 * @param parent_id
+	 *            The ID of the parent object
+	 * @param object_type
+	 *            The Id of the type of the child objects
+	 * @param refDate
+	 *            Reference date for which the fetch should be executed
+	 * @return Array of child object of the identified parent
+	 * @throws SvException
+	 *             Pass through exception from the underlying methods
+	 */
+	public DbDataArray getObjectsByParentId(Long parent_id, Long object_type, DateTime refDate) throws SvException {
+		return getObjectsByParentId(parent_id, object_type, refDate, 0, 0);
+	}
+
+	/**
 	 * Overridden method for fetching records based on parent child
 	 * relationship, without sortOrder (legacy)
 	 * 
