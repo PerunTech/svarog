@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -71,7 +72,8 @@ public class DbInit {
 
 	static final String Y2K_START_DATE = "2000-01-01T00:00:00";
 	static final String CODE_LIST_ID = "CODE_LIST_ID";
-	static final String LABEL_CODE = 	"LABEL_CODE";
+	static final String LABEL_CODE = "LABEL_CODE";
+
 	//
 	private static DbDataTable getMasterCluster() {
 		DbDataTable dbt = new DbDataTable();
@@ -5243,14 +5245,14 @@ public class DbInit {
 	 */
 
 	private static void loadLabelsFromCustom(String jarPath, HashMap<String, DbDataObject> mLabels, String locale) {
-		InputStream iStr = null;
+		String iStr = null;
 		Properties prop = new Properties();
 		String labelsPath = "labels/" + locale + "Labels.properties";
 		// load strings
 		try {
 			iStr = DbInit.loadCustomResources(jarPath, labelsPath);
 			if (iStr != null) {
-				prop.load(new InputStreamReader(iStr, "UTF-8"));
+				prop.load(new StringReader(iStr));
 				log4j.info("Loaded labels file '" + labelsPath + "' from: " + jarPath);
 
 				Iterator<Entry<Object, Object>> pit = prop.entrySet().iterator();
@@ -5281,13 +5283,6 @@ public class DbInit {
 				log4j.trace("Labels file '" + labelsPath + "' not found in: " + jarPath);
 		} catch (Exception e1) {
 			log4j.error("Error loading labels from custom jar:" + jarPath, e1);
-		} finally {
-			try {
-				if (iStr != null)
-					iStr.close();
-			} catch (IOException e) {
-				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
-			}
 		}
 
 	}
@@ -5312,11 +5307,13 @@ public class DbInit {
 		JsonElement json = null;
 		InputStream istr = null;
 		try {
+			String aclStr = null;
 			if (jarPath != null)
-				istr = DbInit.loadCustomResources(jarPath, filePath);
-			else
+				aclStr = DbInit.loadCustomResources(jarPath, filePath);
+			else {
 				istr = new FileInputStream(new File(filePath));
-			String aclStr = IOUtils.toString(istr);
+				aclStr = IOUtils.toString(istr);
+			}
 			aclStr = aclStr.replace("{MASTER_REPO}", SvConf.getMasterRepo());
 			aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
 			json = gson.fromJson(aclStr, JsonElement.class);
@@ -5500,8 +5497,8 @@ public class DbInit {
 										? aclItem.get("acl_object_type").getAsString() : null);
 								dbo.setVal("acl_config_unq", aclItem.get("acl_config_unq") != null
 										? aclItem.get("acl_config_unq").getAsString() : null);
-								dbo.setVal(LABEL_CODE, aclItem.get(LABEL_CODE) != null
-										? aclItem.get(LABEL_CODE).getAsString() : null);
+								dbo.setVal(LABEL_CODE,
+										aclItem.get("label_code") != null ? aclItem.get("label_code").getAsString() : null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
 							}
@@ -6311,7 +6308,7 @@ public class DbInit {
 				dbo.setObjectId(svCONST.CODES_FILE_TYPES);
 
 			dbo.setVal("code_value", inObj.get("user_code").getAsString());
-			dbo.setVal(LABEL_CODE, inObj.get(LABEL_CODE).getAsString());
+			dbo.setVal(LABEL_CODE, inObj.get("label_code").getAsString());
 			dbo.setVal("sort_order", sort);
 
 			dbo.setVal("PARENT_CODE_VALUE", parentCodeValue != null ? parentCodeValue.getAsString() : null);
@@ -6377,12 +6374,12 @@ public class DbInit {
 	 * @throws IOException
 	 */
 	private static void loadCodesFromCustom(String jarPath, JsonObject jCodes) throws IOException {
-		InputStream customIs = null;
+		String jsonCustom = null;
 		Gson gson = (new GsonBuilder().setPrettyPrinting().create());
 		try {
-			customIs = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
-			if (customIs != null) {
-				String jsonCustom = IOUtils.toString(customIs, "UTF-8");
+			jsonCustom = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
+			if (jsonCustom != null) {
+
 				JsonObject customJobj = gson.fromJson(jsonCustom, JsonElement.class).getAsJsonObject();
 				mergeChildrenCodes(jCodes, customJobj);
 				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
@@ -6391,13 +6388,6 @@ public class DbInit {
 			log4j.error("Error loading codes from custom jar:" + jarPath);
 			e1.printStackTrace();
 			return;
-		} finally {
-			try {
-				if (customIs != null)
-					customIs.close();
-			} catch (IOException e) {
-				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
-			}
 		}
 
 	}
@@ -6749,8 +6739,8 @@ public class DbInit {
 		return svExec;
 	}
 
-	public static InputStream loadCustomResources(String pathToJar, String resourceName) {
-
+	public static String loadCustomResources(String pathToJar, String resourceName) {
+		String retVal = null;
 		InputStream is = null;
 		if (pathToJar != null && !pathToJar.equals("")) {
 			try (JarFile jarFile = new JarFile(pathToJar);) {
@@ -6768,13 +6758,23 @@ public class DbInit {
 					}
 
 				}
+				if (is != null)
+					retVal = IOUtils.toString(is);
 
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
+			} finally {
+				if (is != null)
+					try {
+						is.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 			}
 		}
-		return is;
+		return retVal;
 	}
 
 }
