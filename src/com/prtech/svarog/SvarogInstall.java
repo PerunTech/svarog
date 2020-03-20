@@ -89,6 +89,8 @@ public class SvarogInstall {
 	static final Logger log4j = SvConf.getLogger(SvarogInstall.class);
 
 	static final String JDBC_ERR = "Can't close JDBC connection";
+	static final String TABLE_NAME = "table_name";
+
 	/**
 	 * Path of the JSON file containing list of system Locales
 	 */
@@ -1547,17 +1549,20 @@ public class SvarogInstall {
 	static void dropIndex(String schemaName, String tableName, String constrName, String indexName, Connection conn)
 			throws SQLException {
 
+		StringBuilder sqlDropConstr = new StringBuilder();
+		sqlDropConstr.append("ALTER TABLE ").append(schemaName).append(".");
+		sqlDropConstr.append(tableName).append(" DROP CONSTRAINT ").append(constrName);
+
+		StringBuilder sqlDropIndex = new StringBuilder().append("DROP INDEX ");
+		sqlDropIndex.append(schemaName).append(".").append(indexName);
+
 		PreparedStatement st = null;
 		PreparedStatement st1 = null;
 
 		try {
-
-			String sqlQ = "ALTER TABLE " + schemaName + "." + tableName + " DROP CONSTRAINT " + constrName;
-			st = conn.prepareStatement(sqlQ);
+			st = conn.prepareStatement(sqlDropConstr.toString());
 			st.execute();
-
-			sqlQ = "DROP INDEX " + schemaName + "." + indexName;
-			st1 = conn.prepareStatement(sqlQ);
+			st1 = conn.prepareStatement(sqlDropIndex.toString());
 			st1.execute();
 
 		} finally {
@@ -1566,14 +1571,14 @@ public class SvarogInstall {
 					st.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					log4j.error("Can't drop indexes for table:" + tableName, e);
+					log4j.error("Can't release drop constraint statement:" + tableName, e);
 				}
 			if (st1 != null)
 				try {
 					st1.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					log4j.error("Can't drop indexes for table:" + tableName, e);
+					log4j.error("Can't release drop index statement:" + tableName, e);
 				}
 
 		}
@@ -3015,7 +3020,7 @@ public class SvarogInstall {
 				Long tableId = rs.getLong(2);
 				for (DbDataObject dbt : dbTables.getItems()) {
 					if (tableId.equals(dbt.getObjectId())) {
-						log4j.info("Table '" + dbt.getVal("table_name") + "', has " + objCount + " objects in repo:"
+						log4j.info("Table '" + dbt.getVal(TABLE_NAME) + "', has " + objCount + " objects in repo:"
 								+ tableName);
 						if (!dbt.getVal("repo_name").equals(tableName)) {
 							log4j.info("Configured table repo is '" + dbt.getVal("repo_name")
@@ -3067,7 +3072,7 @@ public class SvarogInstall {
 
 			for (DbDataObject repo : dbRepos.getItems()) {
 
-				String tableName = (String) repo.getVal("table_name");
+				String tableName = (String) repo.getVal(TABLE_NAME);
 				log4j.info("Analysing repo " + tableName + ", repo " + count + " of " + dbRepos.getItems().size());
 				String sqlQuery = "SELECT count(*), object_type from " + (String) repo.getVal("schema") + "."
 						+ tableName + " GROUP BY object_type";
@@ -3105,7 +3110,7 @@ public class SvarogInstall {
 				DbDataArray repoTables = svr.getObjects(
 						new DbSearchCriterion("repo_table", DbCompareOperand.EQUAL, true), svCONST.OBJECT_TYPE_TABLE,
 						null, 0, 0);
-				repoTables.rebuildIndex("table_name", true);
+				repoTables.rebuildIndex(TABLE_NAME, true);
 				Connection conn = svr.dbGetConn();
 				conn.setAutoCommit(false);
 
@@ -3121,16 +3126,16 @@ public class SvarogInstall {
 						DbDataObject oldRepo = entry.getValue();
 						DbDataObject newRepo = repoTables.getItemByIdx((String) table.getVal("repo_name"));
 
-						log4j.info("Migrating data for '" + table.getVal("table_name") + "' from repo '"
-								+ oldRepo.getVal("table_name") + "' to repo '" + newRepo.getVal("table_name") + "'");
+						log4j.info("Migrating data for '" + table.getVal(TABLE_NAME) + "' from repo '"
+								+ oldRepo.getVal(TABLE_NAME) + "' to repo '" + newRepo.getVal(TABLE_NAME) + "'");
 
 						StringBuilder sqlMigrate = new StringBuilder();
-						sqlMigrate.append("INSERT INTO " + newRepo.getVal("schema") + "." + newRepo.getVal("table_name")
+						sqlMigrate.append("INSERT INTO " + newRepo.getVal("schema") + "." + newRepo.getVal(TABLE_NAME)
 								+ " (" + fields + ") ");
 						sqlMigrate.append("SELECT " + fields + " FROM " + oldRepo.getVal("schema") + "."
-								+ oldRepo.getVal("table_name") + " r1 WHERE ");
+								+ oldRepo.getVal(TABLE_NAME) + " r1 WHERE ");
 						sqlMigrate.append("EXISTS (SELECT 1 FROM " + table.getVal("schema") + "."
-								+ table.getVal("table_name") + " t1 WHERE t1.pkid=r1.meta_pkid)");
+								+ table.getVal(TABLE_NAME) + " t1 WHERE t1.pkid=r1.meta_pkid)");
 						log4j.info("Executing " + sqlMigrate.toString());
 						try {
 							ps1 = conn.prepareStatement(sqlMigrate.toString());
@@ -3144,12 +3149,12 @@ public class SvarogInstall {
 							}
 						}
 						sqlMigrate = new StringBuilder();
-						if (dropIndexes((String) oldRepo.getVal("table_name"), (String) oldRepo.getVal("schema"))) {
+						if (dropIndexes((String) oldRepo.getVal(TABLE_NAME), (String) oldRepo.getVal("schema"))) {
 
 							sqlMigrate.append("DELETE FROM " + oldRepo.getVal("schema") + "."
-									+ oldRepo.getVal("table_name") + " r1 WHERE ");
+									+ oldRepo.getVal(TABLE_NAME) + " r1 WHERE ");
 							sqlMigrate.append("r1.meta_pkid in (SELECT t1.pkid FROM " + table.getVal("schema") + "."
-									+ table.getVal("table_name") + " t1)");
+									+ table.getVal(TABLE_NAME) + " t1)");
 							log4j.info("Executing " + sqlMigrate.toString());
 							try {
 								ps2 = conn.prepareStatement(sqlMigrate.toString());
@@ -3165,7 +3170,7 @@ public class SvarogInstall {
 							}
 							log4j.info("Repo data successfully migrated, commiting changes");
 							conn.commit();
-							rebuildIndexes((String) oldRepo.getVal("table_name"));
+							rebuildIndexes((String) oldRepo.getVal(TABLE_NAME));
 						} else
 							conn.rollback();
 					} catch (Exception e) {

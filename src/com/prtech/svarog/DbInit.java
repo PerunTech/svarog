@@ -41,7 +41,6 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.main.AutoProcessor;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
@@ -73,7 +72,7 @@ public class DbInit {
 	static final String Y2K_START_DATE = "2000-01-01T00:00:00";
 	static final String CODE_LIST_ID = "CODE_LIST_ID";
 	static final String LABEL_CODE = "LABEL_CODE";
-
+	static final String TABLE_NAME = "table_name";
 	//
 	private static DbDataTable getMasterCluster() {
 		DbDataTable dbt = new DbDataTable();
@@ -5497,8 +5496,8 @@ public class DbInit {
 										? aclItem.get("acl_object_type").getAsString() : null);
 								dbo.setVal("acl_config_unq", aclItem.get("acl_config_unq") != null
 										? aclItem.get("acl_config_unq").getAsString() : null);
-								dbo.setVal(LABEL_CODE,
-										aclItem.get("label_code") != null ? aclItem.get("label_code").getAsString() : null);
+								dbo.setVal(LABEL_CODE, aclItem.get(LABEL_CODE.toLowerCase()) != null
+										? aclItem.get(LABEL_CODE.toLowerCase()).getAsString() : null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
 							}
@@ -5779,7 +5778,7 @@ public class DbInit {
 			dbo.setDtDelete(SvConf.MAX_DATE);
 			dbo.setVal("system_table", dbt.getIsSystemTable());
 			dbo.setVal("repo_table", dbt.getIsRepoTable());
-			dbo.setVal("table_name", dbt.getDbTableName().toUpperCase());
+			dbo.setVal(TABLE_NAME, dbt.getDbTableName().toUpperCase());
 			dbo.setVal("schema", dbt.getDbSchema());
 			dbo.setVal("repo_name", dbt.getDbRepoName().toUpperCase());
 			dbo.setVal(LABEL_CODE, dbt.getLabel_code());
@@ -6743,13 +6742,9 @@ public class DbInit {
 		String retVal = null;
 		InputStream is = null;
 		if (pathToJar != null && !pathToJar.equals("")) {
-			try (JarFile jarFile = new JarFile(pathToJar);) {
-				;
-				@SuppressWarnings("rawtypes")
-				Enumeration e = jarFile.entries();
+			try (JarFile jarFile = new JarFile(pathToJar)) {
+				Enumeration<JarEntry> e = jarFile.entries();
 
-				// URL[] urls = { new URL("jar:file:" + pathToJar + "!/") };
-				// URLClassLoader cl = URLClassLoader.newInstance(urls);
 				while (e.hasMoreElements()) {
 					JarEntry je = (JarEntry) e.nextElement();
 					if (je.getName().equals(resourceName)) {
