@@ -1538,31 +1538,19 @@ public class SvarogInstall {
 		return true;
 	}
 
-	static boolean dropIndexes(String tableName, String schemaName) {
-		log4j.info("Dropping indexes for table:" + tableName);
-		SvReader svr = null;
-		Statement st = null;
+	static void dropIndex(String schemaName, String tableName, String constrName, String indexName, Connection conn)
+			throws SQLException {
+
+		PreparedStatement st = null;
 		try {
-			svr = new SvReader();
-			Connection conn = svr.dbGetConn();
-			HashMap<String, String> indexNames = getIndexListFromDb(conn, tableName, schemaName);
 
-			for (Entry<String, String> index : indexNames.entrySet()) {
-				st = conn.createStatement();
-				if (index.getValue() != null) {
-					String sqlQ = "ALTER TABLE " + schemaName + "." + tableName + " DROP CONSTRAINT "
-							+ index.getValue();
-					st.executeQuery(sqlQ);
-					sqlQ = "DROP INDEX " + schemaName + "." + index.getKey();
-					st.executeQuery(sqlQ);
+			String sqlQ = "ALTER TABLE " + schemaName + "." + tableName + " DROP CONSTRAINT " + constrName;
+			st = conn.prepareStatement(sqlQ);
+			st.execute();
 
-				}
-			}
-			log4j.info("Indexes for table:" + tableName + " dropped with success");
-			return true;
-		} catch (Exception e) {
-			log4j.error("Can't drop indexes for table:" + tableName, e);
-			return false;
+			sqlQ = "DROP INDEX " + schemaName + "." + indexName;
+			st.executeQuery(sqlQ);
+
 		} finally {
 			if (st != null)
 				try {
@@ -1571,6 +1559,31 @@ public class SvarogInstall {
 					// TODO Auto-generated catch block
 					log4j.error("Can't drop indexes for table:" + tableName, e);
 				}
+		}
+
+	}
+
+	static boolean dropIndexes(String tableName, String schemaName) {
+		log4j.info("Dropping indexes for table:" + tableName);
+		SvReader svr = null;
+
+		try {
+			svr = new SvReader();
+			Connection conn = svr.dbGetConn();
+			HashMap<String, String> indexNames = getIndexListFromDb(conn, tableName, schemaName);
+
+			for (Entry<String, String> index : indexNames.entrySet()) {
+
+				if (index.getValue() != null)
+					dropIndex(schemaName, tableName, index.getValue(), index.getKey(), conn);
+			}
+			log4j.info("Indexes for table:" + tableName + " dropped with success");
+			return true;
+		} catch (Exception e) {
+			log4j.error("Can't drop indexes for table:" + tableName, e);
+			return false;
+		} finally {
+
 			if (svr != null)
 				svr.release();
 		}
@@ -2996,26 +3009,42 @@ public class SvarogInstall {
 			Connection conn = svr.dbGetConn();
 
 			for (DbDataObject repo : dbRepos.getItems()) {
+
 				String tableName = (String) repo.getVal("table_name");
 				log4j.info("Analysing repo " + tableName + ", repo " + count + " of " + dbRepos.getItems().size());
 				String sqlQuery = "SELECT count(*), object_type from " + (String) repo.getVal("schema") + "."
 						+ tableName + " GROUP BY object_type";
-				ps = conn.prepareStatement(sqlQuery);
-				rs = ps.executeQuery();
-				while (rs.next()) {
-					Long objCount = rs.getLong(1);
-					Long tableId = rs.getLong(2);
-					for (DbDataObject dbt : dbTables.getItems()) {
-						if (tableId.equals(dbt.getObjectId())) {
-							log4j.info("Table '" + dbt.getVal("table_name") + "', has " + objCount + " objects in repo:"
-									+ tableName);
-							if (!dbt.getVal("repo_name").equals(tableName)) {
-								log4j.info("Configured table repo is '" + dbt.getVal("repo_name")
-										+ "'. The data shall be migrated");
-								misconfiguredDbt.put(dbt, repo);
-							}
+				try {
+					ps = conn.prepareStatement(sqlQuery);
+					rs = ps.executeQuery();
+					while (rs.next()) {
+						Long objCount = rs.getLong(1);
+						Long tableId = rs.getLong(2);
+						for (DbDataObject dbt : dbTables.getItems()) {
+							if (tableId.equals(dbt.getObjectId())) {
+								log4j.info("Table '" + dbt.getVal("table_name") + "', has " + objCount
+										+ " objects in repo:" + tableName);
+								if (!dbt.getVal("repo_name").equals(tableName)) {
+									log4j.info("Configured table repo is '" + dbt.getVal("repo_name")
+											+ "'. The data shall be migrated");
+									misconfiguredDbt.put(dbt, repo);
+								}
 
+							}
 						}
+					}
+				} finally {
+					try {
+						if (rs != null)
+							rs.close();
+					} catch (SQLException e) {
+						log4j.error("Closing prepared statement failed with exception", e);
+					}
+					try {
+						if (ps != null)
+							ps.close();
+					} catch (SQLException e) {
+						log4j.error("Closing prepared statement failed with exception", e);
 					}
 				}
 				count++;
@@ -3024,18 +3053,7 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			log4j.error("Sync of the repo tables failed with exception", e);
 		} finally {
-			try {
-				if (rs != null)
-					rs.close();
-			} catch (SQLException e) {
-				log4j.error("Closing prepared statement failed with exception", e);
-			}
-			try {
-				if (ps != null)
-					ps.close();
-			} catch (SQLException e) {
-				log4j.error("Closing prepared statement failed with exception", e);
-			}
+
 			if (svr != null)
 				svr.release();
 		}
@@ -3088,8 +3106,17 @@ public class SvarogInstall {
 						sqlMigrate.append("EXISTS (SELECT 1 FROM " + table.getVal("schema") + "."
 								+ table.getVal("table_name") + " t1 WHERE t1.pkid=r1.meta_pkid)");
 						log4j.info("Executing " + sqlMigrate.toString());
-						ps1 = conn.prepareStatement(sqlMigrate.toString());
-						ps1.execute();
+						try {
+							ps1 = conn.prepareStatement(sqlMigrate.toString());
+							ps1.execute();
+						} finally {
+							try {
+								if (ps1 != null)
+									ps1.close();
+							} catch (SQLException e) {
+								log4j.error("Closing of prepared statements failed with exception", e);
+							}
+						}
 						sqlMigrate = new StringBuilder();
 						if (dropIndexes((String) oldRepo.getVal("table_name"), (String) oldRepo.getVal("schema"))) {
 
@@ -3098,9 +3125,18 @@ public class SvarogInstall {
 							sqlMigrate.append("r1.meta_pkid in (SELECT t1.pkid FROM " + table.getVal("schema") + "."
 									+ table.getVal("table_name") + " t1)");
 							log4j.info("Executing " + sqlMigrate.toString());
-							ps2 = conn.prepareStatement(sqlMigrate.toString());
-							ps2.execute();
+							try {
+								ps2 = conn.prepareStatement(sqlMigrate.toString());
+								ps2.execute();
+							} finally {
 
+								try {
+									if (ps2 != null)
+										ps2.close();
+								} catch (SQLException e) {
+									log4j.error("Closing of prepared statements failed with exception", e);
+								}
+							}
 							log4j.info("Repo data successfully migrated, commiting changes");
 							conn.commit();
 							rebuildIndexes((String) oldRepo.getVal("table_name"));
@@ -3116,18 +3152,7 @@ public class SvarogInstall {
 				log4j.error("Sync of the repo tables failed with exception", e);
 				retval = -3;
 			} finally {
-				try {
-					if (ps1 != null)
-						ps1.close();
-				} catch (SQLException e) {
-					log4j.error("Closing of prepared statements failed with exception", e);
-				}
-				try {
-					if (ps2 != null)
-						ps2.close();
-				} catch (SQLException e) {
-					log4j.error("Closing of prepared statements failed with exception", e);
-				}
+
 				if (svr != null)
 					svr.release();
 			}

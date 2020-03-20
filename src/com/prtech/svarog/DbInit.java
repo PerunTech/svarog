@@ -6735,11 +6735,12 @@ public class DbInit {
 		ISvarogExecutable svExec = null;
 
 		Vector<JarEntry> list = new Vector<JarEntry>();
-		ClassLoader cl = URLClassLoader.newInstance(loadJar(pathToJar, list), DbInit.class.getClassLoader());
+		URLClassLoader cl = null;
 
 		Enumeration<JarEntry> en = list.elements();
 
 		try {
+			cl = new URLClassLoader(loadJar(pathToJar, list), DbInit.class.getClassLoader());
 			while (en.hasMoreElements()) {
 				String className = getClassName(en);
 				if (className != null) {
@@ -6754,6 +6755,14 @@ public class DbInit {
 				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
 			if (log4j.isDebugEnabled())
 				log4j.trace("Error loading class", ex);
+		} finally {
+			if (cl != null)
+				try {
+					cl.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					log4j.trace("Error closing URLClassLoader", e);
+				}
 		}
 
 		return svExec;
