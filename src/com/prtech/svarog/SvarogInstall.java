@@ -2979,6 +2979,7 @@ public class SvarogInstall {
 		DbDataArray dbRepos = new DbDataArray();
 		SvReader svr = null;
 		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
 			svr = new SvReader();
 			dbTables = svr.getObjects(null, svCONST.OBJECT_TYPE_TABLE, null, 0, 0);
@@ -3000,7 +3001,7 @@ public class SvarogInstall {
 				String sqlQuery = "SELECT count(*), object_type from " + (String) repo.getVal("schema") + "."
 						+ tableName + " GROUP BY object_type";
 				ps = conn.prepareStatement(sqlQuery);
-				ResultSet rs = ps.executeQuery();
+				rs = ps.executeQuery();
 				while (rs.next()) {
 					Long objCount = rs.getLong(1);
 					Long tableId = rs.getLong(2);
@@ -3023,6 +3024,12 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			log4j.error("Sync of the repo tables failed with exception", e);
 		} finally {
+			try {
+				if (rs != null)
+					rs.close();
+			} catch (SQLException e) {
+				log4j.error("Closing prepared statement failed with exception", e);
+			}
 			try {
 				if (ps != null)
 					ps.close();
@@ -3116,8 +3123,8 @@ public class SvarogInstall {
 					log4j.error("Closing of prepared statements failed with exception", e);
 				}
 				try {
-					if (ps1 != null)
-						ps1.close();
+					if (ps2 != null)
+						ps2.close();
 				} catch (SQLException e) {
 					log4j.error("Closing of prepared statements failed with exception", e);
 				}
