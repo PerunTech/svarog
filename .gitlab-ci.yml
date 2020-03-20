@@ -17,6 +17,10 @@ stages:
 01_svarog-build:
   stage: build
   script:
+    - echo Project name
+    - echo $CI_PROJECT_NAME 
+    - echo Project id
+    - echo $CI_PROJECT_ID
     - git reset --hard $CI_COMMIT_SHA
     - git clean -df
     - git stash
