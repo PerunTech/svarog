@@ -114,7 +114,7 @@ svarog-sonarqube_piblish:
     name: $CI_COMMIT_REF_NAME
   only:
     - staging
-  
+    - dev  
   
 svarog-install:
   stage: mvn_install
