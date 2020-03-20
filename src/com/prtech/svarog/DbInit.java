@@ -73,6 +73,7 @@ public class DbInit {
 	static final String CODE_LIST_ID = "CODE_LIST_ID";
 	static final String LABEL_CODE = "LABEL_CODE";
 	static final String TABLE_NAME = "table_name";
+
 	//
 	private static DbDataTable getMasterCluster() {
 		DbDataTable dbt = new DbDataTable();
@@ -6740,33 +6741,20 @@ public class DbInit {
 
 	public static String loadCustomResources(String pathToJar, String resourceName) {
 		String retVal = null;
-		InputStream is = null;
 		if (pathToJar != null && !pathToJar.equals("")) {
 			try (JarFile jarFile = new JarFile(pathToJar)) {
 				Enumeration<JarEntry> e = jarFile.entries();
-
-				while (e.hasMoreElements()) {
+				while (e.hasMoreElements() || retVal != null) {
 					JarEntry je = (JarEntry) e.nextElement();
 					if (je.getName().equals(resourceName)) {
-						is = jarFile.getInputStream(je);
-						break;
+						try (InputStream is = jarFile.getInputStream(je)) {
+							retVal = IOUtils.toString(is);
+						}
 					}
-
 				}
-				if (is != null)
-					retVal = IOUtils.toString(is);
 
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} finally {
-				if (is != null)
-					try {
-						is.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+			} catch (Exception e) {
+				log4j.trace("Error loading resources", e);
 			}
 		}
 		return retVal;
