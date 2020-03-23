@@ -833,7 +833,8 @@ public class DbInit {
 		dbe2.setDbFieldSize(100);
 		dbe2.setIsUnique(true);
 		dbe2.setUnique_level("TABLE");
-		dbe2.setGui_metadata("{\"react\":{\"filterable\":true,\"width\":270,\"visible\":true,\"resizable\":true,\"inline_editable\":true,\"editable\":true}}");
+		dbe2.setGui_metadata(
+				"{\"react\":{\"filterable\":true,\"width\":270,\"visible\":true,\"resizable\":true,\"inline_editable\":true,\"editable\":true}}");
 		dbe2.setLabel_code("form_type.short_description");
 
 		// Column 3
@@ -844,7 +845,8 @@ public class DbInit {
 		dbe4.setDbFieldSize(50);
 		dbe4.setIsNull(false);
 		dbe4.setCode_list_user_code("FORM_CATEGORY");
-		dbe4.setGui_metadata("{\"react\":{\"filterable\":true,\"width\":270,\"visible\":true,\"resizable\":true,\"inline_editable\":true,\"editable\":true}}");
+		dbe4.setGui_metadata(
+				"{\"react\":{\"filterable\":true,\"width\":270,\"visible\":true,\"resizable\":true,\"inline_editable\":true,\"editable\":true}}");
 		dbe4.setLabel_code("form_type.category");
 
 		// Column 4
@@ -3239,7 +3241,27 @@ public class DbInit {
 			dbf10.setIsNull(true);
 			dbf10.setLabel_code("master_repo.is_default_route");
 
-			dbt.setDbTableFields(new DbDataField[10]);
+			DbDataField dbf11 = new DbDataField();
+			dbf11.setDbFieldName("IS_RESTORABLE");
+			dbf11.setDbFieldType(DbFieldType.BOOLEAN);
+			dbf11.setIsNull(true);
+			dbf11.setLabel_code("master_repo.is_restorable");
+
+			DbDataField dbf12 = new DbDataField();
+			dbf12.setDbFieldName("PERMISSION_CODE");
+			dbf12.setDbFieldType(DbFieldType.NVARCHAR);
+			dbf12.setDbFieldSize(150);
+			dbf12.setIsNull(true);
+			dbf12.setLabel_code("master_repo.permission_code");
+			
+			DbDataField dbf13 = new DbDataField();
+			dbf13.setDbFieldName("RESTORE_PERMISSION_CODE");
+			dbf13.setDbFieldType(DbFieldType.NVARCHAR);
+			dbf13.setDbFieldSize(150);
+			dbf13.setIsNull(true);
+			dbf13.setLabel_code("master_repo.restore_permission_code");
+
+			dbt.setDbTableFields(new DbDataField[13]);
 			dbt.getDbTableFields()[0] = dbf1;
 			dbt.getDbTableFields()[1] = dbf2;
 			dbt.getDbTableFields()[2] = dbf2_0;
@@ -3250,6 +3272,9 @@ public class DbInit {
 			dbt.getDbTableFields()[7] = dbf8;
 			dbt.getDbTableFields()[8] = dbf9;
 			dbt.getDbTableFields()[9] = dbf10;
+			dbt.getDbTableFields()[10] = dbf11;
+			dbt.getDbTableFields()[11] = dbf12;
+			dbt.getDbTableFields()[12] = dbf13;
 			return dbt;
 		}
 	}
@@ -6034,7 +6059,7 @@ public class DbInit {
 		dblPrint.setVal("part_time", new DateTime());
 		dblPrint.setVal("last_maintenance", new DateTime());
 		dblPrint.setVal("next_maintenance", new DateTime());
-		
+
 		defaultObjests.addDataItem(coordinator);
 		/*
 		 * // link conversation and user DbDataObject dblConversationUser = new

@@ -144,6 +144,9 @@ public class SvWorkflow extends SvCore {
 			} finally {
 				svw.release();
 			}
+		} else {
+			throw (new SvException("workflow_engine.error.movementNotAllowed in: " + newStatus, instanceUser, null,
+					dbo));
 		}
 		// TODO add movement specific business rules and other things
 	}
@@ -151,6 +154,8 @@ public class SvWorkflow extends SvCore {
 	Boolean checkTransitionValidity(DbDataObject dbo, String newStatus) throws SvException {
 		Boolean result = false;
 		SvReader svr = new SvReader(this);
+		// TODO change as param in the future
+		String codeListName = "OBJ_STATUS";
 		try {
 			if (dbo != null) {
 				DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
@@ -158,6 +163,12 @@ public class SvWorkflow extends SvCore {
 				if (objectValidTransitions == null || objectValidTransitions.isEmpty()) {
 					result = true;
 				} else {
+					if (!checkIfStatusExists(newStatus, codeListName)) {
+						throw (new SvException(
+								"workflow_engine.error.movementNotAllowed.DestinationStatusNotInstalledInCodeList- status:"
+										+ newStatus + ";codeList:" + codeListName,
+								instanceUser, null, dbo));
+					}
 					DbSearchCriterion cr1 = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL,
 							dbo.getObjectType());
 					DbSearchCriterion cr2 = new DbSearchCriterion("ORIGINATING_STATUS", DbCompareOperand.EQUAL,
@@ -172,6 +183,24 @@ public class SvWorkflow extends SvCore {
 						result = true;
 					}
 				}
+			}
+		} finally {
+			if (svr != null)
+				svr.release();
+		}
+		return result;
+	}
+
+	Boolean checkIfStatusExists(String statuscode, String codeListName) throws SvException {
+		Boolean result = false;
+		SvReader svr = new SvReader(this);
+		try {
+			DbSearchCriterion cr1 = new DbSearchCriterion("PARENT_CODE_VALUE", DbCompareOperand.EQUAL, codeListName);
+			DbSearchCriterion cr2 = new DbSearchCriterion("CODE_VALUE", DbCompareOperand.EQUAL, statuscode);
+			DbSearchExpression dbs = new DbSearchExpression().addDbSearchItem(cr1).addDbSearchItem(cr2);
+			DbDataArray requestedStatusCode = svr.getObjects(dbs, svCONST.OBJECT_TYPE_CODE, null, 0, 0);
+			if (requestedStatusCode != null && !requestedStatusCode.isEmpty()) {
+				result = true;
 			}
 		} finally {
 			if (svr != null)
