@@ -978,11 +978,13 @@ public class SvWriter extends SvCore {
 	void validateFieldData(DbDataObject dbf, Object value, Boolean overrideNullCheck) throws SvException {
 		if (!overrideNullCheck)
 			if ((!(Boolean) dbf.getVal("is_null") && (value == null || value.equals(""))))
-				throw (new SvException("system.error.field_must_have_value", instanceUser, null, dbf));
+				throw (new SvException("system.error.field_must_have_value:" + dbf.getVal("FIELD_NAME"), instanceUser,
+						null, dbf));
 
 		if (value != null && dbf.getVal("FIELD_TYPE").equals(DbFieldType.NVARCHAR.toString()))
 			if (dbf.getVal("FIELD_SIZE") != null && ((Long) dbf.getVal("FIELD_SIZE")) < value.toString().length())
-				throw (new SvException("system.error.field_value_too_long", instanceUser, null, dbf));
+				throw (new SvException("system.error.field_value_too_long:" + dbf.getVal("FIELD_NAME"), instanceUser,
+						null, dbf));
 
 		if (dbf.getVal("CODE_LIST_ID") != null) {
 			if (!(Boolean) dbf.getVal("is_null") && value != null) {
@@ -997,8 +999,9 @@ public class SvWriter extends SvCore {
 									log4j.warn("Field value:" + value + ", is not in the list:" + vals.toString()
 											+ ", for field:" + dbf.toSimpleJson().toString());
 
-								throw (new SvException("system.error.field_value_out_of_range", instanceUser, dbf,
-										value));
+								throw (new SvException(
+										"system.error.field_value_out_of_range: " + dbf.getVal("FIELD_NAME"),
+										instanceUser, dbf, value));
 							}
 						}
 					} else {
@@ -1009,7 +1012,8 @@ public class SvWriter extends SvCore {
 								log4j.warn("Field value:" + value + ", is not in the list:" + vals.toString()
 										+ ", for field:" + dbf.toSimpleJson().toString());
 
-							throw (new SvException("system.error.field_value_out_of_range", instanceUser, dbf, value));
+							throw (new SvException("system.error.field_value_out_of_range:" + dbf.getVal("FIELD_NAME"),
+									instanceUser, dbf, value));
 						}
 					}
 
