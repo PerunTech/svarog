@@ -603,16 +603,18 @@ public class SvFileStore extends SvCore {
 
 		PreparedStatement ps = null;
 		ResultSet rs = null;
+		String tblName = SvConf.getParam("filestore.table");
+		String seqName = tblName + "_pkid";
+		String schema = SvConf.getParam("filestore.conn.defaultSchema");
+		StringBuilder sqlQuery = new StringBuilder(100);
+
+		sqlQuery.append("insert into " + (schema != null ? schema : SvConf.getDefaultSchema()) + "." + tblName);
+		sqlQuery.append("(pkid, data) values(");
+		sqlQuery.append(SvConf.getSqlkw().getString("SEQ_NEXTVAL").replace("{SEQUENCE_NAME}",
+				(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName) + ",?)");
 		try {
 			Connection conn = this.dbGetConn();
-			String tblName = SvConf.getParam("filestore.table");
-			String seqName = tblName + "_pkid";
-			String schema = SvConf.getParam("filestore.conn.defaultSchema");
-			String sqlQuery = "insert into " + (schema != null ? schema : SvConf.getDefaultSchema()) + "." + tblName
-					+ "(pkid, data) values(" + SvConf.getSqlkw().getString("SEQ_NEXTVAL").replace("{SEQUENCE_NAME}",
-							(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName)
-					+ ",?)";
-			ps = conn.prepareStatement(sqlQuery, new String[] { "pkid" });
+			ps = conn.prepareStatement(sqlQuery.toString(), new String[] { "pkid" });
 
 			if (streamData != null)
 				ps.setBinaryStream(1, streamData);

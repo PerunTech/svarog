@@ -142,6 +142,10 @@ public class SvClusterNotifierClient implements Runnable {
 			context.close();
 			context = null;
 		}
+		// interrupt the maintenance thread to join if needed
+		if (SvCluster.maintenanceThread != null)
+			SvCluster.maintenanceThread.interrupt();
+
 	}
 
 	/**
