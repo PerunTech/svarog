@@ -579,7 +579,7 @@ public class SvCluster extends SvCore {
 
 		while ((joinHb != null && joinHb.isAlive()) || (joinNf != null && joinNf.isAlive())) {
 			try {
-				if (joinNf != null && joinNf.isAlive())
+				if (joinHb != null && joinHb.isAlive())
 					joinHb.join(10);
 				if (joinNf != null && joinNf.isAlive())
 					joinNf.join(10);
