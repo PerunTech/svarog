@@ -192,7 +192,7 @@ public class SvExecManagerTests {
 				}
 
 			}
-			dbexec.setVal("END_DATE", SvConf.getMaxDate());
+			dbexec.setVal("END_DATE", SvConf.MAX_DATE);
 			svw.saveObject(dbexec);
 
 			if (errMessage != null)

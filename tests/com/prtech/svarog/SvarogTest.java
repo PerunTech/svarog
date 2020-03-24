@@ -211,8 +211,9 @@ public class SvarogTest {
 				fail("Failed getting label text");
 
 		} catch (SvException e) {
-			fail("Failed with exception");
 			e.printStackTrace();
+			fail("Failed with exception");
+
 		}
 
 		if (SvConnTracker.hasTrackedConnections())
@@ -2053,9 +2054,9 @@ public class SvarogTest {
 
 			}
 
-			fis = SvCore.class.getResourceAsStream(SvarogInstall.localesPath);
+			fis = SvCore.class.getResourceAsStream(SvarogInstall.LOCALE_PATH);
 			if (fis == null) {
-				String path = "." + SvarogInstall.localesPath;
+				String path = "." + SvarogInstall.LOCALE_PATH;
 				fis = new FileInputStream(path);
 			}
 			byte[] fileData = IOUtils.toByteArray(fis);
@@ -2684,7 +2685,6 @@ public class SvarogTest {
 			if (fis == null)
 				fis = ClassLoader.getSystemClassLoader().getResourceAsStream(codesPath);
 
-			
 			byte[] fileData = IOUtils.toByteArray(fis);
 			DbDataObject fileDescriptor = new DbDataObject();
 			fileDescriptor.setObject_type(svCONST.OBJECT_TYPE_FILE);
@@ -2706,9 +2706,9 @@ public class SvarogTest {
 			// start update
 
 			{
-				fileToUpdate = SvCore.class.getResourceAsStream(SvarogInstall.localesPath);
+				fileToUpdate = SvCore.class.getResourceAsStream(SvarogInstall.LOCALE_PATH);
 				if (fileToUpdate == null) {
-					String path = "." + SvarogInstall.localesPath;
+					String path = "." + SvarogInstall.LOCALE_PATH;
 					fileToUpdate = new FileInputStream(path);
 				}
 				byte[] fileDataToUpdate = IOUtils.toByteArray(fileToUpdate);

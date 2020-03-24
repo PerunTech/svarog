@@ -60,6 +60,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DboFactory;
+import com.prtech.svarog_common.DboUnderground;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.prtech.svarog_common.ISvOnSave;
@@ -180,6 +181,14 @@ public abstract class SvCore implements ISvCore {
 	 * Information about the source of the loaded Svarog config (DB or file)
 	 */
 	static Boolean isCfgInDb = false;
+
+	/**
+	 * Minimum time between two session refresh notifications are published in
+	 * the cluster The purpose is to prevent throttling of the refresh
+	 * notification in the cluster.
+	 */
+	static long sessionDebounceInterval = 5000;
+
 	/**
 	 * The POA types defined in Svarog, we need them for security checks.
 	 */
@@ -448,6 +457,10 @@ public abstract class SvCore implements ISvCore {
 
 		this.autoCommit = (srcCore != null ? srcCore.autoCommit : this.autoCommit);
 
+		if (SvConf.isClusterEnabled() && (SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
+			if ((srcCore != null && !srcCore.isInternal))
+				throw (new SvException("system.error.cluster_inactive", instanceUser));
+		}
 		// if the svarog core is not in valid state we should start the
 		// initialisation
 		if (!isValid.get())
@@ -972,13 +985,15 @@ public abstract class SvCore implements ISvCore {
 		} finally {
 			try {
 				closeResource((AutoCloseable) rs, svCONST.systemUser);
-				closeResource((AutoCloseable) ps, svCONST.systemUser);
-				/*
-				 * if (rs != null) rs.close(); if (ps != null) ps.close();
-				 */
 			} catch (Exception e) {
 				log4j.error("Recordset can't be released!", e);
 			}
+			try {
+				closeResource((AutoCloseable) ps, svCONST.systemUser);
+			} catch (Exception e) {
+				log4j.error("Recordset can't be released!", e);
+			}
+
 		}
 		return false;
 	}
@@ -1382,6 +1397,13 @@ public abstract class SvCore implements ISvCore {
 				}
 				if (SvWriter.queryCache != null)
 					SvWriter.queryCache.clear();
+
+				DbDataObject sessionDbt = getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
+				// the cache expiry is in minutes, convert to milis 60*1000
+				Long ttlMilis = (Long) sessionDbt.getVal("cache_expiry") * 60 * 1000;
+				// set the debounce interval at 1% of the cache expiry
+				sessionDebounceInterval = (new Double(ttlMilis * 0.01)).intValue();
+
 				isCfgInDb = true;
 				svarogState = true;
 			} catch (Exception ex) {
@@ -1457,10 +1479,40 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getUserBySession(String session_id) throws SvException {
 		DbDataObject svToken = DbCache.getObject(session_id, svCONST.OBJECT_TYPE_SECURITY_LOG);
-		DbDataObject dbu = null;
+		if (!SvCluster.isCoordinator() && SvCluster.getIsActive().get()) {
+			// we are not coordinator so lets communucate our session
+			// management with the coordinator
+			if (svToken != null) {
+				// we found a local session, and send refresh to coordinator
+				if (((DateTime) svToken.getVal("last_refresh")).withDurationAdded(sessionDebounceInterval, 1)
+						.isBeforeNow()) {
+					if (SvClusterClient.refreshToken(session_id)) {
+						DboUnderground.revertReadOnly(svToken, new SvReader());
+						svToken.setVal("last_refresh", DateTime.now());
+						svToken.setIsDirty(false);
+						DboFactory.makeDboReadOnly(svToken);
+						DbCache.addObject(svToken, session_id);
+					}
+				}
+			} else // no local session was found get one from coordinator
+			{
+				svToken = SvClusterClient.getToken(session_id);
+				if (svToken != null) {
+					svToken.setVal("last_refresh", DateTime.now());
+					svToken.setIsDirty(false);
+					DboFactory.makeDboReadOnly(svToken);
+					DbCache.addObject(svToken, session_id);
+				}
+
+			}
+		}
+
 		if (svToken == null)
 			throw (new SvException("error.invalid_session", svCONST.systemUser));
 
+		DbDataObject dbu = null;
+		// if the last refresh + the interval is in the past, send a refresh in
+		// the cluster
 		SvSecurity svs = null;
 		try {
 			svs = new SvSecurity();
@@ -1885,7 +1937,6 @@ public abstract class SvCore implements ISvCore {
 			}
 		}
 		return retVal;
-		// TODO work in progress
 	}
 
 	void bindQueryVals(PreparedStatement ps, ArrayList<Object> bindVals) throws SQLException {
@@ -2508,7 +2559,7 @@ public abstract class SvCore implements ISvCore {
 	 * @throws ParseException
 	 *             Any underlying exception is re-thrown
 	 */
-	@SuppressWarnings("unused")
+
 	private Object getObjectFromCol(ResultSet rs, String fieldType, int colIndex, ResultSetMetaData rsmt)
 			throws SQLException, ParseException {
 
@@ -2660,8 +2711,6 @@ public abstract class SvCore implements ISvCore {
 			SvAccess accessLevel) throws SvException {
 		boolean hasAccess = false;
 		DbDataObject dbt = dqo.getDbt();
-
-		// TODO WIP
 
 		// create expression to hold the config criteria
 		DbSearchExpression innerDbx = new DbSearchExpression();

@@ -12,17 +12,17 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.0.3</version>
+	<version>3.0.4</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<scm>
-		<connection>scm:git:https://gitlab.prtech.mk/svarogv3/svarog.git</connection>
-		<developerConnection>scm:git:https://gitlab.prtech.mk/svarogv3/svarog.git</developerConnection>
+		<connection>scm:git:https://github.com/PerunTech/svarog.git</connection>
+		<developerConnection>scm:git:https://github.com/PerunTech/svarog.git</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://gitlab.prtech.mk/svarogv3/svarog.git</url>
+		<url>https://github.com/PerunTech/svarog.git</url>
 	</scm>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
@@ -43,6 +43,26 @@
 			</resource>
 		</resources>
 		<plugins>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+				<version>4.0.0</version>
+				<executions>
+					<execution>
+						<id>get-the-git-infos</id>
+						<goals>
+							<goal>revision</goal>
+						</goals>
+						<phase>initialize</phase>
+					</execution>
+				</executions>
+				<configuration>
+					<useNativeGit>false</useNativeGit>
+					<generateGitPropertiesFile>true</generateGitPropertiesFile>
+					<generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+					<commitIdGenerationMode>full</commitIdGenerationMode>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>buildnumber-maven-plugin</artifactId>
@@ -247,7 +267,7 @@
 		<dependency>
 			<groupId>svarog-interfaces</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>3.0.3</version>
+			<version>3.0.4-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -358,6 +378,11 @@
 			<groupId>org.sonarsource.scanner.maven</groupId>
 			<artifactId>sonar-maven-plugin</artifactId>
 			<version>3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.zeromq</groupId>
+			<artifactId>jeromq</artifactId>
+			<version>0.5.1</version>
 		</dependency>
 	</dependencies>
 
