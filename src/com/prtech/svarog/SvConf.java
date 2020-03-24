@@ -103,6 +103,40 @@ public class SvConf {
 	private static int maxLockCount;
 
 	/**
+	 * Maximum time before the node will perform cluster maintenance.
+	 */
+	private static int clusterMaintenanceInterval;
+
+	/**
+	 * TCP/IP port on which the server will listen for heartbeat.
+	 */
+	private static int heartBeatPort;
+
+	/**
+	 * The heart beat interval between two heart beats for configuring the
+	 * cluster client
+	 */
+	private static int heartBeatInterval;
+
+	/**
+	 * Filed to register the IP of the VM Bridge. Svarog will not register this
+	 * IP as valid ip for heartbeat connections
+	 */
+	private static String vmBridgeIPAddress;
+	/**
+	 * The maximum timeout which shall we wait before declaring the peer as dead
+	 */
+	private static int heartBeatTimeOut;
+
+	public static int getHeartBeatTimeOut() {
+		return heartBeatTimeOut;
+	}
+
+	public static void setHeartBeatTimeOut(int heartBeatTimeOut) {
+		SvConf.heartBeatTimeOut = heartBeatTimeOut;
+	}
+
+	/**
 	 * Flag to mark if SDI is enabled
 	 */
 	private static boolean sdiEnabled = false;
@@ -164,19 +198,39 @@ public class SvConf {
 	private static volatile DataSource sysDataSource = null;
 
 	/**
-	 * Set the default multi select separator
+	 * Set the default multi select separator. It is used to separate selected
+	 * values when stored in the d
 	 */
 	private static String multiSelectSeparator = ";";
+
+	/**
+	 * Size of the generated grid of the territory covered by the spatial
+	 * modules
+	 */
 	static int sdiGridSize;
+	/**
+	 * Flag to enable svarog to recalculate geometry area/perimeter
+	 */
 	static boolean sdiOverrideGeomCalc;
 
+	private static boolean clusterEnabled = true;
 	/**
 	 * Fields storing application information
 	 */
 	static final String appName = loadInfo("application.name");
+	/**
+	 * Fields storing Application version
+	 */
 	static final String appVersion = loadInfo("application.version");
+	/**
+	 * Fields storing Application build number
+	 */
 	static final String appBuild = loadInfo("application.build");
 
+	/**
+	 * Array holding the list of service classes allowed to switch to the
+	 * Service user without being authenticated
+	 */
 	static ArrayList<String> serviceClasses = new ArrayList<String>();
 	/**
 	 * Properties object holding the svarog master configuration
@@ -204,11 +258,11 @@ public class SvConf {
 	 * 
 	 * @return the maximum date time for the specific time zone
 	 */
-	public static DateTime getMaxDate() {
+	private static DateTime getMaxDate() {
 		DateTime maxDate = new DateTime("9999-12-31T00:00:00+00");
 		String timezone = SvConf.getParam("sys.force_timezone");
 
-		if (timezone != null) {
+		if (timezone != null && !timezone.trim().isEmpty()) {
 			try {
 				// forID(timezone)
 				DateTimeZone dtz = DateTimeZone.getDefault();
@@ -230,7 +284,15 @@ public class SvConf {
 		return maxDate;
 	}
 
+	/**
+	 * Final field representing the Maximum date time value used in Svarog.
+	 * Includes time zone
+	 */
 	public static final DateTime MAX_DATE = getMaxDate();
+
+	/**
+	 * SQL Timestamp version of the MAX DATE used for SQL queries
+	 */
 	public static final Timestamp MAX_DATE_SQL = new Timestamp(MAX_DATE.getMillis());
 
 	/**
@@ -363,10 +425,10 @@ public class SvConf {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
 				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
 				Context initialContext = new InitialContext();
-				dataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
+				sysDataSource = (DataSource) initialContext.lookup(jndiDataSourceName);
 			} else {
 				log4j.info("DB connection type is JDBC, using DBCP2");
-				dataSource = configureDBCP(mainProperties);
+				configureDBCP(mainProperties);
 			}
 			hasErrors = false;
 			if (!(svDbType.equals(SvDbType.ORACLE) || svDbType.equals(SvDbType.POSTGRES)
@@ -398,7 +460,7 @@ public class SvConf {
 		else {
 			synchronized (config) {
 				if (sysDataSource == null)
-					sysDataSource = initDataSource(config);
+					initDataSource(config);
 				return sysDataSource;
 			}
 		}
@@ -427,6 +489,12 @@ public class SvConf {
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
+			clusterMaintenanceInterval = getProperty(mainProperties, "sys.cluster.max_maintenance", 60);
+			heartBeatPort = getProperty(mainProperties, "sys.cluster.heartbeat_port", 6783);
+			heartBeatInterval = getProperty(mainProperties, "sys.cluster.heartbeat_interval", 1000);
+			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
+			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
+			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
 
 			// configure svarog service classes
 			String svcClass = mainProperties.getProperty("sys.service_class");
@@ -560,34 +628,34 @@ public class SvConf {
 	 */
 	static DataSource configureDBCP(Properties mainProperties) {
 
-		DataSource coreDataSource = new BasicDataSource();
-		((BasicDataSource) coreDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
-		((BasicDataSource) coreDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
-		((BasicDataSource) coreDataSource).setUsername(mainProperties.getProperty("user.name").trim());
-		((BasicDataSource) coreDataSource).setPassword(mainProperties.getProperty("user.password").trim());
+		sysDataSource = new BasicDataSource();
+		((BasicDataSource) sysDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
+		((BasicDataSource) sysDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
+		((BasicDataSource) sysDataSource).setUsername(mainProperties.getProperty("user.name").trim());
+		((BasicDataSource) sysDataSource).setPassword(mainProperties.getProperty("user.password").trim());
 
 		// Parameters for connection pooling
-		((BasicDataSource) coreDataSource).setInitialSize(getProperty(mainProperties, "dbcp.init.size", 10));
-		((BasicDataSource) coreDataSource).setMaxTotal(getProperty(mainProperties, "dbcp.max.total", 200));
-		((BasicDataSource) coreDataSource).setTestOnBorrow(getProperty(mainProperties, "dbcp.test.borrow", true));
-		((BasicDataSource) coreDataSource).setTestWhileIdle(getProperty(mainProperties, "dbcp.test.idle", true));
+		((BasicDataSource) sysDataSource).setInitialSize(getProperty(mainProperties, "dbcp.init.size", 10));
+		((BasicDataSource) sysDataSource).setMaxTotal(getProperty(mainProperties, "dbcp.max.total", 200));
+		((BasicDataSource) sysDataSource).setTestOnBorrow(getProperty(mainProperties, "dbcp.test.borrow", true));
+		((BasicDataSource) sysDataSource).setTestWhileIdle(getProperty(mainProperties, "dbcp.test.idle", true));
 		String defaultValidationQuery = "SELECT 1" + (svDbType.equals(SvDbType.ORACLE) ? " FROM DUAL" : "");
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setValidationQuery(getProperty(mainProperties, "dbcp.validation.query", defaultValidationQuery));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setValidationQueryTimeout(getProperty(mainProperties, "dbcp.validation.timoeut", 3000));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setAccessToUnderlyingConnectionAllowed(getProperty(mainProperties, "dbcp.access.conn", true));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedOnBorrow(getProperty(mainProperties, "dbcp.remove.abandoned", true));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedOnMaintenance(getProperty(mainProperties, "dbcp.remove.abandoned", true));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 3000));
-		((BasicDataSource) coreDataSource)
+		((BasicDataSource) sysDataSource)
 				.setTimeBetweenEvictionRunsMillis(getProperty(mainProperties, "dbcp.eviction.time", 3000));
-		((BasicDataSource) coreDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
-		return coreDataSource;
+		((BasicDataSource) sysDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
+		return sysDataSource;
 	}
 
 	/**
@@ -638,6 +706,11 @@ public class SvConf {
 		}
 	}
 
+	/**
+	 * Method to get the SDI srid configured in svarog properties
+	 * 
+	 * @return
+	 */
 	public static int getSDISrid() {
 		if (sdiSrid == null) {
 			try {
@@ -763,9 +836,16 @@ public class SvConf {
 		coreIdleTimeout = timeoutMilis;
 	}
 
+	public static int getClusterMaintenanceInterval() {
+		return clusterMaintenanceInterval;
+	}
+
+	public static void setClusterMaintenanceInterval(int clusterMaintenanceInterval) {
+		SvConf.clusterMaintenanceInterval = clusterMaintenanceInterval;
+	}
+
 	public static String getMasterRepo() {
 		return repoName;
-		// return config.getProperty("sys.masterRepo").trim();
 	}
 
 	public static String getCustomJar() {
@@ -794,11 +874,6 @@ public class SvConf {
 
 	public static SvDbType getDbType() {
 		return svDbType;
-	}
-
-	@Deprecated
-	public static String getDBType() {
-		return dbType;
 	}
 
 	public static String getDefaultLocale() {
@@ -865,4 +940,35 @@ public class SvConf {
 		SvConf.maxLockCount = maxLockCount;
 	}
 
+	public static int getHeartBeatPort() {
+		return heartBeatPort;
+	}
+
+	public static void setHeartBeatPort(int heartBeatPort) {
+		SvConf.heartBeatPort = heartBeatPort;
+	}
+
+	public static int getHeartBeatInterval() {
+		return heartBeatInterval;
+	}
+
+	public static void setHeartBeatInterval(int heartBeatInterval) {
+		SvConf.heartBeatInterval = heartBeatInterval;
+	}
+
+	public static String getVmBridgeIPAddress() {
+		return vmBridgeIPAddress;
+	}
+
+	public static void setVmBridgeIPAddress(String vmBridgeIPAddress) {
+		SvConf.vmBridgeIPAddress = vmBridgeIPAddress;
+	}
+
+	public static boolean isClusterEnabled() {
+		return clusterEnabled;
+	}
+
+	public static void setClusterEnabled(boolean enableCluster) {
+		SvConf.clusterEnabled = enableCluster;
+	}
 }

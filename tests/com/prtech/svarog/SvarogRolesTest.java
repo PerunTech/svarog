@@ -36,7 +36,7 @@ public class SvarogRolesTest {
 	static final String testAdminPassword = "SVAROG_ADMIN_PASS";
 	static final String testAdminPin = "6783";
 
-	DbDataObject createTestUser(String testUserName, String testPassword, String testPin, boolean isAdmin)
+	static DbDataObject createTestUser(String testUserName, String testPassword, String testPin, boolean isAdmin)
 			throws SvException {
 		DbDataObject user = null;
 		SvSecurity svs = null;
@@ -527,6 +527,7 @@ public class SvarogRolesTest {
 				token = getUserToken(false);
 				svr = new SvReader(token);
 				DbDataArray result = svr.getObjects(dqo, 1, 0);
+				 
 				System.out.println(result.toSimpleJson());
 			} else
 				fail("Can't grant permission");
@@ -597,7 +598,7 @@ public class SvarogRolesTest {
 		sudoTest(true);
 	}
 
-	public String getUserToken(boolean isAdmin) throws SvException {
+	public static String getUserToken(boolean isAdmin) throws SvException {
 		String token = null;
 		SvReader db = null;
 		SvSecurity svs = null;
