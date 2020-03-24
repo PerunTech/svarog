@@ -3162,17 +3162,9 @@ public class DbInit {
 			dbf2.setDbFieldName("WORKFLOW_TYPE");
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(50);
-			dbf2.setIsNull(false);
+			dbf2.setIsNull(true);
 			dbf2.setCode_list_user_code("WORKFLOW_TYPE");
 			dbf2.setLabel_code("master_repo.workflow_type");
-
-			// f2
-			DbDataField dbf2_0 = new DbDataField();
-			dbf2_0.setDbFieldName("WORKFLOW_UID");
-			dbf2_0.setDbFieldType(DbFieldType.NVARCHAR);
-			dbf2_0.setDbFieldSize(50);
-			dbf2_0.setIsNull(false);
-			dbf2_0.setLabel_code("master_repo.workflow_uid");
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
@@ -3186,24 +3178,14 @@ public class DbInit {
 			dbf2_1.setLabel_code("master_repo.workflow_name");
 			dbf2_1.setIs_updateable(false);
 
-			DbDataField dbf5 = new DbDataField();
-			dbf5.setDbFieldName("OBJECT_SUB_CODE");
-			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
-			dbf5.setDbFieldSize(100);
-			dbf5.setIsUnique(true);
-			dbf5.setUnique_level("PARENT");
-			dbf5.setUnique_constraint_name("uq_object_from_to_status");
-			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.object_type_id");
-
 			DbDataField dbf6 = new DbDataField();
 			dbf6.setDbFieldName("ORIGINATING_STATUS");
 			dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf6.setDbFieldSize(10);
-			dbf6.setIsNull(true);
-			dbf6.setUnique_constraint_name("uq_object_from_to_status");
-			dbf6.setUnique_level("PARENT");
-			dbf6.setIsUnique(true);
+			dbf6.setIsNull(false);
+//			dbf6.setUnique_constraint_name("uq_object_from_to_status");
+//			dbf6.setUnique_level("PARENT");
+//			dbf6.setIsUnique(true);
 			dbf6.setCode_list_user_code("OBJ_STATUS");
 			dbf6.setLabel_code("master_repo.from_status");
 
@@ -3212,9 +3194,9 @@ public class DbInit {
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(10);
 			dbf7.setIsNull(false);
-			dbf7.setIsUnique(true);
-			dbf7.setUnique_level("PARENT");
-			dbf7.setUnique_constraint_name("uq_object_from_to_status");
+//			dbf7.setIsUnique(true);
+//			dbf7.setUnique_level("PARENT");
+//			dbf7.setUnique_constraint_name("uq_object_from_to_status");
 			dbf7.setCode_list_user_code("OBJ_STATUS");
 			dbf7.setLabel_code("master_repo.object_status");
 			dbf7.setGui_metadata(getUiWidth(getDefaultUiMeta(true, false, false, false), 72).toString());
@@ -3241,12 +3223,6 @@ public class DbInit {
 			dbf10.setIsNull(true);
 			dbf10.setLabel_code("master_repo.is_default_route");
 
-			DbDataField dbf11 = new DbDataField();
-			dbf11.setDbFieldName("IS_RESTORABLE");
-			dbf11.setDbFieldType(DbFieldType.BOOLEAN);
-			dbf11.setIsNull(true);
-			dbf11.setLabel_code("master_repo.is_restorable");
-
 			DbDataField dbf12 = new DbDataField();
 			dbf12.setDbFieldName("PERMISSION_CODE");
 			dbf12.setDbFieldType(DbFieldType.NVARCHAR);
@@ -3254,27 +3230,17 @@ public class DbInit {
 			dbf12.setIsNull(true);
 			dbf12.setLabel_code("master_repo.permission_code");
 			
-			DbDataField dbf13 = new DbDataField();
-			dbf13.setDbFieldName("RESTORE_PERMISSION_CODE");
-			dbf13.setDbFieldType(DbFieldType.NVARCHAR);
-			dbf13.setDbFieldSize(150);
-			dbf13.setIsNull(true);
-			dbf13.setLabel_code("master_repo.restore_permission_code");
-
-			dbt.setDbTableFields(new DbDataField[13]);
+			
+			dbt.setDbTableFields(new DbDataField[9]);
 			dbt.getDbTableFields()[0] = dbf1;
 			dbt.getDbTableFields()[1] = dbf2;
-			dbt.getDbTableFields()[2] = dbf2_0;
-			dbt.getDbTableFields()[3] = dbf2_1;
-			dbt.getDbTableFields()[4] = dbf5;
-			dbt.getDbTableFields()[5] = dbf6;
-			dbt.getDbTableFields()[6] = dbf7;
-			dbt.getDbTableFields()[7] = dbf8;
-			dbt.getDbTableFields()[8] = dbf9;
-			dbt.getDbTableFields()[9] = dbf10;
-			dbt.getDbTableFields()[10] = dbf11;
-			dbt.getDbTableFields()[11] = dbf12;
-			dbt.getDbTableFields()[12] = dbf13;
+			dbt.getDbTableFields()[2] = dbf2_1;
+			dbt.getDbTableFields()[3] = dbf6;
+			dbt.getDbTableFields()[4] = dbf7;
+			dbt.getDbTableFields()[5] = dbf8;
+			dbt.getDbTableFields()[6] = dbf9;
+			dbt.getDbTableFields()[7] = dbf10;
+			dbt.getDbTableFields()[8] = dbf12;
 			return dbt;
 		}
 	}
