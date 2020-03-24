@@ -114,6 +114,9 @@ public class SvClusterNotifierProxy implements Runnable {
 			context = null;
 			log4j.info("Notifier Proxy is shut down");
 		}
+		// interrupt the maintenance thread to join if needed
+		if (SvCluster.maintenanceThread != null)
+			SvCluster.maintenanceThread.interrupt();
 
 	}
 
