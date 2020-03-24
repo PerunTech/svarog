@@ -192,7 +192,7 @@ public class ActionSQL extends SvCore {
 			} else {
 				offset = 1;
 			}
-			cst = bindParams(cst, dbo, exec_id, fieldNames, offset, params);
+			bindParams(cst, dbo, exec_id, fieldNames, offset, params);
 		} catch (SQLException e) {
 			throw (new SvException("system.error.re_action_sql_err", instanceUser, dbo, sql, e));
 		}
@@ -239,8 +239,8 @@ public class ActionSQL extends SvCore {
 	 *             Exception which is result of JDBC parameter binding
 	 * 
 	 */
-	private CallableStatement bindParams(CallableStatement cst, DbDataObject dbo, Long exec_id,
-			ArrayList<String> fieldNames, int offset, Map<Object, Object> params) throws SQLException {
+	private void bindParams(CallableStatement cst, DbDataObject dbo, Long exec_id, ArrayList<String> fieldNames,
+			int offset, Map<Object, Object> params) throws SQLException {
 		String currentField;
 		for (int i = 0; i < fieldNames.size(); i++) {
 			currentField = fieldNames.get(i).toLowerCase();
@@ -265,7 +265,6 @@ public class ActionSQL extends SvCore {
 			}
 		}
 
-		return cst;
 	}
 
 	/**

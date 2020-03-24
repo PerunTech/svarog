@@ -33,7 +33,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
  * @author ristepejov
  *
  */
-public class SvCluster extends SvCore implements Runnable {
+public class SvCluster extends SvCore {
 	static final byte MSG_UNKNOWN = -2;
 	static final byte MSG_FAIL = -1;
 	static final byte MSG_SUCCESS = 0;
@@ -97,22 +97,17 @@ public class SvCluster extends SvCore implements Runnable {
 	/**
 	 * Flag to know if the current node is coordinator or worker.
 	 */
-	static boolean runMaintenanceThread = true;
-
-	/**
-	 * Flag to know if the current node is coordinator or worker.
-	 */
 	private static boolean isCoordinator = false;
 
 	/**
 	 * Flag if the cluster is running
 	 */
-	private static AtomicBoolean isRunning = new AtomicBoolean(false);
+	private static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the maintenance is in progress
 	 */
-	private static AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
+	private static final AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the client is running
@@ -198,7 +193,7 @@ public class SvCluster extends SvCore implements Runnable {
 	 */
 	static boolean becomeCoordinator(SvCore svc) throws SvException {
 		SvWriter svw = null;
-		boolean success = false;
+		boolean success = true;
 		try {
 			svw = new SvWriter(svc);
 			if (coordinatorNode == null) {
@@ -208,7 +203,6 @@ public class SvCluster extends SvCore implements Runnable {
 			coordinatorNode.setValuesMap(getCurrentNodeInfo().getValuesMap());
 			svw.isInternal = true;
 			svw.saveObject(coordinatorNode, true);
-			success = true;
 		} catch (SvException e) {
 			// if the object is not update-able, another node became
 			// coordinator and we should register a worker node
@@ -403,9 +397,19 @@ public class SvCluster extends SvCore implements Runnable {
 		}
 	}
 
-	private static void startClients(String hbAddress) {
+	/**
+	 * Method to ensure the cluster clients have started and connected to the
+	 * hear beat address/port of the coordinator
+	 * 
+	 * @param hbAddress
+	 *            String list of available heartbeat end points
+	 * @return True if the client threads have started and connected with
+	 *         success
+	 */
+	private static boolean startClients(String hbAddress) {
 		boolean initHb = false;
 		boolean initNotif = false;
+		boolean threadStarted = false;
 		initHb = SvClusterClient.initClient(hbAddress);
 		initNotif = initHb ? SvClusterNotifierClient.initClient(hbAddress) : false;
 		if (initHb && initNotif) {
@@ -415,12 +419,12 @@ public class SvCluster extends SvCore implements Runnable {
 			notifierThread = new Thread(new SvClusterNotifierClient());
 			notifierThread.setName("SvClusterNotifierClientThread");
 			notifierThread.start();
-			isRunning.set(true);
+			threadStarted = true;
 		} else {
 			log4j.info("Svarog Cluster Clients initialisation failed. Initiating Cluster shutdown.");
 			shutdown();
 		}
-
+		return initHb && initNotif && threadStarted;
 	}
 
 	/**
@@ -429,13 +433,12 @@ public class SvCluster extends SvCore implements Runnable {
 	 * @return True if the server threads have been started successfully.
 	 * @throws SvException
 	 */
-	private static void startServers() throws SvException {
+	private static boolean startServers() throws SvException {
 		boolean initHb = false;
 		boolean initNotif = false;
 		initHb = SvClusterServer.initServer();
 		initNotif = SvClusterNotifierProxy.initServer();
 		if (initHb && initNotif) {
-			isCoordinator = true;
 			// promote the local locks from the old node id
 			heartBeatThread = new Thread(new SvClusterServer());
 			heartBeatThread.setName("SvClusterServerThread");
@@ -443,16 +446,14 @@ public class SvCluster extends SvCore implements Runnable {
 			notifierThread = new Thread(new SvClusterNotifierProxy());
 			notifierThread.setName("SvClusterNotifierProxyThread");
 			notifierThread.start();
-			if (runMaintenanceThread) {
-				maintenanceThread = new Thread(new SvCluster());
-				maintenanceThread.start();
-			}
-			// currentNode.setParentId(coordinatorNode.getObjectId());
-			isRunning.set(true);
+
+			// finally we are the coordinator
+			isCoordinator = true;
 		} else {
 			log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster shutdown.");
 			shutdown();
 		}
+		return initHb && initNotif && isCoordinator;
 	}
 
 	/**
@@ -471,7 +472,6 @@ public class SvCluster extends SvCore implements Runnable {
 			return false;
 		}
 		SvReader svr = null;
-		SvWriter svw = null;
 		isCoordinator = false;
 		try {
 			svr = new SvReader();
@@ -496,11 +496,11 @@ public class SvCluster extends SvCore implements Runnable {
 			String hbAddress = (String) coordinatorNode.getVal("local_ip");
 
 			if (isCoordinator || (!isCoordinator && SvUtil.getIpAdresses(true, IP_ADDR_DELIMITER).equals(hbAddress)))
-				startServers();
+				isActive.set(startServers());
 
 			// if the servers failed to start, then try to start as a client
-			if (!isRunning.get() && !isCoordinator && autoStartClient)
-				startClients(hbAddress);
+			if (!isActive.get() && autoStartClient)
+				isActive.set(startClients(hbAddress));
 
 		} catch (Exception e) {
 			log4j.error("Svarog cluster could not be initialised. Cluster not running!", e);
@@ -508,11 +508,7 @@ public class SvCluster extends SvCore implements Runnable {
 		} finally {
 			if (svr != null)
 				svr.release();
-			if (svw != null)
-				svw.release();
 		}
-		// finally mark the cluster as Active
-		isActive.set(isRunning.get());
 		return isActive.get();
 	}
 
@@ -577,20 +573,29 @@ public class SvCluster extends SvCore implements Runnable {
 	 * or servers have stopped
 	 */
 	static void joinDaemonThreads() {
-		if (!Thread.currentThread().equals(heartBeatThread) && heartBeatThread != null && heartBeatThread.isAlive())
-			try {
-				heartBeatThread.join();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				log4j.info("Interrupted heart beat thread join.", e);
-			}
-		if (!Thread.currentThread().equals(notifierThread) && notifierThread != null && notifierThread.isAlive())
-			try {
-				notifierThread.join();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				log4j.info("Interrupted notifier thread join.", e);
-			}
+		boolean heartBeatRunning = true;
+		boolean notifierRunning = true;
+
+		while (heartBeatRunning || notifierRunning) {
+			if (!Thread.currentThread().equals(heartBeatThread))
+				try {
+					if (heartBeatThread != null && heartBeatThread.isAlive())
+						heartBeatThread.join();
+					heartBeatRunning = false;
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					log4j.info("Interrupted heart beat thread join.", e);
+				}
+			if (!Thread.currentThread().equals(notifierThread))
+				try {
+					if (notifierThread != null && notifierThread.isAlive())
+						notifierThread.join();
+					notifierRunning = false;
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					log4j.info("Interrupted notifier thread join.", e);
+				}
+		}
 
 	}
 
@@ -621,11 +626,10 @@ public class SvCluster extends SvCore implements Runnable {
 		heartBeatThread = null;
 		notifierThread = null;
 		coordinatorNode = null;
-		if (runMaintenanceThread)
-			maintenanceThread = null;
 		isCoordinator = false;
-		synchronized (SvCluster.IP_ADDR_DELIMITER) {
-			IP_ADDR_DELIMITER.notify();
+		// notify interested parties that we shut down
+		synchronized (SvCluster.isRunning) {
+			isRunning.notifyAll();
 		}
 	}
 
@@ -817,21 +821,6 @@ public class SvCluster extends SvCore implements Runnable {
 		}
 	}
 
-	@Override
-	public void run() {
-
-		while (isRunning.get()) {
-			try {
-				Thread.sleep((SvConf.getClusterMaintenanceInterval() - 2) * 1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				// e.printStackTrace();
-			}
-			clusterListMaintenance();
-		}
-
-	}
-
 	public static boolean isCoordinator() {
 		return isCoordinator;
 	}
@@ -844,16 +833,16 @@ public class SvCluster extends SvCore implements Runnable {
 		return isRunning;
 	}
 
-	public static void setIsRunning(AtomicBoolean isRunning) {
-		SvCluster.isRunning = isRunning;
+	public static void setIsRunning(boolean isRunning) {
+		SvCluster.isRunning.set(isRunning);
 	}
 
 	public static AtomicBoolean getMaintenanceInProgress() {
 		return maintenanceInProgress;
 	}
 
-	public static void setMaintenanceInProgress(AtomicBoolean maintenanceInProgress) {
-		SvCluster.maintenanceInProgress = maintenanceInProgress;
+	public static void setMaintenanceInProgress(boolean maintenanceInProgress) {
+		SvCluster.maintenanceInProgress.set(maintenanceInProgress);
 	}
 
 	public static AtomicBoolean getIsActive() {
