@@ -573,28 +573,20 @@ public class SvCluster extends SvCore {
 	 * or servers have stopped
 	 */
 	static void joinDaemonThreads() {
-		boolean heartBeatRunning = true;
-		boolean notifierRunning = true;
+		// just check if the join isn't invoked from the heartbeat or notifier.
+		Thread joinHb = (!Thread.currentThread().equals(heartBeatThread) ? heartBeatThread : null);
+		Thread joinNf = (!Thread.currentThread().equals(notifierThread) ? notifierThread : null);
 
-		while (heartBeatRunning || notifierRunning) {
-			if (!Thread.currentThread().equals(heartBeatThread))
-				try {
-					if (heartBeatThread != null && heartBeatThread.isAlive())
-						heartBeatThread.join();
-					heartBeatRunning = false;
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					log4j.info("Interrupted heart beat thread join.", e);
-				}
-			if (!Thread.currentThread().equals(notifierThread))
-				try {
-					if (notifierThread != null && notifierThread.isAlive())
-						notifierThread.join();
-					notifierRunning = false;
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					log4j.info("Interrupted notifier thread join.", e);
-				}
+		while ((joinHb != null && joinHb.isAlive()) || (joinNf != null && joinNf.isAlive())) {
+			try {
+				if (joinNf != null && joinNf.isAlive())
+					joinHb.join(10);
+				if (joinNf != null && joinNf.isAlive())
+					joinNf.join(10);
+			} catch (InterruptedException e) {
+				log4j.info("Interrupted heart beat thread join.", e);
+			}
+
 		}
 
 	}
