@@ -5314,9 +5314,13 @@ public class DbInit {
 				istr = new FileInputStream(new File(filePath));
 				aclStr = IOUtils.toString(istr);
 			}
-			aclStr = aclStr.replace("{MASTER_REPO}", SvConf.getMasterRepo());
-			aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
-			json = gson.fromJson(aclStr, JsonElement.class);
+			if (aclStr != null) {
+				aclStr = aclStr.replace("{MASTER_REPO}", SvConf.getMasterRepo());
+				aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
+				json = gson.fromJson(aclStr, JsonElement.class);
+			} else
+				log4j.debug("Warning, no ACLs found in:" + jarPath + ", path:" + filePath);
+
 		} catch (Exception ex) {
 			log4j.trace(
 					"Warning, no ACLs found in:" + jarPath + ", path:" + filePath + ". Exception:" + ex.getMessage());
@@ -5881,11 +5885,11 @@ public class DbInit {
 	 * @param defaultObjests
 	 *            The array with default sys objects
 	 */
-
+	
 	public static void initCoreRecords(DbDataArray defaultCodes, DbDataArray defaultObjests) {
 		Long svObjectId = svCONST.MAX_SYS_OBJECT_ID;
 		StringBuilder errMsg = new StringBuilder();
-		svObjectId = dbTables2DbDataArray(getMasterRoot(), defaultObjests, defaultCodes, svObjectId, errMsg);
+		dbTables2DbDataArray(getMasterRoot(), defaultObjests, defaultCodes, svObjectId, errMsg);
 
 		String json = defaultObjests.toJson().toString();
 		json = json.replace("{MASTER_REPO}", SvConf.getMasterRepo());
@@ -6251,7 +6255,7 @@ public class DbInit {
 		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes, customObjests);
 		customObjestsAll.getItems().addAll(customObjests.getItems());
 
-		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
+		saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
 				customObjests);
 		customObjestsAll.getItems().addAll(customObjests.getItems());
 
