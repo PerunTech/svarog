@@ -271,7 +271,6 @@ public class SvarogDaemon {
 
 			// ensure that the Cluster doesn't run the maintenance thread, but
 			// we will perform maintenance in this thread
-			SvCluster.runMaintenanceThread = false;
 			SvCluster.maintenanceThread = Thread.currentThread();
 
 			// Set the proxy to process the notifications it self
@@ -284,8 +283,8 @@ public class SvarogDaemon {
 				// cleanup.
 				try {
 					shutdown = true;
-
-					if (!SvCluster.getIsActive().get())
+					//if the cluster is not disabled and not active, try to activate
+					if (SvConf.isClusterEnabled() && !SvCluster.getIsActive().get())
 						SvCluster.initCluster();
 					// if we are members of a cluster, then align with
 					// maintenance interval otherwise repeat the initialisation

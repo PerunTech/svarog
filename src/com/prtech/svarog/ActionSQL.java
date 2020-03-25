@@ -127,7 +127,8 @@ public class ActionSQL extends SvCore {
 		CallableStatement cst = null;
 		ResultSet rs = null;
 		try {
-			cst = prepareGet(sql, dbo, exec_id, rettype, arrayType, params);
+			cst = this.dbGetConn().prepareCall(sql);
+			prepareGet(sql, dbo, exec_id, rettype, arrayType, params, cst);
 			if (calltype.equals("Execute")) {
 				result = cst.executeUpdate();
 			} else if (calltype.equals("Query")) {
@@ -172,11 +173,9 @@ public class ActionSQL extends SvCore {
 	 *             Throws system.error.re_action_sql_err in case of SQL failure
 	 * 
 	 */
-	private CallableStatement prepareGet(String sql, DbDataObject dbo, Long exec_id, Long rettype, String arrayType,
-			Map<Object, Object> params) throws SvException {
+	private void prepareGet(String sql, DbDataObject dbo, Long exec_id, Long rettype, String arrayType,
+			Map<Object, Object> params, CallableStatement cst) throws SvException {
 
-		CallableStatement cst = null;
-		Connection conn = this.dbGetConn();
 		String pattern = "(\\{)(.*?)(\\})";
 		ArrayList<String> fieldNames = getFieldNames(sql, pattern);
 		sql = "{ ? = " + sql.replaceAll(pattern, "?") + "}";
@@ -184,7 +183,6 @@ public class ActionSQL extends SvCore {
 		int offset;
 		try {
 			if (sql.toLowerCase().startsWith("call")) {
-				cst = conn.prepareCall(sql);
 				if (rettype == java.sql.Types.ARRAY) {
 					cst.registerOutParameter(1, rettype.intValue(), arrayType);
 				} else {
@@ -192,15 +190,12 @@ public class ActionSQL extends SvCore {
 				}
 				offset = 2;
 			} else {
-				cst = conn.prepareCall(sql);
 				offset = 1;
 			}
-
-			cst = bindParams(cst, dbo, exec_id, fieldNames, offset, params);
+			bindParams(cst, dbo, exec_id, fieldNames, offset, params);
 		} catch (SQLException e) {
 			throw (new SvException("system.error.re_action_sql_err", instanceUser, dbo, sql, e));
 		}
-		return cst;
 	}
 
 	/**
@@ -244,8 +239,8 @@ public class ActionSQL extends SvCore {
 	 *             Exception which is result of JDBC parameter binding
 	 * 
 	 */
-	private CallableStatement bindParams(CallableStatement cst, DbDataObject dbo, Long exec_id,
-			ArrayList<String> fieldNames, int offset, Map<Object, Object> params) throws SQLException {
+	private void bindParams(CallableStatement cst, DbDataObject dbo, Long exec_id, ArrayList<String> fieldNames,
+			int offset, Map<Object, Object> params) throws SQLException {
 		String currentField;
 		for (int i = 0; i < fieldNames.size(); i++) {
 			currentField = fieldNames.get(i).toLowerCase();
@@ -270,7 +265,6 @@ public class ActionSQL extends SvCore {
 			}
 		}
 
-		return cst;
 	}
 
 	/**

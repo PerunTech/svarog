@@ -2054,9 +2054,9 @@ public class SvarogTest {
 
 			}
 
-			fis = SvCore.class.getResourceAsStream(SvarogInstall.localesPath);
+			fis = SvCore.class.getResourceAsStream(SvarogInstall.LOCALE_PATH);
 			if (fis == null) {
-				String path = "." + SvarogInstall.localesPath;
+				String path = "." + SvarogInstall.LOCALE_PATH;
 				fis = new FileInputStream(path);
 			}
 			byte[] fileData = IOUtils.toByteArray(fis);
@@ -2706,9 +2706,9 @@ public class SvarogTest {
 			// start update
 
 			{
-				fileToUpdate = SvCore.class.getResourceAsStream(SvarogInstall.localesPath);
+				fileToUpdate = SvCore.class.getResourceAsStream(SvarogInstall.LOCALE_PATH);
 				if (fileToUpdate == null) {
-					String path = "." + SvarogInstall.localesPath;
+					String path = "." + SvarogInstall.LOCALE_PATH;
 					fileToUpdate = new FileInputStream(path);
 				}
 				byte[] fileDataToUpdate = IOUtils.toByteArray(fileToUpdate);

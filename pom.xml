@@ -12,7 +12,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.0.4</version>
+	<version>3.0.5-SNAPSHOT</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -43,6 +43,26 @@
 			</resource>
 		</resources>
 		<plugins>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+				<version>4.0.0</version>
+				<executions>
+					<execution>
+						<id>get-the-git-infos</id>
+						<goals>
+							<goal>revision</goal>
+						</goals>
+						<phase>initialize</phase>
+					</execution>
+				</executions>
+				<configuration>
+					<useNativeGit>false</useNativeGit>
+					<generateGitPropertiesFile>true</generateGitPropertiesFile>
+					<generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+					<commitIdGenerationMode>full</commitIdGenerationMode>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>buildnumber-maven-plugin</artifactId>

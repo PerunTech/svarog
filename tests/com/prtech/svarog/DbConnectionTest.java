@@ -123,7 +123,7 @@ public class DbConnectionTest {
 	@Test
 	public void testGetsDBType() {
 		testGetDBConnection();
-		String sType = SvConf.getDBType();
+		String sType = SvConf.getDbType().toString();
 		if (!(sType.equals("POSTGRES") || sType.equals("ORACLE") || sType.equals("MSSQL")))
 			fail("DbConnection.getDBType() didn't return the default type POSTGRES");
 

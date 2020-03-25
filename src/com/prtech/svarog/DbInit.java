@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -34,12 +35,12 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.Vector;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.main.AutoProcessor;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
@@ -67,6 +68,11 @@ public class DbInit {
 		return meta;
 
 	}
+
+	static final String Y2K_START_DATE = "2000-01-01T00:00:00";
+	static final String CODE_LIST_ID = "CODE_LIST_ID";
+	static final String LABEL_CODE = "LABEL_CODE";
+	static final String TABLE_NAME = "table_name";
 
 	//
 	private static DbDataTable getMasterCluster() {
@@ -621,7 +627,7 @@ public class DbInit {
 		dbe.setLabel_code("FIELD_TYPE");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName("LABEL_CODE");
+		dbe.setConfigColumnName(LABEL_CODE);
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -635,7 +641,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName("LABEL_CODE");
+		dbe2.setDbFieldName(LABEL_CODE);
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setDbFieldSize(100);
 		dbe2.setIsNull(false);
@@ -655,7 +661,7 @@ public class DbInit {
 
 		// Column 4
 		DbDataField dbe4 = new DbDataField();
-		dbe4.setDbFieldName("CODE_LIST_ID");
+		dbe4.setDbFieldName(CODE_LIST_ID);
 		dbe4.setDbFieldType(DbFieldType.NUMERIC);
 		dbe4.setDbFieldSize(18);
 		dbe4.setLabel_code("field.code_list_id");
@@ -812,7 +818,7 @@ public class DbInit {
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName("LABEL_CODE");
+		dbe.setConfigColumnName(LABEL_CODE);
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -826,7 +832,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName("LABEL_CODE");
+		dbe2.setDbFieldName(LABEL_CODE);
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setIsNull(false);
 		dbe2.setDbFieldScale(0);
@@ -1027,7 +1033,7 @@ public class DbInit {
 		dbe.setLabel_code("master_repo.job_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName("LABEL_CODE");
+		dbe.setConfigColumnName(LABEL_CODE);
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1041,7 +1047,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("LABEL_CODE");
+		dbf2.setDbFieldName(LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -1118,7 +1124,7 @@ public class DbInit {
 		dbe.setLabel_code("master_repo.task_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName("LABEL_CODE");
+		dbe.setConfigColumnName(LABEL_CODE);
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1132,7 +1138,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("LABEL_CODE");
+		dbf2.setDbFieldName(LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1190,7 +1196,7 @@ public class DbInit {
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName("LABEL_CODE");
+		dbe.setConfigColumnName(LABEL_CODE);
 		dbe.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 		// Column 1
@@ -1205,7 +1211,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("LABEL_CODE");
+		dbf2.setDbFieldName(LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1241,7 +1247,7 @@ public class DbInit {
 
 		// Column 6
 		DbDataField dbf6 = new DbDataField();
-		dbf6.setDbFieldName("CODE_LIST_ID");
+		dbf6.setDbFieldName(CODE_LIST_ID);
 		dbf6.setDbFieldType(DbFieldType.NUMERIC);
 		dbf6.setDbFieldSize(18);
 		dbf6.setDbFieldScale(0);
@@ -1801,7 +1807,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("LABEL_CODE");
+		dbf3.setDbFieldName(LABEL_CODE);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -1877,7 +1883,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("LABEL_CODE");
+		dbf3.setDbFieldName(LABEL_CODE);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -3255,7 +3261,7 @@ public class DbInit {
 			dbt.setObjectId(svCONST.OBJECT_TYPE_ACL);
 			dbt.setIsRepoTable(false);
 			dbt.setLabel_code("master_repo.acl");
-			dbt.setConfigColumnName("LABEL_CODE");
+			dbt.setConfigColumnName(LABEL_CODE);
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 
@@ -3330,7 +3336,7 @@ public class DbInit {
 			dbf8.setLabel_code("master_repo.acl_config_unq_id");
 
 			DbDataField dbf9 = new DbDataField();
-			dbf9.setDbFieldName("LABEL_CODE");
+			dbf9.setDbFieldName(LABEL_CODE);
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(100);
 			dbf9.setIsNull(false);
@@ -3549,7 +3555,7 @@ public class DbInit {
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName("LABEL_CODE");
+			dbf3.setDbFieldName(LABEL_CODE);
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(false);
@@ -3670,7 +3676,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
-			dbf2.setDbFieldName("LABEL_CODE");
+			dbf2.setDbFieldName(LABEL_CODE);
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
@@ -3830,14 +3836,14 @@ public class DbInit {
 			// f9
 
 			DbDataField dbf10 = new DbDataField();
-			dbf10.setDbFieldName("LABEL_CODE");
+			dbf10.setDbFieldName(LABEL_CODE);
 			dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf10.setDbFieldSize(100);
 			dbf10.setIsNull(false);
 			dbf10.setLabel_code("master_repo.label_code");
 
 			DbDataField dbf11 = new DbDataField();
-			dbf11.setDbFieldName("CODE_LIST_ID");
+			dbf11.setDbFieldName(CODE_LIST_ID);
 			dbf11.setDbFieldType(DbFieldType.NUMERIC);
 			dbf11.setDbFieldSize(18);
 			dbf11.setDbFieldScale(0);
@@ -3991,7 +3997,7 @@ public class DbInit {
 			dbf6.setLabel_code("master_repo.repo_table");
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("LABEL_CODE");
+			dbf7.setDbFieldName(LABEL_CODE);
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(100);
 			dbf7.setIsNull(false);
@@ -5116,11 +5122,11 @@ public class DbInit {
 	 * @return List of instances found
 	 */
 	@SuppressWarnings("unchecked")
-	static ArrayList<IDbInit> getCustomDbInit(String subDir) {
-		return (ArrayList<IDbInit>) loadClass(subDir, IDbInit.class);
+	static ArrayList<Object> getCustomDbInit(String subDir) {
+		return (ArrayList<Object>) loadClass(subDir, IDbInit.class);
 	}
 
-	static ArrayList<?> loadClass(String subDir, Class<?> clazz) {
+	static ArrayList<Object> loadClass(String subDir, Class<?> clazz) {
 		File customFolder = new File(subDir);
 		ArrayList<Object> dbiResult = new ArrayList<>();
 		if (!customFolder.exists())
@@ -5129,9 +5135,13 @@ public class DbInit {
 		if (customJars != null) {
 			Arrays.sort(customJars);
 			for (int i = 0; i < customJars.length; i++) {
-				if (customJars[i].getName().endsWith(".jar")) {
-					ArrayList<Object> dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), clazz);
-					dbiResult.addAll((Collection<?>) dbi);
+				try {
+					if (customJars[i].getName().endsWith(".jar")) {
+						ArrayList<Object> dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), clazz);
+						dbiResult.addAll((Collection<?>) dbi);
+					}
+				} catch (Exception e) {
+					log4j.error("Loading IDbInit instance failed! File: " + customJars[i].getName(), e);
 				}
 			}
 		}
@@ -5141,13 +5151,16 @@ public class DbInit {
 	public static String createJsonMasterRepo() {
 
 		ArrayList<DbDataTable> dbtList = getDedupTables(getMasterObjectsImpl());
-		ArrayList<IDbInit> dbiResult = new ArrayList<IDbInit>();
+		ArrayList<Object> dbiResult = new ArrayList<Object>();
 		// load all dbinit instances from the legacy custom folder
 		dbiResult.addAll(getCustomDbInit("custom/"));
 		dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
 
-		for (IDbInit idb : dbiResult) {
-			dbtList.addAll(idb.getCustomObjectTypes());
+		for (Object idb : dbiResult) {
+			if (idb instanceof IDbInit)
+				dbtList.addAll(((IDbInit) idb).getCustomObjectTypes());
+			else
+				log4j.error("Object is not IDbInit instance!");
 		}
 		String fullRetval = "";
 		for (int i = 0; i < dbtList.size(); i++) {
@@ -5225,14 +5238,14 @@ public class DbInit {
 	 */
 
 	private static void loadLabelsFromCustom(String jarPath, HashMap<String, DbDataObject> mLabels, String locale) {
-		InputStream iStr = null;
+		String iStr = null;
 		Properties prop = new Properties();
 		String labelsPath = "labels/" + locale + "Labels.properties";
 		// load strings
 		try {
 			iStr = DbInit.loadCustomResources(jarPath, labelsPath);
 			if (iStr != null) {
-				prop.load(new InputStreamReader(iStr, "UTF-8"));
+				prop.load(new StringReader(iStr));
 				log4j.info("Loaded labels file '" + labelsPath + "' from: " + jarPath);
 
 				Iterator<Entry<Object, Object>> pit = prop.entrySet().iterator();
@@ -5244,9 +5257,9 @@ public class DbInit {
 
 						DbDataObject dbo = new DbDataObject();
 						dbo.setStatus(svCONST.STATUS_VALID);
-						dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+						dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 						dbo.setDtDelete(SvConf.MAX_DATE);
-						dbo.setVal("label_code", (String) pair.getKey());
+						dbo.setVal(LABEL_CODE, (String) pair.getKey());
 						dbo.setVal("label_text", (String) pair.getValue());
 						dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
@@ -5263,13 +5276,6 @@ public class DbInit {
 				log4j.trace("Labels file '" + labelsPath + "' not found in: " + jarPath);
 		} catch (Exception e1) {
 			log4j.error("Error loading labels from custom jar:" + jarPath, e1);
-		} finally {
-			try {
-				if (iStr != null)
-					iStr.close();
-			} catch (IOException e) {
-				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
-			}
 		}
 
 	}
@@ -5294,14 +5300,20 @@ public class DbInit {
 		JsonElement json = null;
 		InputStream istr = null;
 		try {
+			String aclStr = null;
 			if (jarPath != null)
-				istr = DbInit.loadCustomResources(jarPath, filePath);
-			else
+				aclStr = DbInit.loadCustomResources(jarPath, filePath);
+			else {
 				istr = new FileInputStream(new File(filePath));
-			String aclStr = IOUtils.toString(istr);
-			aclStr = aclStr.replace("{MASTER_REPO}", SvConf.getMasterRepo());
-			aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
-			json = gson.fromJson(aclStr, JsonElement.class);
+				aclStr = IOUtils.toString(istr);
+			}
+			if (aclStr != null) {
+				aclStr = aclStr.replace("{MASTER_REPO}", SvConf.getMasterRepo());
+				aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
+				json = gson.fromJson(aclStr, JsonElement.class);
+			} else
+				log4j.debug("Warning, no ACLs found in:" + jarPath + ", path:" + filePath);
+
 		} catch (Exception ex) {
 			log4j.trace(
 					"Warning, no ACLs found in:" + jarPath + ", path:" + filePath + ". Exception:" + ex.getMessage());
@@ -5320,13 +5332,13 @@ public class DbInit {
 	public static DbDataObject createAclFromDbt(DbDataObject dbt, SvAccess accessLevel) {
 		DbDataObject dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", accessLevel.toString());
 		dbo.setVal("acl_object_id", (String) dbt.getVal("TABLE_NAME"));
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", null);
-		dbo.setVal("label_code", (String) dbt.getVal("TABLE_NAME") + "." + accessLevel.toString());
+		dbo.setVal(LABEL_CODE, (String) dbt.getVal("TABLE_NAME") + "." + accessLevel.toString());
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		return dbo;
 
@@ -5335,37 +5347,37 @@ public class DbInit {
 	public static void prepareSystemACLs(DbDataArray acls) {
 		DbDataObject dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
 		dbo.setVal("acl_object_id", 0L);
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.SUDO_ACL);
-		dbo.setVal("label_code", svCONST.SUDO_ACL);
+		dbo.setVal(LABEL_CODE, svCONST.SUDO_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
 		dbo.setVal("acl_object_id", 0L);
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.INSECURE_SQL_ACL);
-		dbo.setVal("label_code", svCONST.INSECURE_SQL_ACL);
+		dbo.setVal(LABEL_CODE, svCONST.INSECURE_SQL_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
 		dbo.setVal("acl_object_id", 0L);
 		dbo.setVal("acl_object_type", "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.NULL_GEOMETRY_ACL);
-		dbo.setVal("label_code", svCONST.NULL_GEOMETRY_ACL);
+		dbo.setVal(LABEL_CODE, svCONST.NULL_GEOMETRY_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5472,7 +5484,7 @@ public class DbInit {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
 								dbo.setStatus(svCONST.STATUS_VALID);
-								dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+								dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
 										? aclItem.get("ACCESS_TYPE").getAsString() : null);
@@ -5482,8 +5494,8 @@ public class DbInit {
 										? aclItem.get("acl_object_type").getAsString() : null);
 								dbo.setVal("acl_config_unq", aclItem.get("acl_config_unq") != null
 										? aclItem.get("acl_config_unq").getAsString() : null);
-								dbo.setVal("label_code", aclItem.get("label_code") != null
-										? aclItem.get("label_code").getAsString() : null);
+								dbo.setVal(LABEL_CODE, aclItem.get(LABEL_CODE.toLowerCase()) != null
+										? aclItem.get(LABEL_CODE.toLowerCase()).getAsString() : null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
 							}
@@ -5504,7 +5516,7 @@ public class DbInit {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
 								dbo.setStatus(svCONST.STATUS_VALID);
-								dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+								dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("sid_object_id", aclItem.get("sid_object_id") != null
 										? aclItem.get("sid_object_id").getAsString() : null);
@@ -5543,7 +5555,15 @@ public class DbInit {
 		return testRetval;
 	}
 
-	static void loadInternalLabels(String localeId, HashMap<String, DbDataObject> mLabels) {
+	/**
+	 * Method to load the properties file for the specific locale and return
+	 * Properties object
+	 * 
+	 * @param localeId
+	 *            The locale for which we should load the labels
+	 * @return Properties object holding all labels for the specific locale
+	 */
+	static Properties loadLabelsBundle(String localeId) {
 		String labelFile = SvarogInstall.masterCodesPath + localeId + "Labels.properties";
 
 		InputStream iStr = DbInit.class.getResourceAsStream("/" + labelFile);
@@ -5570,6 +5590,21 @@ public class DbInit {
 				}
 			}
 		}
+		return rb;
+	}
+
+	/**
+	 * Method to perform internal lables loading from the properties object into
+	 * the HashMap according to the label code as key
+	 * 
+	 * @param localeId
+	 *            The local for which to load the labels
+	 * @param mLabels
+	 *            The map destination of the labels.
+	 */
+	static void loadInternalLabels(String localeId, HashMap<String, DbDataObject> mLabels) {
+
+		Properties rb = loadLabelsBundle(localeId);
 		if (rb != null) {
 			// load strings
 			Iterator<Object> pit = rb.keySet().iterator();
@@ -5580,9 +5615,9 @@ public class DbInit {
 
 				DbDataObject dbo = new DbDataObject();
 				dbo.setStatus(svCONST.STATUS_VALID);
-				dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+				dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 				dbo.setDtDelete(SvConf.MAX_DATE);
-				dbo.setVal("label_code", key);
+				dbo.setVal(LABEL_CODE, key);
 				dbo.setVal("label_text", rb.getProperty(key));
 				dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
@@ -5737,14 +5772,14 @@ public class DbInit {
 
 			dbo.setObjectId(dbt.getObjectId());
 			dbo.setStatus(svCONST.STATUS_VALID);
-			dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+			dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 			dbo.setDtDelete(SvConf.MAX_DATE);
 			dbo.setVal("system_table", dbt.getIsSystemTable());
 			dbo.setVal("repo_table", dbt.getIsRepoTable());
-			dbo.setVal("table_name", dbt.getDbTableName().toUpperCase());
+			dbo.setVal(TABLE_NAME, dbt.getDbTableName().toUpperCase());
 			dbo.setVal("schema", dbt.getDbSchema());
 			dbo.setVal("repo_name", dbt.getDbRepoName().toUpperCase());
-			dbo.setVal("label_code", dbt.getLabel_code());
+			dbo.setVal(LABEL_CODE, dbt.getLabel_code());
 			dbo.setVal("use_cache", true);
 			dbo.setVal("is_config_table", dbt.getIsConfigTable());
 			dbo.setVal("config_unq_id", dbt.getConfigColumnName());
@@ -5795,7 +5830,7 @@ public class DbInit {
 				dbo.setObjectId(svObjectId);
 				svObjectId++;
 				dbo.setStatus(svCONST.STATUS_VALID);
-				dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+				dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 				dbo.setDtDelete(SvConf.MAX_DATE);
 
 				dbo.setVal("field_name", dbf.getDbFieldName());
@@ -5810,7 +5845,7 @@ public class DbInit {
 				dbo.setVal("unq_constraint_name", dbf.getUnique_constraint_name());
 				dbo.setVal("is_primary_key", dbf.getIsPrimaryKey());
 				dbo.setVal("index_name", dbf.getIndexName());
-				dbo.setVal("label_code", dbf.getLabel_code());
+				dbo.setVal(LABEL_CODE, dbf.getLabel_code());
 				dbo.setVal("parent_name", dbt.getDbTableName());
 
 				if (dbf.getDbFieldName().toUpperCase().equals("PKID"))
@@ -5820,7 +5855,7 @@ public class DbInit {
 
 				for (DbDataObject dbl : defaultCodes.getItems()) {
 					if (dbl.getVal("CODE_VALUE").equals(dbf.getCode_user_code()))
-						dbo.setVal("code_list_id", dbl.getObjectId());
+						dbo.setVal(CODE_LIST_ID, dbl.getObjectId());
 
 				}
 				dbo.setVal("code_list_mnemonic", dbf.getCode_user_code());
@@ -5843,11 +5878,11 @@ public class DbInit {
 	 * @param defaultObjests
 	 *            The array with default sys objects
 	 */
-
+	
 	public static void initCoreRecords(DbDataArray defaultCodes, DbDataArray defaultObjests) {
 		Long svObjectId = svCONST.MAX_SYS_OBJECT_ID;
 		StringBuilder errMsg = new StringBuilder();
-		svObjectId = dbTables2DbDataArray(getMasterRoot(), defaultObjests, defaultCodes, svObjectId, errMsg);
+		dbTables2DbDataArray(getMasterRoot(), defaultObjests, defaultCodes, svObjectId, errMsg);
 
 		String json = defaultObjests.toJson().toString();
 		json = json.replace("{MASTER_REPO}", SvConf.getMasterRepo());
@@ -6135,8 +6170,13 @@ public class DbInit {
 			for (int i = 0; i < customJars.length; i++) {
 				if (customJars[i].getName().endsWith(".jar")) {
 					log4j.info("Trying to load IDbInit from jar: " + customJars[i].getName());
-					ArrayList<Object> dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), IDbInit.class);
-					if (dbi.size() > 0)
+					ArrayList<Object> dbi = null;
+					try {
+						dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), IDbInit.class);
+					} catch (Exception e) {
+						log4j.error("Loading IDbInit instance failed! File: " + customJars[i].getName(), e);
+					}
+					if (dbi != null && dbi.size() > 0)
 						log4j.info("Found IDbInit instance in jar: " + customJars[i].getName());
 					customObjests.getItems().clear();
 					for (Object idb : (ArrayList<Object>) dbi) {
@@ -6152,9 +6192,9 @@ public class DbInit {
 							for (DbDataObject dbl : defaultCodes.getItems()) {
 
 								if (dboCustom.getObjectType().equals(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE)) {
-									String codeVal = (String) dboCustom.getVal("code_list_id");
+									String codeVal = (String) dboCustom.getVal(CODE_LIST_ID);
 									if (dbl.getVal("CODE_VALUE").equals(codeVal))
-										dboCustom.setVal("code_list_id", dbl.getObjectId());
+										dboCustom.setVal(CODE_LIST_ID, dbl.getObjectId());
 								}
 
 							}
@@ -6208,7 +6248,7 @@ public class DbInit {
 		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes, customObjests);
 		customObjestsAll.getItems().addAll(customObjests.getItems());
 
-		svObjectId = saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
+		saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
 				customObjests);
 		customObjestsAll.getItems().addAll(customObjests.getItems());
 
@@ -6253,7 +6293,7 @@ public class DbInit {
 			dbo.setObjectType(svCONST.OBJECT_TYPE_CODE);
 
 			dbo.setParentId(parent_id);
-			dbo.setDtInsert(new DateTime("2000-01-01T00:00:00"));
+			dbo.setDtInsert(new DateTime(Y2K_START_DATE));
 			dbo.setDtDelete(SvConf.MAX_DATE);
 			JsonObject inObj = obj.get(i).getAsJsonObject();
 
@@ -6265,7 +6305,7 @@ public class DbInit {
 				dbo.setObjectId(svCONST.CODES_FILE_TYPES);
 
 			dbo.setVal("code_value", inObj.get("user_code").getAsString());
-			dbo.setVal("label_code", inObj.get("label_code").getAsString());
+			dbo.setVal(LABEL_CODE, inObj.get("label_code").getAsString());
 			dbo.setVal("sort_order", sort);
 
 			dbo.setVal("PARENT_CODE_VALUE", parentCodeValue != null ? parentCodeValue.getAsString() : null);
@@ -6331,12 +6371,12 @@ public class DbInit {
 	 * @throws IOException
 	 */
 	private static void loadCodesFromCustom(String jarPath, JsonObject jCodes) throws IOException {
-		InputStream customIs = null;
+		String jsonCustom = null;
 		Gson gson = (new GsonBuilder().setPrettyPrinting().create());
 		try {
-			customIs = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
-			if (customIs != null) {
-				String jsonCustom = IOUtils.toString(customIs, "UTF-8");
+			jsonCustom = DbInit.loadCustomResources(jarPath, "labels/codes.properties");
+			if (jsonCustom != null) {
+
 				JsonObject customJobj = gson.fromJson(jsonCustom, JsonElement.class).getAsJsonObject();
 				mergeChildrenCodes(jCodes, customJobj);
 				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
@@ -6345,13 +6385,6 @@ public class DbInit {
 			log4j.error("Error loading codes from custom jar:" + jarPath);
 			e1.printStackTrace();
 			return;
-		} finally {
-			try {
-				if (customIs != null)
-					customIs.close();
-			} catch (IOException e) {
-				log4j.error("Can not close input stream from custom jar:" + jarPath, e);
-			}
 		}
 
 	}
@@ -6390,14 +6423,58 @@ public class DbInit {
 		return dboLinkType;
 	}
 
+	/**
+	 * Method to load all codes from deployed bundles or legacy custom
+	 * extensions from Svarog2
+	 * 
+	 * @param jCodes
+	 *            The JsonObject in which the codes will be stored
+	 * @throws IOException
+	 *             any exception when reading the files
+	 */
+	private static void loadCodes(JsonObject jCodes) throws IOException {
+		// load codes from the custom dir
+		File customFolder = new File("custom/");
+		File[] customJars = customFolder.listFiles();
+		if (customJars != null) {
+			for (int i = 0; i < customJars.length; i++) {
+				if (customJars[i].getName().endsWith(".jar"))
+					loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
+			}
+		}
+
+		// load codes from the OSGI bundles dir too
+		customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
+		customJars = customFolder.listFiles();
+		if (customJars != null) {
+			for (int i = 0; i < customJars.length; i++) {
+				if (customJars[i].getName().endsWith(".jar"))
+					loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
+			}
+		}
+
+	}
+
+	/**
+	 * Method to process the codes loaded from the JSON files in the
+	 * bundles/plugings and populate the "30. master_codes.json" configuration
+	 * file which is used for installation, upgrade and initialisation of Svarog
+	 * codes
+	 * 
+	 * @param startingObjId
+	 *            when generating object id for code objects, the ids shall
+	 *            start from this value
+	 * @param codesStr
+	 *            The string representation of the codes in the system. This
+	 *            shall be further converted to JsonObject
+	 * @return the maximum object Id which was generated by this method.
+	 */
 	private static Long prepareCodes(Long startingObjId, String[] codesStr) {
 		DbDataArray arr = new DbDataArray();
+		String codesPath = SvarogInstall.masterCodesPath + "codes.properties";
 
 		try {
-
-			String codesPath = SvarogInstall.masterCodesPath + "codes.properties";
 			// File baseCodes = new File();
-
 			InputStream fis = DbInit.class.getResourceAsStream("/" + codesPath);
 			if (fis == null)
 				fis = ClassLoader.getSystemClassLoader().getResourceAsStream(codesPath);
@@ -6407,25 +6484,7 @@ public class DbInit {
 			Gson gson = (new GsonBuilder().setPrettyPrinting().create());
 			JsonObject jCodes = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 
-			// load codes from the custom dir
-			File customFolder = new File("custom/");
-			File[] customJars = customFolder.listFiles();
-			if (customJars != null) {
-				for (int i = 0; i < customJars.length; i++) {
-					if (customJars[i].getName().endsWith(".jar"))
-						loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
-				}
-			}
-
-			// load codes from the OSGI bundles dir too
-			customFolder = new File(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
-			customJars = customFolder.listFiles();
-			if (customJars != null) {
-				for (int i = 0; i < customJars.length; i++) {
-					if (customJars[i].getName().endsWith(".jar"))
-						loadCodesFromCustom(customJars[i].getAbsolutePath(), jCodes);
-				}
-			}
+			loadCodes(jCodes);
 
 			// custom codes loading finished
 			ArrayList<DbDataObject> items = new ArrayList<DbDataObject>();
@@ -6563,6 +6622,48 @@ public class DbInit {
 
 	}
 
+	private static String getClassName(Enumeration<JarEntry> e) {
+		JarEntry je = e.nextElement();
+		if (je.isDirectory() || !je.getName().endsWith(".class")) {
+			return null;
+		}
+		// -6 because of .class
+		String className = je.getName().substring(0, je.getName().length() - 6);
+		className = className.replace('/', '.');
+		return className;
+	}
+
+	/**
+	 * Load the jar entries from the jar file as well as getting the appropriate
+	 * class loader
+	 * 
+	 * @param pathToJar
+	 *            The path of the JAR on the file system,
+	 * @param jarItems
+	 *            The vector holding the items found in the jar file
+	 * @return The URL[] to the specific for this jar
+	 */
+	private static URL[] loadJar(String pathToJar, Vector<JarEntry> jarItems) {
+		URL[] urls = new URL[1];
+		if (pathToJar != null && !pathToJar.equals("")) {
+			try (JarFile jr = new JarFile(pathToJar)) {
+
+				Enumeration<JarEntry> e = jr.entries();
+				if (jr != null)
+					while (e.hasMoreElements()) {
+						jarItems.add(e.nextElement());
+					}
+				urls[0] = new URL("jar:file:" + pathToJar + "!/");
+
+			} catch (Exception e) {
+				if (log4j.isDebugEnabled())
+					log4j.trace("Error loading JAR", e);
+			}
+		}
+
+		return urls;
+	}
+
 	/**
 	 * Method for loading all custom DbInit instances from external jars
 	 * 
@@ -6570,111 +6671,90 @@ public class DbInit {
 	 *            The path to the location of the JAR
 	 * @return ArrayList holding all classes implementing IDbInit in the
 	 *         external jar
+	 * @throws IOException
 	 */
-	public static ArrayList<Object> loadClassFromJar(String pathToJar, Class<?> clazz) {
+	public static ArrayList<Object> loadClassFromJar(String pathToJar, Class<?> clazz) throws IOException {
 		ArrayList<Object> dbi = new ArrayList<>();
 
-		JarFile jarFile;
-		if (pathToJar != null && !pathToJar.equals("")) {
-			try {
-				jarFile = new JarFile(pathToJar);
-				@SuppressWarnings("rawtypes")
-				Enumeration e = jarFile.entries();
+		Vector<JarEntry> list = new Vector<JarEntry>();
 
-				URL[] urls = { new URL("jar:file:" + pathToJar + "!/") };
-				URLClassLoader cl = URLClassLoader.newInstance(urls, DbInit.class.getClassLoader());
+		try (URLClassLoader cl = new URLClassLoader(loadJar(pathToJar, list), DbInit.class.getClassLoader())) {
 
-				while (e.hasMoreElements()) {
-					JarEntry je = (JarEntry) e.nextElement();
-					if (je.isDirectory() || !je.getName().endsWith(".class")) {
-						continue;
+			Enumeration<JarEntry> en = list.elements();
+			while (en.hasMoreElements()) {
+				String className = getClassName(en);
+				if (className != null) {
+					Class<?> c = cl.loadClass(className);
+					if (clazz.isAssignableFrom(c)) {
+						dbi.add(c.newInstance());
+
 					}
-					// -6 because of .class
-					String className = je.getName().substring(0, je.getName().length() - 6);
-					className = className.replace('/', '.');
-					try {
-						Class<?> c = cl.loadClass(className);
-						if (clazz.isAssignableFrom(c)) {
-							dbi.add(c.newInstance());
-
-						}
-					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError ex) {
-						if (log4j.isDebugEnabled())
-							log4j.trace("Error loading class", e);
-					}
-
 				}
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+
 			}
+		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+			if (log4j.isDebugEnabled())
+				log4j.trace("Error loading class", ex);
 		}
 		return dbi;
 	}
 
-	public static ISvarogExecutable loadCustomExecutor(String pathToJar) {
-		ISvarogExecutable dbi = null;
+	/**
+	 * Method to load a svarog executable from a Jar file
+	 * 
+	 * @param pathToJar
+	 *            The path to the location of the JAR
+	 * @return The executable from the external jar
+	 * @throws IOException
+	 *             If io exception is thrown on close
+	 */
+	public static ISvarogExecutable loadCustomExecutor(String pathToJar) throws IOException {
+		ISvarogExecutable svExec = null;
 
-		JarFile jarFile;
-		if (pathToJar != null && !pathToJar.equals("")) {
-			try {
-				jarFile = new JarFile(pathToJar);
-				@SuppressWarnings("rawtypes")
-				Enumeration e = jarFile.entries();
+		Vector<JarEntry> list = new Vector<JarEntry>();
+		Enumeration<JarEntry> en = list.elements();
 
-				URL[] urls = { new URL("jar:file:" + pathToJar + "!/") };
-				URLClassLoader cl = URLClassLoader.newInstance(urls);
+		try (URLClassLoader cl = new URLClassLoader(loadJar(pathToJar, list), DbInit.class.getClassLoader())) {
 
-				while (e.hasMoreElements()) {
-					JarEntry je = (JarEntry) e.nextElement();
-					if (je.isDirectory() || !je.getName().endsWith(".class")) {
-						continue;
-					}
-					// -6 because of .class
-					String className = je.getName().substring(0, je.getName().length() - 6);
-					className = className.replace('/', '.');
+			while (en.hasMoreElements()) {
+				String className = getClassName(en);
+				if (className != null) {
 					Class<?> c = cl.loadClass(className);
 					if (ISvarogExecutable.class.isAssignableFrom(c)) {
-						dbi = ((ISvarogExecutable) c.newInstance());
-						break;
-					}
+						svExec = ((ISvarogExecutable) c.newInstance());
 
+					}
 				}
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
 			}
+		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+			if (log4j.isDebugEnabled())
+				log4j.trace("Error loading class", ex);
 		}
-		return dbi;
+
+		return svExec;
 	}
 
-	public static InputStream loadCustomResources(String pathToJar, String resourceName) {
-
-		JarFile jarFile;
-		InputStream is = null;
+	public static String loadCustomResources(String pathToJar, String resourceName) {
+		String retVal = null;
 		if (pathToJar != null && !pathToJar.equals("")) {
-			try {
-				jarFile = new JarFile(pathToJar);
-				@SuppressWarnings("rawtypes")
-				Enumeration e = jarFile.entries();
-
-				// URL[] urls = { new URL("jar:file:" + pathToJar + "!/") };
-				// URLClassLoader cl = URLClassLoader.newInstance(urls);
-				while (e.hasMoreElements()) {
+			try (JarFile jarFile = new JarFile(pathToJar)) {
+				Enumeration<JarEntry> e = jarFile.entries();
+				while (e.hasMoreElements() || retVal != null) {
 					JarEntry je = (JarEntry) e.nextElement();
 					if (je.getName().equals(resourceName)) {
-						is = jarFile.getInputStream(je);
-						break;
+						try (InputStream is = jarFile.getInputStream(je)) {
+							retVal = IOUtils.toString(is);
+						}
 					}
-
 				}
 
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+			} catch (Exception e) {
+				log4j.trace("Error loading resources", e);
 			}
 		}
-		return is;
+		return retVal;
 	}
 
 }
