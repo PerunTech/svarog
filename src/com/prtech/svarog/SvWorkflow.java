@@ -14,11 +14,14 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
+import java.util.HashMap;
+
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
+import com.prtech.svarog_common.ISvRuleEngineSave;
 
 /**
  * The implementation of workflows, such as movement of an object through
@@ -153,10 +156,12 @@ public class SvWorkflow extends SvCore {
 
 	Boolean checkTransitionValidity(DbDataObject dbo, String newStatus) throws SvException {
 		Boolean result = false;
-		SvReader svr = new SvReader(this);
+		SvReader svr = null;
 		// TODO change as param in the future
 		String codeListName = "OBJ_STATUS";
+		RuleEngine ruleEngine = null;
 		try {
+			svr =new SvReader(this);
 			if (dbo != null) {
 				DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
 						svCONST.OBJECT_TYPE_WORKFLOW, null);
@@ -180,13 +185,43 @@ public class SvWorkflow extends SvCore {
 							.addDbSearchItem(cr3);
 					DbDataArray requestedTransition = svr.getObjects(dbs, svCONST.OBJECT_TYPE_WORKFLOW, null, 0, 0);
 					if (requestedTransition != null && !requestedTransition.isEmpty()) {
-						result = true;
+						DbDataObject workflow = requestedTransition.get(0);
+						if (workflow.getVal("CHECKIN_RULE") != null) {
+							ruleEngine = new RuleEngine(this);
+							ruleEngine.setRuleEngineSave(new ISvRuleEngineSave() {
+								
+								@Override
+								public void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults, Boolean success)
+										throws SvException {
+									// TODO Auto-generated method stub
+									
+								}
+								
+								@Override
+								public void saveCurrentState(SvCore parentCore, DbDataObject currentAction, DbDataObject execObj,
+										DbDataArray actionResults, Boolean success) throws SvException {
+									// TODO Auto-generated method stub
+									
+								}
+							});
+							DbDataArray actionsRsult = new DbDataArray();
+							HashMap<Object, Object> params = new HashMap<>();
+							params.put("ORIGINATING_STATUS", dbo.getStatus());
+							params.put("DESTINATION_STATUS", newStatus);
+							result = ruleEngine.executeImpl((Long) workflow.getVal("CHECKIN_RULE"), actionsRsult, dbo,
+									params);
+						} else {
+							result = true;
+						}
 					}
 				}
 			}
 		} finally {
 			if (svr != null)
 				svr.release();
+			if (ruleEngine != null) {
+				ruleEngine.release();
+			}
 		}
 		return result;
 	}

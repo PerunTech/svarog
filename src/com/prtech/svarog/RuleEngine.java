@@ -287,8 +287,8 @@ public class RuleEngine extends SvCore {
 		SvExecManager sve = null;
 		try {
 			HashMap<String, Object> exeParams = new HashMap<>();
-			sve = new SvExecManager();
-			sve.switchUser(this.getInstanceUser());
+			sve = new SvExecManager(this);
+			
 			String executorKey = currentAction.getVal("METHOD_NAME").toString();
 			for (Entry<Object, Object> entry : params.entrySet()) {
 				exeParams.put(entry.getKey().toString(), entry.getValue());
@@ -408,12 +408,14 @@ public class RuleEngine extends SvCore {
 					String actionType = null;
 
 					for (DbDataObject currentAction : dbActions.getSortedItems("SORT_ORDER")) {
-						byte[] fileData = getActionFile(currentAction);
-						if (fileData == null) {
-							if(currentAction.getVal("code_type").toString().endsWith("Executor")) {
-								execExecutor(currentAction, obj, actionResults, params);
+
+						byte[] fileData = null;
+						if (!currentAction.getVal("code_type").toString().equals("Executor")) {
+
+							fileData = getActionFile(currentAction);
+							if (fileData == null) {
+								continue;
 							}
-							continue;
 						}
 						try {
 							// execute JavaScript action
@@ -426,6 +428,9 @@ public class RuleEngine extends SvCore {
 								break;
 							case "Java":
 								execJAR(currentAction, obj, execObj, actionResults, params, fileData);
+								break;
+							case "Executor":
+								execExecutor(currentAction, obj, actionResults, params);
 								break;
 							default:
 								throw (new SvException("system.error.re_unknown_action_type", instanceUser, obj,
