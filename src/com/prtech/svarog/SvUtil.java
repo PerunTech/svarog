@@ -167,7 +167,7 @@ public class SvUtil {
 	public static void saveStringToFile(String fileName, String strValue) {
 		FileOutputStream fop = null;
 		File file;
-
+		Writer out = null;
 		try {
 
 			file = new File(fileName);
@@ -177,7 +177,7 @@ public class SvUtil {
 			file.createNewFile();
 			fop = new FileOutputStream(file);
 
-			Writer out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF8"));
+			out = new BufferedWriter(new OutputStreamWriter(fop, "UTF8"));
 
 			// if file doesnt exists, then create it
 			if (!file.exists()) {
@@ -188,7 +188,6 @@ public class SvUtil {
 			out.append(strValue);
 
 			out.flush();
-			out.close();
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -198,6 +197,14 @@ public class SvUtil {
 					fop.close();
 				}
 			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			try {
+				if (out != null)
+					out.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
