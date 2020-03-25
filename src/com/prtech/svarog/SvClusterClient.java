@@ -519,8 +519,11 @@ public class SvClusterClient implements Runnable {
 							msgLock = hbClientSock.recv(0);
 							processJoinLock(msgLock);
 						}
-					} else
+					} else {
+						if (log4j.isDebugEnabled())
+							log4j.debug("Coordinator didn't respond to join message!");
 						result = false;
+					}
 
 				}
 
