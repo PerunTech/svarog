@@ -22,6 +22,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ISvRuleEngineSave;
+import com.prtech.svarog_common.Jsonable;
 
 /**
  * The implementation of workflows, such as movement of an object through
@@ -148,8 +149,8 @@ public class SvWorkflow extends SvCore {
 				svw.release();
 			}
 		} else {
-			throw (new SvException("workflow_engine.error.movementNotAllowed in: " + newStatus, instanceUser, null,
-					dbo));
+			throw (new SvException("workflow_engine.error.movementNotAllowed", instanceUser,
+					new ExceptionString("movementNotAllowed in: " + newStatus), dbo));
 		}
 		// TODO add movement specific business rules and other things
 	}
@@ -161,18 +162,24 @@ public class SvWorkflow extends SvCore {
 		String codeListName = "OBJ_STATUS";
 		RuleEngine ruleEngine = null;
 		try {
-			svr =new SvReader(this);
+			svr = new SvReader(this);
 			if (dbo != null) {
 				DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
 						svCONST.OBJECT_TYPE_WORKFLOW, null);
 				if (objectValidTransitions == null || objectValidTransitions.isEmpty()) {
 					result = true;
 				} else {
+					if (!checkIfTransitionPermitable(objectValidTransitions.get(0), svr)) {
+						throw (new SvException(
+								"workflow_engine.error.movementNotAllowed.userDoesNotHaveThePermissionRequired",
+								instanceUser, new ExceptionString("userDoesNotHaveThePermissionRequired"), dbo));
+					}
 					if (!checkIfStatusExists(newStatus, codeListName)) {
 						throw (new SvException(
-								"workflow_engine.error.movementNotAllowed.DestinationStatusNotInstalledInCodeList- status:"
-										+ newStatus + ";codeList:" + codeListName,
-								instanceUser, null, dbo));
+								"workflow_engine.error.movementNotAllowed.DestinationStatusNotInCodeList",
+								instanceUser, new ExceptionString("DestinationStatusNotInstalledInCodeList- status:"
+										+ newStatus + ";codeList:" + codeListName),
+								dbo));
 					}
 					DbSearchCriterion cr1 = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL,
 							dbo.getObjectType());
@@ -189,19 +196,20 @@ public class SvWorkflow extends SvCore {
 						if (workflow.getVal("CHECKIN_RULE") != null) {
 							ruleEngine = new RuleEngine(this);
 							ruleEngine.setRuleEngineSave(new ISvRuleEngineSave() {
-								
+
 								@Override
-								public void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults, Boolean success)
-										throws SvException {
-									// TODO Auto-generated method stub
-									
-								}
-								
-								@Override
-								public void saveCurrentState(SvCore parentCore, DbDataObject currentAction, DbDataObject execObj,
+								public void saveFinalState(SvCore parentCore, DbDataObject targetObject,
 										DbDataArray actionResults, Boolean success) throws SvException {
 									// TODO Auto-generated method stub
-									
+
+								}
+
+								@Override
+								public void saveCurrentState(SvCore parentCore, DbDataObject currentAction,
+										DbDataObject execObj, DbDataArray actionResults, Boolean success)
+										throws SvException {
+									// TODO Auto-generated method stub
+
 								}
 							});
 							DbDataArray actionsRsult = new DbDataArray();
@@ -244,4 +252,33 @@ public class SvWorkflow extends SvCore {
 		return result;
 	}
 
+	Boolean checkIfTransitionPermitable(DbDataObject dboTransition, SvReader svr) throws SvException {
+		Boolean result = true;
+		if (dboTransition.getVal("PERMISSION_CODE") != null
+				&& !dboTransition.getVal("PERMISSION_CODE").toString().trim().equals("")) {
+			String permissionCode = dboTransition.getVal("PERMISSION_CODE").toString();
+			if (!svr.hasPermission(permissionCode)) {
+				result = false;
+			}
+		}
+		return result;
+	}
+
+	public class ExceptionString extends Jsonable {
+		String s;
+
+		public String getS() {
+			return s;
+		}
+
+		public void setS(String s) {
+			this.s = s;
+		}
+
+		public ExceptionString(String s) {
+			super();
+			this.s = s;
+		}
+
+	}
 }
