@@ -263,20 +263,14 @@ public class SvFileStore extends SvCore {
 	 * @return
 	 * @throws SvException
 	 */
-	@SuppressWarnings("unused")
 	protected void saveFileImpl(DbDataObject fileDescriptor, DbDataObject linkedObject, Object fileData)
 			throws SvException {
 
-		if (!(fileData instanceof InputStream || fileData instanceof byte[]))
-			throw (new SvException("system.error.filedata_type_err", instanceUser, null, null));
-		// Commented out per request from R
-		// if (fileDescriptor.getObject_id() != 0 || fileDescriptor.getPkid() !=
-		// 0)
-		// throw (new SvException("system.error.files_not_updateable",
-		// instanceUser, fileDescriptor, linkedObject));
-
 		if (fileData == null)
 			throw (new SvException("system.error.cant_save_empty_file", instanceUser, fileDescriptor, linkedObject));
+
+		if (!(fileData instanceof InputStream || fileData instanceof byte[]))
+			throw (new SvException("system.error.filedata_type_err", instanceUser, null, null));
 
 		SvWriter svw = new SvWriter(this);
 		svw.isInternal = true;
@@ -452,18 +446,11 @@ public class SvFileStore extends SvCore {
 		try {
 			output = fileSystemSaveStream(fileId);
 			IOUtils.write(data, output);
+			output.flush();
 		} catch (IOException e) {
 			throw (new SvException("system.error.filedata_fs_err", instanceUser, null, fileId, e));
 		} finally {
-
-			if (output != null) {
-				try {
-					output.flush();
-				} catch (IOException e) {
-					throw (new SvException("system.error.filedata_fs_err", instanceUser, null, fileId, e));
-				}
-				closeResource((AutoCloseable) output, instanceUser);
-			}
+			closeResource((AutoCloseable) output, instanceUser);
 		}
 	}
 
@@ -791,7 +778,7 @@ public class SvFileStore extends SvCore {
 			}
 			if (dboFile.getVal("FILE_STORE_ID") != null
 					&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID) {
-				if ((data.length / 1024 / 1024) <= max_cache_size)
+				if (data != null && (data.length / 1024 / 1024) <= max_cache_size)
 					systemCache.put((Long) dboFile.getVal("FILE_ID"), data);
 				else
 					log4j.warn("System file " + dboFile.getVal("file_name") + " has size " + (data.length / 1024 / 1024)

@@ -116,9 +116,11 @@ public class SvClusterServer implements Runnable {
 			context.close();
 			context = null;
 		}
-		// interrupt the maintenance thread to join if needed
-		if (SvCluster.maintenanceThread != null)
-			SvCluster.maintenanceThread.interrupt();
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
 
 	}
 
@@ -274,8 +276,13 @@ public class SvClusterServer implements Runnable {
 			respBuffer.putLong(nodeId);
 			nodeHeartBeats.remove(nodeId);
 			clusterCleanUp(nodeId);
-			if (SvCluster.maintenanceThread != null && !SvCluster.getMaintenanceInProgress().get())
-				SvCluster.maintenanceThread.interrupt();
+			if (SvMaintenance.maintenanceThread != null && !SvMaintenance.getMaintenanceInProgress().get())
+				if (SvarogDaemon.osgiFramework != null)
+					SvMaintenance.maintenanceThread.interrupt();
+				else
+					synchronized (SvMaintenance.maintenanceThread) {
+						SvMaintenance.maintenanceThread.notifyAll();
+					}
 		}
 		return respBuffer;
 	}
