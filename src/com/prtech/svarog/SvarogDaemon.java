@@ -301,7 +301,7 @@ public class SvarogDaemon {
 					shutdown = false;
 				}
 
-				// if there's no fremowork event, we were interrupted
+				// if there's no framework event, we were interrupted
 				if (event != null) {
 					switch (event.getType()) {
 					case FrameworkEvent.STOPPED_UPDATE:
