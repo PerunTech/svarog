@@ -24,7 +24,7 @@ public class ClusterTest {
 	@BeforeClass
 	public static void init() {
 		SvConf.setClusterEnabled(false);
-		SvMaintenance.shutdown();
+		//SvMaintenance.shutdown();
 		SvClusterClient.shutdown();
 		SvClusterNotifierClient.shutdown();
 		SvClusterServer.shutdown();
