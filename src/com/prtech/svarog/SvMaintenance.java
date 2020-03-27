@@ -60,8 +60,8 @@ public class SvMaintenance implements Runnable {
 	public static void shutdown() {
 		if (isRunning.compareAndSet(true, false)) {
 			if (SvMaintenance.maintenanceThread != null)
-				synchronized (SvMaintenance.maintenanceThread) {
-					SvMaintenance.maintenanceThread.notifyAll();
+				synchronized (SvMaintenance.maintenanceRunning) {
+					SvMaintenance.maintenanceRunning.notifyAll();
 				}
 		}
 	}
