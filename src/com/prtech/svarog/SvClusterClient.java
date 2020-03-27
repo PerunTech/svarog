@@ -195,7 +195,7 @@ public class SvClusterClient implements Runnable {
 			}
 		// mark the client as in-active
 		isActive.set(false);
-		// notify the maintenance thread 
+		// notify the maintenance thread
 		if (SvMaintenance.maintenanceThread != null)
 			synchronized (SvMaintenance.maintenanceThread) {
 				SvMaintenance.maintenanceThread.notifyAll();
@@ -481,6 +481,32 @@ public class SvClusterClient implements Runnable {
 		}
 	}
 
+	static boolean processJoin(byte[] msgJoin) {
+		boolean result = true;
+		ByteBuffer joinBuffer = null;
+		if (msgJoin != null) {
+			joinBuffer = ByteBuffer.wrap(msgJoin);
+			byte respMsg = joinBuffer.get();
+			if (respMsg == SvCluster.MSG_FAIL) {
+				log4j.error("Failed to join cluster.");
+				nodeId = 0L;
+				result = false;
+			} else {
+				// before set new node Id lets first migrate the old
+				// locks
+				Long newNodeId = joinBuffer.getLong();
+				SvCluster.migrateLocks(newNodeId, nodeId, localNodeLocks);
+				nodeId = newNodeId;
+			}
+		} else {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Coordinator didn't respond to join message!");
+			result = false;
+		}
+		return result;
+
+	}
+
 	/**
 	 * Method to send a join message to the cluster, supporting it with the node
 	 * information
@@ -502,29 +528,12 @@ public class SvClusterClient implements Runnable {
 			try {
 				if (hbClientSock.send(joinBuffer.array())) {
 					msgJoin = hbClientSock.recv(0);
-					if (msgJoin != null) {
-						joinBuffer = ByteBuffer.wrap(msgJoin);
-						byte respMsg = joinBuffer.get();
-						if (respMsg == SvCluster.MSG_FAIL) {
-							log4j.error("Failed to join cluster.");
-							nodeId = 0L;
-							result = false;
-						} else {
-							// before set new node Id lets first migrate the old
-							// locks
-							Long newNodeId = joinBuffer.getLong();
-							SvCluster.migrateLocks(newNodeId, nodeId, localNodeLocks);
-							nodeId = newNodeId;
-						}
+					if (processJoin(msgJoin)) {
 						// check if lock info follows the join
 						while (hbClientSock.hasReceiveMore()) {
 							msgLock = hbClientSock.recv(0);
 							processJoinLock(msgLock);
 						}
-					} else {
-						if (log4j.isDebugEnabled())
-							log4j.debug("Coordinator didn't respond to join message!");
-						result = false;
 					}
 
 				}

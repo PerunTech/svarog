@@ -85,8 +85,8 @@ public class SvMaintenance implements Runnable {
 			try {
 				long timeout = performMaintenance();
 				// if we aren't in a cluster, then try to join
-				synchronized (SvMaintenance.maintenanceThread) {
-					SvMaintenance.maintenanceThread.wait(timeout);
+				synchronized (SvMaintenance.maintenanceRunning) {
+					SvMaintenance.maintenanceRunning.wait(timeout);
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
