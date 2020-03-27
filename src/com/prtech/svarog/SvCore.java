@@ -261,11 +261,6 @@ public abstract class SvCore implements ISvCore {
 	 */
 	private static ISvDatabaseIO dbHandler = null;
 
-	/**
-	 * Atomic boolean flat to signify a maintenance thread is in progress
-	 */
-	static AtomicBoolean maintenanceRunning = new AtomicBoolean();
-
 	/////////////////////////////////////////////////////////////
 	// SvCore instance (non-static) variables and methods
 	/////////////////////////////////////////////////////////////
@@ -370,43 +365,6 @@ public abstract class SvCore implements ISvCore {
 	protected Boolean autoCommit = true;
 
 	/**
-	 * Perform good house keeping and cleanup any previous tracked connections.
-	 * The cleaning is executed in a separate thread
-	 * 
-	 * @param useCurrentThread
-	 *            Flag to tell the cleanup to use the current thread or to
-	 *            launch a new maintenance thread. If the SvarogDaemon is
-	 *            running, the maintenance shall be executed in the current
-	 *            thread. If svarog is used as external library without daemon,
-	 *            it shall launch a new maintenance thread
-	 */
-	static void trackedConnCleanup(boolean useCurrentThread) {
-		// ensure that we do cleanup only periodically (after a time out period)
-		if ((DateTime.now().getMillis() - coreLastCleanup) < SvConf.getCoreIdleTimeout())
-			return;
-		else {
-			// try to get a lock for the SvConnCleaner, if we fail, just pass
-			if (maintenanceRunning.compareAndSet(false, true)) {
-				coreLastCleanup = DateTime.now().getMillis();
-				// if the cleanup is invoked from the svarog daemon it shall use
-				// the current thread
-				if (useCurrentThread) {
-					SvConnCleaner clean = new SvConnCleaner();
-					clean.run();
-				} else { // run the cleanup in new thread
-					Thread cleanerThread = new Thread(new SvConnCleaner());
-					cleanerThread.setName(svCONST.maintenanceThreadId);
-					// do we actually want to know when the cleaner finished?
-					// Can we
-					// have multiple active cleaners? right?
-					cleanerThread.start();
-				}
-			}
-
-		}
-	}
-
-	/**
 	 * Method to set the information about the line number, method and class
 	 * where the instance was created. This is usefull when looking for
 	 * connection leaks.
@@ -466,8 +424,6 @@ public abstract class SvCore implements ISvCore {
 		if (!isValid.get())
 			initSvCoreImpl(false);
 
-		if (!svDaemonRunning.get())
-			trackedConnCleanup(false);
 		if (srcCore != null && srcCore != this) {
 			weakSrcCore = srcCore.weakThis;
 			this.coreSessionId = srcCore.getSessionId();
@@ -1403,6 +1359,16 @@ public abstract class SvCore implements ISvCore {
 				Long ttlMilis = (Long) sessionDbt.getVal("cache_expiry") * 60 * 1000;
 				// set the debounce interval at 1% of the cache expiry
 				sessionDebounceInterval = (new Double(ttlMilis * 0.01)).intValue();
+
+				// if the daemon is not running, start the maintenance thread
+				if (!SvCore.svDaemonRunning.get()) {
+					// Set the proxy to process the notifications it self
+					SvClusterNotifierProxy.processNotification = true;
+					// set the client to rejoin on failed beat
+					SvClusterClient.rejoinOnFailedHeartBeat = true;
+					// start the maintenance
+					SvMaintenance.initMaintenance();
+				}
 
 				isCfgInDb = true;
 				svarogState = true;

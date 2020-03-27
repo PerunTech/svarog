@@ -191,8 +191,14 @@ public class SvarogDaemon {
 	 **/
 	public static void main(String[] args) throws Exception {
 
-		// set svarog daemon flag, to prevent cleanup on its own.
-		SvCore.svDaemonRunning.compareAndSet(false, true);
+		// if svarog is initialised just exit
+		if (SvCore.isInitialized.get()) {
+			System.err.println("Svarog is already initialized as library");
+			System.exit(-1);
+		} else
+			// set svarog daemon flag, to prevent cleanup on its own.
+			SvCore.svDaemonRunning.compareAndSet(false, true);
+
 		// if the daemon was started without params, assume -dm to start the
 		// daemon and enable integration with the Svarog Install
 		if (args.length == 0)
@@ -234,6 +240,8 @@ public class SvarogDaemon {
 					log4j.info("Shutting down svarog");
 					SvCluster.resignCoordinator();
 					SvCluster.shutdown(false);
+					SvMaintenance.shutdown();
+
 					if (osgiFramework != null) {
 						osgiFramework.stop();
 						osgiFramework.waitForStop(0);
@@ -269,60 +277,49 @@ public class SvarogDaemon {
 			// Start the OSGI framework.
 			osgiFramework.start();
 
-			// ensure that the Cluster doesn't run the maintenance thread, but
-			// we will perform maintenance in this thread
-			SvCluster.maintenanceThread = Thread.currentThread();
-
+			// Prepare the maintenance thread. If we are daemon we will run in
+			// this thread and the osgi Framework will do wait. So we dont wait
+			// and we set the current thread as maintenance
+			SvMaintenance.maintenanceThread = Thread.currentThread();
 			// Set the proxy to process the notifications it self
 			SvClusterNotifierProxy.processNotification = true;
+			// set the client to rejoin on failed beat
 			SvClusterClient.rejoinOnFailedHeartBeat = true;
+
 			boolean shutdown = false;
 			while (!shutdown) {
 				// Wait for framework to stop to exit the VM. Wait just enough
 				// to run the cluster maintenance as well as tracked connection
 				// cleanup.
 				try {
-					shutdown = true;
-					//if the cluster is not disabled and not active, try to activate
-					if (SvConf.isClusterEnabled() && !SvCluster.getIsActive().get())
-						SvCluster.initCluster();
-					// if we are members of a cluster, then align with
-					// maintenance interval otherwise repeat the initialisation
-					// within the heart beat timeout
-					long timeout = SvCluster.getIsActive().get() ? (SvConf.getClusterMaintenanceInterval() - 2) * 1000
-							: SvConf.getHeartBeatTimeOut();
+
+					long timeout = SvMaintenance.performMaintenance();
 					event = osgiFramework.waitForStop(timeout);
 					// if we aren't in a cluster, then try to join
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					// e.printStackTrace();
+					Thread.currentThread().interrupt();
 					shutdown = false;
 				}
 
-				if ((event != null && event.getType() == FrameworkEvent.WAIT_TIMEDOUT) || shutdown == false) {
-					if (SvCluster.getMaintenanceInProgress().compareAndSet(false, true)) {
-						SvCore.trackedConnCleanup(true);
-						SvCluster.clusterListMaintenance();
-						SvCluster.getMaintenanceInProgress().compareAndSet(true, false);
+				// if there's no fremowork event, we were interrupted
+				if (event != null) {
+					switch (event.getType()) {
+					case FrameworkEvent.STOPPED_UPDATE:
+						osgiFramework.start();
+					case FrameworkEvent.WAIT_TIMEDOUT:
+						shutdown = false;
+						break;
+					default:
+						shutdown = true;
 					}
-					shutdown = false;
-				} else
-					shutdown = true;
-				// if the system bundle was restarted due to update then restart
-				// it and mark
-				// shutdown as false
-				if (event != null && event.getType() == FrameworkEvent.STOPPED_UPDATE) {
-					osgiFramework.start();
-					shutdown = false;
 				}
 			}
 			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
-
 			// Otherwise, exit.
 			System.exit(0);
 		} catch (Exception ex) {
 			log4j.info("Could not start OSGI framework!", ex);
-			System.exit(0);
+			System.exit(-1);
 		}
 	}
 

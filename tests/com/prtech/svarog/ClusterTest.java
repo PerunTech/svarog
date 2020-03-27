@@ -11,6 +11,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.joda.time.DateTime;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.prtech.svarog_common.DbDataArray;
@@ -18,6 +20,111 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DboFactory;
 
 public class ClusterTest {
+
+	@BeforeClass
+	public static void init() {
+		SvConf.setClusterEnabled(false);
+		SvMaintenance.shutdown();
+		SvClusterClient.shutdown();
+		SvClusterNotifierClient.shutdown();
+		SvClusterServer.shutdown();
+		SvClusterNotifierProxy.shutdown();
+		SvCluster.shutdown();
+		SvLock.clearLocks();
+
+	}
+	public void promoteToCoordinator() {
+		System.out.print("Test promoteToCoordinator");
+		try {
+			SvCore.initSvCore();
+			SvCluster.autoStartClient = false;
+			SvClusterClient.heartBeatTimeOut = 1000;
+			SvClusterClient.forcePromotionOnShutDown = true;
+			SvClusterNotifierProxy.processNotification = true;
+			SvCluster.initCluster();
+			Thread.sleep(50);
+			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
+
+			// to support the slow debug
+			// SvClusterClient.heartBeatTimeOut = 5000;
+			SvClusterClient.initClient(ipAddressList);
+			SvClusterNotifierClient.initClient(ipAddressList);
+			// SvClusterClient.nodeId = 999;
+			// SvLock.isPreemtive = false;
+			Thread clientThread = new Thread(new SvClusterClient());
+			clientThread.start();
+			Thread notifierThread = new Thread(new SvClusterNotifierClient());
+			notifierThread.start();
+
+			Thread.sleep(50); // some milis to start all threads properly and we
+								// don't hit the slow joiner syndrome
+			String lockKey = "TEST_LOCK_SINGLE_PROMOTION";
+
+			// validate a random token and see if the validation fails
+			int lockHash = SvLock.getDistributedLockImpl(lockKey, false, SvClusterClient.nodeId);
+			if (!ClusterTest.lockOnServer(lockKey, lockHash, true, SvClusterClient.nodeId))
+				fail("Lock was NOT present on the Cluster after acquiring");
+
+			Thread.sleep(2 * SvConf.getHeartBeatInterval());
+			SvCluster.shutdown();
+			SvConf.setClusterEnabled(true);
+			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
+			boolean didWePromote = false;
+			while (tsTimeout.isAfterNow()) {
+				if (SvCluster.isCoordinator() && SvClusterServer.isRunning.get()) {
+					didWePromote = true;
+					break;
+				}
+				Thread.sleep(500);
+			}
+
+			SvConf.setClusterEnabled(false);
+			// rejoin with new clients
+			SvClusterClient.initClient(ipAddressList);
+			SvClusterNotifierClient.initClient(ipAddressList);
+			// SvClusterClient.nodeId = 999;
+			// SvLock.isPreemtive = false;
+			clientThread = new Thread(new SvClusterClient());
+			clientThread.start();
+			notifierThread = new Thread(new SvClusterNotifierClient());
+			notifierThread.start();
+
+			Thread.sleep(500);
+
+			if (!didWePromote)
+				fail("Promotion to coordinator failed");
+
+			if (!SvClusterClient.localDistributedLocks.containsKey(lockKey))
+				fail("Lock got lost in the process of promotion and didn't reach the client");
+			// return heart beat to normal for other tests
+			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
+
+		} catch (SvException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			fail("Test raised exception");
+		} finally {
+			try {
+				SvCluster.resignCoordinator();
+			} catch (SvException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.print("Perform cleanup");
+			SvMaintenance.shutdown();
+			SvClusterClient.shutdown();
+			SvClusterNotifierClient.shutdown();
+			SvClusterServer.shutdown();
+			SvClusterNotifierProxy.shutdown();
+			SvCluster.shutdown();
+			SvLock.clearLocks();
+
+		}
+	}
+
+	@AfterClass
+	public static void after() {
+		SvConf.setClusterEnabled(true);
+	}
 
 	@Test
 	public void heartbeatTest() {
@@ -74,86 +181,6 @@ public class ClusterTest {
 		} finally {
 
 			SvClusterClient.shutdown();
-			SvCluster.shutdown();
-			SvLock.clearLocks();
-
-		}
-	}
-
-	@Test
-	public void promoteToCoordinator() {
-		System.out.print("Test promoteToCoordinator");
-		try {
-			SvCore.initSvCore();
-			SvCluster.autoStartClient = false;
-			SvClusterClient.heartBeatTimeOut = 1000;
-			SvClusterClient.forcePromotionOnShutDown = true;
-
-			SvCore.initSvCore();
-			SvCluster.autoStartClient = false;
-			SvClusterNotifierProxy.processNotification = true;
-			SvCluster.initCluster();
-
-			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
-
-			// to support the slow debug
-			// SvClusterClient.heartBeatTimeOut = 5000;
-			SvClusterClient.initClient(ipAddressList);
-			SvClusterNotifierClient.initClient(ipAddressList);
-			// SvClusterClient.nodeId = 999;
-			// SvLock.isPreemtive = false;
-			Thread clientThread = new Thread(new SvClusterClient());
-			clientThread.start();
-			Thread notifierThread = new Thread(new SvClusterNotifierClient());
-			notifierThread.start();
-
-			Thread.sleep(50); //some milis to start all threads properly and we don't hit the slow joiner syndrome
-			String lockKey = "TEST_LOCK_SINGLE_PROMOTION";
-
-			// validate a random token and see if the validation fails
-			int lockHash = SvLock.getDistributedLockImpl(lockKey, false, SvClusterClient.nodeId);
-			if (!lockOnServer(lockKey, lockHash, true, SvClusterClient.nodeId))
-				fail("Lock was NOT present on the Cluster after acquiring");
-
-			Thread.sleep(2 * SvConf.getHeartBeatInterval());
-			SvCluster.shutdown();
-
-			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
-			boolean didWePromote = false;
-			while (tsTimeout.isAfterNow()) {
-				if (SvCluster.isCoordinator() && SvClusterServer.isRunning.get()) {
-					didWePromote = true;
-					break;
-				}
-				Thread.sleep(500);
-			}
-
-			// rejoin with new clients
-			SvClusterClient.initClient(ipAddressList);
-			SvClusterNotifierClient.initClient(ipAddressList);
-			// SvClusterClient.nodeId = 999;
-			// SvLock.isPreemtive = false;
-			clientThread = new Thread(new SvClusterClient());
-			clientThread.start();
-			notifierThread = new Thread(new SvClusterNotifierClient());
-			notifierThread.start();
-
-			Thread.sleep(500);
-
-			if (!didWePromote)
-				fail("Promotion to coordinator failed");
-
-			if (!SvClusterClient.localDistributedLocks.containsKey(lockKey))
-				fail("Lock got lost in the process of promotion and didn't reach the client");
-			// return heart beat to normal for other tests
-			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
-		} catch (SvException | InterruptedException e) {
-			// TODO Auto-generated catch block
-			fail("Test raised exception");
-		} finally {
-			System.out.print("Perform cleanup");
-			SvClusterClient.shutdown();
-			SvClusterNotifierClient.shutdown();
 			SvCluster.shutdown();
 			SvLock.clearLocks();
 
@@ -738,11 +765,9 @@ public class ClusterTest {
 			SvCluster.autoStartClient = false;
 			// to support the slow debug
 			// SvClusterClient.heartBeatTimeOut = 50000;
-			if (!SvCluster.initCluster())
-				fail("Failed to init cluster");
+			SvCluster.initCluster();
 			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
-			if (!SvClusterClient.initClient(ipAddressList))
-				fail("Failed to init client");
+			SvClusterClient.initClient(ipAddressList);
 			// SvClusterClient.nodeId = 999;
 			Thread clientThread = new Thread(new SvClusterClient());
 			clientThread.start();
@@ -935,7 +960,7 @@ public class ClusterTest {
 		}
 	}
 
-	boolean lockOnServer(String lockKey, int lockHash, boolean present, long nodeId) {
+	static boolean lockOnServer(String lockKey, int lockHash, boolean present, long nodeId) {
 		boolean lockFound = false;
 		boolean result = false;
 		SvCluster.DistributedLock dld = SvClusterServer.distributedLocks.get(lockKey);
@@ -1166,6 +1191,8 @@ public class ClusterTest {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
 		} finally {
+			if(svr!=null)
+				svr.release();
 			SvClusterClient.shutdown();
 			SvCluster.shutdown();
 			SvLock.clearLocks();
