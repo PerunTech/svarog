@@ -20,6 +20,8 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import org.joda.time.DateTime;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.prtech.svarog.SvCore.SvAccess;
@@ -28,6 +30,23 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQueryObject;
 
 public class SvarogRolesTest {
+	@BeforeClass
+	public static void init() {
+		SvConf.setClusterEnabled(false);
+		SvMaintenance.shutdown();
+		SvClusterClient.shutdown();
+		SvClusterNotifierClient.shutdown();
+		SvClusterServer.shutdown();
+		SvClusterNotifierProxy.shutdown();
+		SvCluster.shutdown();
+		SvLock.clearLocks();
+
+	}
+	@AfterClass
+	public static void after() {
+		SvConf.setClusterEnabled(true);
+	}
+	
 	static final String testUserName = "SVAROG_TEST_USER";
 	static final String testPassword = "SVAROG_TEST_PASS";
 	static final String testPin = "1213";
@@ -244,8 +263,9 @@ public class SvarogRolesTest {
 	@Test
 	public void testResetUser() {
 		SvReader svr = null;
+		SvSecurity svs = null;
 		try {
-			SvSecurity svs = new SvSecurity();
+			svs = new SvSecurity();
 			svr = new SvReader();
 			DbDataObject user = null;
 			if (svs.checkIfUserExistsByUserName(testUserName, svCONST.STATUS_VALID)) {
@@ -271,6 +291,8 @@ public class SvarogRolesTest {
 		} finally {
 			if (svr != null)
 				svr.release();
+			if (svs != null)
+				svs.release();
 		}
 
 	}
@@ -343,7 +365,9 @@ public class SvarogRolesTest {
 				svr.release();
 		}
 		if (SvConnTracker.hasTrackedConnections(true))
+		{
 			fail("You have a connection leak, you dirty animal!");
+		}
 	}
 
 	public boolean setSidPermission(String sidName, Long sidType, ArrayList<String> permissionKeys, String operation) {
