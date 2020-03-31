@@ -156,38 +156,38 @@ public class SvWorkflow extends SvCore {
 	}
 
 	Boolean checkTransitionValidity(DbDataObject dbo, String newStatus) throws SvException {
-		Boolean result = false;
+		if (dbo == null)
+			throw (new SvException("system.error.object_is_null", instanceUser));
+
+		Boolean result = true;
 		SvReader svr = null;
 		// TODO change as param in the future
 		String codeListName = "OBJ_STATUS";
 		try {
 			svr = new SvReader(this);
-			if (dbo != null) {
-				DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
-						svCONST.OBJECT_TYPE_WORKFLOW, null);
-				if (objectValidTransitions == null || objectValidTransitions.isEmpty()) {
-					result = true;
-				} else {
-					if (!checkIfTransitionPermitable(objectValidTransitions.get(0), svr)) {
-						throw (new SvException(
-								"workflow_engine.error.movementNotAllowed.userDoesNotHaveThePermissionRequired",
-								instanceUser, new ExceptionString("userDoesNotHaveThePermissionRequired"), dbo));
-					}
-					if (!checkIfStatusExists(newStatus, codeListName)) {
-						throw (new SvException(
-								"workflow_engine.error.movementNotAllowed.DestinationStatusNotInCodeList", instanceUser,
-								new ExceptionString("DestinationStatusNotInstalledInCodeList- status:" + newStatus
-										+ ";codeList:" + codeListName),
-								dbo));
-					}
-					DbDataObject requestedTransition = findRequestedTransition(dbo, newStatus, svr);
-					if (requestedTransition != null && requestedTransition.getVal("CHECKIN_RULE") != null) {
-						result = executeRuleEnginePerTransition(dbo, requestedTransition, newStatus);
-					} else {
-						result = true;
-					}
-				}
-			}
+			DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
+					svCONST.OBJECT_TYPE_WORKFLOW, null);
+			//do we have workflow?
+			boolean hasWflow = !(objectValidTransitions == null || objectValidTransitions.isEmpty());
+
+			//if we do, do we have permission?
+			if (hasWflow && !checkIfTransitionPermitable(objectValidTransitions.get(0), svr)) 
+				throw (new SvException("workflow_engine.error.movementNotAllowed.userDoesNotHaveThePermissionRequired",
+						instanceUser, new ExceptionString("userDoesNotHaveThePermissionRequired"), dbo));
+			
+			//if we do, is the destination valid?
+			if (hasWflow && !checkIfStatusExists(newStatus, codeListName)) 
+				throw (new SvException("workflow_engine.error.movementNotAllowed.DestinationStatusNotInCodeList",
+						instanceUser, new ExceptionString("DestinationStatusNotInstalledInCodeList- status:" + newStatus
+								+ ";codeList:" + codeListName),
+						dbo));
+			// all fine and dandy, lets find transition rules
+			DbDataObject requestedTransition = findRequestedTransition(dbo, newStatus, svr);
+			
+			//if we have workflow and there's transition rule, lets execute it
+			if (hasWflow && requestedTransition != null && requestedTransition.getVal("CHECKIN_RULE") != null) 
+				result = executeRuleEnginePerTransition(dbo, requestedTransition, newStatus);
+
 		} finally
 
 		{
