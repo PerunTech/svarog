@@ -32,6 +32,8 @@ import com.prtech.svarog.svCONST;
 
 public class RuleEngine extends SvCore {
 
+	static final Logger log4j = SvConf.getLogger(RuleEngine.class);
+
 	/**
 	 * Private member holding reference to object implementing the save methods
 	 * for the rule engine
@@ -44,7 +46,12 @@ public class RuleEngine extends SvCore {
 	 * order to enforce the svarog security mechanisms based on the logged on
 	 * user.
 	 * 
-	 * @throws Exception
+	 * 
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public RuleEngine(String session_id) throws SvException {
 		super(session_id);
@@ -65,7 +72,13 @@ public class RuleEngine extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * 
+	 * 
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public RuleEngine(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -76,12 +89,11 @@ public class RuleEngine extends SvCore {
 	 * package since it will run with system priveleges.
 	 * 
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	RuleEngine() throws SvException {
 		super(svCONST.systemUser, null);
 	}
-
-	static final Logger log4j = LogManager.getLogger(RuleEngine.class.getName());
 
 	/**
 	 * Main Rule engine entry point. Will commit on success or rollback on
@@ -423,12 +435,17 @@ public class RuleEngine extends SvCore {
 	 * 
 	 * @param parentCore
 	 *            the SvCore instance used for rule execution
-	 * @param targetObject The object upon which the rule was executed
-	 * @param actionResults The array with results from the action execution
-	 * @param success False if any of the actions failed
-	 * @throws SvException Any thrown exception should be forwarded up to the caller
+	 * @param targetObject
+	 *            The object upon which the rule was executed
+	 * @param actionResults
+	 *            The array with results from the action execution
+	 * @param success
+	 *            False if any of the actions failed
+	 * @throws SvException
+	 *             Any thrown exception should be forwarded up to the caller
 	 */
-	private void saveFinalState(SvCore parentCore,DbDataObject targetObject, DbDataArray actionResults, Boolean success) throws SvException {
+	private void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults,
+			Boolean success) throws SvException {
 		if (ruleEngineSave != null)
 			ruleEngineSave.saveFinalState(parentCore, targetObject, actionResults, success);
 
@@ -506,25 +523,21 @@ public class RuleEngine extends SvCore {
 			SvActionResult svResult = null;
 			if (result.getClass().equals(String.class)) {
 				Gson gson = new Gson();
-				JsonObject jobj = new JsonObject();
-				jobj = gson.fromJson((String) result, JsonObject.class);
+				JsonObject jobj = gson.fromJson((String) result, JsonObject.class);
 				svResult = new SvActionResult();
 				svResult.fromJson(jobj);
 			} else if (result.getClass().equals(SvActionResult.class)) {
 				svResult = (SvActionResult) result;
-			} else if (ruleEngineSave==null)
-			{
+			} else if (ruleEngineSave == null) {
 				return null;
 			}
 
-			if(svResult!=null)
-			{
+			if (svResult != null) {
 				resultObj.setVal("result", svResult.toJson().toString());
 				resultObj.setVal("exec_state", svResult.getResult());
-			}
-			else 
+			} else
 				resultObj.setVal("result", result);
-			
+
 		}
 		return resultObj;
 	}

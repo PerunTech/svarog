@@ -24,13 +24,31 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ISvCodeList;
 import com.prtech.svarog.svCONST;
 
+/**
+ * Default class for implementing CodeLists in the Svarog system. It used for
+ * decoding of key/value, such as option lists, drop downs or other lists which
+ * require localisation. The CodeList supports tree like structures where one
+ * code has sub-codes
+ * 
+ * @author ristepejov
+ *
+ */
 public class CodeList extends SvCore implements ISvCodeList {
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(CodeList.class);
+
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            User session for which the CodeList is instantiated
+	 * @throws SvException
+	 *             Pass through for any underlying exception in the super
+	 *             contructor
 	 */
 	public CodeList(String session_id) throws SvException {
 		super(session_id);
@@ -41,7 +59,14 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            User session for which the CodeList is instantiated
+	 * @param sharedSvCore
+	 *            The shared SvCore instance which is used for the JDBC
+	 *            connection sharing
+	 * @throws SvException
+	 *             Pass through for any underlying exception in the super
+	 *             contructor
 	 */
 	public CodeList(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -51,31 +76,46 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * @param sharedSvCore
+	 *            The shared SvCore instance which is used for the JDBC
+	 *            connection sharing
 	 * @throws SvException
+	 *             Pass through for any underlying exception in the super
+	 *             contructor
 	 */
 	public CodeList(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
 	}
-	
+
 	/**
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
 	 * @throws SvException
+	 *             Pass through for any underlying exception in the super
+	 *             contructor
 	 */
 	CodeList() throws SvException {
 		super(svCONST.systemUser, null);
 	}
 
 	/**
-	 * Log4j instance used for logging
+	 * Method to return the key/value map containig the object ids and codes of
+	 * the root categories
+	 * 
+	 * @return Key/value map with categorie Id and code
 	 */
-	static final Logger log4j = LogManager.getLogger(CodeList.class.getName());
-
 	public HashMap<Long, String> getCodeCategoriesId() {
 		return getCodeCategoriesId(SvConf.getDefaultLocale());
 	}
 
+	/**
+	 * Method to return the key/value map containig the object ids and label
+	 * text of the child codes for a specified code list id. The method
+	 * translates the codes to the labes according to the requested locale
+	 * 
+	 * @return Key/value map with categorie Id and label text
+	 */
 	public HashMap<Long, String> getCodeListId(String languageId, Long codeListObjectId) {
 		String langId = languageId != null ? languageId : SvConf.getDefaultLocale();
 
@@ -110,7 +150,6 @@ public class CodeList extends SvCore implements ISvCodeList {
 		return object;
 
 	}
-
 
 	public HashMap<Long, String> getCodeCategoriesId(String languageId) {
 		return getCodeListId(languageId, 0L);

@@ -52,7 +52,8 @@ public class SvParameter extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvParameter(String session_id) throws SvException {
 		super(session_id);
@@ -63,7 +64,8 @@ public class SvParameter extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvParameter(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -137,10 +139,9 @@ public class SvParameter extends SvCore {
 	 * @param dbConfObj
 	 *            The configuration object from which we will take the
 	 *            configuration for which parameters we need to generate
-	 * @param autoCommit
-	 *            Flag to enable/disable auto commit
 	 * @throws SvException
-	 * @see {@link #generateParameters(DbDataObject, DbDataObject, Boolean)}
+	 *             Pass through underlying exceptions from
+	 *             {@link #generateParametersImpl(DbDataObject, DbDataObject)}
 	 */
 	public void generateParameters(DbDataObject dbo, DbDataObject dbConfObj) throws SvException {
 		generateParameters(dbo, dbConfObj, this.autoCommit);
@@ -233,7 +234,9 @@ public class SvParameter extends SvCore {
 
 	/**
 	 * Method that sets parameters for an implementation object. This overloaded
-	 * version performs commit on success and rollback on exception
+	 * version performs commit on success and rollback on exception. See also
+	 * {@link #setParameters(DbDataObject, HashMap, Boolean)})
+	 * 
 	 * 
 	 * @param dbo
 	 *            The implementation object for which we will set the parameters
@@ -242,7 +245,7 @@ public class SvParameter extends SvCore {
 	 *            relationship with dbo. In case we can them with (
 	 *            {@link #getParameters} ).
 	 * @throws SvException
-	 * @see {@link #setParameters(DbDataObject, HashMap, Boolean)}
+	 * 
 	 */
 	public void setParameters(DbDataObject dbo, HashMap<DbDataObject, ArrayList<DbDataObject>> params)
 			throws SvException {
@@ -466,9 +469,6 @@ public class SvParameter extends SvCore {
 	 * Method that returns value of DbDataObject which is attached to default
 	 * repo object from the database.
 	 * 
-	 * @param dbo
-	 *            The object for which we will return the parameters according
-	 *            to label.
 	 * @param label
 	 *            label is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * 
@@ -507,9 +507,6 @@ public class SvParameter extends SvCore {
 	 * Method that returns value of DbDataObject which is attached to default
 	 * repo object from the database.
 	 * 
-	 * @param dbo
-	 *            The object for which we will return the parameters according
-	 *            to label.
 	 * @param label
 	 *            label is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * 
@@ -546,9 +543,6 @@ public class SvParameter extends SvCore {
 	 * Method that returns value of DbDataObject which is attached to default
 	 * repo object from the database.
 	 * 
-	 * @param dbo
-	 *            The object for which we will return the parameters according
-	 *            to label.
 	 * @param label
 	 *            label is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * 
@@ -665,8 +659,6 @@ public class SvParameter extends SvCore {
 	 * Method that sets the value of parameter attached to default repo object
 	 * or create new according to labelCode.
 	 * 
-	 * @param dbo
-	 *            The object for which we will set the value of parameters.
 	 * @param labelCode
 	 *            labelCode is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * @param value
@@ -734,8 +726,6 @@ public class SvParameter extends SvCore {
 	 * Method that sets the value of parameter attached to default repo object
 	 * or create new according to labelCode.
 	 * 
-	 * @param dbo
-	 *            The object for which we will set the value of parameters.
 	 * @param labelCode
 	 *            labelCode is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * @param value
@@ -751,8 +741,6 @@ public class SvParameter extends SvCore {
 	 * or create new according to labelCode, with option to skip existence check
 	 * as well as disable the auto commit.
 	 * 
-	 * @param dbo
-	 *            The object for which we will set the value of parameters.
 	 * @param labelCode
 	 *            labelCode is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * @param value
@@ -809,8 +797,6 @@ public class SvParameter extends SvCore {
 	 * Method that sets the value of parameter attached to default repo object
 	 * or create new according to labelCode.
 	 * 
-	 * @param dbo
-	 *            The object for which we will set the value of parameters.
 	 * @param labelCode
 	 *            labelCode is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * @param value
@@ -828,8 +814,6 @@ public class SvParameter extends SvCore {
 	 * or create new according to labelCode, with option to skip existence check
 	 * as well as disable the auto commit.
 	 * 
-	 * @param dbo
-	 *            The object for which we will set the value of parameters.
 	 * @param labelCode
 	 *            labelCode is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * @param value
@@ -961,7 +945,7 @@ public class SvParameter extends SvCore {
 			svw = new SvWriter(this);
 			paramTypeObj = new DbDataObject();
 			paramTypeObj.setObject_type(svCONST.OBJECT_TYPE_PARAM_TYPE);
-			paramTypeObj.setStatus("VALID");
+			paramTypeObj.setStatus(svCONST.STATUS_VALID);
 			paramTypeObj.setParent_id(0L);
 			paramTypeObj.setDt_insert(new DateTime());
 			paramTypeObj.setDt_delete(SvConf.MAX_DATE);

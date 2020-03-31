@@ -21,7 +21,9 @@ import java.util.LinkedHashMap;
 * The SvarogPluginExtender checks if the class that is being processed implements ITriglavPluginClass and if it does uses the inherited methods to 
 * get the data necessary in order to build a feature rich customizable web service.
 * @author Gjorgji Pejov
+* @deprecated
 */
+@Deprecated
 public interface ITriglavPlugin {
 	
 	/**

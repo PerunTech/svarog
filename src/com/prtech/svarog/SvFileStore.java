@@ -52,12 +52,17 @@ import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 public class SvFileStore extends SvCore {
+	/**
+	 * Log4j instance
+	 */
+	static final Logger log4j = SvConf.getLogger(SvFileStore.class);
 
 	/**
 	 * Static cache instance to hold the system files.
 	 */
 	private static Cache<Long, byte[]> systemCache = getSystemFilesCache();
 
+	static String fileStorePath = initFileStorePath();
 	/**
 	 * Variable holding the maximum size of a system file to be cached in mega
 	 * bytes
@@ -79,12 +84,39 @@ public class SvFileStore extends SvCore {
 		return max_size;
 	}
 
+	private static String initFileStorePath() {
+
+		String path = SvConf.getParam("filestore.path");
+		if (path == null || path.isEmpty())
+			log4j.error("Filestore path not properly configured. Using default path");
+		File fPath = new File(path);
+		if (!fPath.exists()) {
+			log4j.error("Filestore path " + path + " does not exist on the file system!. Using default path");
+			path = "./svarog_filestore";
+			fPath = new File(path);
+			if (!fPath.exists())
+				fPath.mkdir();
+
+		}
+
+		if (path != null)
+			log4j.info("Filestore path is:" + fPath.getAbsolutePath());
+
+		// TODO Auto-generated method stub
+		return path;
+	}
+
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * 
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvFileStore(String session_id) throws SvException {
 		super(session_id);
@@ -95,7 +127,15 @@ public class SvFileStore extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * 
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvFileStore(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -105,7 +145,12 @@ public class SvFileStore extends SvCore {
 	 * Shared core Constructor. This constructor can be used only within the
 	 * svarog package since it will run with system priveleges.
 	 * 
+	 * 
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvFileStore(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -115,72 +160,15 @@ public class SvFileStore extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * 
 	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	SvFileStore() throws SvException {
 		super(svCONST.systemUser, null);
 	}
 
-	/**
-	 * Log4j instance
-	 */
-	static final Logger log4j = LogManager.getLogger(SvFileStore.class.getName());
-
-	static Boolean initFileStore() {
-
-		DbDataTable dbt = new DbDataTable(SvConf.getSqlkw());
-		dbt.setDbTableName(SvConf.getParam("filestore.table"));
-		dbt.setDbRepoName(SvConf.getMasterRepo());
-		dbt.setDbSchema(SvConf.getDefaultSchema());
-
-		// f1
-		DbDataField dbf1 = new DbDataField();
-		dbf1.setDbFieldName("PKID");
-		dbf1.setIsPrimaryKey(true);
-		dbf1.setDbFieldType(DbFieldType.NUMERIC);
-		dbf1.setDbFieldSize(18);
-		dbf1.setDbFieldScale(0);
-		dbf1.setIsNull(false);
-		dbf1.setDbSequenceName(dbt.getDbTableName() + "_pkid");
-
-		// f2
-		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("DATA");
-		dbf2.setDbFieldType(DbFieldType.BLOB);
-		dbf2.setIsNull(false);
-		dbf2.setLabel_code("master_repo.file_type");
-
-		dbt.setDbTableFields(new DbDataField[2]);
-		dbt.getDbTableFields()[0] = dbf1;
-		dbt.getDbTableFields()[1] = dbf2;
-		Boolean retval = false;
-		DbDataTable.setRbConf(SvConf.getSqlkw());
-		DbDataField.setSqlKWResource(SvConf.getSqlkw());
-
-		Connection conn = null;
-		try {
-
-			conn = SvConf.getDBConnection();
-			retval = SvarogInstall.createTable(dbt, conn);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			retval = false;
-		} finally
-
-		{
-			if (conn != null)
-				try {
-					conn.close();
-				} catch (Exception e) {
-					log4j.error("Connection can't be released!", e);
-				}
-			;
-
-		}
-		return retval;
-
-	}
+	
 
 	/**
 	 * Initialiser method for the file cache
@@ -212,6 +200,8 @@ public class SvFileStore extends SvCore {
 	 *            The file data it self. It can be byte[] or InputStream. Svarog
 	 *            will not close the stream after successful save.
 	 * @throws SvException
+	 *             Pass through exception from
+	 *             {@link #saveFile(DbDataObject, DbDataObject, Object, Boolean)}
 	 */
 	@Deprecated
 	public void saveFile(DbDataObject fileDescriptor, Long objectId, Long objectType, byte[] fileData)
@@ -488,7 +478,7 @@ public class SvFileStore extends SvCore {
 	 * @throws SvException
 	 */
 	private FileOutputStream fileSystemSaveStream(Long fileId) throws SvException {
-		File rootFs = new File(SvConf.getParam("filestore.path") + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
+		File rootFs = new File(fileStorePath + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
 		FileOutputStream output = null;
 
 		try {
@@ -516,7 +506,7 @@ public class SvFileStore extends SvCore {
 	 * @throws SvException
 	 */
 	private FileInputStream fileSystemGetStream(Long fileId, HashMap<String, Object> extendedInfo) throws SvException {
-		File rootFs = new File(SvConf.getParam("filestore.path") + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
+		File rootFs = new File(fileStorePath + "/" + Long.toString((fileId / 1000L + 1L) * 1000));
 		FileInputStream input = null;
 
 		try {

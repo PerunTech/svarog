@@ -33,6 +33,9 @@ import com.prtech.svarog_common.DbQueryObject.DbJoinType;
  * SvSecurity is inherited from SvCore but unlike the SvReader and alike, it
  * does provide a constructor to enable using it even without user session.
  * 
+ * The SvSecurity's main role which should be used without a user session is to
+ * authenticate a user against the Svarog framework
+ * 
  * @author PR01
  *
  */
@@ -93,15 +96,60 @@ public class SvSecurity extends SvCore {
 	 * raise an exception since anonymous users should not be allowed to switch
 	 * without having a valid session
 	 * 
-	 * @param user
+	 * @param userName
 	 *            The name of user which should be switched
 	 * @throws SvException
 	 *             If the caller class is not registered service class it will
 	 *             throw "system.error.cant_switch_system_user"
 	 */
-	public void switchUser(String user) throws SvException {
+	public void switchUser(String userName) throws SvException {
+		DbDataObject user = this.getUser(userName);
+		this.switchUser(user);
+	}
+
+	@Override
+	/**
+	 * Overriden method to switch the current user. It will check if the caller
+	 * class is a registered services class in svarog.properties and if not will
+	 * raise an exception since anonymous users should not be allowed to switch
+	 * without having a valid session
+	 * 
+	 * @param user
+	 *            DbDataObject which describes the user to be switched
+	 * @throws SvException
+	 *             If the caller class is not registered service class it will
+	 *             throw "system.error.cant_switch_system_user"
+	 */
+	public void switchUser(DbDataObject user) throws SvException {
 		if (!SvConf.isServiceClass(getCallerClassName()))
 			throw (new SvException("system.error.cant_switch_system_user", instanceUser));
+
+		super.switchUser(user);
+	}
+
+	/**
+	 * Method that returns value of a public string parameter. A public string
+	 * parameter is considered any parameter which has parent of type
+	 * svCONST.OBJECT_TYPE_SECURITY_LOG (currently long value 5)
+	 * 
+	 * @param label
+	 *            label is LABEL_CODE of SVAROG_PARAM_TYPE object.
+	 * 
+	 * @return It only returns the first value of object.
+	 */
+	public String getPublicParam(String label) throws SvException {
+
+		SvParameter svp = null;
+		String result = null;
+		try {
+			svp = new SvParameter();
+			DbDataObject securityDbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
+			result = svp.getParamString(securityDbt, label);
+		} finally {
+			if (svp != null)
+				svp.release();
+		}
+		return result;
 	}
 
 	/**
@@ -165,7 +213,8 @@ public class SvSecurity extends SvCore {
 				sid = getSidImpl(sidName, sidType);
 
 			return sid;
-		}else throw (new SvException("system.error.sid_type_not_valid", instanceUser));
+		} else
+			throw (new SvException("system.error.sid_type_not_valid", instanceUser));
 	}
 
 	/**
@@ -632,7 +681,7 @@ public class SvSecurity extends SvCore {
 			if (dba != null) {
 				DbDataObject user = dba.getItems().size() > 0 ? dba.getItems().get(0) : null;
 				if (user != null && user.getStatus().equals("PENDING")) {
-					(svw).moveObject(user, "VALID");
+					(svw).moveObject(user, svCONST.STATUS_VALID);
 					userFound = true;
 				}
 			}
@@ -781,12 +830,10 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Implementation method to recovery a user password in a svarog system.
+	 * Implementation method to change a user password in a svarog system.
 	 * 
 	 * @param userName
 	 *            The username
-	 * @param pin
-	 *            Personal ID number
 	 * @param oldPass
 	 *            Old (Current) password of the user
 	 * @param newPass
@@ -917,8 +964,11 @@ public class SvSecurity extends SvCore {
 	 * Method that checks if a user already exists according the entered pin
 	 * number in registration forms. If exists return true.
 	 * 
-	 * @param piNo
+	 * @param pinNo
 	 *            the pin number entered in the user registration form
+	 * @return True if the user identified by the pin exists.
+	 * @throws SvException
+	 *             Passthrough of underlying SvException
 	 */
 	public Boolean checkIfUserExistsByPin(String pinNo) throws SvException {
 		return checkIfUserExistsByPin(pinNo, null);
@@ -929,7 +979,7 @@ public class SvSecurity extends SvCore {
 	 * number in registration forms along with status of the user. If exists
 	 * return true.
 	 * 
-	 * @param piNo
+	 * @param pinNo
 	 *            the pin number entered in the user registration form
 	 * @param status
 	 *            The status for which the user should be checked. Status check
@@ -1124,9 +1174,8 @@ public class SvSecurity extends SvCore {
 	 * 
 	 * @param userObj
 	 *            The user object which should be empowered
-	 * @param linkType
-	 * @param linkedObject
-	 * @return
+	 * @param empowerOverObject
+	 *            The object over which the userObj shall be empowered
 	 * @throws SvException
 	 *             Re-throw any underlying Svarog exception
 	 */
@@ -1149,12 +1198,11 @@ public class SvSecurity extends SvCore {
 	 * 
 	 * @param userObj
 	 *            The user object which should be empowered
-	 * @param linkType
-	 * @param linkedObject
+	 * @param empowerOverObject
+	 *            The object over which the userObj shall be empowered
 	 * @param svl
 	 *            SvLink instance to be used for linking the objects and allow
 	 *            transaction control
-	 * @return
 	 * @throws SvException
 	 *             Re-throw any underlying Svarog exception
 	 */

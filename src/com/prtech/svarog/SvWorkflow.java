@@ -17,6 +17,13 @@ package com.prtech.svarog;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 
+/**
+ * The implementation of workflows, such as movement of an object through
+ * different statuses is implemented by this class.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvWorkflow extends SvCore {
 
 	/**
@@ -24,9 +31,10 @@ public class SvWorkflow extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
-	public SvWorkflow (String session_id) throws SvException {
+	public SvWorkflow(String session_id) throws SvException {
 		super(session_id);
 	}
 
@@ -35,7 +43,8 @@ public class SvWorkflow extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public SvWorkflow(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -61,15 +70,16 @@ public class SvWorkflow extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-
 	/**
 	 * Method to change the status of a DbDataObject and move it to a new state.
-	 * This overloaded version performs commit on success and rollback on exception
+	 * This overloaded version performs commit on success and rollback on
+	 * exception
+	 * 
 	 * @param dbo
 	 *            The DbDataObject which is subject of change
 	 * @param newStatus
 	 *            The status to which the object will be moved
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	public void moveObject(DbDataObject dbo, String newStatus) throws SvException {
 		moveObject(dbo, newStatus, this.autoCommit);
@@ -85,7 +95,8 @@ public class SvWorkflow extends SvCore {
 	 *            The status to which the object should be moved
 	 * @param autoCommit
 	 *            Flag to enable/disable auto commit
-	 * @throws Exception
+	 * @throws SvException
+	 *             Pass through of underlying exceptions
 	 */
 	public void moveObject(DbDataObject dbo, String newStatus, Boolean autoCommit) throws SvException {
 		try {
@@ -111,7 +122,7 @@ public class SvWorkflow extends SvCore {
 	 *            The status to which the object should be moved
 	 * @throws Exception
 	 */
-	 void moveObjectImpl(DbDataObject dbo, String newStatus) throws SvException {
+	void moveObjectImpl(DbDataObject dbo, String newStatus) throws SvException {
 
 		DbDataObject dbt = getDbt(dbo);
 		dbo.setStatus(newStatus);
@@ -119,15 +130,12 @@ public class SvWorkflow extends SvCore {
 		dba.addDataItem(dbo);
 
 		SvWriter svw = new SvWriter(this);
-		try
-		{
-		svw.saveRepoData(dbt, dba, false, false);
+		try {
+			svw.saveRepoData(dbt, dba, false, false);
 
-		// in case we are moving a link, we need to invalidate the link cache
-		if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_LINK))
-			svw.removeLinkCache(dbo);
-		}finally
-		{
+			// Invoke the cache cleanup
+			svw.cacheCleanup(dbo, dbt);
+		} finally {
 			svw.release();
 		}
 		// TODO add movement specific business rules and other things

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_interfaces.II18n;
 
 /**
  * Class used for internationalisation of text strings (Labels). Provides means
@@ -31,8 +32,12 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
  * @author PR01
  *
  */
-public class I18n extends SvCore {
-	
+public class I18n extends SvCore implements II18n {
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = SvConf.getLogger(I18n.class);
+
 	/**
 	 * Array holding the list of labels which were not successfully loaded
 	 */
@@ -41,6 +46,7 @@ public class I18n extends SvCore {
 	private static ConcurrentHashMap<String, DbDataArray> labelsCache = new ConcurrentHashMap<String, DbDataArray>(200);
 
 	static final Boolean initCall = initOnSaveCallBack();
+
 	/**
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system privileges.
@@ -51,11 +57,6 @@ public class I18n extends SvCore {
 	I18n() throws SvException {
 		super(svCONST.systemUser, null);
 	}
-
-	/**
-	 * Log4j instance used for logging
-	 */
-	static final Logger log4j = LogManager.getLogger(I18n.class.getName());
 
 	/**
 	 * The method loadLabels
@@ -105,7 +106,7 @@ public class I18n extends SvCore {
 	static String getKey(DbDataObject label) {
 		return getKey((String) label.getVal("locale_id"), (String) label.getVal("label_code"));
 	}
-	
+
 	/**
 	 * Method to ensure the group code for labels is always the same
 	 * 
@@ -122,7 +123,7 @@ public class I18n extends SvCore {
 		}
 		return labelGroupCode;
 	}
-	
+
 	/**
 	 * Method to ensure the group code for labels is always the same
 	 * 
@@ -134,21 +135,45 @@ public class I18n extends SvCore {
 		return getGroupCode((String) label.getVal("label_code"));
 	}
 
+	/**
+	 * Method to return an array of labels for specific group code (label code
+	 * up to the last point.)
+	 * 
+	 * @param localeId
+	 *            The requested locale
+	 * @param labelGroupCode
+	 *            The group code of the labels
+	 * @return The resulting array of labels in the same group code
+	 * @throws SvException
+	 *             Underlying exception
+	 */
 	public static DbDataArray getLabels(String localeId, String labelGroupCode) throws SvException {
 		DbDataArray labels = null;
 
 		labels = labelsCache.get(getKey(localeId, labelGroupCode));
 		if (labels == null) {
-				labels = loadLabels(localeId, labelGroupCode);
-				if (labels != null && labels.size() > 0) {
-					labels.rebuildIndex("LABEL_CODE");
-					labelsCache.put(getKey(localeId, labelGroupCode), labels);
-				}
+			labels = loadLabels(localeId, labelGroupCode);
+			if (labels != null && labels.size() > 0) {
+				labels.rebuildIndex("LABEL_CODE");
+				labelsCache.put(getKey(localeId, labelGroupCode), labels);
+			}
 		}
 		return labels;
 
 	}
 
+	/**
+	 * Method to return an array of labels for specific group code (label code
+	 * up to the last point.)
+	 * 
+	 * @param localeId
+	 *            The requested locale
+	 * @param labelCode
+	 *            The label code of the label
+	 * @return The resulting array of labels in the same group code
+	 * @throws SvException
+	 *             Underlying exception
+	 */
 	private static DbDataArray loadLabels(String localeId, String labelCode) throws SvException {
 		DbDataArray labels = null;
 		SvReader svr = null;
@@ -236,6 +261,23 @@ public class I18n extends SvCore {
 	}
 
 	/**
+	 * The method returns a text representation for a label code in the default
+	 * configured locale
+	 * 
+	 * @param languageId
+	 *            the locale which i18n use to localise the label
+	 * @param labelCode
+	 *            the label code for which i18n will return a localised string
+	 * @return String representation of the label
+	 */
+	@Override
+	public String getI18nText(String languageId, String labelCode) {
+		if (languageId == null)
+			languageId = (String) getDefaultLocale().getVal("LOCALE_ID");
+		return getText(languageId, labelCode);
+	}
+
+	/**
 	 * The method getLongText returns a text description in the specified locale
 	 * for the requested label code
 	 * 
@@ -246,10 +288,33 @@ public class I18n extends SvCore {
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
-	public static String getLongText(String languageId, String labelCode) throws SvException {
-
-		return getBaseText(languageId, labelCode, "label_descr");
+	public static String getLongText(String languageId, String labelCode) {
+		try {
+			return getBaseText(languageId, labelCode, "label_descr");
+		} catch (SvException e) {
+			log4j.error("Error fetching text for lang:label '" + languageId + ":" + labelCode + "':"
+					+ e.getFormattedMessage());
+			return labelCode;
+		}
 	}
+
+	/**
+	 * The method returns a text description for a label code in the default
+	 * configured locale
+	 * 
+	 * @param languageId
+	 *            the locale which i18n use to localise the label
+	 * @param labelCode
+	 *            the label code for which i18n will return a localised string
+	 * @return String representation of the label
+	 * @throws SvException
+	 */
+	@Override
+	public String getI18nLongText(String languageId, String labelCode) {
+		if (languageId == null)
+			languageId = (String) getDefaultLocale().getVal("LOCALE_ID");
+		return getLongText(languageId, labelCode);
+	};
 
 	static DbDataObject getLabel(String localeId, String labelCode) throws SvException {
 		DbDataObject locale = SvarogInstall.getLocaleList().getItemByIdx(localeId);
@@ -299,6 +364,20 @@ public class I18n extends SvCore {
 	}
 
 	/**
+	 * Method to provide I18 through the standard interface
+	 * 
+	 * @param labelCode
+	 *            the label code for which i18n will return a localised string
+	 * @return String representation of the label
+	 * @throws SvException
+	 */
+	@Override
+	public String getI18nText(String labelCode) {
+
+		return I18n.getText(labelCode);
+	}
+
+	/**
 	 * The method getLongText returns a text description for a label code in the
 	 * default configured locale
 	 * 
@@ -307,10 +386,25 @@ public class I18n extends SvCore {
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
-	public static String getLongText(String labelCode) throws SvException {
+	public static String getLongText(String labelCode) {
 		return getLongText(SvConf.getDefaultLocale(), labelCode);
 	}
-	
+
+	/**
+	 * The method returns a text description for a label code in the default
+	 * configured locale
+	 * 
+	 * @param labelCode
+	 *            the label code for which i18n will return a localised string
+	 * @return String representation of the label
+	 * @throws SvException
+	 */
+	@Override
+	public String getI18nLongText(String labelCode) {
+
+		return I18n.getLongText(labelCode);
+	}
+
 	public static void invalidateLabelsCache(DbDataObject label) throws SvException {
 		DbDataArray labels = null;
 
@@ -319,29 +413,30 @@ public class I18n extends SvCore {
 		}
 
 		String groupCode = getGroupCode(label);
-		String key = getKey((String)label.getVal("LOCALE_ID"), groupCode);
+		String key = getKey((String) label.getVal("LOCALE_ID"), groupCode);
 		labels = labelsCache.get(key);
 		if (labels != null) {
 			labelsCache.remove(key);
 		}
 	}
+
 	/**
 	 * Register invalidate labels cache after save
 	 */
-	static  Boolean initOnSaveCallBack() {
+	static Boolean initOnSaveCallBack() {
 		OnSaveCallBackI18n call = new OnSaveCallBackI18n();
 		SvCore.registerOnSaveCallback(call, svCONST.OBJECT_TYPE_LABEL);
 		return true;
 	}
 
-
 }
+
 class OnSaveCallBackI18n implements ISvOnSave {
 
 	@Override
 	public boolean beforeSave(SvCore parentCore, DbDataObject dbo) throws SvException {
-			
-		DbDataObject locale = SvarogInstall.getLocaleList().getItemByIdx((String)dbo.getVal("LOCALE_ID"));
+
+		DbDataObject locale = SvarogInstall.getLocaleList().getItemByIdx((String) dbo.getVal("LOCALE_ID"));
 		dbo.setParent_id(locale.getObject_id());
 		return true;
 	}
@@ -352,4 +447,3 @@ class OnSaveCallBackI18n implements ISvOnSave {
 
 	}
 }
-
