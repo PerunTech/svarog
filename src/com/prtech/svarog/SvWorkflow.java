@@ -143,7 +143,7 @@ public class SvWorkflow extends SvCore {
 
 				// in case we are moving a link, we need to invalidate the link
 				// cache
-				if (dbo.getObject_type().equals(svCONST.OBJECT_TYPE_LINK))
+				if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK))
 					svw.removeLinkCache(dbo);
 			} finally {
 				svw.release();
@@ -160,7 +160,6 @@ public class SvWorkflow extends SvCore {
 		SvReader svr = null;
 		// TODO change as param in the future
 		String codeListName = "OBJ_STATUS";
-		RuleEngine ruleEngine = null;
 		try {
 			svr = new SvReader(this);
 			if (dbo != null) {
@@ -176,60 +175,74 @@ public class SvWorkflow extends SvCore {
 					}
 					if (!checkIfStatusExists(newStatus, codeListName)) {
 						throw (new SvException(
-								"workflow_engine.error.movementNotAllowed.DestinationStatusNotInCodeList",
-								instanceUser, new ExceptionString("DestinationStatusNotInstalledInCodeList- status:"
-										+ newStatus + ";codeList:" + codeListName),
+								"workflow_engine.error.movementNotAllowed.DestinationStatusNotInCodeList", instanceUser,
+								new ExceptionString("DestinationStatusNotInstalledInCodeList- status:" + newStatus
+										+ ";codeList:" + codeListName),
 								dbo));
 					}
-					DbSearchCriterion cr1 = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL,
-							dbo.getObjectType());
-					DbSearchCriterion cr2 = new DbSearchCriterion("ORIGINATING_STATUS", DbCompareOperand.EQUAL,
-							dbo.getStatus());
-					DbSearchCriterion cr3 = new DbSearchCriterion("DESTINATION_STATUS", DbCompareOperand.EQUAL,
-							newStatus);
-
-					DbSearchExpression dbs = new DbSearchExpression().addDbSearchItem(cr1).addDbSearchItem(cr2)
-							.addDbSearchItem(cr3);
-					DbDataArray requestedTransition = svr.getObjects(dbs, svCONST.OBJECT_TYPE_WORKFLOW, null, 0, 0);
-					if (requestedTransition != null && !requestedTransition.isEmpty()) {
-						DbDataObject workflow = requestedTransition.get(0);
-						if (workflow.getVal("CHECKIN_RULE") != null) {
-							ruleEngine = new RuleEngine(this);
-							ruleEngine.setRuleEngineSave(new ISvRuleEngineSave() {
-
-								@Override
-								public void saveFinalState(SvCore parentCore, DbDataObject targetObject,
-										DbDataArray actionResults, Boolean success) throws SvException {
-									// TODO Auto-generated method stub
-
-								}
-
-								@Override
-								public void saveCurrentState(SvCore parentCore, DbDataObject currentAction,
-										DbDataObject execObj, DbDataArray actionResults, Boolean success)
-										throws SvException {
-									// TODO Auto-generated method stub
-
-								}
-							});
-							DbDataArray actionsRsult = new DbDataArray();
-							HashMap<Object, Object> params = new HashMap<>();
-							params.put("ORIGINATING_STATUS", dbo.getStatus());
-							params.put("DESTINATION_STATUS", newStatus);
-							result = ruleEngine.executeImpl((Long) workflow.getVal("CHECKIN_RULE"), actionsRsult, dbo,
-									params);
-						} else {
-							result = true;
-						}
+					DbDataObject requestedTransition = findRequestedTransition(dbo, newStatus, svr);
+					if (requestedTransition != null && requestedTransition.getVal("CHECKIN_RULE") != null) {
+						result = executeRuleEnginePerTransition(dbo, requestedTransition, newStatus);
+					} else {
+						result = true;
 					}
 				}
 			}
-		} finally {
+		} finally
+
+		{
 			if (svr != null)
 				svr.release();
+		}
+		return result;
+	}
+
+	DbDataObject findRequestedTransition(DbDataObject dbo, String newStatus, SvReader svr) throws SvException {
+		DbDataObject requestedTransition = null;
+		DbSearchCriterion cr1 = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, dbo.getObjectType());
+		DbSearchCriterion cr2 = new DbSearchCriterion("ORIGINATING_STATUS", DbCompareOperand.EQUAL, dbo.getStatus());
+		DbSearchCriterion cr3 = new DbSearchCriterion("DESTINATION_STATUS", DbCompareOperand.EQUAL, newStatus);
+
+		DbSearchExpression dbs = new DbSearchExpression().addDbSearchItem(cr1).addDbSearchItem(cr2)
+				.addDbSearchItem(cr3);
+		DbDataArray results = svr.getObjects(dbs, svCONST.OBJECT_TYPE_WORKFLOW, null, 0, 0);
+		if (results != null && !results.isEmpty()) {
+			requestedTransition = results.get(0);
+		}
+		return requestedTransition;
+	}
+
+	Boolean executeRuleEnginePerTransition(DbDataObject dbo, DbDataObject requestedTransition, String newStatus)
+			throws SvException {
+		Boolean result = false;
+		RuleEngine ruleEngine = new RuleEngine(this);
+		try {
+			ruleEngine.setRuleEngineSave(new ISvRuleEngineSave() {
+
+				@Override
+				public void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults,
+						Boolean success) throws SvException {
+					// TODO Auto-generated method stub
+
+				}
+
+				@Override
+				public void saveCurrentState(SvCore parentCore, DbDataObject currentAction, DbDataObject execObj,
+						DbDataArray actionResults, Boolean success) throws SvException {
+					// TODO Auto-generated method stub
+
+				}
+			});
+			DbDataArray actionsRsult = new DbDataArray();
+			HashMap<Object, Object> params = new HashMap<>();
+			params.put("ORIGINATING_STATUS", dbo.getStatus());
+			params.put("DESTINATION_STATUS", newStatus);
+			result = ruleEngine.executeImpl((Long) requestedTransition.getVal("CHECKIN_RULE"), actionsRsult, dbo,
+					params);
+		} finally {
 			if (ruleEngine != null) {
-				ruleEngine.release();
 			}
+			ruleEngine.release();
 		}
 		return result;
 	}
