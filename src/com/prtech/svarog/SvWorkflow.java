@@ -241,8 +241,8 @@ public class SvWorkflow extends SvCore {
 					params);
 		} finally {
 			if (ruleEngine != null) {
+				ruleEngine.release();
 			}
-			ruleEngine.release();
 		}
 		return result;
 	}
