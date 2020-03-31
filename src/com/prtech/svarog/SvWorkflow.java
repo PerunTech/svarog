@@ -267,9 +267,10 @@ public class SvWorkflow extends SvCore {
 
 	Boolean checkIfTransitionPermitable(DbDataObject dboTransition, SvReader svr) throws SvException {
 		Boolean result = true;
-		if (dboTransition.getVal("PERMISSION_CODE") != null
-				&& !dboTransition.getVal("PERMISSION_CODE").toString().trim().equals("")) {
-			String permissionCode = dboTransition.getVal("PERMISSION_CODE").toString();
+		final String PERMISSION_CODE="PERMISSION_CODE";
+		if (dboTransition.getVal(PERMISSION_CODE) != null
+				&& !dboTransition.getVal(PERMISSION_CODE).toString().trim().equals("")) {
+			String permissionCode = dboTransition.getVal(PERMISSION_CODE).toString();
 			if (!svr.hasPermission(permissionCode)) {
 				result = false;
 			}
