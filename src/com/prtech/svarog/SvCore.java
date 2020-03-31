@@ -95,6 +95,19 @@ public abstract class SvCore implements ISvCore {
 	static final Logger log4j = SvConf.getLogger(SvCore.class);
 
 	/**
+	 * The property name used to specify whether the launcher should execute a
+	 * svarog shutdown hook.
+	 **/
+	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
+
+	/**
+	 * Static block to set the shutdown hooks only once at boot
+	 */
+	static {
+		setShutDownHook();
+	}
+
+	/**
 	 * Enumeration holding flags about access over svarog objects.
 	 * 
 	 * @author XPS13
@@ -569,6 +582,16 @@ public abstract class SvCore implements ISvCore {
 		global.add(callback);
 	}
 
+	/**
+	 * Method to register an OnSave callback for specific object type
+	 * 
+	 * @param callback
+	 *            Reference to a class implementing the {@link ISvOnSave}
+	 *            interface
+	 * @param type
+	 *            The id of the object type for which we want the call back to
+	 *            be executed
+	 */
 	public synchronized static void registerOnSaveCallback(ISvOnSave callback, Long type) {
 		CopyOnWriteArrayList<ISvOnSave> local = onSaveCallbacks.get(type);
 		if (local == null) {
@@ -1247,6 +1270,66 @@ public abstract class SvCore implements ISvCore {
 		if (forceInit)
 			isInitialized.compareAndSet(true, false);
 		initSvCoreImpl(false);
+	}
+
+	/**
+	 * Method to execute list of shut down executors loaded from
+	 * svarog.properties.
+	 * 
+	 * @param shutDownExec
+	 *            List of key of svarog executors. Semicolon is the list
+	 *            separator
+	 */
+	private static void execSvarogShutDownHooks(String shutDownExec) {
+		SvExecManager sve = null;
+		if (shutDownExec != null && shutDownExec.length() > 1) {
+			String[] list = shutDownExec.trim().split(";");
+			if (list.length > 0) {
+				try {
+					sve = new SvExecManager();
+					for (int i = 0; i < list.length; i++) {
+						try {
+							sve.execute(list[i].toUpperCase(), null, new DateTime());
+							log4j.info("Executed shut down executor: " + list[i]);
+						} catch (Exception e) {
+							log4j.info("Could not execute shut down executor: " + list[i], e);
+						}
+					}
+				} catch (SvException e) {
+					log4j.info("Error Svarog shut down", e);
+				} finally {
+					if (sve != null) {
+						sve.release();
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Method to set a shutdown hook to the JVM in order to perform cleanup and
+	 * shutdown the osgi framework
+	 */
+	static void setShutDownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread("Svarog Shutdown Hook") {
+			public void run() {
+				try {
+					// Svarog shut down executing list of executors
+					execSvarogShutDownHooks((String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP));
+					log4j.info("Shutting down svarog");
+					SvCluster.resignCoordinator();
+					SvCluster.shutdown(false);
+					SvMaintenance.shutdown();
+
+					if (SvarogDaemon.osgiFramework != null) {
+						SvarogDaemon.osgiFramework.stop();
+						SvarogDaemon.osgiFramework.waitForStop(0);
+					}
+				} catch (Exception ex) {
+					System.err.println("Error stopping Svarog: " + ex);
+				}
+			}
+		});
 	}
 
 	/**
