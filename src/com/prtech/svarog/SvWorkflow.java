@@ -156,7 +156,7 @@ public class SvWorkflow extends SvCore {
 	}
 
 	Boolean checkTransitionValidity(DbDataObject dbo, String newStatus) throws SvException {
-		if (dbo != null)
+		if (dbo == null)
 			throw (new SvException("system.error.object_is_null", instanceUser));
 
 		Boolean result = true;
