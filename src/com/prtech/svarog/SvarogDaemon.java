@@ -292,27 +292,24 @@ public class SvarogDaemon {
 				// to run the cluster maintenance as well as tracked connection
 				// cleanup.
 				try {
-
+					shutdown = false;
+					event = null;
 					long timeout = SvMaintenance.performMaintenance();
 					event = osgiFramework.waitForStop(timeout);
-					// if we aren't in a cluster, then try to join
+
+					if (event.getType() == FrameworkEvent.STOPPED_UPDATE)
+						osgiFramework.start();
+
+					if (event.getType() != FrameworkEvent.WAIT_TIMEDOUT
+							&& event.getType() != FrameworkEvent.STOPPED_UPDATE)
+						shutdown = true;
+
 				} catch (InterruptedException e) {
+					// if our thread was interrupted, set the flag and back to
+					// maintenance
 					Thread.currentThread().interrupt();
-					shutdown = false;
 				}
 
-				// if there's no framework event, we were interrupted
-				if (event != null) {
-					switch (event.getType()) {
-					case FrameworkEvent.STOPPED_UPDATE:
-						osgiFramework.start();
-					case FrameworkEvent.WAIT_TIMEDOUT:
-						shutdown = false;
-						break;
-					default:
-						shutdown = true;
-					}
-				}
 			}
 			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
 			// Otherwise, exit.
