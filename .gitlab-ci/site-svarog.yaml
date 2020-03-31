@@ -1,0 +1,6 @@
+---
+- hosts: gitlab-ci-runner
+  gather_facts: yes
+  connection: local
+  roles:
+    - svarog

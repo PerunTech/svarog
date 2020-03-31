@@ -25,6 +25,14 @@ import org.apache.logging.log4j.Logger;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog.svCONST;
 
+/**
+ * This class provides methods to link two DbDataObjects via a specific link
+ * type. It uses the basic link types managed by the SvCore to perform
+ * persistence of link information based on different link types.
+ * 
+ * @author ristepejov
+ *
+ */
 public class SvLink extends SvCore {
 
 	/**
@@ -37,7 +45,11 @@ public class SvLink extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @throws SvException
+	 *             Pass through of any exception from the super class
 	 */
 	public SvLink(String session_id) throws SvException {
 		super(session_id);
@@ -48,7 +60,14 @@ public class SvLink extends SvCore {
 	 * is the default constructor available to the public, in order to enforce
 	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws Exception
+	 * @param session_id
+	 *            String UID of the user session under which the SvCore instance
+	 *            will run
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
+	 * @throws SvException
+	 *             Pass through of any exception from the super class
 	 */
 	public SvLink(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -58,7 +77,11 @@ public class SvLink extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
+	 * @param sharedSvCore
+	 *            The SvCore instance which will be used for JDBC connection
+	 *            sharing (i.e. parent SvCore)
 	 * @throws SvException
+	 *             Pass through of any exception from the super class
 	 */
 	public SvLink(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -69,6 +92,7 @@ public class SvLink extends SvCore {
 	 * package since it will run with system priveleges.
 	 * 
 	 * @throws SvException
+	 *             Pass through of any exception from the super class
 	 */
 	SvLink() throws SvException {
 		super(svCONST.systemUser, null);
@@ -135,6 +159,8 @@ public class SvLink extends SvCore {
 	 * @param linkNote
 	 *            The note associated with the link
 	 * @throws SvException
+	 *             Passthrough of underlying exception from
+	 *             {@link #linkObjects(Long, Long, Long, String, boolean, boolean)}
 	 */
 	public void linkObjects(Long objectId1, Long objectId2, Long linkTypeId, String linkNote) throws SvException {
 		linkObjects(objectId1, objectId2, linkTypeId, linkNote, true, this.autoCommit);
@@ -142,23 +168,22 @@ public class SvLink extends SvCore {
 
 	/**
 	 * Public method to link two objects by previously configured link type,
-	 * with option to skip existence check as well as disable the auto commit
+	 * with option to skip existence check
 	 * 
-	 * @param objectId1
-	 *            The object id of the first object
-	 * @param objectId2
-	 *            The object id of the second object
-	 * @param linkTypeId
-	 *            The object id of the link type
+	 * @param obj1
+	 *            The object reference of the first object
+	 * @param obj2
+	 *            The object reference of the second object
+	 * @param linkCode
+	 *            The string code uniquely identifying the link type
 	 * @param linkNote
 	 *            The note associated with the link
-	 * @param checkIfObjectsExist
-	 *            Flag to disable the object existence checks. Usefull for mass
-	 *            processing and importing
 	 * @param autoCommit
 	 *            Flag to disable the auto commit on success. In case the
 	 *            linking is part of a transaction
 	 * @throws SvException
+	 *             Pass through of underlying exception from
+	 *             {@link #linkObjects(DbDataObject, DbDataObject, String, String, boolean)}
 	 */
 	public void linkObjects(DbDataObject obj1, DbDataObject obj2, String linkCode, String linkNote, boolean autoCommit)
 			throws SvException {
@@ -169,12 +194,13 @@ public class SvLink extends SvCore {
 	 * Public method to link two objects by previously configured link type,
 	 * with option to skip existence check as well as disable the auto commit
 	 * 
-	 * @param objectId1
-	 *            The object id of the first object
-	 * @param objectId2
-	 *            The object id of the second object
-	 * @param linkTypeId
-	 *            The object id of the link type
+	 * 
+	 * @param obj1
+	 *            The object reference of the first object
+	 * @param obj2
+	 *            The object reference of the second object
+	 * @param linkCode
+	 *            The unique code of of the link type
 	 * @param linkNote
 	 *            The note associated with the link
 	 * @param checkIfObjectsExist
@@ -184,10 +210,14 @@ public class SvLink extends SvCore {
 	 *            Flag to disable the auto commit on success. In case the
 	 *            linking is part of a transaction
 	 * @throws SvException
+	 *             Throws "system.error.invalid_link_type" if it can't find the
+	 *             link type. Pass through of any exception from underlying
+	 *             SvReader methods or link implementation
+	 *             {@link #linkObjectsImpl(DbDataObject, DbDataObject, DbDataObject, String, boolean, Boolean)}
 	 */
 	public void linkObjects(DbDataObject obj1, DbDataObject obj2, String linkCode, String linkNote,
 			boolean checkIfObjectsExist, boolean autoCommit) throws SvException {
-		DbDataObject dbl = getLinkType(linkCode, obj1.getObject_type(), obj2.getObject_type());
+		DbDataObject dbl = getLinkType(linkCode, obj1.getObjectType(), obj2.getObjectType());
 
 		if (dbl == null)
 			throw (new SvException("system.error.invalid_link_type", instanceUser, null, null));
@@ -220,6 +250,10 @@ public class SvLink extends SvCore {
 	 *            Flag to disable the auto commit on success. In case the
 	 *            linking is part of a transaction
 	 * @throws SvException
+	 *             Throws "system.error.invalid_link_type" if it can't find the
+	 *             link type. Pass through of any exception from underlying
+	 *             SvReader methods or link implementation
+	 *             {@link #linkObjectsImpl(DbDataObject, DbDataObject, DbDataObject, String, boolean, Boolean)}
 	 */
 	public void linkObjects(Long objectId1, Long objectId2, Long linkTypeId, String linkNote,
 			boolean checkIfObjectsExist, boolean autoCommit) throws SvException {
@@ -259,6 +293,12 @@ public class SvLink extends SvCore {
 	 *            Flag to disable the auto commit on success. In case the
 	 *            linking is part of a transaction
 	 * @throws SvException
+	 *             Throws "system.error.invalid_objects2link" if there's no
+	 *             object references. If the object types are not corresponding
+	 *             to the link type then "system.error.invalid_link_type". If
+	 *             checkIfObjectsExist flag is true then
+	 *             "system.error.invalid_objects2link" is thrown in case objects
+	 *             are not valid in the database.
 	 */
 	protected void linkObjectsImpl(DbDataObject obj1, DbDataObject obj2, DbDataObject dbl, String linkNote,
 			boolean checkIfObjectsExist, Boolean autoCommit) throws SvException {
