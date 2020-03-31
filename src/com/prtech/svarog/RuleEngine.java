@@ -385,6 +385,7 @@ public class RuleEngine extends SvCore {
 		SvReader svr = null;
 
 		Boolean success = false;
+		final String CODE_TYPE = "code_type";
 		try {
 			svr = new SvReader(this);
 			DbDataObject ruleObj = svr.getObjectById(rule_id, svCONST.OBJECT_TYPE_RULE, null);
@@ -410,7 +411,7 @@ public class RuleEngine extends SvCore {
 					for (DbDataObject currentAction : dbActions.getSortedItems("SORT_ORDER")) {
 
 						byte[] fileData = null;
-						if (!currentAction.getVal("code_type").toString().equals("Executor")) {
+						if (!currentAction.getVal(CODE_TYPE).toString().equals("Executor")) {
 
 							fileData = getActionFile(currentAction);
 							if (fileData == null) {
@@ -419,7 +420,7 @@ public class RuleEngine extends SvCore {
 						}
 						try {
 							// execute JavaScript action
-							switch ((String) currentAction.getVal("code_type")) {
+							switch ((String) currentAction.getVal(CODE_TYPE)) {
 							case "JavaScript":
 								execJS(currentAction, obj, actionResults, fileData);
 								break;
