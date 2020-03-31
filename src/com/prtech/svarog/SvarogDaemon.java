@@ -54,16 +54,7 @@ public class SvarogDaemon {
 	 */
 
 	static ServiceTracker<ISvExecutor, ISvExecutor> svcTracker = null;
-	/**
-	 * The property name used to specify whether the launcher should install a
-	 * shutdown hook.
-	 **/
-	public static final String SHUTDOWN_HOOK_PROP = "felix.shutdown.hook";
-	/**
-	 * The property name used to specify whether the launcher should execute a
-	 * svarog shutdown hook.
-	 **/
-	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
+
 	/**
 	 * The property name used to specify an URL to the system property file.
 	 **/
@@ -229,28 +220,6 @@ public class SvarogDaemon {
 		// Copy framework properties from the system properties.
 		SvarogDaemon.copySystemProperties(configProps);
 
-		// If enabled, register a shutdown hook to make sure the framework is
-		// cleanly shutdown when the VM exits.
-		String enableHook = (String) configProps.get(SHUTDOWN_HOOK_PROP);
-		Runtime.getRuntime().addShutdownHook(new Thread("Svarog Shutdown Hook") {
-			public void run() {
-				try {
-					// Svarog shut down executing list of executors
-					SvarogDaemon.execSvarogShutDownHooks((String) configProps.get(SVAROG_SHUTDOWN_HOOK_PROP));
-					log4j.info("Shutting down svarog");
-					SvCluster.resignCoordinator();
-					SvCluster.shutdown(false);
-					SvMaintenance.shutdown();
-
-					if (osgiFramework != null) {
-						osgiFramework.stop();
-						osgiFramework.waitForStop(0);
-					}
-				} catch (Exception ex) {
-					System.err.println("Error stopping Svarog: " + ex);
-				}
-			}
-		});
 
 		try {
 
@@ -477,37 +446,5 @@ public class SvarogDaemon {
 		}
 	}
 
-	/**
-	 * Method to execute list of shut down executors loaded from
-	 * svarog.properties.
-	 * 
-	 * @param shoudDownExec
-	 *            List of key of svarog executors. Semicolon is the list
-	 *            separator
-	 */
-	private static void execSvarogShutDownHooks(String shoudDownExec) {
-		SvExecManager sve = null;
-		if (shoudDownExec != null && shoudDownExec.length() > 1) {
-			String[] list = shoudDownExec.trim().split(";");
-			if (list.length > 0) {
-				try {
-					sve = new SvExecManager();
-					for (int i = 0; i < list.length; i++) {
-						try {
-							sve.execute(list[i].toUpperCase(), null, new DateTime());
-							log4j.info("Executed shut down executor: " + list[i]);
-						} catch (Exception e) {
-							log4j.info("Could not execute shut down executor: " + list[i], e);
-						}
-					}
-				} catch (SvException e) {
-					log4j.info("Error Svarog shut down", e);
-				} finally {
-					if (sve != null) {
-						sve.release();
-					}
-				}
-			}
-		}
-	}
+
 }
