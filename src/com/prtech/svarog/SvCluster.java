@@ -1,11 +1,9 @@
 package com.prtech.svarog;
 
 import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -13,18 +11,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
-import org.zeromq.SocketType;
-import org.zeromq.ZContext;
-import org.zeromq.ZMQ;
 
 import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonObject;
-import com.prtech.svarog.SvCluster.DistributedLock;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog_common.DbSearch;
-import com.prtech.svarog_common.DbSearchCriterion;
-import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 /**
  * Class for managing the svarog cluster infrastructure. Provides basic
@@ -85,11 +76,6 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Timestamp of the next planned maintenance of the cluster table in the DB
-	 */
-	static DateTime nextMaintenance = new DateTime();
-
-	/**
 	 * Timeout interval on the socket receive
 	 */
 	static final int SOCKET_RECV_TIMEOUT = SvConf.getHeartBeatInterval() / 2;
@@ -103,11 +89,6 @@ public class SvCluster extends SvCore {
 	 * Flag if the cluster is running
 	 */
 	private static final AtomicBoolean isRunning = new AtomicBoolean(false);
-
-	/**
-	 * Flag if the maintenance is in progress
-	 */
-	private static final AtomicBoolean maintenanceInProgress = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the client is running
@@ -135,7 +116,6 @@ public class SvCluster extends SvCore {
 	 */
 	static private Thread heartBeatThread = null;
 	static private Thread notifierThread = null;
-	static Thread maintenanceThread = null;
 
 	/**
 	 * Reference to the coordinator node
@@ -162,8 +142,7 @@ public class SvCluster extends SvCore {
 		cNode.setVal(JOIN_TIME, new DateTime());
 		cNode.setVal(PART_TIME, SvConf.MAX_DATE);
 		cNode.setVal(LAST_MAINTENANCE, new DateTime());
-		nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
-		cNode.setVal(NEXT_MAINTENANCE, nextMaintenance);
+		cNode.setVal(NEXT_MAINTENANCE, new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval()));
 		String localIp = "0.0.0.0:" + SvConf.getHeartBeatPort();
 		try {
 			localIp = SvUtil.getIpAdresses(true, IP_ADDR_DELIMITER);
@@ -276,128 +255,6 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to delete all historical information from the cluster table. For
-	 * nodes membership we don't really want to grow a big big table so its
-	 * easier to delete everything which isn't in the list of dontDeleteIDs
-	 * 
-	 * @param conn
-	 *            The JDBC connection to used for executing the query
-	 * @param oldIds
-	 *            The list of object PKIDs which we want to keep (don't delete)
-	 *            in string format, comma separated
-	 * @throws Exception
-	 *             Throw any underlying exception
-	 */
-	static private void clusterListDeleteHistory(Connection conn, StringBuilder dontDeleteIDs) throws Exception {
-		PreparedStatement ps = null;
-
-		try {
-			StringBuilder sbr = new StringBuilder(100);
-			sbr.append("DELETE FROM ");
-			sbr.append(SvConf.getDefaultSchema() + ".");
-			sbr.append(
-					(String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME") + " WHERE PKID NOT IN (");
-			// append the ids which we should not delete
-			sbr.append(dontDeleteIDs);
-			sbr.setLength(sbr.length() - 1);
-			sbr.append(")");
-			conn.setAutoCommit(false);
-			ps = conn.prepareStatement(sbr.toString());
-
-			ps.execute();
-
-		} finally {
-			try {
-				SvCore.closeResource(ps, svCONST.systemUser);
-			} catch (SvException e) {
-				log4j.error("Svarog cluster maintenance failed!", e);
-			}
-		}
-
-	}
-
-	/**
-	 * Method to update all information related to a node in the cluster list.
-	 * If the node is subject of historical date or should be removed from the
-	 * list the method will return EMPTY string. If the node should not be
-	 * removed the method will return the versioning id of the node.
-	 * 
-	 * @param node
-	 *            Reference to a DbDataObject containing the node info
-	 * @return EMPTY string if the node should be delete, otherwise PKID
-	 */
-	static private String clusterListUpdateNode(DbDataObject node) {
-
-		boolean nodeRemoved = false;
-		node.setVal(LAST_MAINTENANCE, DateTime.now());
-		node.setVal(NEXT_MAINTENANCE, DateTime.now().plusSeconds(SvConf.getClusterMaintenanceInterval()));
-
-		if (!node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID)
-				&& !SvClusterServer.nodeHeartBeats.containsKey(node.getObjectId())) {
-			node.setVal(PART_TIME, DateTime.now());
-			nodeRemoved = true;
-		}
-
-		if (!isRunning.get() && node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
-			node.setVal(PART_TIME, DateTime.now());
-		// if the node is not removed or it is the coordinator
-		// record make sure we keep it
-		if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
-			return node.getPkid().toString() + ",";
-		else
-			return "";
-	}
-
-	/**
-	 * Method to maintain the table of cluster nodes. It will first delete any
-	 * old redundant records, then update the current cluster state based on the
-	 * nodes which have been reporting via heartbeat in the last interval
-	 */
-	static void clusterListMaintenance() {
-		// we are the coordinator and the Heart Beat server is running
-		if (isCoordinator && SvClusterServer.isRunning.get()) {
-			synchronized (SvCluster.isRunning) {
-				SvReader svr = null;
-				SvWriter svw = null;
-
-				try {
-					svr = new SvReader();
-					Connection conn = svr.dbGetConn();
-
-					DbDataArray dba = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
-
-					StringBuilder sbr = new StringBuilder();
-
-					DbDataArray updatedList = new DbDataArray();
-					for (DbDataObject node : dba.getItems()) {
-						// do try to get a valid coordinator
-						updatedList.addDataItem(node);
-						sbr.append(clusterListUpdateNode(node));
-					}
-					clusterListDeleteHistory(conn, sbr);
-					svw = new SvWriter(svr);
-					svw.saveObject(updatedList, false);
-					svw.dbCommit();
-					nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
-
-				} catch (Exception e) {
-					log4j.error("Svarog cluster maintenance failed! Shutting down cluster", e);
-					if (e instanceof SvException) {
-						shutdown(false);
-						initCluster();
-					}
-				} finally {
-					if (svr != null)
-						svr.release();
-					if (svw != null)
-						svw.release();
-				}
-			}
-
-		}
-	}
-
-	/**
 	 * Method to ensure the cluster clients have started and connected to the
 	 * hear beat address/port of the coordinator
 	 * 
@@ -470,7 +327,8 @@ public class SvCluster extends SvCore {
 		if (!isRunning.compareAndSet(false, true)) {
 			log4j.error("Cluster is already initialised and active. Shutdown first");
 			return false;
-		}
+		} else
+			log4j.info("SvCluster is starting");
 		SvReader svr = null;
 		isCoordinator = false;
 		try {
@@ -510,6 +368,13 @@ public class SvCluster extends SvCore {
 				svr.release();
 		}
 		return isActive.get();
+	}
+
+	/**
+	 * Method to check if the cluster services are running correctly
+	 */
+	public static void checkCluster() {
+		// TODO add sanity check of the threads
 	}
 
 	/**
@@ -580,11 +445,15 @@ public class SvCluster extends SvCore {
 		while ((joinHb != null && joinHb.isAlive()) || (joinNf != null && joinNf.isAlive())) {
 			try {
 				if (joinHb != null && joinHb.isAlive())
-					joinHb.join(10);
+					joinHb.join(1);
 				if (joinNf != null && joinNf.isAlive())
-					joinNf.join(10);
+					joinNf.join(1);
+				synchronized (SvMaintenance.maintenanceThread) {
+					SvMaintenance.maintenanceThread.wait(100);
+				}
 			} catch (InterruptedException e) {
-				log4j.info("Interrupted heart beat thread join.", e);
+				Thread.currentThread().interrupt();
+				log4j.info("Waiting on the maintenance thread got interrupted. Retry to join  daemon threads", e);
 			}
 
 		}
@@ -602,9 +471,11 @@ public class SvCluster extends SvCore {
 		if (!isRunning.compareAndSet(true, false)) {
 			log4j.error("Svarog Cluster not running. Init first");
 			return;
-		}
+		} else
+			log4j.info("SvCluster is stopping");
+
 		if (doMaintenance)
-			clusterListMaintenance();
+			SvMaintenance.performMaintenance();
 		// shut down all daemon threads
 		if (isCoordinator)
 			stopServers();
@@ -619,6 +490,7 @@ public class SvCluster extends SvCore {
 		notifierThread = null;
 		coordinatorNode = null;
 		isCoordinator = false;
+
 		// notify interested parties that we shut down
 		synchronized (SvCluster.isRunning) {
 			isRunning.notifyAll();
@@ -821,20 +693,8 @@ public class SvCluster extends SvCore {
 		SvCluster.isCoordinator = isCoordinator;
 	}
 
-	public static AtomicBoolean getIsRunning() {
+	public static AtomicBoolean isRunning() {
 		return isRunning;
-	}
-
-	public static void setIsRunning(boolean isRunning) {
-		SvCluster.isRunning.set(isRunning);
-	}
-
-	public static AtomicBoolean getMaintenanceInProgress() {
-		return maintenanceInProgress;
-	}
-
-	public static void setMaintenanceInProgress(boolean maintenanceInProgress) {
-		SvCluster.maintenanceInProgress.set(maintenanceInProgress);
 	}
 
 	public static AtomicBoolean getIsActive() {
