@@ -216,28 +216,32 @@ public class SvWorkflow extends SvCore {
 			throws SvException {
 		Boolean result = false;
 		RuleEngine ruleEngine = new RuleEngine(this);
-		ruleEngine.setRuleEngineSave(new ISvRuleEngineSave() {
+		try {
+			ruleEngine.setRuleEngineSave(new ISvRuleEngineSave() {
 
-			@Override
-			public void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults,
-					Boolean success) throws SvException {
-				// TODO Auto-generated method stub
+				@Override
+				public void saveFinalState(SvCore parentCore, DbDataObject targetObject, DbDataArray actionResults,
+						Boolean success) throws SvException {
+					// TODO Auto-generated method stub
 
+				}
+
+				@Override
+				public void saveCurrentState(SvCore parentCore, DbDataObject currentAction, DbDataObject execObj,
+						DbDataArray actionResults, Boolean success) throws SvException {
+					// TODO Auto-generated method stub
+
+				}
+			});
+			DbDataArray actionsRsult = new DbDataArray();
+			HashMap<Object, Object> params = new HashMap<>();
+			params.put("ORIGINATING_STATUS", dbo.getStatus());
+			params.put("DESTINATION_STATUS", newStatus);
+			result = ruleEngine.executeImpl((Long) requestedTransition.getVal("CHECKIN_RULE"), actionsRsult, dbo,
+					params);
+		} finally {
+			if (ruleEngine != null) {
 			}
-
-			@Override
-			public void saveCurrentState(SvCore parentCore, DbDataObject currentAction, DbDataObject execObj,
-					DbDataArray actionResults, Boolean success) throws SvException {
-				// TODO Auto-generated method stub
-
-			}
-		});
-		DbDataArray actionsRsult = new DbDataArray();
-		HashMap<Object, Object> params = new HashMap<>();
-		params.put("ORIGINATING_STATUS", dbo.getStatus());
-		params.put("DESTINATION_STATUS", newStatus);
-		result = ruleEngine.executeImpl((Long) requestedTransition.getVal("CHECKIN_RULE"), actionsRsult, dbo, params);
-		if (ruleEngine != null) {
 			ruleEngine.release();
 		}
 		return result;
