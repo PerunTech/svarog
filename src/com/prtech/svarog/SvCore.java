@@ -1282,26 +1282,22 @@ public abstract class SvCore implements ISvCore {
 	 */
 	private static void execSvarogShutDownHooks(String shutDownExec) {
 		SvExecManager sve = null;
-		if (shutDownExec != null && shutDownExec.length() > 1) {
-			String[] list = shutDownExec.trim().split(";");
-			if (list.length > 0) {
+		String[] list = shutDownExec.trim().split(";");
+		try {
+			sve = new SvExecManager();
+			for (int i = 0; i < list.length; i++) {
 				try {
-					sve = new SvExecManager();
-					for (int i = 0; i < list.length; i++) {
-						try {
-							sve.execute(list[i].toUpperCase(), null, new DateTime());
-							log4j.info("Executed shut down executor: " + list[i]);
-						} catch (Exception e) {
-							log4j.info("Could not execute shut down executor: " + list[i], e);
-						}
-					}
-				} catch (SvException e) {
-					log4j.info("Error Svarog shut down", e);
-				} finally {
-					if (sve != null) {
-						sve.release();
-					}
+					sve.execute(list[i].toUpperCase(), null, new DateTime());
+					log4j.info("Executed shut down executor: " + list[i]);
+				} catch (Exception e) {
+					log4j.info("Could not execute shut down executor: " + list[i], e);
 				}
+			}
+		} catch (SvException e) {
+			log4j.info("Error Svarog shut down", e);
+		} finally {
+			if (sve != null) {
+				sve.release();
 			}
 		}
 	}
@@ -1314,17 +1310,23 @@ public abstract class SvCore implements ISvCore {
 		Runtime.getRuntime().addShutdownHook(new Thread("Svarog Shutdown Hook") {
 			public void run() {
 				try {
-					// Svarog shut down executing list of executors
-					execSvarogShutDownHooks((String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP));
 					log4j.info("Shutting down svarog");
+					// Svarog shut down executing list of executors
+					String shutDownExec = (String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP);
+					if (shutDownExec != null && !shutDownExec.isEmpty())
+						execSvarogShutDownHooks(shutDownExec);
+
+					log4j.info("Shutting down the cluster infrastructure");
 					SvCluster.resignCoordinator();
 					SvCluster.shutdown(false);
 					SvMaintenance.shutdown();
 
+					log4j.info("Shutting down the OSGI Framework");
 					if (SvarogDaemon.osgiFramework != null) {
 						SvarogDaemon.osgiFramework.stop();
 						SvarogDaemon.osgiFramework.waitForStop(0);
 					}
+					log4j.info("Svarog shut down successfully");
 				} catch (Exception ex) {
 					System.err.println("Error stopping Svarog: " + ex);
 				}
