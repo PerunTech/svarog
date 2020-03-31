@@ -195,9 +195,11 @@ public class SvClusterClient implements Runnable {
 			}
 		// mark the client as in-active
 		isActive.set(false);
-		// interrupt the maintenance thread to join if needed
-		if (SvCluster.maintenanceThread != null)
-			SvCluster.maintenanceThread.interrupt();
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
 
 	}
 
@@ -479,6 +481,32 @@ public class SvClusterClient implements Runnable {
 		}
 	}
 
+	static boolean processJoin(byte[] msgJoin) {
+		boolean result = true;
+		ByteBuffer joinBuffer = null;
+		if (msgJoin != null) {
+			joinBuffer = ByteBuffer.wrap(msgJoin);
+			byte respMsg = joinBuffer.get();
+			if (respMsg == SvCluster.MSG_FAIL) {
+				log4j.error("Failed to join cluster.");
+				nodeId = 0L;
+				result = false;
+			} else {
+				// before set new node Id lets first migrate the old
+				// locks
+				Long newNodeId = joinBuffer.getLong();
+				SvCluster.migrateLocks(newNodeId, nodeId, localNodeLocks);
+				nodeId = newNodeId;
+			}
+		} else {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Coordinator didn't respond to join message!");
+			result = false;
+		}
+		return result;
+
+	}
+
 	/**
 	 * Method to send a join message to the cluster, supporting it with the node
 	 * information
@@ -500,27 +528,13 @@ public class SvClusterClient implements Runnable {
 			try {
 				if (hbClientSock.send(joinBuffer.array())) {
 					msgJoin = hbClientSock.recv(0);
-					if (msgJoin != null) {
-						joinBuffer = ByteBuffer.wrap(msgJoin);
-						byte respMsg = joinBuffer.get();
-						if (respMsg == SvCluster.MSG_FAIL) {
-							log4j.error("Failed to join cluster.");
-							nodeId = 0L;
-							result = false;
-						} else {
-							// before set new node Id lets first migrate the old
-							// locks
-							Long newNodeId = joinBuffer.getLong();
-							SvCluster.migrateLocks(newNodeId, nodeId, localNodeLocks);
-							nodeId = newNodeId;
-						}
+					if (processJoin(msgJoin)) {
 						// check if lock info follows the join
 						while (hbClientSock.hasReceiveMore()) {
 							msgLock = hbClientSock.recv(0);
 							processJoinLock(msgLock);
 						}
-					} else
-						result = false;
+					}
 
 				}
 
@@ -587,7 +601,7 @@ public class SvClusterClient implements Runnable {
 						shutdown(false);
 						if (forcePromotionOnShutDown) {
 							log4j.info("Restarting SvCluster node to force re-election of coordinator");
-							if (SvCluster.getIsRunning().get()) {
+							if (SvCluster.isRunning().get()) {
 								if (log4j.isDebugEnabled())
 									log4j.debug("Cluster is running, initiate shutdown");
 								SvCluster.shutdown();
@@ -599,18 +613,20 @@ public class SvClusterClient implements Runnable {
 									log4j.debug("Cluster is still active, waiting for it to shutdown");
 
 								try {
-									synchronized (SvCluster.getIsRunning()) {
-										SvCluster.getIsRunning().wait(heartBeatInterval);
+									synchronized (SvCluster.isRunning()) {
+										SvCluster.isRunning().wait(heartBeatInterval);
 									}
 								} catch (InterruptedException e) {
 									tsTimeout = DateTime.now();
+									Thread.currentThread().interrupt();
 									log4j.error("Heart beat thread sleep raised exception! Cluster did not shutdown",
 											e);
+
 								}
 							}
-							if (!SvCluster.getMaintenanceInProgress().get()) {
-								if (SvCluster.maintenanceThread != null)
-									SvCluster.maintenanceThread.interrupt();
+							if (!SvMaintenance.getMaintenanceInProgress().get()) {
+								if (SvMaintenance.maintenanceThread != null)
+									SvMaintenance.maintenanceThread.interrupt();
 								else
 									SvCluster.initCluster();
 							}
@@ -622,6 +638,7 @@ public class SvClusterClient implements Runnable {
 			try {
 				Thread.sleep(heartBeatInterval);
 			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 				log4j.error("Heart beat thread sleep raised exception! Shutting down client", e);
 				shutdown();
 			}
