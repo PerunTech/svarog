@@ -95,6 +95,19 @@ public abstract class SvCore implements ISvCore {
 	static final Logger log4j = SvConf.getLogger(SvCore.class);
 
 	/**
+	 * The property name used to specify whether the launcher should execute a
+	 * svarog shutdown hook.
+	 **/
+	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
+
+	/**
+	 * Static block to set the shutdown hooks only once at boot
+	 */
+	static {
+		setShutDownHook();
+	}
+
+	/**
 	 * Enumeration holding flags about access over svarog objects.
 	 * 
 	 * @author XPS13
@@ -261,11 +274,6 @@ public abstract class SvCore implements ISvCore {
 	 */
 	private static ISvDatabaseIO dbHandler = null;
 
-	/**
-	 * Atomic boolean flat to signify a maintenance thread is in progress
-	 */
-	static AtomicBoolean maintenanceRunning = new AtomicBoolean();
-
 	/////////////////////////////////////////////////////////////
 	// SvCore instance (non-static) variables and methods
 	/////////////////////////////////////////////////////////////
@@ -370,43 +378,6 @@ public abstract class SvCore implements ISvCore {
 	protected Boolean autoCommit = true;
 
 	/**
-	 * Perform good house keeping and cleanup any previous tracked connections.
-	 * The cleaning is executed in a separate thread
-	 * 
-	 * @param useCurrentThread
-	 *            Flag to tell the cleanup to use the current thread or to
-	 *            launch a new maintenance thread. If the SvarogDaemon is
-	 *            running, the maintenance shall be executed in the current
-	 *            thread. If svarog is used as external library without daemon,
-	 *            it shall launch a new maintenance thread
-	 */
-	static void trackedConnCleanup(boolean useCurrentThread) {
-		// ensure that we do cleanup only periodically (after a time out period)
-		if ((DateTime.now().getMillis() - coreLastCleanup) < SvConf.getCoreIdleTimeout())
-			return;
-		else {
-			// try to get a lock for the SvConnCleaner, if we fail, just pass
-			if (maintenanceRunning.compareAndSet(false, true)) {
-				coreLastCleanup = DateTime.now().getMillis();
-				// if the cleanup is invoked from the svarog daemon it shall use
-				// the current thread
-				if (useCurrentThread) {
-					SvConnCleaner clean = new SvConnCleaner();
-					clean.run();
-				} else { // run the cleanup in new thread
-					Thread cleanerThread = new Thread(new SvConnCleaner());
-					cleanerThread.setName(svCONST.maintenanceThreadId);
-					// do we actually want to know when the cleaner finished?
-					// Can we
-					// have multiple active cleaners? right?
-					cleanerThread.start();
-				}
-			}
-
-		}
-	}
-
-	/**
 	 * Method to set the information about the line number, method and class
 	 * where the instance was created. This is usefull when looking for
 	 * connection leaks.
@@ -457,7 +428,7 @@ public abstract class SvCore implements ISvCore {
 
 		this.autoCommit = (srcCore != null ? srcCore.autoCommit : this.autoCommit);
 
-		if ((SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
+		if (SvConf.isClusterEnabled() && (SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
 			if ((srcCore != null && !srcCore.isInternal))
 				throw (new SvException("system.error.cluster_inactive", instanceUser));
 		}
@@ -466,8 +437,6 @@ public abstract class SvCore implements ISvCore {
 		if (!isValid.get())
 			initSvCoreImpl(false);
 
-		if (!svDaemonRunning.get())
-			trackedConnCleanup(false);
 		if (srcCore != null && srcCore != this) {
 			weakSrcCore = srcCore.weakThis;
 			this.coreSessionId = srcCore.getSessionId();
@@ -613,6 +582,16 @@ public abstract class SvCore implements ISvCore {
 		global.add(callback);
 	}
 
+	/**
+	 * Method to register an OnSave callback for specific object type
+	 * 
+	 * @param callback
+	 *            Reference to a class implementing the {@link ISvOnSave}
+	 *            interface
+	 * @param type
+	 *            The id of the object type for which we want the call back to
+	 *            be executed
+	 */
 	public synchronized static void registerOnSaveCallback(ISvOnSave callback, Long type) {
 		CopyOnWriteArrayList<ISvOnSave> local = onSaveCallbacks.get(type);
 		if (local == null) {
@@ -985,13 +964,15 @@ public abstract class SvCore implements ISvCore {
 		} finally {
 			try {
 				closeResource((AutoCloseable) rs, svCONST.systemUser);
-				closeResource((AutoCloseable) ps, svCONST.systemUser);
-				/*
-				 * if (rs != null) rs.close(); if (ps != null) ps.close();
-				 */
 			} catch (Exception e) {
 				log4j.error("Recordset can't be released!", e);
 			}
+			try {
+				closeResource((AutoCloseable) ps, svCONST.systemUser);
+			} catch (Exception e) {
+				log4j.error("Recordset can't be released!", e);
+			}
+
 		}
 		return false;
 	}
@@ -1292,6 +1273,68 @@ public abstract class SvCore implements ISvCore {
 	}
 
 	/**
+	 * Method to execute list of shut down executors loaded from
+	 * svarog.properties.
+	 * 
+	 * @param shutDownExec
+	 *            List of key of svarog executors. Semicolon is the list
+	 *            separator
+	 */
+	private static void execSvarogShutDownHooks(String shutDownExec) {
+		SvExecManager sve = null;
+		String[] list = shutDownExec.trim().split(";");
+		try {
+			sve = new SvExecManager();
+			for (int i = 0; i < list.length; i++) {
+				try {
+					sve.execute(list[i].toUpperCase(), null, new DateTime());
+					log4j.info("Executed shut down executor: " + list[i]);
+				} catch (Exception e) {
+					log4j.info("Could not execute shut down executor: " + list[i], e);
+				}
+			}
+		} catch (SvException e) {
+			log4j.info("Error Svarog shut down", e);
+		} finally {
+			if (sve != null) {
+				sve.release();
+			}
+		}
+	}
+
+	/**
+	 * Method to set a shutdown hook to the JVM in order to perform cleanup and
+	 * shutdown the osgi framework
+	 */
+	static void setShutDownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread("Svarog Shutdown Hook") {
+			public void run() {
+				try {
+					log4j.info("Shutting down svarog");
+					// Svarog shut down executing list of executors
+					String shutDownExec = (String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP);
+					if (shutDownExec != null && !shutDownExec.isEmpty())
+						execSvarogShutDownHooks(shutDownExec);
+
+					log4j.info("Shutting down the cluster infrastructure");
+					SvCluster.resignCoordinator();
+					SvCluster.shutdown(false);
+					SvMaintenance.shutdown();
+
+					log4j.info("Shutting down the OSGI Framework");
+					if (SvarogDaemon.osgiFramework != null) {
+						SvarogDaemon.osgiFramework.stop();
+						SvarogDaemon.osgiFramework.waitForStop(0);
+					}
+					log4j.info("Svarog shut down successfully");
+				} catch (Exception ex) {
+					System.err.println("Error stopping Svarog: " + ex);
+				}
+			}
+		});
+	}
+
+	/**
 	 * Default method for initialising the system. It first uses the JSON config
 	 * files for temporary initialisation, then loads the configuration from the
 	 * database.
@@ -1401,6 +1444,16 @@ public abstract class SvCore implements ISvCore {
 				Long ttlMilis = (Long) sessionDbt.getVal("cache_expiry") * 60 * 1000;
 				// set the debounce interval at 1% of the cache expiry
 				sessionDebounceInterval = (new Double(ttlMilis * 0.01)).intValue();
+
+				// if the daemon is not running, start the maintenance thread
+				if (!SvCore.svDaemonRunning.get()) {
+					// Set the proxy to process the notifications it self
+					SvClusterNotifierProxy.processNotification = true;
+					// set the client to rejoin on failed beat
+					SvClusterClient.rejoinOnFailedHeartBeat = true;
+					// start the maintenance
+					SvMaintenance.initMaintenance();
+				}
 
 				isCfgInDb = true;
 				svarogState = true;

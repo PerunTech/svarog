@@ -53,7 +53,7 @@ public class SvClusterNotifierProxy implements Runnable {
 
 	static boolean initServer() {
 		if (isRunning.get()) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
+			log4j.error("Notifier thread is already running. Shutdown first");
 			return false;
 		}
 		if (context == null)
@@ -78,7 +78,7 @@ public class SvClusterNotifierProxy implements Runnable {
 		if (subSock == null)
 			log4j.error("Notification subscriber socket can't bind on port:" + subscriberPort);
 		else
-			subSock.setReceiveTimeOut(SvCluster.sockeReceiveTimeout);
+			subSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 
 		if (pubSock == null)
 			log4j.error("Notification publisher socket can't bind on port:" + publisherPort);
@@ -105,7 +105,7 @@ public class SvClusterNotifierProxy implements Runnable {
 		}
 		try {
 			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.sockeReceiveTimeout);
+			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
 		} catch (InterruptedException e) {
 			log4j.error("Notifier shutdown interrupted", e);
 		}
@@ -114,6 +114,11 @@ public class SvClusterNotifierProxy implements Runnable {
 			context = null;
 			log4j.info("Notifier Proxy is shut down");
 		}
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
 
 	}
 
@@ -296,6 +301,7 @@ public class SvClusterNotifierProxy implements Runnable {
 				log4j.debug("Acknowledge completed. Nodes which didn't respond:" + Integer.toString(nodes.size()) + "");
 			nodeAcks.remove(ackValue);
 		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 			if (log4j.isDebugEnabled())
 				log4j.debug("Thread Interrupted. Nodes left:" + nodes.size());
 		}

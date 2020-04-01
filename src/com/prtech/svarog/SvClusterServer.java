@@ -96,7 +96,7 @@ public class SvClusterServer implements Runnable {
 		if (hbServerSock == null)
 			log4j.info("Heartbeat socket bind on port:" + SvConf.getHeartBeatPort());
 		else
-			hbServerSock.setReceiveTimeOut(SvCluster.sockeReceiveTimeout);
+			hbServerSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 		// start the internal hearbeat client
 		return (hbServerSock != null);
 	}
@@ -108,7 +108,7 @@ public class SvClusterServer implements Runnable {
 		}
 		try {
 			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.sockeReceiveTimeout);
+			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
 		} catch (InterruptedException e) {
 			log4j.error("Shutdown interrupted", e);
 		}
@@ -116,6 +116,12 @@ public class SvClusterServer implements Runnable {
 			context.close();
 			context = null;
 		}
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
+
 	}
 
 	/**
@@ -270,8 +276,13 @@ public class SvClusterServer implements Runnable {
 			respBuffer.putLong(nodeId);
 			nodeHeartBeats.remove(nodeId);
 			clusterCleanUp(nodeId);
-			if (!SvCluster.getMaintenanceInProgress().get())
-				SvCluster.maintenanceThread.interrupt();
+			if (SvMaintenance.maintenanceThread != null && !SvMaintenance.getMaintenanceInProgress().get())
+				if (SvarogDaemon.osgiFramework != null)
+					SvMaintenance.maintenanceThread.interrupt();
+				else
+					synchronized (SvMaintenance.maintenanceThread) {
+						SvMaintenance.maintenanceThread.notifyAll();
+					}
 		}
 		return respBuffer;
 	}
@@ -528,7 +539,7 @@ public class SvClusterServer implements Runnable {
 				clusterMaintenance();
 
 		}
-		//make sure we clear the locks on shutdown
+		// make sure we clear the locks on shutdown
 		clearDistributedLocks();
 		log4j.info("Heartbeat server shut down");
 		// the result of the binding is the status

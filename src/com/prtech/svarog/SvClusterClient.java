@@ -117,7 +117,6 @@ public class SvClusterClient implements Runnable {
 		hbClientSock = null;
 		ZMQ.Socket tmpSock = context.createSocket(SocketType.REQ);
 		String[] address = ipAddressList.split(ipAddrDelimiter);
-		SvWriter svw = null;
 		try {
 			for (String host : address) {
 				boolean connected = tmpSock.connect("tcp://" + host);
@@ -142,9 +141,6 @@ public class SvClusterClient implements Runnable {
 				log4j.debug("Successfully joined cluster with IP:" + lastIpAddressList);
 		} catch (Exception e) {
 			log4j.error("The node can't connect heart beat socket to:" + ipAddressList, e);
-		} finally {
-			if (svw != null)
-				svw.release();
 		}
 
 		if (!isActive.get()) {
@@ -199,6 +195,12 @@ public class SvClusterClient implements Runnable {
 			}
 		// mark the client as in-active
 		isActive.set(false);
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
+
 	}
 
 	/**
@@ -285,7 +287,7 @@ public class SvClusterClient implements Runnable {
 			return false;
 		}
 
-		byte msgType = SvCluster.MSG_FAIL;
+		byte msgType;
 		synchronized (hbClientSock) {
 			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES + Long.BYTES);
 			msgBuffer.put(SvCluster.MSG_AUTH_TOKEN_SET);
@@ -329,7 +331,7 @@ public class SvClusterClient implements Runnable {
 			return hashCode;
 		}
 
-		byte msgType = SvCluster.MSG_FAIL;
+		byte msgType;
 		synchronized (hbClientSock) {
 			byte[] key = null;
 			key = lockKey.getBytes(ZMQ.CHARSET);
@@ -369,7 +371,7 @@ public class SvClusterClient implements Runnable {
 		if (!isRunning.get()) {
 			return result;
 		}
-		byte msgType = SvCluster.MSG_FAIL;
+		byte msgType;
 		synchronized (hbClientSock) {
 			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Integer.BYTES);
 			msgBuffer.put(SvCluster.MSG_LOCK_RELEASE);
@@ -456,12 +458,63 @@ public class SvClusterClient implements Runnable {
 	}
 
 	/**
+	 * Method to process a lock sent by the coordinator on join
+	 * 
+	 * @param msgLock
+	 */
+	private static void processJoinLock(byte[] msgLock) {
+		ByteBuffer lockBuffer;
+		if (msgLock != null) {
+			lockBuffer = ByteBuffer.wrap(msgLock);
+			long locknode = lockBuffer.getLong();
+			int lockHash = lockBuffer.getInt();
+			String lockKey = new String(
+					Arrays.copyOfRange(lockBuffer.array(), Long.BYTES + Integer.BYTES, lockBuffer.array().length),
+					ZMQ.CHARSET);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Receiving existing locks on join:" + lockKey + ", hash:" + Integer.toString(lockHash));
+
+			if (SvClusterClient.acquireDistributedLock(lockKey, locknode) != null)
+				SvClusterClient.updateDistributedLock(lockKey, lockHash);
+			else if (log4j.isDebugEnabled())
+				log4j.debug("Failed acquiring local distributed lock on join. Must be a nasty bug");
+		}
+	}
+
+	static boolean processJoin(byte[] msgJoin) {
+		boolean result = true;
+		ByteBuffer joinBuffer = null;
+		if (msgJoin != null) {
+			joinBuffer = ByteBuffer.wrap(msgJoin);
+			byte respMsg = joinBuffer.get();
+			if (respMsg == SvCluster.MSG_FAIL) {
+				log4j.error("Failed to join cluster.");
+				nodeId = 0L;
+				result = false;
+			} else {
+				// before set new node Id lets first migrate the old
+				// locks
+				Long newNodeId = joinBuffer.getLong();
+				SvCluster.migrateLocks(newNodeId, nodeId, localNodeLocks);
+				nodeId = newNodeId;
+			}
+		} else {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Coordinator didn't respond to join message!");
+			result = false;
+		}
+		return result;
+
+	}
+
+	/**
 	 * Method to send a join message to the cluster, supporting it with the node
 	 * information
 	 * 
 	 * @return True if the node joined the cluster successfully
 	 */
 	static boolean joinCluster() {
+		boolean result = true;
 		synchronized (hbClientSock) {
 			if (log4j.isDebugEnabled())
 				log4j.debug("Joining cluster with old nodeId:" + Long.toString(nodeId));
@@ -472,55 +525,25 @@ public class SvClusterClient implements Runnable {
 			joinBuffer.put(nodeInfo);
 			byte[] msgJoin = null;
 			byte[] msgLock = null;
-			ByteBuffer lockBuffer = null;
 			try {
 				if (hbClientSock.send(joinBuffer.array())) {
 					msgJoin = hbClientSock.recv(0);
-					// check if lock info follows the join
-					while (hbClientSock.hasReceiveMore()) {
-						msgLock = hbClientSock.recv(0);
-						if (msgLock != null) {
-							lockBuffer = ByteBuffer.wrap(msgLock);
-							long locknode = lockBuffer.getLong();
-							int lockHash = lockBuffer.getInt();
-							String lockKey = new String(Arrays.copyOfRange(lockBuffer.array(),
-									Long.BYTES + Integer.BYTES, lockBuffer.array().length), ZMQ.CHARSET);
-							if (log4j.isDebugEnabled())
-								log4j.debug("Receiving existing locks on join:" + lockKey + ", hash:"
-										+ Integer.toString(lockHash));
-
-							if (SvClusterClient.acquireDistributedLock(lockKey, locknode) != null)
-								SvClusterClient.updateDistributedLock(lockKey, lockHash);
-							else if (log4j.isDebugEnabled())
-								log4j.debug("Failed acquiring local distributed lock on join. Must be a nasty bug");
+					if (processJoin(msgJoin)) {
+						// check if lock info follows the join
+						while (hbClientSock.hasReceiveMore()) {
+							msgLock = hbClientSock.recv(0);
+							processJoinLock(msgLock);
 						}
 					}
-					if (msgJoin != null)
-						joinBuffer = ByteBuffer.wrap(msgJoin);
-					else
-						joinBuffer = null;
-				} else
-					joinBuffer = null;
-				byte respMsg = SvCluster.MSG_FAIL;
-				if (joinBuffer != null)
-					respMsg = joinBuffer.get();
 
-				if (respMsg == SvCluster.MSG_FAIL) {
-					log4j.error("Failed to join cluster.");
-					nodeId = 0L;
-					return false;
-				} else {
-					// before set new node Id lets first migrate the old locks
-					Long newNodeId = joinBuffer.getLong();
-					SvCluster.migrateLocks(newNodeId, nodeId, localNodeLocks);
-					nodeId = newNodeId;
 				}
+
 			} catch (Exception e) {
 				nodeId = 0L;
-				return false;
+				result = false;
 			}
 		}
-		return true;
+		return result;
 	}
 
 	/**
@@ -578,7 +601,7 @@ public class SvClusterClient implements Runnable {
 						shutdown(false);
 						if (forcePromotionOnShutDown) {
 							log4j.info("Restarting SvCluster node to force re-election of coordinator");
-							if (SvCluster.getIsRunning().get()) {
+							if (SvCluster.isRunning().get()) {
 								if (log4j.isDebugEnabled())
 									log4j.debug("Cluster is running, initiate shutdown");
 								SvCluster.shutdown();
@@ -590,14 +613,20 @@ public class SvClusterClient implements Runnable {
 									log4j.debug("Cluster is still active, waiting for it to shutdown");
 
 								try {
-									Thread.sleep(heartBeatInterval);
+									synchronized (SvCluster.isRunning()) {
+										SvCluster.isRunning().wait(heartBeatInterval);
+									}
 								} catch (InterruptedException e) {
-									log4j.error("Heart beat thread sleep raised exception!", e);
+									tsTimeout = DateTime.now();
+									Thread.currentThread().interrupt();
+									log4j.error("Heart beat thread sleep raised exception! Cluster did not shutdown",
+											e);
+
 								}
 							}
-							if (!SvCluster.getMaintenanceInProgress().get()) {
-								if (SvCluster.maintenanceThread != null)
-									SvCluster.maintenanceThread.interrupt();
+							if (!SvMaintenance.getMaintenanceInProgress().get()) {
+								if (SvMaintenance.maintenanceThread != null)
+									SvMaintenance.maintenanceThread.interrupt();
 								else
 									SvCluster.initCluster();
 							}
@@ -609,7 +638,9 @@ public class SvClusterClient implements Runnable {
 			try {
 				Thread.sleep(heartBeatInterval);
 			} catch (InterruptedException e) {
-				log4j.error("Heart beat thread sleep raised exception!", e);
+				Thread.currentThread().interrupt();
+				log4j.error("Heart beat thread sleep raised exception! Shutting down client", e);
+				shutdown();
 			}
 		}
 
