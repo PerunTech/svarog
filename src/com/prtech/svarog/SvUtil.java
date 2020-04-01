@@ -48,6 +48,16 @@ public class SvUtil {
 	public static PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
 	public static GeometryFactory sdiFactory = new GeometryFactory(sdiPrecision, SvConf.getSDISrid());
 
+	public enum sizeof {
+		;
+
+		public static final int BYTE = Byte.SIZE / Byte.SIZE;
+		public static final int INT = Integer.SIZE / Byte.SIZE;
+		public static final int LONG = Long.SIZE / Byte.SIZE;
+		public static final int FLOAT = Float.SIZE / Byte.SIZE;
+		public static final int DOUBLE = Double.SIZE / Byte.SIZE;
+	}
+
 	/***
 	 * Method for generating a MD5 hash from a string
 	 * 

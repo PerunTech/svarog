@@ -171,7 +171,7 @@ public class SvClusterClient implements Runnable {
 			synchronized (hbClientSock) {
 				if (shouldPart) {
 					try {
-						ByteBuffer partBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+						ByteBuffer partBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 						partBuffer.put(SvCluster.MSG_PART);
 						partBuffer.putLong(nodeId);
 						byte[] msgPart = null;
@@ -216,7 +216,7 @@ public class SvClusterClient implements Runnable {
 		}
 		byte[] byteToken = dboToken.toSimpleJson().toString().getBytes(ZMQ.CHARSET);
 		synchronized (hbClientSock) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + byteToken.length);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + byteToken.length);
 			msgBuffer.put(SvCluster.MSG_AUTH_TOKEN_PUT);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.put(byteToken);
@@ -246,7 +246,7 @@ public class SvClusterClient implements Runnable {
 		}
 		DbDataObject dboToken = null;
 		synchronized (hbClientSock) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES + Long.BYTES);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
 			msgBuffer.put(SvCluster.MSG_AUTH_TOKEN_GET);
 			UUID uid = UUID.fromString(token);
 			msgBuffer.putLong(nodeId);
@@ -263,7 +263,7 @@ public class SvClusterClient implements Runnable {
 			if (msgType == SvCluster.MSG_SUCCESS) {
 				dboToken = new DbDataObject();
 				String strToken = new String(
-						Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES, msgBuffer.array().length), ZMQ.CHARSET);
+						Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
 				Gson g = new Gson();
 				dboToken.fromSimpleJson(g.fromJson(strToken, JsonObject.class));
 			}
@@ -289,7 +289,7 @@ public class SvClusterClient implements Runnable {
 
 		byte msgType;
 		synchronized (hbClientSock) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES + Long.BYTES);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
 			msgBuffer.put(SvCluster.MSG_AUTH_TOKEN_SET);
 			UUID uid = UUID.fromString(token);
 			msgBuffer.putLong(nodeId);
@@ -337,7 +337,7 @@ public class SvClusterClient implements Runnable {
 			key = lockKey.getBytes(ZMQ.CHARSET);
 			// allocate one byte for message type, one long for node Id and the
 			// rest for the token
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (key != null ? key.length : 0));
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
 			msgBuffer.put(SvCluster.MSG_LOCK);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.put(key);
@@ -373,7 +373,7 @@ public class SvClusterClient implements Runnable {
 		}
 		byte msgType;
 		synchronized (hbClientSock) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Integer.BYTES);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.INT);
 			msgBuffer.put(SvCluster.MSG_LOCK_RELEASE);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.putInt(lockHash);
@@ -469,7 +469,7 @@ public class SvClusterClient implements Runnable {
 			long locknode = lockBuffer.getLong();
 			int lockHash = lockBuffer.getInt();
 			String lockKey = new String(
-					Arrays.copyOfRange(lockBuffer.array(), Long.BYTES + Integer.BYTES, lockBuffer.array().length),
+					Arrays.copyOfRange(lockBuffer.array(), SvUtil.sizeof.LONG + SvUtil.sizeof.INT, lockBuffer.array().length),
 					ZMQ.CHARSET);
 			if (log4j.isDebugEnabled())
 				log4j.debug("Receiving existing locks on join:" + lockKey + ", hash:" + Integer.toString(lockHash));
@@ -519,7 +519,7 @@ public class SvClusterClient implements Runnable {
 			if (log4j.isDebugEnabled())
 				log4j.debug("Joining cluster with old nodeId:" + Long.toString(nodeId));
 			byte[] nodeInfo = SvCluster.getCurrentNodeInfo().getVal("node_info").toString().getBytes(ZMQ.CHARSET);
-			ByteBuffer joinBuffer = ByteBuffer.allocate(1 + Long.BYTES + nodeInfo.length);
+			ByteBuffer joinBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + nodeInfo.length);
 			joinBuffer.put(SvCluster.MSG_JOIN);
 			joinBuffer.putLong(nodeId);
 			joinBuffer.put(nodeInfo);
@@ -561,7 +561,7 @@ public class SvClusterClient implements Runnable {
 		}
 		while (isRunning.get() && hbClientSock != null) {
 			synchronized (hbClientSock) {
-				ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+				ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 				msgBuffer.put(SvCluster.MSG_HEARTBEAT);
 				msgBuffer.putLong(nodeId);
 				byte[] msg = null;
