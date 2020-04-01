@@ -184,7 +184,7 @@ public class SvClusterNotifierClient implements Runnable {
 				if (currentType != dbo.getObjectType()) {
 					if (objectCount > 0 && msgBuffer != null) {
 						byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-								(1 + Long.BYTES + (Long.BYTES * objectCount)));
+								(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount)));
 						// send the previous buffer
 						if (log4j.isDebugEnabled())
 							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
@@ -194,7 +194,7 @@ public class SvClusterNotifierClient implements Runnable {
 					}
 					objectCount = 0;
 					currentType = dbo.getObjectType();
-					msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Long.BYTES * (dba.size() - totalCount)));
+					msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * (dba.size() - totalCount)));
 					msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
 					msgBuffer.putLong(currentType);
 				}
@@ -205,7 +205,7 @@ public class SvClusterNotifierClient implements Runnable {
 			// the array was finished so lets send the left over buffer if any
 			if (objectCount > 0 && msgBuffer != null) {
 				byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-						(1 + Long.BYTES + (Long.BYTES * objectCount)));
+						(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount)));
 				// send the previous buffer
 				if (log4j.isDebugEnabled())
 					log4j.debug(
@@ -257,9 +257,9 @@ public class SvClusterNotifierClient implements Runnable {
 				if (currentType != tile.getTileTypeId()) {
 					if (objectCount > 0 && msgBuffer != null) {
 						byte[] finalBytes = null;
-						if ((1 + Long.BYTES + (Integer.BYTES * 2 * objectCount)) < msgBuffer.capacity())
+						if ((1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.INT * 2 * objectCount)) < msgBuffer.capacity())
 							finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-									(1 + Long.BYTES + (Integer.BYTES * 2 * objectCount)));
+									(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.INT * 2 * objectCount)));
 						else
 							finalBytes = msgBuffer.array();
 						// send the previous buffer
@@ -274,7 +274,7 @@ public class SvClusterNotifierClient implements Runnable {
 					// every message will have the message type, the tile type
 					// (long) and two integers for the cell multiplied by the
 					// number of tiles
-					msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + (Integer.BYTES * 2 * (tiles.size() - totalCount)));
+					msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (SvUtil.sizeof.INT * 2 * (tiles.size() - totalCount)));
 					msgBuffer.put(SvCluster.NOTE_DIRTY_TILE);
 					msgBuffer.putLong(currentType);
 				}
@@ -288,7 +288,7 @@ public class SvClusterNotifierClient implements Runnable {
 			// the array was finished so lets send the left over buffer if any
 			if (objectCount > 0 && msgBuffer != null) {
 				byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-						(1 + Long.BYTES + (Integer.BYTES * 2 * objectCount)));
+						(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.INT * 2 * objectCount)));
 				// send the previous buffer
 				if (log4j.isDebugEnabled())
 					log4j.debug(
@@ -311,7 +311,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 */
 	static public void publishDirtyObject(long objectId, long objectTypeId) {
 		if (pubServerSock != null) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
 			msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
 			msgBuffer.putLong(objectTypeId);
 			msgBuffer.putLong(objectId);
@@ -331,7 +331,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 */
 	static public void publishLogoff(String sessionId) {
 		if (pubServerSock != null) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Long.BYTES);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
 			msgBuffer.put(SvCluster.NOTE_LOGOFF);
 			UUID uuid = UUID.fromString(sessionId);
 			msgBuffer.putLong(uuid.getMostSignificantBits());
@@ -352,7 +352,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 */
 	static public void publishAck(Integer ackValue, byte successMsg) {
 		if (pubServerSock != null) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Long.BYTES + Integer.BYTES + 1);
+			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.INT + 1);
 			msgBuffer.put(SvCluster.NOTE_ACK);
 			msgBuffer.putLong(SvClusterClient.nodeId);
 			msgBuffer.putInt(ackValue);
@@ -411,7 +411,7 @@ public class SvClusterNotifierClient implements Runnable {
 		Long remoteNodeId = msgBuffer.getLong();
 		Integer ackValue = msgBuffer.getInt();
 		String lockKey = new String(
-				Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES + Integer.BYTES, msgBuffer.array().length),
+				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG + SvUtil.sizeof.INT, msgBuffer.array().length),
 				ZMQ.CHARSET);
 		byte lockResult = SvCluster.MSG_FAIL;
 		// get the key then acquire, then update the hash
