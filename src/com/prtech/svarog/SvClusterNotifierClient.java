@@ -90,7 +90,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 */
 	static boolean initClient(String ipAddressList) {
 		if (isRunning.get()) {
-			log4j.error("Heartbeat client thread is already running. Shutdown first");
+			log4j.error("Notifier client thread is already running. Shutdown first");
 			return false;
 		}
 		// Socket to talk to clients
@@ -142,6 +142,12 @@ public class SvClusterNotifierClient implements Runnable {
 			context.close();
 			context = null;
 		}
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
+
 	}
 
 	/**
@@ -373,12 +379,17 @@ public class SvClusterNotifierClient implements Runnable {
 		if (subServerSock != null) {
 			subServerSock.subscribe(ZMQ.SUBSCRIPTION_ALL);
 			log4j.info("Notify subscriber client started");
-			while (isRunning.get()) {
-				byte[] msg = subServerSock.recv(0);
-				if (msg != null) {
-					ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
-					processMessage(msgBuffer);
+			try {
+				while (isRunning.get()) {
+					byte[] msg = subServerSock.recv(0);
+					if (msg != null) {
+						ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
+						processMessage(msgBuffer);
+					}
 				}
+			} catch (Exception e) {
+				if (isRunning.get())
+					log4j.error("Error processing notification", e);
 			}
 
 			log4j.info("Notify subscriber client shut down");

@@ -213,6 +213,7 @@ public class SvConf {
 	 */
 	static boolean sdiOverrideGeomCalc;
 
+	private static boolean clusterEnabled = true;
 	/**
 	 * Fields storing application information
 	 */
@@ -493,6 +494,7 @@ public class SvConf {
 			heartBeatInterval = getProperty(mainProperties, "sys.cluster.heartbeat_interval", 1000);
 			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
 			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
+			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
 
 			// configure svarog service classes
 			String svcClass = mainProperties.getProperty("sys.service_class");
@@ -874,11 +876,6 @@ public class SvConf {
 		return svDbType;
 	}
 
-	@Deprecated
-	public static String getDBType() {
-		return dbType;
-	}
-
 	public static String getDefaultLocale() {
 		return config.getProperty("sys.defaultLocale").trim();
 	}
@@ -965,5 +962,13 @@ public class SvConf {
 
 	public static void setVmBridgeIPAddress(String vmBridgeIPAddress) {
 		SvConf.vmBridgeIPAddress = vmBridgeIPAddress;
+	}
+
+	public static boolean isClusterEnabled() {
+		return clusterEnabled;
+	}
+
+	public static void setClusterEnabled(boolean enableCluster) {
+		SvConf.clusterEnabled = enableCluster;
 	}
 }
