@@ -422,6 +422,7 @@ public abstract class SvCore implements ISvCore {
 				throw (new SvException("system.error.cant_use_svsec_as_core", instanceUser));
 
 		this.instanceUser = (srcCore != null ? srcCore.instanceUser : instanceUser);
+		this.isInternal = (srcCore != null ? srcCore.isInternal : false);
 
 		if (this.instanceUser == null)
 			throw (new SvException("system.error.instance_user_null", svCONST.systemUser));
@@ -1317,9 +1318,9 @@ public abstract class SvCore implements ISvCore {
 						execSvarogShutDownHooks(shutDownExec);
 
 					log4j.info("Shutting down the cluster infrastructure");
-					SvCluster.resignCoordinator();
 					SvCluster.shutdown(false);
 					SvMaintenance.shutdown();
+					SvCluster.resignCoordinator();
 
 					log4j.info("Shutting down the OSGI Framework");
 					if (SvarogDaemon.osgiFramework != null) {

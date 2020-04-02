@@ -14,8 +14,10 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +37,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ISvOnSave;
 import com.prtech.svarog_interfaces.ISvExecutor;
+import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
  * Svarog Execution Manager class is inherited from the SvCore and extends it
@@ -158,8 +161,9 @@ public class SvExecManager extends SvCore {
 	 * @param session_id
 	 *            String UID of the user session under which the SvCore instance
 	 *            will run
-
-	 * @throws SvException Pass through exception from the super class constructor 
+	 * 
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvExecManager(String session_id) throws SvException {
 		super(session_id);
@@ -176,7 +180,8 @@ public class SvExecManager extends SvCore {
 	 * @param sharedSvCore
 	 *            The SvCore instance which will be used for JDBC connection
 	 *            sharing (i.e. parent SvCore)
-	 * @throws SvException Pass through exception from the super class constructor 
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvExecManager(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -189,7 +194,8 @@ public class SvExecManager extends SvCore {
 	 * @param sharedSvCore
 	 *            The SvCore instance which will be used for JDBC connection
 	 *            sharing (i.e. parent SvCore)
-	 *  @throws SvException Pass through exception from the super class constructor 
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	public SvExecManager(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -199,7 +205,8 @@ public class SvExecManager extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @throws SvException Pass through exception from the super class constructor 
+	 * @throws SvException
+	 *             Pass through exception from the super class constructor
 	 */
 	SvExecManager() throws SvException {
 		super();
@@ -265,6 +272,19 @@ public class SvExecManager extends SvCore {
 	 */
 	static String getKey(String category, String name) {
 		return (category != null ? category : "") + "." + (name != null ? name : "");
+	}
+
+	/**
+	 * Method to create a consistent string name from key
+	 * 
+	 * @param category
+	 *            The first part of the key
+	 * @param name
+	 *            The second part of the key
+	 * @return The string key separated by coma.
+	 */
+	static String getName(String category, String key) {
+		return key.replace((category != null ? category : "") + ".", "");
 	}
 
 	/**
@@ -372,10 +392,6 @@ public class SvExecManager extends SvCore {
 		try {
 			svr = new SvReader();
 			// switch to service user in order to be able to manage permissions
-			svr.switchUser(svCONST.serviceUser);
-			svw = new SvWriter(svr);
-			svs = new SvSecurity(svw);
-			svw.setAutoCommit(false);
 			DbSearchExpression search = new DbSearchExpression();
 			search.addDbSearchItem(new DbSearchCriterion("NAME", DbCompareOperand.EQUAL, executor.getName()));
 			search.addDbSearchItem(new DbSearchCriterion("CATEGORY", DbCompareOperand.EQUAL, executor.getCategory()));
@@ -383,6 +399,12 @@ public class SvExecManager extends SvCore {
 
 			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), search, null, null);
 			DbDataArray objects = svr.getObjects(dqo, 0, 0);
+			// switch to service user in order to be able to manage permissions
+			svr.switchUser(svCONST.serviceUser);
+			svw = new SvWriter(svr);
+			svs = new SvSecurity(svw);
+			svw.setAutoCommit(false);
+
 			if (objects.size() > 0) {
 				DbDataObject dbo = objects.get(0);
 				exeInstance.setStartDate((DateTime) dbo.getVal("START_DATE"));
@@ -418,6 +440,46 @@ public class SvExecManager extends SvCore {
 		}
 
 		return exeInstance;
+	}
+
+	void loadOSGIExecutors(String key, CopyOnWriteArrayList<SvExecInstance> execs) {
+
+		Object[] services = getOSGIServices();
+		for (int i = 0; (services != null) && (i < services.length); i++) {
+			SvExecInstance svx = null;
+			ISvExecutor sve = null;
+			ISvExecutorGroup svg = null;
+			if (services[i] instanceof ISvExecutor) {
+				sve = (ISvExecutor) services[i];
+				if (sve.getName() == null || sve.getCategory() == null) {
+					log4j.error("Executor not loaded. Executor can't be used if Name or Category is null. Key:"
+							+ getKey(sve));
+					continue;
+				}
+			}
+			if (services[i] instanceof ISvExecutorGroup) {
+				svg = (ISvExecutorGroup) services[i];
+				if (svg.getNames() == null || svg.getCategory() == null || svg.getNames().isEmpty()) {
+					log4j.error("ExecutorGroup not loaded. Executor can't be used if Name or Category is null. Key:"
+							+ getKeys(svg));
+					continue;
+				}
+			}
+
+			if (sve != null && getKey(sve).equals(key)) {
+				// get start and end date from database and
+				// update the SVE
+				svx = new SvExecInstance(sve, sve.getStartDate(), sve.getEndDate());
+				svx.setStatus(svCONST.STATUS_VALID);
+			}
+			if (svg != null && getKeys(svg).contains(key)) {
+				ISvExecutor svge = new SvExecutorWrapper(svg, getName(svg.getCategory(), key));
+				svx = new SvExecInstance(svge, svge.getStartDate(), svge.getEndDate());
+				svx.setStatus(svCONST.STATUS_VALID);
+			}
+			if (svx != null && !execs.contains(svx))
+				execs.add(initExecInstance(svx));
+		}
 	}
 
 	/**
@@ -456,24 +518,8 @@ public class SvExecManager extends SvCore {
 			// in the cache so we must search for it in the OSGI world.
 			// See if any of the currently tracked ISvExecutor services
 			// match the specified Category/Name
-			Object[] services = getOSGIServices();
-			for (int i = 0; (services != null) && (i < services.length); i++) {
-				ISvExecutor sve = (ISvExecutor) services[i];
-				if (sve.getName() == null || sve.getCategory() == null) {
-					log4j.error("Executor not loaded. Executor can't be used if Name or Category is null. Key:"
-							+ getKey(sve));
-					continue;
-				}
-				if (getKey(sve).equals(key)) {
-					// get start and end date from database and
-					// update the SVE
-					SvExecInstance exeInstance = new SvExecInstance(sve, sve.getStartDate(), sve.getEndDate());
-					exeInstance.setStatus(svCONST.STATUS_VALID);
-					if (!execs.contains(exeInstance))
-						execs.add(initExecInstance(exeInstance));
+			loadOSGIExecutors(key, execs);
 
-				}
-			}
 			// if there's more than 1 executor then sort by start date.
 			if (execs.size() > 1)
 				Collections.sort(execs, new Comparator<SvExecInstance>() {
@@ -495,6 +541,21 @@ public class SvExecManager extends SvCore {
 			}
 		}
 		return executor;
+	}
+
+	/**
+	 * Method to return a list of executor keys available in a ExecutorGroup
+	 * object
+	 * 
+	 * @param svg
+	 *            Reference to the SvExecutorGroup object
+	 * @return List of executor keys
+	 */
+	private List<String> getKeys(ISvExecutorGroup svg) {
+		List<String> keys = new ArrayList<String>();
+		for (String name : svg.getNames())
+			keys.add(getKey(svg.getCategory(), name));
+		return keys;
 	}
 
 	/**

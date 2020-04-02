@@ -73,13 +73,15 @@ public class DbInit {
 	static final String CODE_LIST_ID = "CODE_LIST_ID";
 	static final String LABEL_CODE = "LABEL_CODE";
 	static final String TABLE_NAME = "table_name";
-
+	static final String REPO_TABLE_NAME = "{REPO_TABLE_NAME}";
+	static final String MASTER_REPO_NAME = "{MASTER_REPO}";
+	static final String DEFAULT_SCHEMA = "{DEFAULT_SCHEMA}";
 	//
 	private static DbDataTable getMasterCluster() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_cluster");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_cluster");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_CLUSTER);
 		dbt.setIsRepoTable(false);
@@ -158,9 +160,9 @@ public class DbInit {
 	//
 	private static DbDataTable getMasterExecutors() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_executors");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_executors");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTORS);
 		dbt.setIsRepoTable(false);
@@ -253,9 +255,9 @@ public class DbInit {
 	// table EXECUTOR_GROUPS
 	private static DbDataTable getExecutorGroup() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_executor_group");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_executor_group");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_GROUP);
 		dbt.setIsRepoTable(false);
@@ -302,9 +304,9 @@ public class DbInit {
 	// table EXECUTOR_PACK
 	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_executor_pack");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_executor_pack");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
 		dbt.setIsRepoTable(false);
@@ -361,9 +363,9 @@ public class DbInit {
 	// RULE ENGINE
 	private static DbDataTable getMasterNotes() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_notes");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_notes");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_NOTES);
 		dbt.setIsRepoTable(false);
@@ -410,9 +412,9 @@ public class DbInit {
 	// RULE ENGINE
 	private static DbDataTable getMasterRules() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_rules");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_rules");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_RULE);
 		dbt.setIsRepoTable(false);
@@ -482,9 +484,9 @@ public class DbInit {
 	private static DbDataTable getMasterActions() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_actions");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_actions");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_ACTION);
 		dbt.setIsRepoTable(false);
@@ -594,9 +596,9 @@ public class DbInit {
 	private static DbDataTable getMasterExecutions() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_executions");
-		dbt.setDbRepoName("{MASTER_REPO}_re");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_executions");
+		dbt.setDbRepoName(MASTER_REPO_NAME+"_re");
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTION);
 		dbt.setIsRepoTable(false);
@@ -651,9 +653,9 @@ public class DbInit {
 
 	private static DbDataTable getMasterResults() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_results");
-		dbt.setDbRepoName("{MASTER_REPO}_re");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_results");
+		dbt.setDbRepoName(MASTER_REPO_NAME+"_re");
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_RESULT);
 		dbt.setIsRepoTable(false);
@@ -727,9 +729,9 @@ public class DbInit {
 	private static DbDataTable createFormFieldType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_form_field_type");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_form_field_type");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
@@ -838,9 +840,9 @@ public class DbInit {
 	private static DbDataTable createFormField() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_form_field");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_form_field");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM_FIELD);
@@ -917,9 +919,9 @@ public class DbInit {
 	private static DbDataTable createMasterFormType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_form_type");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_form_type");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM_TYPE);
@@ -1053,16 +1055,16 @@ public class DbInit {
 	private static DbDataTable createMasterForm() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_form");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_form");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM);
 		dbe.setLabel_code("master_repo.form");
 		dbe.setUse_cache(false);
 		// make sure we set the configuration table info
-		dbe.setConfigTypeName("{REPO_TABLE_NAME}_form_type");
+		dbe.setConfigTypeName(REPO_TABLE_NAME+"_form_type");
 		dbe.setConfigRelationType("FIELD");
 		dbe.setConfigRelatedTypeName("FORM_TYPE_ID");
 
@@ -1133,9 +1135,9 @@ public class DbInit {
 	private static DbDataTable createJobType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_job_type");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_job_type");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB_TYPE);
@@ -1224,9 +1226,9 @@ public class DbInit {
 	private static DbDataTable createTaskType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_task_type");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_task_type");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_TASK_TYPE);
@@ -1295,9 +1297,9 @@ public class DbInit {
 	private static DbDataTable createParamType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_param_type");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_param_type");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM_TYPE);
@@ -1423,9 +1425,9 @@ public class DbInit {
 	private static DbDataTable createParam() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_param");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_param");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM);
@@ -1482,9 +1484,9 @@ public class DbInit {
 	private static DbDataTable createParamValue() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_param_value");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_param_value");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM_VALUE);
@@ -1541,9 +1543,9 @@ public class DbInit {
 	private static DbDataTable createJobTask() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_job_task");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_job_task");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB_TASK);
@@ -1620,9 +1622,9 @@ public class DbInit {
 	private static DbDataTable createJob() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_job");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_job");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB);
@@ -1690,9 +1692,9 @@ public class DbInit {
 	private static DbDataTable createJobObject() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_job_object");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_job_object");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB_OBJECT);
@@ -1749,9 +1751,9 @@ public class DbInit {
 	private static DbDataTable createTask() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_task");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_task");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_TASK);
@@ -1828,9 +1830,9 @@ public class DbInit {
 	private static DbDataTable createTaskDetail() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_task_detail");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_task_detail");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_TASK_DETAIL);
@@ -1886,9 +1888,9 @@ public class DbInit {
 	private static DbDataTable createRenderEngine() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_render_engine");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_render_engine");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_RENDER_ENGINE);
@@ -1962,9 +1964,9 @@ public class DbInit {
 	private static DbDataTable createUIStructureType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_ui_struct_type");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_ui_struct_type");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_UI_STRUCTURE_TYPE);
@@ -2057,9 +2059,9 @@ public class DbInit {
 	private static DbDataTable createUIStructureSource() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_ui_struct_source");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_ui_struct_source");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_UI_STRUCTURE_SOURCE);
@@ -2125,9 +2127,9 @@ public class DbInit {
 	// CONTACT_DATA
 	private static DbDataTable createContactData() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_contact_data");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_contact_data");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_CONTACT_DATA);
@@ -2244,9 +2246,9 @@ public class DbInit {
 	// EVENT
 	private static DbDataTable createEvent() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_event");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_event");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_EVENT);
@@ -2318,9 +2320,9 @@ public class DbInit {
 	// NOTIFICATION
 	private static DbDataTable createNotification() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_notification");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_notification");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_NOTIFICATION);
@@ -2393,9 +2395,9 @@ public class DbInit {
 	// message and conversation / tracker
 	private static DbDataTable createConversation() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_conversation");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_conversation");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_CONVERSATION);
@@ -2539,9 +2541,9 @@ public class DbInit {
 
 	private static DbDataTable createMessage() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{REPO_TABLE_NAME}_message");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(REPO_TABLE_NAME+"_message");
+		dbe.setDbRepoName(MASTER_REPO_NAME);
+		dbe.setDbSchema(DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_MESSAGE);
@@ -2604,9 +2606,9 @@ public class DbInit {
 	private static DbDataTable getMasterLink() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_link");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_link");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LINK);
 			dbt.setIsRepoTable(false);
@@ -2670,9 +2672,9 @@ public class DbInit {
 	private static DbDataTable getMasterSequence() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_sequence");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_sequence");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SEQUENCE);
 			dbt.setIsRepoTable(false);
@@ -2769,9 +2771,9 @@ public class DbInit {
 	private static DbDataTable getMasterLinkType() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_link_type");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_link_type");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LINK_TYPE);
 			dbt.setIsRepoTable(false);
@@ -2872,9 +2874,9 @@ public class DbInit {
 	private static DbDataTable getMasterSecurityLog() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_security_log");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_security_log");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SECURITY_LOG);
 			dbt.setIsRepoTable(false);
@@ -2933,9 +2935,9 @@ public class DbInit {
 	private static DbDataTable getMasterUsers() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_users");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_users");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_USER);
 			dbt.setIsRepoTable(false);
@@ -3067,9 +3069,9 @@ public class DbInit {
 	private static DbDataTable getMasterGroups() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_user_groups");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_user_groups");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_GROUP);
 		dbt.setIsRepoTable(false);
@@ -3153,9 +3155,9 @@ public class DbInit {
 	private static DbDataTable getMasterOU() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName("{REPO_TABLE_NAME}_org_units");
-		dbt.setDbRepoName("{MASTER_REPO}");
-		dbt.setDbSchema("{DEFAULT_SCHEMA}");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_org_units");
+		dbt.setDbRepoName(MASTER_REPO_NAME);
+		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_ORG_UNITS);
 		dbt.setIsRepoTable(false);
@@ -3249,9 +3251,9 @@ public class DbInit {
 	private static DbDataTable getMasterWorkflow() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_workflow");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_workflow");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_WORKFLOW);
 			dbt.setIsRepoTable(false);
@@ -3363,9 +3365,9 @@ public class DbInit {
 	private static DbDataTable getMasterACL() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_acl");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_acl");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_ACL);
 			dbt.setIsRepoTable(false);
@@ -3469,9 +3471,9 @@ public class DbInit {
 	private static DbDataTable getMasterSIDACLs() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_sid_acl");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_sid_acl");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SID_ACL);
 			dbt.setIsRepoTable(false);
@@ -3527,9 +3529,9 @@ public class DbInit {
 	private static DbDataTable getMasterFiles() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_files");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_files");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_FILE);
 			dbt.setIsRepoTable(false);
@@ -3624,9 +3626,9 @@ public class DbInit {
 	private static DbDataTable getMasterCodes() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_codes");
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_codes");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_CODE);
 			dbt.setIsRepoTable(false);
@@ -3700,10 +3702,10 @@ public class DbInit {
 	private static DbDataTable getLocales() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_locales");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_locales");
 
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LOCALE);
 			dbt.setIsRepoTable(false);
@@ -3760,10 +3762,10 @@ public class DbInit {
 	private static DbDataTable getLabels() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_labels");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_labels");
 
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LABEL);
 			dbt.setIsRepoTable(false);
@@ -3829,10 +3831,10 @@ public class DbInit {
 	private static DbDataTable getMasterFields() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}_fields");
+			dbt.setDbTableName(REPO_TABLE_NAME+"_fields");
 
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_FIELD);
 			dbt.setIsRepoTable(false);
@@ -4039,10 +4041,10 @@ public class DbInit {
 	private static DbDataTable getMasterTable() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_tables");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_tables");
 
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_TABLE);
 			dbt.setIsRepoTable(false);
@@ -4200,10 +4202,10 @@ public class DbInit {
 	private static DbDataTable getMasterSDIUnits() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_sdi_units");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_units");
 
-			dbt.setDbRepoName("{REPO_TABLE_NAME}_sdi");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_UNITS);
 			dbt.setIsRepoTable(false);
@@ -4319,10 +4321,10 @@ public class DbInit {
 	private static DbDataTable getMasterSDIUse() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_sdi_use");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_use");
 
-			dbt.setDbRepoName("{REPO_TABLE_NAME}_sdi");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_USE);
 			dbt.setIsRepoTable(false);
@@ -4437,10 +4439,10 @@ public class DbInit {
 	private static DbDataTable getMasterSDICover() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_sdi_cover");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_cover");
 
-			dbt.setDbRepoName("{REPO_TABLE_NAME}_sdi");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_COVER);
 			dbt.setIsRepoTable(false);
@@ -4531,10 +4533,10 @@ public class DbInit {
 	private static DbDataTable getMasterSDIBounds() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_sdi_bounds");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_bounds");
 
-			dbt.setDbRepoName("{REPO_TABLE_NAME}_sdi");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_BOUNDS);
 			dbt.setIsRepoTable(false);
@@ -4656,10 +4658,10 @@ public class DbInit {
 	private static DbDataTable getMasterSDIDescriptor() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_sdi_descriptor");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_descriptor");
 
-			dbt.setDbRepoName("{REPO_TABLE_NAME}_sdi");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_DESCRIPTOR);
 			dbt.setIsRepoTable(false);
@@ -4786,10 +4788,10 @@ public class DbInit {
 	private static DbDataTable getMasterSDIService() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName("{REPO_TABLE_NAME}" + "_sdi_service");
+			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_service");
 
-			dbt.setDbRepoName("{REPO_TABLE_NAME}_sdi");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_SERVICE);
 			dbt.setIsRepoTable(false);
@@ -4884,8 +4886,8 @@ public class DbInit {
 		{
 			DbDataTable dbt = new DbDataTable();
 			dbt.setDbTableName(repoTableName);
-			dbt.setDbRepoName("{MASTER_REPO}");
-			dbt.setDbSchema("{DEFAULT_SCHEMA}");
+			dbt.setDbRepoName(MASTER_REPO_NAME);
+			dbt.setDbSchema(DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setIsRepoTable(true);
 			if (repoObjectId != null)
@@ -4902,7 +4904,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setDbSequenceName("{REPO_TABLE_NAME}_pkid");
+			dbf1.setDbSequenceName(REPO_TABLE_NAME+"_pkid");
 			dbf1.setLabel_code("master_repo.table_pkid");
 			dbf1.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
@@ -4925,7 +4927,7 @@ public class DbInit {
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(0);
 			dbf4.setIsNull(false);
-			dbf4.setDbSequenceName("{REPO_TABLE_NAME}_oid");
+			dbf4.setDbSequenceName(REPO_TABLE_NAME+"_oid");
 			dbf4.setLabel_code("master_repo.object_id");
 			dbf4.setGui_metadata(getUiWidth(getDefaultUiMeta(true, true, false, false), 60).toString());
 
@@ -5004,15 +5006,15 @@ public class DbInit {
 	}
 
 	private static DbDataTable getSDIMasterRepoObject() {
-		return getRepoDescriptor("{REPO_TABLE_NAME}_sdi", null);
+		return getRepoDescriptor(REPO_TABLE_NAME+"_sdi", null);
 	}
 
 	private static DbDataTable getMasterRepoObject() {
-		return getRepoDescriptor("{REPO_TABLE_NAME}", svCONST.OBJECT_TYPE_REPO);
+		return getRepoDescriptor(REPO_TABLE_NAME, svCONST.OBJECT_TYPE_REPO);
 	}
 
 	private static DbDataTable getRuleEngineMasterRepoObject() {
-		return getRepoDescriptor("{REPO_TABLE_NAME}_re", null);
+		return getRepoDescriptor(REPO_TABLE_NAME+"_re", null);
 	}
 
 	/**
@@ -5282,12 +5284,12 @@ public class DbInit {
 
 			String retval = saveMasterJson(
 					SvConf.getConfPath() + SvarogInstall.masterDbtPath
-							+ dbt.getDbTableName().replace("{REPO_TABLE_NAME}", "master").toLowerCase() + "_repo.json",
+							+ dbt.getDbTableName().replace(REPO_TABLE_NAME, "master").toLowerCase() + "_repo.json",
 					dbt, false);
 
 			if (!retval.equals("")) {
 				fullRetval += fullRetval + "; " + SvConf.getConfPath() + SvarogInstall.masterDbtPath
-						+ dbt.getDbTableName().replace("{REPO_TABLE_NAME}", "master") + "_repo.json";
+						+ dbt.getDbTableName().replace(REPO_TABLE_NAME, "master") + "_repo.json";
 			}
 
 		}
@@ -5422,8 +5424,8 @@ public class DbInit {
 				aclStr = IOUtils.toString(istr);
 			}
 			if (aclStr != null) {
-				aclStr = aclStr.replace("{MASTER_REPO}", SvConf.getMasterRepo());
-				aclStr = aclStr.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
+				aclStr = aclStr.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
+				aclStr = aclStr.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
 				json = gson.fromJson(aclStr, JsonElement.class);
 			} else
 				log4j.debug("Warning, no ACLs found in:" + jarPath + ", path:" + filePath);
@@ -5849,9 +5851,9 @@ public class DbInit {
 		svObjectId = prepareCodes(svObjectId, retStr) + 1;
 		String json;
 		json = retStr[0];// IOUtils.toString(fis, "UTF-8");
-		json = json.replace("{MASTER_REPO}", SvConf.getMasterRepo());
-		json = json.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
-		json = json.replace("{REPO_TABLE_NAME}", SvConf.getMasterRepo());
+		json = json.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
+		json = json.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+		json = json.replace(REPO_TABLE_NAME, SvConf.getMasterRepo());
 		Gson gson = new Gson();
 		JsonObject jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 		defaultCodes.fromJson(jobj);
@@ -5999,9 +6001,9 @@ public class DbInit {
 		dbTables2DbDataArray(getMasterRoot(), defaultObjests, defaultCodes, svObjectId, errMsg);
 
 		String json = defaultObjests.toJson().toString();
-		json = json.replace("{MASTER_REPO}", SvConf.getMasterRepo());
-		json = json.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
-		json = json.replace("{REPO_TABLE_NAME}", SvConf.getMasterRepo());
+		json = json.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
+		json = json.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+		json = json.replace(REPO_TABLE_NAME, SvConf.getMasterRepo());
 		Gson gson = new Gson();
 		JsonObject jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 		defaultObjests.fromJson(jobj);
@@ -6015,9 +6017,9 @@ public class DbInit {
 		}
 		if (defaultCodes.getItems().size() > 0) {
 			json = defaultCodes.toJson().toString();
-			json = json.replace("{MASTER_REPO}", SvConf.getMasterRepo());
-			json = json.replace("{DEFAULT_SCHEMA}", SvConf.getDefaultSchema());
-			json = json.replace("{REPO_TABLE_NAME}", SvConf.getMasterRepo());
+			json = json.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
+			json = json.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+			json = json.replace(REPO_TABLE_NAME, SvConf.getMasterRepo());
 			jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 			defaultCodes.fromJson(jobj);
 			for (DbDataObject dbo : defaultCodes.getItems())
@@ -6398,9 +6400,9 @@ public class DbInit {
 				object_id = startingObjId + items.size();
 			// String key = keys.nextElement();
 			DbDataObject dbo = new DbDataObject();
-			// dbo.setRepo_name("{MASTER_REPO}");
-			// dbo.setTable_name("{MASTER_REPO}" + "_codes");
-			// dbo.setSchema("{DEFAULT_SCHEMA}");
+			// dbo.setRepo_name(MASTER_REPO_NAME+"");
+			// dbo.setTable_name(MASTER_REPO_NAME+"" + "_codes");
+			// dbo.setSchema(DEFAULT_SCHEMA+"");
 			dbo.setStatus(svCONST.STATUS_VALID);
 
 			dbo.setObjectId(object_id);

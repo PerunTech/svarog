@@ -231,6 +231,7 @@ public class SvMaintenance implements Runnable {
 				SvWriter svw = null;
 				try {
 					svr = new SvReader();
+					svr.isInternal = true;
 					Connection conn = svr.dbGetConn();
 
 					DbDataArray dba = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);

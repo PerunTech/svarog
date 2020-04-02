@@ -24,8 +24,6 @@ public class SvExecutorGroup extends SvCore {
 		// TODO Auto-generated constructor stub
 	}
 
-	public SvExecutorGroup() {
-		// TODO Auto-generated constructor stub
-	}
+
 
 }
