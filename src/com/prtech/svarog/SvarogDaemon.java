@@ -35,6 +35,7 @@ import org.osgi.framework.launch.FrameworkFactory;
 import org.osgi.util.tracker.ServiceTracker;
 
 import com.prtech.svarog_interfaces.ISvExecutor;
+import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
  * <p>
@@ -53,7 +54,7 @@ public class SvarogDaemon {
 	 * Service tracker to list all SvarogExecutors loaded from bundles
 	 */
 
-	static ServiceTracker<ISvExecutor, ISvExecutor> svcTracker = null;
+	static ServiceTracker<?, ?> svcTracker = null;
 
 	/**
 	 * The property name used to specify an URL to the system property file.
@@ -231,10 +232,12 @@ public class SvarogDaemon {
 			// Initialize the framework, but don't start it yet.
 			osgiFramework.init();
 
+			//track executors and executor groups
+			String serviceFilter="|(objectClass="+ISvExecutor.class.getName()+")(objectClass="+ISvExecutorGroup.class.getName()+")";
+			
 			// Use the framework bundle context to register a service tracker
 			// in order to track Svarog Executors coming and going in the system
-			svcTracker = new ServiceTracker<ISvExecutor, ISvExecutor>(osgiFramework.getBundleContext(),
-					ISvExecutor.class.getName(), null);
+			svcTracker = new ServiceTracker(osgiFramework.getBundleContext(),osgiFramework.getBundleContext().createFilter(serviceFilter), null);
 			svcTracker.open();
 
 			// Use the system bundle context to process the auto-deploy

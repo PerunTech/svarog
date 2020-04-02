@@ -193,6 +193,8 @@ public class SvarogTest {
 				svs.release();
 		}
 
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -214,7 +216,8 @@ public class SvarogTest {
 
 		}
 
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -246,6 +249,8 @@ public class SvarogTest {
 				svr.release();
 		}
 
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -360,7 +365,8 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -505,7 +511,8 @@ public class SvarogTest {
 				svr.release();
 
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -659,7 +666,8 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -821,7 +829,8 @@ public class SvarogTest {
 			// svw.release();
 			svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -876,7 +885,8 @@ public class SvarogTest {
 			// svw.release();
 			svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1102,7 +1112,8 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("There are still active connections");
 
 	}
 
@@ -1262,6 +1273,8 @@ public class SvarogTest {
 			svw.release();
 			swf.release();
 
+			if (SvConnTracker.hasTrackedConnections(false,false))
+				fail("You have a connection leak, you dirty animal!");
 
 		}
 
@@ -1308,7 +1321,8 @@ public class SvarogTest {
 			svw.release();
 			svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1343,7 +1357,8 @@ public class SvarogTest {
 			svr.release();
 			svs.release();
 		}
-;
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1421,7 +1436,8 @@ public class SvarogTest {
 			svr.release();
 			svl.release();
 		}
-;
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1457,7 +1473,8 @@ public class SvarogTest {
 			svr.release();
 			swf.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1485,7 +1502,8 @@ public class SvarogTest {
 		} finally {
 			svl.hardRelease();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1540,7 +1558,8 @@ public class SvarogTest {
 			// svw.release();
 			svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1629,7 +1648,7 @@ public class SvarogTest {
 	 * } catch (SvException e) { // TODO Auto-generated catch block
 	 * e.printStackTrace(); fail("Exception occured"); } finally { //
 	 * svw.release(); svr.release(); } if
-	 * (SvConnTracker.hasTrackedConnections()) fail(
+	 * (SvConnTracker.hasTrackedConnections(false,false)) fail(
 	 * "You have a connection leak, you dirty animal!"); }
 	 */
 	@Test
@@ -1662,7 +1681,8 @@ public class SvarogTest {
 			svw.release();
 			svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1693,6 +1713,8 @@ public class SvarogTest {
 			svw.release();
 			swf.release();
 		}
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	/**
@@ -1770,7 +1792,7 @@ public class SvarogTest {
 	 * remove the new dummy link at the end of the test svw.release();
 	 * svr.release(); svl.release(); svs.release();
 	 * 
-	 * } if (SvConnTracker.hasTrackedConnections()) fail(
+	 * } if (SvConnTracker.hasTrackedConnections(false,false)) fail(
 	 * "You have a connection leak, you dirty animal!");
 	 * 
 	 * }
@@ -1792,7 +1814,8 @@ public class SvarogTest {
 		} finally {
 			dbu.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1844,7 +1867,8 @@ public class SvarogTest {
 			if (dbu != null)
 				dbu.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -1886,7 +1910,8 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -1971,7 +1996,8 @@ public class SvarogTest {
 			svr.release();
 			cl.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -2002,7 +2028,8 @@ public class SvarogTest {
 			lst.release();
 			svs.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -2081,7 +2108,8 @@ public class SvarogTest {
 				svw.release();
 
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2112,7 +2140,8 @@ public class SvarogTest {
 			lst.release();
 			svs.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -2237,7 +2266,9 @@ public class SvarogTest {
 			svr.release();
 			svs.release();
 		}
+		if (SvConnTracker.hasTrackedConnections(false,false))
 
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -2400,7 +2431,8 @@ public class SvarogTest {
 			svs.release();
 
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -2516,7 +2548,8 @@ public class SvarogTest {
 			svw.release();
 			svs.release();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 
@@ -2619,7 +2652,8 @@ public class SvarogTest {
 				svr.release();
 		}
 
-;
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2736,6 +2770,8 @@ public class SvarogTest {
 				svw.release();
 
 		}
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2777,7 +2813,8 @@ public class SvarogTest {
 				svw.release();
 			}
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2924,7 +2961,8 @@ public class SvarogTest {
 				svw.release();
 
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -2984,7 +3022,8 @@ public class SvarogTest {
 				svr.release();
 
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -3020,6 +3059,9 @@ public class SvarogTest {
 				svw.release();
 			}
 		}
+
+		if (SvConnTracker.hasTrackedConnections(false,false))
+			fail("You have a connection leak, you dirty animal!");
 
 	}
 }
