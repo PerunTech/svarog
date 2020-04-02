@@ -30,7 +30,7 @@ import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 
-public class ProtoBufTests {
+public class ProtoBufTest {
 
 	
 	

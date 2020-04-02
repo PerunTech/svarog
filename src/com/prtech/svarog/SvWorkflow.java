@@ -141,10 +141,8 @@ public class SvWorkflow extends SvCore {
 			try {
 				svw.saveRepoData(dbt, dba, false, false);
 
-				// in case we are moving a link, we need to invalidate the link
-				// cache
-				if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK))
-					svw.removeLinkCache(dbo);
+				SvWriter.cacheCleanup(dbo);
+				svw.executeAfterSaveCallbacks(dbo);
 			} finally {
 				svw.release();
 			}
