@@ -301,6 +301,10 @@ public class SvConf {
 	 */
 	private static ResourceBundle sqlKw = null;
 
+	/** flag to enable or disable overriding the DtInsert and dt Delete timestamps
+	*/
+	private static boolean overrideTimeStamps = true;
+
 	/**
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
@@ -489,12 +493,16 @@ public class SvConf {
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
+
+			// cluster params
 			clusterMaintenanceInterval = getProperty(mainProperties, "sys.cluster.max_maintenance", 60);
 			heartBeatPort = getProperty(mainProperties, "sys.cluster.heartbeat_port", 6783);
 			heartBeatInterval = getProperty(mainProperties, "sys.cluster.heartbeat_interval", 1000);
 			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
 			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
 			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
+
+			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
 
 			// configure svarog service classes
 			String svcClass = mainProperties.getProperty("sys.service_class");
@@ -970,5 +978,13 @@ public class SvConf {
 
 	public static void setClusterEnabled(boolean enableCluster) {
 		SvConf.clusterEnabled = enableCluster;
+	}
+
+	public static boolean isOverrideTimeStamps() {
+		return overrideTimeStamps;
+	}
+
+	public static void setOverrideTimeStamps(boolean overrideTimeStamps) {
+		SvConf.overrideTimeStamps = overrideTimeStamps;
 	}
 }
