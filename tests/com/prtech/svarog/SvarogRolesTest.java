@@ -341,7 +341,7 @@ public class SvarogRolesTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections())
+		if (SvConnTracker.hasTrackedConnections(false,false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -668,7 +668,7 @@ public class SvarogRolesTest {
 			e.printStackTrace();
 			fail("Can't use session to instantiate SvReader");
 		}
-		if (SvConnTracker.hasTrackedConnections())
+		if (SvConnTracker.hasTrackedConnections(false,false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -682,7 +682,7 @@ public class SvarogRolesTest {
 			e.printStackTrace();
 			fail("Can't use session to instantiate SvReader");
 		}
-		if (SvConnTracker.hasTrackedConnections())
+		if (SvConnTracker.hasTrackedConnections(false,false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
