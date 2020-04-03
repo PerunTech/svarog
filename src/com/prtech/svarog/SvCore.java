@@ -1349,6 +1349,7 @@ public abstract class SvCore implements ISvCore {
 		// if Svarog is already initialised, simply return
 		if (!isInitialized.compareAndSet(false, true))
 			return true;
+		isValid.set(false);
 
 		log4j.info("Svarog initialization in progress");
 		DbCache.clean();
