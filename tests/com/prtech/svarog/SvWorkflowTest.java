@@ -61,7 +61,7 @@ public class SvWorkflowTest {
 			sww.moveObject(dboUser, "BLOCKED");
 		} catch (SvException ex) {
 			ex.printStackTrace();
-			//fail(ex.getFormattedMessage());
+			// fail(ex.getFormattedMessage());
 		} finally {
 			// releaseAll(svsec);
 			releaseAll(svw);
@@ -69,9 +69,8 @@ public class SvWorkflowTest {
 			releaseAll(sww);
 			releaseAll(svsec);
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(true, false))
 			fail("You have a connection leak, you dirty animal!");
-
 
 	}
 
@@ -111,7 +110,7 @@ public class SvWorkflowTest {
 			action.setVal("METHOD_NAME", "TEST.WORKFLOW");
 			svw.saveObject(action, false);
 
-			//create form_type
+			// create form_type
 			DbDataObject dboFormType = new DbDataObject();
 			dboFormType.setObjectType(svCONST.OBJECT_TYPE_FORM_TYPE);
 			dboFormType.setVal("FORM_CATEGORY", "1");
@@ -121,15 +120,14 @@ public class SvWorkflowTest {
 			dboFormType.setVal("LABEL_CODE", "form_type.test.1");
 			svw.saveObject(dboFormType, false);
 
-			//create workflow
+			// create workflow
 			DbDataObject wrfl = constructWorkflowObject(svCONST.OBJECT_TYPE_FORM_TYPE, "test", "INVALID", "DELETED",
 					rule.getObjectId());
 			svw.saveObject(wrfl, false);
 
-			wrfl = constructWorkflowObject(svCONST.OBJECT_TYPE_FORM_TYPE, "test1", "VALID", "INVALID",
-					null);
+			wrfl = constructWorkflowObject(svCONST.OBJECT_TYPE_FORM_TYPE, "test1", "VALID", "INVALID", null);
 			svw.saveObject(wrfl, false);
-			
+
 			try {
 				sww.moveObject(dboFormType, "PENDING", false);
 			} catch (Exception e) {
@@ -141,11 +139,11 @@ public class SvWorkflowTest {
 				}
 			}
 			sww.moveObject(dboFormType, "INVALID", false);
-			
-			if(!dboFormType.getStatus().equals("INVALID")) {
+
+			if (!dboFormType.getStatus().equals("INVALID")) {
 				fail("Not changed status");
 			}
-			
+
 			sww.moveObject(dboFormType, "DELETED", false);
 
 		} catch (Exception e) {
@@ -166,7 +164,7 @@ public class SvWorkflowTest {
 			if (sww != null)
 				sww.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(true, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
