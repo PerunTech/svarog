@@ -17,8 +17,8 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvExecutor;
 
-public class SvExecManagerTests {
-	static final Logger log4j = SvConf.getLogger(SvExecManagerTests.class);
+public class SvExecManagerTest {
+	static final Logger log4j = SvConf.getLogger(SvExecManagerTest.class);
 	private final String category = "TEST";
 	private final String name = "TESTEXEC";
 
