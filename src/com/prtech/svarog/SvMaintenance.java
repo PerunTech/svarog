@@ -98,13 +98,12 @@ public class SvMaintenance implements Runnable {
 	public static long performMaintenance() {
 		long timeout = SvConf.getCoreIdleTimeout();
 
-		if (maintenanceInProgress.compareAndSet(false, true)) {
+		if (SvCore.isValid.get() && maintenanceInProgress.compareAndSet(false, true)) {
 			// if the cluster is not disabled and not active, do activate
-			if (SvConf.isClusterEnabled())
-			{
-				if(!SvCluster.getIsActive().get())
+			if (SvConf.isClusterEnabled()) {
+				if (!SvCluster.getIsActive().get())
 					SvCluster.initCluster();
-				else 
+				else
 					SvCluster.checkCluster();
 			}
 			// do the maintenance
@@ -231,6 +230,7 @@ public class SvMaintenance implements Runnable {
 				SvWriter svw = null;
 				try {
 					svr = new SvReader();
+					svr.isInternal = true;
 					Connection conn = svr.dbGetConn();
 
 					DbDataArray dba = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
