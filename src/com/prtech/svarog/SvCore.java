@@ -422,7 +422,8 @@ public abstract class SvCore implements ISvCore {
 				throw (new SvException("system.error.cant_use_svsec_as_core", instanceUser));
 
 		this.instanceUser = (srcCore != null ? srcCore.instanceUser : instanceUser);
-
+		this.isInternal = (srcCore != null ? srcCore.isInternal : this.isInternal);
+		
 		if (this.instanceUser == null)
 			throw (new SvException("system.error.instance_user_null", svCONST.systemUser));
 
