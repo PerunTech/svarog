@@ -17,7 +17,6 @@ public class SvWriterTest {
 	public void testImport() {
 
 		SvReader svr = null;
-
 		SvWriter svw = null;
 		try {
 			String token = SvarogRolesTest.getUserToken(true);
@@ -48,6 +47,11 @@ public class SvWriterTest {
 			fail("Test failed with exception" + e.getFormattedMessage());
 		} finally {
 			SvConf.setOverrideTimeStamps(true);
+
+			if (svr != null)
+				svr.release();
+			if (svw != null)
+				svw.release();
 		}
 
 	}
