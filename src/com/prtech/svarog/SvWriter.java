@@ -421,6 +421,7 @@ public class SvWriter extends SvCore {
 	 * repo insert requests.
 	 * 
 	 * @return
+	 * @throws SvException
 	 * @throws SQLServerException
 	 *             SQLServerDataTable prepRepoDataTable() throws
 	 *             SQLServerException { if
@@ -445,6 +446,28 @@ public class SvWriter extends SvCore {
 	 *             java.sql.Types.NUMERIC); return repoTypeDT; } else return
 	 *             null; }
 	 */
+
+	/**
+	 * Method to execute on save call backs on the object subject of saving
+	 * 
+	 * @param dbo
+	 *            the reference to the object
+	 * @throws SvException
+	 *             any exception that is thrown by the callbacks
+	 */
+	private void executeOnSaveCallbacks(DbDataObject dbo) throws SvException {
+		CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
+		CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
+		if (globalCallback != null)
+			for (ISvOnSave onSave : globalCallback) {
+				onSave.beforeSave(this, dbo);
+			}
+		localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
+		if (localCallbacks != null)
+			for (ISvOnSave onSave : localCallbacks) {
+				onSave.beforeSave(this, dbo);
+			}
+	}
 
 	/**
 	 * Method to save the base repo data for the object.
@@ -485,8 +508,6 @@ public class SvWriter extends SvCore {
 			Timestamp dtInsert = new Timestamp(milis);
 
 			Connection conn = this.dbGetConn();
-			psInvalidateOld = conn
-					.prepareStatement("UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
 
 			// prepare the repo insert statements
 			if (!dbHandler.getOverrideInsertRepo())
@@ -503,20 +524,11 @@ public class SvWriter extends SvCore {
 				oldRepoData = preSaveChecks(dbt, dba, isUpdate, skipPreSaveChecks);
 			}
 
-			CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
-			CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
-
 			int rowIndex = 0;
 			for (DbDataObject dbo : dba.getItems()) {
-				if (globalCallback != null)
-					for (ISvOnSave onSave : globalCallback) {
-						onSave.beforeSave(this, dbo);
-					}
-				localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
-				if (localCallbacks != null)
-					for (ISvOnSave onSave : localCallbacks) {
-						onSave.beforeSave(this, dbo);
-					}
+				// execute the call backs
+				executeOnSaveCallbacks(dbo);
+
 				// make sure we save SDI objects only when SvWriter is used
 				// internally by SvGeometry
 				if (!isInternal && hasGeometries(dbo.getObjectType()))
@@ -524,23 +536,30 @@ public class SvWriter extends SvCore {
 
 				// perform the basic repo checks over the object before saving
 				checkRepoData(dbo, isUpdate, skipPreSaveChecks);
+
 				// if the object is a new object, make sure we assign the
 				// default status to it.
 				if ((dbo.getPkid() == 0 || dbo.getObjectId() == 0)
 						&& (dbo.getStatus() == null || dbo.getStatus() == ""))
 					dbo.setStatus(getDefaultStatus(dbt));
+				// get the old repo objects if any
 				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObjectId()) : null;
+				if (dbo.getPkid() != 0L && psInvalidateOld == null)
+					psInvalidateOld = conn
+							.prepareStatement("UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
+
+				// ensure the object is batched for saving
 				addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidateOld, psInsRepo, dtInsert, dtEndPrev,
 						extendedRepoStruct, rowIndex);
 				rowIndex++;
 
 			}
 
-			int[] updatedRows = psInvalidateOld.executeBatch();
-			int[] insertedRows = null;
+			int[] updatedRows = psInvalidateOld != null ? psInvalidateOld.executeBatch() : null;
+
 			int objectIndex = 0;
 			if (!dbHandler.getOverrideInsertRepo()) {
-				insertedRows = psInsRepo.executeBatch();
+				psInsRepo.executeBatch();
 				rsGenKeys = psInsRepo.getGeneratedKeys();
 				while (rsGenKeys.next()) {
 					setKeys(dba, rsGenKeys.getLong(1), rsGenKeys.getLong(2), objectIndex);
@@ -556,7 +575,8 @@ public class SvWriter extends SvCore {
 				}
 			}
 
-			if (dba.getItems().size() != objectIndex || (isUpdate && !isInternal && objectIndex != updatedRows.length))
+			if (dba.getItems().size() != objectIndex || (isUpdate && !isInternal
+					&& objectIndex != (updatedRows != null ? updatedRows.length : objectIndex)))
 				throw (new SvException("system.error.batch_size_err", instanceUser, dba, dbt));
 
 		} catch (SQLException ex) {
@@ -616,6 +636,7 @@ public class SvWriter extends SvCore {
 			Object extendedRepoStruct, int rowIndex) throws SQLException {
 
 		ISvDatabaseIO dbHandler = SvConf.getDbHandler();
+		Timestamp tsInsert, tsDelete;
 
 		if (dbo.getPkid() != 0) {
 			psInvalidate.setTimestamp(1, dtEndPrev);
@@ -629,16 +650,23 @@ public class SvWriter extends SvCore {
 		Long oldMetaPKID = repoObjects != null && withMetaUpdate == false ? (Long) repoObjects[4] : 0L;
 		Long userId = this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId();
 
-		dbo.setDtInsert(new DateTime(dtInsert));
-		dbo.setDtDelete(SvConf.MAX_DATE);
+		if (SvConf.isOverrideTimeStamps()) {
+			dbo.setDtInsert(new DateTime(dtInsert));
+			dbo.setDtDelete(SvConf.MAX_DATE);
+			tsInsert = dtInsert;
+			tsDelete = SvConf.MAX_DATE_SQL;
+		} else {
+			tsInsert = new Timestamp(dbo.getDtInsert().getMillis());
+			tsDelete = new Timestamp(dbo.getDtDelete().getMillis());
+		}
 
 		int paramCount = 1;
 		if (!dbHandler.getOverrideInsertRepo()) { // if the handler does not
 													// override the insert repo
 			if (dbo.getObjectId() != 0)
 				psInsert.setLong(paramCount++, dbo.getObjectId());
-			psInsert.setTimestamp(paramCount++, dtInsert);
-			psInsert.setTimestamp(paramCount++, SvConf.MAX_DATE_SQL);
+			psInsert.setTimestamp(paramCount++, tsInsert);
+			psInsert.setTimestamp(paramCount++, tsDelete);
 			psInsert.setLong(paramCount++, objParent);
 			psInsert.setLong(paramCount++, objType);
 			// if there's no meta update, use the existing META_PKID
@@ -650,8 +678,8 @@ public class SvWriter extends SvCore {
 
 		} else {
 			// if the insert is overriden then call overrided add repo batch
-			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObjectId(), dtInsert,
-					SvConf.MAX_DATE_SQL, objParent, objType, objStatus, userId, rowIndex);
+			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObjectId(), tsInsert, tsDelete,
+					objParent, objType, objStatus, userId, rowIndex);
 		}
 	}
 
