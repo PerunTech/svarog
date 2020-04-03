@@ -22,7 +22,7 @@ import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvExecutor;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
-public class SvExecManagerTests {
+public class SvExecManagerTest {
 	@BeforeClass
 	public static void init() {
 		try {
@@ -34,7 +34,7 @@ public class SvExecManagerTests {
 
 	}
 
-	static final Logger log4j = SvConf.getLogger(SvExecManagerTests.class);
+	static final Logger log4j = SvConf.getLogger(SvExecManagerTest.class);
 	private final String category = "TEST";
 	private final String name = "TESTEXEC";
 

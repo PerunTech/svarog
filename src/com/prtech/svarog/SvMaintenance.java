@@ -98,13 +98,12 @@ public class SvMaintenance implements Runnable {
 	public static long performMaintenance() {
 		long timeout = SvConf.getCoreIdleTimeout();
 
-		if (maintenanceInProgress.compareAndSet(false, true)) {
+		if (SvCore.isValid.get() && maintenanceInProgress.compareAndSet(false, true)) {
 			// if the cluster is not disabled and not active, do activate
-			if (SvConf.isClusterEnabled())
-			{
-				if(!SvCluster.getIsActive().get())
+			if (SvConf.isClusterEnabled()) {
+				if (!SvCluster.getIsActive().get())
 					SvCluster.initCluster();
-				else 
+				else
 					SvCluster.checkCluster();
 			}
 			// do the maintenance
