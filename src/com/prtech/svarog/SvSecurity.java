@@ -70,7 +70,6 @@ public class SvSecurity extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-
 	@Override
 	/**
 	 * Overriden method to switch the current user. It will check if the caller
@@ -103,7 +102,7 @@ public class SvSecurity extends SvCore {
 	 *             throw "system.error.cant_switch_system_user"
 	 */
 	public void switchUser(DbDataObject user) throws SvException {
-		if (!SvConf.isServiceClass(SvUtil.getCallerClassName(this)))
+		if (!SvConf.isServiceClass(SvUtil.getCallerClassName(this.getClass())))
 			throw (new SvException("system.error.cant_switch_system_user", instanceUser));
 
 		super.switchUser(user);
