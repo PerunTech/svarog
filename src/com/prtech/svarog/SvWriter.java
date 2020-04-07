@@ -498,9 +498,9 @@ public class SvWriter extends SvCore {
 			ISvDatabaseIO dbHandler = SvConf.getDbHandler();
 
 			String schema = dbt.getVal("schema").toString();
-			String repo_name = dbt.getVal("repo_name").toString();
+			String repoName = dbt.getVal("repo_name").toString();
 			Boolean isUpdate = dba.getItems().get(0).getObjectId() != 0L;
-			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repo_name);
+			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repoName);
 			log4j.debug(sqlInsRepo);
 			// sort the milis of the ending/starting time
 			long milis = new DateTime().getMillis();
@@ -514,7 +514,7 @@ public class SvWriter extends SvCore {
 				psInsRepo = conn.prepareStatement(sqlInsRepo, genKeyIds);
 			else {// if the handler overrides the repo insert, pass the
 					// generation of the statement to the handler
-				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo, schema, repo_name);
+				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo, schema, repoName);
 				if (psInsRepo == null)
 					throw (new SvException("system.error.jdbc_bad_database_handler", instanceUser));
 				extendedRepoStruct = dbHandler.getInsertRepoStruct(conn, dba.size());
@@ -545,8 +545,7 @@ public class SvWriter extends SvCore {
 				// get the old repo objects if any
 				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObjectId()) : null;
 				if (dbo.getPkid() != 0L && psInvalidateOld == null)
-					psInvalidateOld = conn
-							.prepareStatement("UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
+					psInvalidateOld = conn.prepareStatement(getUpdateRepoSql(schema, repoName));
 
 				// ensure the object is batched for saving
 				addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidateOld, psInsRepo, dtInsert, dtEndPrev,
@@ -593,6 +592,20 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
+	 * Method to generate the sql statement for update of the delete repo
+	 * objects
+	 * 
+	 * @param schema
+	 *            The Schema name
+	 * @param repoName
+	 *            The name of the repo table
+	 * @return String containing valid SQL statement
+	 */
+	private String getUpdateRepoSql(String schema, String repoName) {
+		return "UPDATE " + schema + "." + repoName + " SET dt_delete=? WHERE pkid=?";
+	}
+
+	/**
 	 * Method to set the generated keys to the appropriate Object in the
 	 * DbDataArray which is batched
 	 * 
@@ -614,6 +627,24 @@ public class SvWriter extends SvCore {
 			log4j.debug("Generated keys (pkid):" + pkid.toString());
 			log4j.debug("Generated keys (object_id)" + objectId.toString());
 		}
+	}
+
+	void addRepoBatchImpl(Long PKID, Long oldMetaPKID, Long objectId, Timestamp tsInsert, Timestamp tsDelete,
+			Long parentId, Long objType, String objStatus, Long userId, PreparedStatement psInsert)
+			throws SQLException {
+		int paramCount = 1;
+		if (objectId != 0)
+			psInsert.setLong(paramCount++, objectId);
+		psInsert.setTimestamp(paramCount++, tsInsert);
+		psInsert.setTimestamp(paramCount++, tsDelete);
+		psInsert.setLong(paramCount++, parentId);
+		psInsert.setLong(paramCount++, objType);
+		// if there's no meta update, use the existing META_PKID
+		if (oldMetaPKID != 0)
+			psInsert.setLong(paramCount++, oldMetaPKID);
+		psInsert.setString(paramCount++, objStatus);
+		psInsert.setLong(paramCount, userId);
+		psInsert.addBatch();
 	}
 
 	/**
@@ -660,22 +691,9 @@ public class SvWriter extends SvCore {
 			tsDelete = new Timestamp(dbo.getDtDelete().getMillis());
 		}
 
-		int paramCount = 1;
 		if (!dbHandler.getOverrideInsertRepo()) { // if the handler does not
-													// override the insert repo
-			if (dbo.getObjectId() != 0)
-				psInsert.setLong(paramCount++, dbo.getObjectId());
-			psInsert.setTimestamp(paramCount++, tsInsert);
-			psInsert.setTimestamp(paramCount++, tsDelete);
-			psInsert.setLong(paramCount++, objParent);
-			psInsert.setLong(paramCount++, objType);
-			// if there's no meta update, use the existing META_PKID
-			if (oldMetaPKID != 0)
-				psInsert.setLong(paramCount++, oldMetaPKID);
-			psInsert.setString(paramCount++, objStatus);
-			psInsert.setLong(paramCount, userId);
-			psInsert.addBatch();
-
+			addRepoBatchImpl(0L, oldMetaPKID, dbo.getObjectId(), tsInsert, tsDelete, objParent, objType, objStatus,
+					userId, psInsert);
 		} else {
 			// if the insert is overriden then call overrided add repo batch
 			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObjectId(), tsInsert, tsDelete,

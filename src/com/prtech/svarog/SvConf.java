@@ -232,6 +232,13 @@ public class SvConf {
 	 * Service user without being authenticated
 	 */
 	static ArrayList<String> serviceClasses = new ArrayList<String>();
+
+	/**
+	 * Array holding the list of service classes allowed to switch to the System
+	 * user without being authenticated. Use only for importing
+	 */
+	static ArrayList<String> systemClasses = new ArrayList<String>();
+
 	/**
 	 * Properties object holding the svarog master configuration
 	 */
@@ -301,8 +308,10 @@ public class SvConf {
 	 */
 	private static ResourceBundle sqlKw = null;
 
-	/** flag to enable or disable overriding the DtInsert and dt Delete timestamps
-	*/
+	/**
+	 * flag to enable or disable overriding the DtInsert and dt Delete
+	 * timestamps
+	 */
 	private static boolean overrideTimeStamps = true;
 
 	/**
@@ -471,6 +480,23 @@ public class SvConf {
 
 	}
 
+	static void privilegedClassesConf(Properties mainProperties) {
+		// configure svarog service classes
+		String svcClass = mainProperties.getProperty("sys.service_class");
+		if (svcClass != null && svcClass.length() > 1) {
+			String[] list = svcClass.trim().split(";");
+			if (list.length > 0)
+				serviceClasses.addAll(Arrays.asList(list));
+		}
+		// configure svarog service classes
+		svcClass = mainProperties.getProperty("sys.system_class");
+		if (svcClass != null && svcClass.length() > 1) {
+			String[] list = svcClass.trim().split(";");
+			if (list.length > 0)
+				systemClasses.addAll(Arrays.asList(list));
+		}
+	}
+
 	/**
 	 * Method to locate and read the main svarog.properties config file
 	 * 
@@ -504,13 +530,9 @@ public class SvConf {
 
 			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
 
-			// configure svarog service classes
-			String svcClass = mainProperties.getProperty("sys.service_class");
-			if (svcClass != null && svcClass.length() > 1) {
-				String[] list = svcClass.trim().split(";");
-				if (list.length > 0)
-					serviceClasses.addAll(Arrays.asList(list));
-			}
+			// make sure we configure the service classes as well as system
+			// classes
+			privilegedClassesConf(mainProperties);
 			// init was successful
 			hasErrors = false;
 		} catch (Exception e) {
@@ -676,6 +698,18 @@ public class SvConf {
 	 */
 	static boolean isServiceClass(String className) {
 		return serviceClasses.contains(className);
+	}
+
+	/**
+	 * Method to check if a class name is registered in the list of system
+	 * classes in svarog.properties.
+	 * 
+	 * @param className
+	 *            The class name to be checked
+	 * @return True if the class name is a registered service class
+	 */
+	static boolean isSystemClass(String className) {
+		return systemClasses.contains(className);
 	}
 
 	/**
