@@ -73,7 +73,7 @@ public class SvWriterTest {
 			DbDataObject dboToUpdate = svs.getUser(SvarogRolesTest.testUserName);
 			// passsword hash is mandatory field so we have to set it in order
 			// to run to test at all
-			dboToUpdate.setVal("PASSWORD_HASH", SvUtil.getMD5(SvarogRolesTest.testPassword));
+			dboToUpdate.setVal("PASSWORD_HASH", SvUtil.getMD5(SvarogRolesTest.testPassword.toUpperCase()));
 
 			DbDataObject dbo = new DbDataObject(dboToUpdate.getObjectType());
 			dbo.setObjectId(dboToUpdate.getObjectId());
@@ -89,7 +89,7 @@ public class SvWriterTest {
 			}
 			// now lets set this class as system class, then set internal and
 			// save again
-			SvConf.systemClasses.add(SvUtil.getCallerClassName(this));
+			SvConf.systemClasses.add(this.getClass().getName());
 			svw.setIsInternal(true);
 
 			svw.saveObject(dbo, true);
