@@ -335,10 +335,11 @@ public class SvUtil {
 		String callerClass = null;
 		for (StackTraceElement strace : traces) {
 			String currClass = strace.getClassName();
-			if (!(currClass.equals(threadClassName) || currClass.equals(thisClassName))) {
-				callerClass = currClass;
-				break;
-			}
+			if (currClass.equals(threadClassName) || currClass.equals(SvUtil.class.getName())
+					|| currClass.equals(thisClassName))
+				continue;
+			callerClass = currClass;
+			break;
 		}
 		return callerClass;
 	}
