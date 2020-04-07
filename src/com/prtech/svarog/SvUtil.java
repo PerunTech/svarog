@@ -328,10 +328,10 @@ public class SvUtil {
 	 * 
 	 * @return The class name of the caller class
 	 */
-	public static String getCallerClassName(Object thisClass) {
+	public static String getCallerClassName(Class<?> thisClass) {
 		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
 		String threadClassName = java.lang.Thread.class.getName();
-		String thisClassName = thisClass.getClass().getName();
+		String thisClassName = thisClass.getName();
 		String callerClass = null;
 		for (StackTraceElement strace : traces) {
 			String currClass = strace.getClassName();

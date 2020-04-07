@@ -3200,7 +3200,7 @@ public abstract class SvCore implements ISvCore {
 	}
 
 	public void setIsInternal(Boolean isInternal) throws SvException {
-		if (!SvConf.isSystemClass(SvUtil.getCallerClassName(this)))
+		if (!SvConf.isSystemClass(SvUtil.getCallerClassName(SvCore.class)))
 			throw (new SvException("system.error.sysclass_not_registered", instanceUser));
 
 		this.isInternal = isInternal;
