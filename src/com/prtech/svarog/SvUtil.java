@@ -322,4 +322,26 @@ public class SvUtil {
 			throw unknownHostException;
 		}
 	}
+
+	/**
+	 * Method to fetch the calling class name from the stack trace.
+	 * 
+	 * @return The class name of the caller class
+	 */
+	public static String getCallerClassName(Class<?> thisClass) {
+		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
+		String threadClassName = java.lang.Thread.class.getName();
+		String thisClassName = thisClass.getName();
+		String callerClass = null;
+		for (StackTraceElement strace : traces) {
+			String currClass = strace.getClassName();
+			if (currClass.equals(threadClassName) || currClass.equals(SvUtil.class.getName())
+					|| currClass.equals(thisClassName))
+				continue;
+			callerClass = currClass;
+			break;
+		}
+		return callerClass;
+	}
+
 }
