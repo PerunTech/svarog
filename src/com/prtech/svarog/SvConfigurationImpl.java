@@ -19,9 +19,8 @@ public class SvConfigurationImpl implements ISvConfiguration {
 		return 0;
 	}
 
-	String dropCoumnWorkflowUID(Connection conn, ISvCore svc, String schema) throws SvException {
-		String columnName = "WORKFLOW_UID";
-		String tableName = SvConf.getMasterRepo() + "_WORKFLOW";
+	String dropCoumn(Connection conn, ISvCore svc, String schema, String tableName, String columnName)
+			throws SvException {
 		String errorMsg = "";
 		String sqlDrop = "ALTER TABLE " + schema + "." + tableName + " DROP COLUMN " + columnName;
 		// ALTER TABLE table_name DROP COLUMN column_name;
@@ -44,8 +43,10 @@ public class SvConfigurationImpl implements ISvConfiguration {
 
 	@Override
 	public String beforeSchemaUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
-		return dropCoumnWorkflowUID(conn, svc, schema);
-
+		String msg = dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_WORKFLOW", "WORKFLOW_UID");
+		msg += "; ";
+		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_WORKFLOW", "OBJECT_SUB_CODE");
+		return msg;
 	}
 
 	@Override
