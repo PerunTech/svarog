@@ -55,4 +55,65 @@ public class SvWriterTest {
 		}
 
 	}
+
+	@Test
+	public void testImportNonInternal() {
+
+		SvReader svr = null;
+		SvWriter svw = null;
+		SvSecurity svs = null;
+		try {
+			String token = SvarogRolesTest.getUserToken(true);
+
+			SvConf.setOverrideTimeStamps(false);
+			svw = new SvWriter(token);
+			svr = new SvReader(svw);
+			svs = new SvSecurity(svw);
+
+			DbDataObject dboToUpdate = svs.getUser(SvarogRolesTest.testUserName);
+			// passsword hash is mandatory field so we have to set it in order
+			// to run to test at all
+			dboToUpdate.setVal("PASSWORD_HASH", SvUtil.getMD5(SvarogRolesTest.testPassword));
+
+			DbDataObject dbo = new DbDataObject(dboToUpdate.getObjectType());
+			dbo.setObjectId(dboToUpdate.getObjectId());
+			dbo.setDtInsert(DateTime.now().minusDays(600));
+			dbo.setDtDelete(DateTime.now().minusDays(550));
+			dbo.setValuesMap(dboToUpdate.getValuesMap());
+			try {
+				svw.saveObject(dbo, true);
+				fail("exception was not thrown!!!");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals("system.error.obj_not_updateable"))
+					fail("test raised wrong exception!");
+			}
+			// now lets set this class as system class, then set internal and
+			// save again
+			SvConf.systemClasses.add(SvUtil.getCallerClassName(this));
+			svw.setIsInternal(true);
+
+			svw.saveObject(dbo, true);
+			DbSearch dbs = new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, dboToUpdate.getObjectId());
+			DbDataArray dba = svr.getObjectsHistory(dbs, dboToUpdate.getObjectType(), 0, 0);
+			boolean foundCustomDate = false;
+			for (DbDataObject dboGet : dba.getItems()) {
+				if (dboGet.getDtDelete().isBefore(DateTime.now().minusDays(49)))
+					foundCustomDate = true;
+			}
+			if (!foundCustomDate || dba.size() < 2)
+				fail("coulnd't save and load object with custom dates");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail("Test failed with exception" + e.getFormattedMessage());
+		} finally {
+			SvConf.setOverrideTimeStamps(true);
+
+			if (svr != null)
+				svr.release();
+			if (svw != null)
+				svw.release();
+		}
+
+	}
 }
