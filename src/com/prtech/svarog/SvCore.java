@@ -423,7 +423,7 @@ public abstract class SvCore implements ISvCore {
 
 		this.instanceUser = (srcCore != null ? srcCore.instanceUser : instanceUser);
 		this.isInternal = (srcCore != null ? srcCore.isInternal : this.isInternal);
-		
+
 		if (this.instanceUser == null)
 			throw (new SvException("system.error.instance_user_null", svCONST.systemUser));
 
@@ -3193,6 +3193,17 @@ public abstract class SvCore implements ISvCore {
 
 	public void setSaveAsUser(DbDataObject saveAsUser) {
 		this.saveAsUser = saveAsUser;
+	}
+
+	public Boolean getIsInternal() {
+		return isInternal;
+	}
+
+	public void setIsInternal(Boolean isInternal) throws SvException {
+		if (!SvConf.isSystemClass(SvUtil.getCallerClassName(SvCore.class)))
+			throw (new SvException("system.error.sysclass_not_registered", instanceUser));
+
+		this.isInternal = isInternal;
 	}
 
 }

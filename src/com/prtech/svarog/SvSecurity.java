@@ -70,26 +70,6 @@ public class SvSecurity extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
-	/**
-	 * Method to fetch the calling class name from the stack trace.
-	 * 
-	 * @return The class name of the caller class
-	 */
-	public String getCallerClassName() {
-		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
-		String threadClassName = java.lang.Thread.class.getName();
-		String thisClassName = this.getClass().getName();
-		String callerClass = null;
-		for (StackTraceElement strace : traces) {
-			String currClass = strace.getClassName();
-			if (!(currClass.equals(threadClassName) || currClass.equals(thisClassName))) {
-				callerClass = currClass;
-				break;
-			}
-		}
-		return callerClass;
-	}
-
 	@Override
 	/**
 	 * Overriden method to switch the current user. It will check if the caller
@@ -122,7 +102,7 @@ public class SvSecurity extends SvCore {
 	 *             throw "system.error.cant_switch_system_user"
 	 */
 	public void switchUser(DbDataObject user) throws SvException {
-		if (!SvConf.isServiceClass(getCallerClassName()))
+		if (!SvConf.isServiceClass(SvUtil.getCallerClassName(this.getClass())))
 			throw (new SvException("system.error.cant_switch_system_user", instanceUser));
 
 		super.switchUser(user);
