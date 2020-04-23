@@ -469,7 +469,7 @@ public class SvCluster extends SvCore {
 	 */
 	static void shutdown(boolean doMaintenance) {
 		if (!isRunning.compareAndSet(true, false)) {
-			log4j.error("Svarog Cluster not running. Init first");
+			log4j.debug("Svarog Cluster not running. Init first");
 			return;
 		} else
 			log4j.info("SvCluster is stopping");
