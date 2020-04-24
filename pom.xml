@@ -376,9 +376,9 @@
 					<version>12.2.0.1.0</version>
 				</dependency>
 				<dependency>
-					<groupId>svarog-io</groupId>
+					<groupId>svarog</groupId>
 					<artifactId>svarog-io</artifactId>
-					<version>1.0.4</version>
+					<version>1.0.4.1</version>
 				</dependency>
 			</dependencies>
 		</profile>
