@@ -265,9 +265,9 @@
 	</build>
 	<dependencies>
 		<dependency>
-			<groupId>svarog-interfaces</groupId>
+			<groupId>svarog</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>[3.0.5,)</version>
+			<version>[3.0.6-SNAPSHOT,)</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
