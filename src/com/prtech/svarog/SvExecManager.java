@@ -26,6 +26,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.osgi.framework.ServiceReference;
+import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -36,6 +38,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ISvOnSave;
+import com.prtech.svarog_interfaces.IPerunPlugin;
 import com.prtech.svarog_interfaces.ISvExecutor;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
@@ -247,6 +250,28 @@ public class SvExecManager extends SvCore {
 		SvCore.registerOnSaveCallback(callback, svCONST.OBJECT_TYPE_EXECUTORS);
 		return (Cache<String, CopyOnWriteArrayList<SvExecInstance>>) builder
 				.<String, CopyOnWriteArrayList<SvExecInstance>>build();
+	}
+
+	/**
+	 * Method to invalidate executor in the cache by category/name
+	 * 
+	 * @param category
+	 *            The category of executor
+	 * @param name
+	 *            The name of the executor
+	 */
+	static void invalidateExecutor(String category, String name) {
+		executorMap.invalidate(getKey(category, name));
+	}
+
+	/**
+	 * Method to invalidate executor by executor key
+	 * 
+	 * @param key
+	 *            The executor key to be invalidated
+	 */
+	static void invalidateExecutor(String key) {
+		executorMap.invalidate(key);
 	}
 
 	/**
@@ -551,7 +576,7 @@ public class SvExecManager extends SvCore {
 	 *            Reference to the SvExecutorGroup object
 	 * @return List of executor keys
 	 */
-	private List<String> getKeys(ISvExecutorGroup svg) {
+	static List<String> getKeys(ISvExecutorGroup svg) {
 		List<String> keys = new ArrayList<String>();
 		for (String name : svg.getNames())
 			keys.add(getKey(svg.getCategory(), name));

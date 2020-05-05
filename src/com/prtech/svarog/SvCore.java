@@ -423,7 +423,7 @@ public abstract class SvCore implements ISvCore {
 
 		this.instanceUser = (srcCore != null ? srcCore.instanceUser : instanceUser);
 		this.isInternal = (srcCore != null ? srcCore.isInternal : this.isInternal);
-		
+
 		if (this.instanceUser == null)
 			throw (new SvException("system.error.instance_user_null", svCONST.systemUser));
 
@@ -3091,17 +3091,20 @@ public abstract class SvCore implements ISvCore {
 			break;
 		case TEXT:
 		case NVARCHAR:
-			Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
-			if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
-				StringBuilder bindVal = new StringBuilder();
-				for (String oVal : (ArrayList<String>) value) {
-					bindVal.append(oVal + SvConf.getMultiSelectSeparator());
+			if (value == null)
+				ps.setNull(bindAtPosition, java.sql.Types.NVARCHAR);
+			else {
+				Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
+				if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
+					StringBuilder bindVal = new StringBuilder();
+					for (String oVal : (ArrayList<String>) value) {
+						bindVal.append(oVal + SvConf.getMultiSelectSeparator());
+					}
+					bindVal.setLength(bindVal.length() - 1);
+					value = bindVal.toString();
 				}
-				bindVal.setLength(bindVal.length() - 1);
-				value = bindVal.toString();
+				ps.setString(bindAtPosition, value.toString());
 			}
-			ps.setString(bindAtPosition, (String) value);
-
 			break;
 		case GEOMETRY:
 			byte[] byteVal = getWKBWriter().write((Geometry) value);

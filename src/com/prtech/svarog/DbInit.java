@@ -76,6 +76,107 @@ public class DbInit {
 	static final String REPO_TABLE_NAME = "{REPO_TABLE_NAME}";
 	static final String MASTER_REPO_NAME = "{MASTER_REPO}";
 	static final String DEFAULT_SCHEMA = "{DEFAULT_SCHEMA}";
+	
+	static DbDataTable getPluginConf() {
+		DbDataTable dbe = new DbDataTable();
+		dbe.setDbTableName("{MASTER_REPO}_PERUN_PLUGIN");
+		dbe.setDbRepoName("{MASTER_REPO}");
+		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setIsSystemTable(true);
+		dbe.setIsRepoTable(false);
+		dbe.setObjectId(svCONST.OBJECT_TYPE_PERUN_PLUGIN);
+		dbe.setLabel_code("master_repo.plugin_conf");
+		dbe.setUse_cache(false);
+
+		DbDataField dbe1 = new DbDataField();
+		dbe1.setDbFieldName("PKID");
+		dbe1.setIsPrimaryKey(true);
+		dbe1.setDbFieldType(DbFieldType.NUMERIC);
+		dbe1.setDbFieldSize(18);
+		dbe1.setDbFieldScale(0);
+		dbe1.setIsNull(false);
+		dbe1.setLabel_code("plugin_conf.pkid");
+
+		DbDataField dbe2 = new DbDataField();
+		dbe2.setDbFieldName("CONTEXT_NAME");
+		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbe2.setDbFieldSize(50);
+		dbe2.setIsUnique(true);
+		dbe2.setIsNull(false);
+		dbe2.setLabel_code("plugin_conf.plugin_context");
+
+		DbDataField dbe3 = new DbDataField();
+		dbe3.setDbFieldName("LABEL_CODE");
+		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbe3.setDbFieldSize(50);
+		dbe3.setIsNull(false);
+		dbe3.setLabel_code("plugin_conf.plugin_label");
+
+		DbDataField dbe4 = new DbDataField();
+		dbe4.setDbFieldName("JAVASCRIPT_PATH");
+		dbe4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbe4.setDbFieldSize(200);
+		dbe4.setIsNull(false);
+		dbe4.setLabel_code("plugin_conf.js_path");
+
+		DbDataField dbe5 = new DbDataField();
+		dbe5.setDbFieldName("IMG_PATH");
+		dbe5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbe5.setDbFieldSize(200);
+		dbe5.setIsNull(true);
+		dbe5.setLabel_code("plugin_conf.img_path");
+
+		DbDataField dbe6 = new DbDataField();
+		dbe6.setDbFieldName("PERMISSION_CODE");
+		dbe6.setDbFieldType(DbFieldType.NUMERIC);
+		dbe6.setDbFieldSize(50);
+		dbe6.setIsNull(false);
+		dbe6.setLabel_code("plugin_conf.permission_code");
+
+		// f3
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName("MENU_CONF");
+		dbf7.setDbFieldType(DbFieldType.TEXT);
+		dbf7.setIsNull(true);
+		dbf7.setLabel_code("master_repo.menu_conf");
+
+		// f3
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName("CONTEXT_MENU_CONF");
+		dbf8.setDbFieldType(DbFieldType.TEXT);
+		dbf8.setIsNull(true);
+		dbf8.setLabel_code("master_repo.menu_conf");
+
+		DbDataField dbf9 = new DbDataField();
+		dbf9.setDbFieldName("VERSION");
+		dbf9.setDbFieldType(DbFieldType.NUMERIC);
+		dbf9.setDbFieldSize(3);
+		dbf9.setDbFieldScale(0);
+		dbf9.setIsNull(false);
+
+		DbDataField dbf10 = new DbDataField();
+		dbf10.setDbFieldName("SORT_ORDER");
+		dbf10.setDbFieldType(DbFieldType.NUMERIC);
+		dbf10.setDbFieldSize(3);
+		dbf10.setDbFieldScale(0);
+		dbf10.setIsNull(false);
+
+		DbDataField[] dbTableFields = new DbDataField[10];
+		dbTableFields[0] = dbe1;
+		dbTableFields[1] = dbe2;
+		dbTableFields[2] = dbe3;
+		dbTableFields[3] = dbe4;
+		dbTableFields[4] = dbe5;
+		dbTableFields[5] = dbe6;
+		dbTableFields[6] = dbf7;
+		dbTableFields[7] = dbf8;
+		dbTableFields[8] = dbf9;
+		dbTableFields[9] = dbf10;
+		dbe.setDbTableFields(dbTableFields);
+		return dbe;
+	}
+
+
 	//
 	private static DbDataTable getMasterCluster() {
 		DbDataTable dbt = new DbDataTable();
@@ -229,7 +330,6 @@ public class DbInit {
 		// f1
 		DbDataField dbf8 = new DbDataField();
 		dbf8.setDbFieldName("VERSION");
-		dbf8.setIsPrimaryKey(true);
 		dbf8.setDbFieldType(DbFieldType.NUMERIC);
 		dbf8.setDbFieldSize(3);
 		dbf8.setDbFieldScale(0);
