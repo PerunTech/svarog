@@ -3092,7 +3092,7 @@ public abstract class SvCore implements ISvCore {
 		case TEXT:
 		case NVARCHAR:
 			if (value == null)
-				ps.setNull(bindAtPosition, java.sql.Types.NVARCHAR);
+				ps.setString(bindAtPosition, null);
 			else {
 				Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
 				if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
