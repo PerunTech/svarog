@@ -76,7 +76,8 @@ public class SvClusterClient implements Runnable {
 	static DateTime lastContact = DateTime.now();
 
 	/**
-	 * Timestamp of the last contact with the coordinator
+	 * Timeout interval in milliseconds. If no contact is established within
+	 * timeout the node is dead
 	 */
 	static int heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 
@@ -246,7 +247,8 @@ public class SvClusterClient implements Runnable {
 		}
 		DbDataObject dboToken = null;
 		synchronized (hbClientSock) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
+			ByteBuffer msgBuffer = ByteBuffer
+					.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
 			msgBuffer.put(SvCluster.MSG_AUTH_TOKEN_GET);
 			UUID uid = UUID.fromString(token);
 			msgBuffer.putLong(nodeId);
@@ -263,7 +265,8 @@ public class SvClusterClient implements Runnable {
 			if (msgType == SvCluster.MSG_SUCCESS) {
 				dboToken = new DbDataObject();
 				String strToken = new String(
-						Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
+						Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
+						ZMQ.CHARSET);
 				Gson g = new Gson();
 				dboToken.fromSimpleJson(g.fromJson(strToken, JsonObject.class));
 			}
@@ -289,7 +292,8 @@ public class SvClusterClient implements Runnable {
 
 		byte msgType;
 		synchronized (hbClientSock) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
+			ByteBuffer msgBuffer = ByteBuffer
+					.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
 			msgBuffer.put(SvCluster.MSG_AUTH_TOKEN_SET);
 			UUID uid = UUID.fromString(token);
 			msgBuffer.putLong(nodeId);
@@ -337,7 +341,8 @@ public class SvClusterClient implements Runnable {
 			key = lockKey.getBytes(ZMQ.CHARSET);
 			// allocate one byte for message type, one long for node Id and the
 			// rest for the token
-			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
+			ByteBuffer msgBuffer = ByteBuffer
+					.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
 			msgBuffer.put(SvCluster.MSG_LOCK);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.put(key);
@@ -468,9 +473,8 @@ public class SvClusterClient implements Runnable {
 			lockBuffer = ByteBuffer.wrap(msgLock);
 			long locknode = lockBuffer.getLong();
 			int lockHash = lockBuffer.getInt();
-			String lockKey = new String(
-					Arrays.copyOfRange(lockBuffer.array(), SvUtil.sizeof.LONG + SvUtil.sizeof.INT, lockBuffer.array().length),
-					ZMQ.CHARSET);
+			String lockKey = new String(Arrays.copyOfRange(lockBuffer.array(), SvUtil.sizeof.LONG + SvUtil.sizeof.INT,
+					lockBuffer.array().length), ZMQ.CHARSET);
 			if (log4j.isDebugEnabled())
 				log4j.debug("Receiving existing locks on join:" + lockKey + ", hash:" + Integer.toString(lockHash));
 
