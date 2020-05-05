@@ -54,12 +54,43 @@ import com.prtech.svarog_interfaces.ISvExecutorGroup;
  *
  */
 public class SvPerunManager extends SvCore {
+	/**
+	 * Callback class to refresh the plugin according to changes in Svarog
+	 * database
+	 * 
+	 * @author XPS13
+	 *
+	 */
+	static public class SvPerunCallback implements ISvOnSave {
+
+		@Override
+		public boolean beforeSave(SvCore parentCore, DbDataObject dbo) {
+			// TODO Auto-generated method stub
+			return true;
+		}
+
+		@Override
+		public void afterSave(SvCore parentCore, DbDataObject dbo) {
+			String name = (String) dbo.getVal("CONTEXT_NAME");
+			if (name != null) {
+				SvPerunInstance inst = pluginMap.get(name);
+				if (inst != null) {
+					SvPerunInstance newInstance = new SvPerunInstance(inst.getPlugin(), dbo);
+					pluginMap.put(newInstance.getPlugin().getContextName(), newInstance);
+				}
+			}
+		}
+
+	}
 
 	/**
-	 * Global member which we can use for unit testing also! In JUnit just set
-	 * the value of the services you want to test.
+	 * Global init block to set the call back for plugin refresh from the
+	 * database.
 	 */
-	Object[] osgiServices = null;
+	static {
+		ISvOnSave callback = new SvPerunCallback();
+		SvCore.registerOnSaveCallback(callback, svCONST.OBJECT_TYPE_PERUN_PLUGIN);
+	}
 
 	/**
 	 * Log4j instance used for logging
@@ -172,11 +203,17 @@ public class SvPerunManager extends SvCore {
 	/**
 	 * Method to get a plugin instance by context name
 	 * 
-	 * @param pluginContext
+	 * @param context
+	 *            the http context name assigned to the plugin
 	 * @return The plugin instance
 	 */
-	static SvPerunInstance getPlugin(String pluginContext) {
-		return pluginMap.get(pluginContext);
+	SvPerunInstance getPlugin(String context) {
+		SvPerunInstance instance = pluginMap.get(context);
+		if (this.hasPermission(instance.getPermissionCode()))
+			return instance;
+		else
+			return null;
+
 	}
 
 	/**
@@ -188,7 +225,11 @@ public class SvPerunManager extends SvCore {
 	 */
 	JsonObject getMenu(String context) {
 		SvPerunInstance instance = pluginMap.get(context);
-		return instance.getMainMenu(this);
+		if (this.hasPermission(instance.getPermissionCode()))
+			return instance.getMainMenu(this);
+		else
+			return null;
+
 	}
 
 	/**
@@ -203,7 +244,10 @@ public class SvPerunManager extends SvCore {
 	 */
 	JsonObject getContextMenu(String context, HashMap<String, String> contextMap) {
 		SvPerunInstance instance = pluginMap.get(context);
-		return instance.getContextMenu(contextMap, this);
+		if (this.hasPermission(instance.getPermissionCode()))
+			return instance.getContextMenu(contextMap, this);
+		else
+			return null;
 	}
 
 	/**
@@ -322,7 +366,8 @@ public class SvPerunManager extends SvCore {
 		Iterator<Map.Entry<String, SvPerunInstance>> iter = entries.iterator();
 		while (iter.hasNext()) {
 			Map.Entry<String, SvPerunInstance> instance = iter.next();
-			if (!this.hasPermission(instance.getValue().getPermissionCode()))
+			if (!this.hasPermission(instance.getValue().getPermissionCode())
+					|| !instance.getValue().getStatus().equals(svCONST.STATUS_VALID))
 				iter.remove();
 		}
 		return entries;
