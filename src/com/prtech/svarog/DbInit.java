@@ -404,7 +404,7 @@ public class DbInit {
 	// table EXECUTOR_PACK
 	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_executor_pack");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_exec_pack");
 		dbt.setDbRepoName(MASTER_REPO_NAME);
 		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
