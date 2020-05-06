@@ -34,13 +34,6 @@
 					<exclude>**/*.java</exclude>
 				</excludes>
 			</resource>
-			<resource>
-				<directory>src/com/prtech/svarog</directory>
-				<filtering>true</filtering>
-				<includes>
-					<include>**/version.properties</include>
-				</includes>
-			</resource>
 		</resources>
 		<plugins>
 			<plugin>
@@ -59,7 +52,7 @@
 				<configuration>
 					<useNativeGit>false</useNativeGit>
 					<generateGitPropertiesFile>true</generateGitPropertiesFile>
-					<generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+					<generateGitPropertiesFilename>${project.build.outputDirectory}/version.properties</generateGitPropertiesFilename>
 					<commitIdGenerationMode>full</commitIdGenerationMode>
 				</configuration>
 			</plugin>
@@ -285,34 +278,9 @@
 			<version>2.6</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<version>2.11.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.11.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-			<version>2.2.4</version>
-		</dependency>
-		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>18.0</version>
-		</dependency>
-		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-			<version>2.3</version>
-		</dependency>
-		<dependency>
-			<groupId>com.vividsolutions</groupId>
-			<artifactId>jts-core</artifactId>
-			<version>1.14.0</version>
 		</dependency>
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
@@ -408,9 +376,9 @@
 					<version>12.2.0.1.0</version>
 				</dependency>
 				<dependency>
-					<groupId>svarog-io</groupId>
+					<groupId>svarog</groupId>
 					<artifactId>svarog-io</artifactId>
-					<version>1.0.4-SNAPSHOT</version>
+					<version>1.0.4.1</version>
 				</dependency>
 			</dependencies>
 		</profile>

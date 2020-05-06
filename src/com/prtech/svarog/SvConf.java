@@ -217,21 +217,28 @@ public class SvConf {
 	/**
 	 * Fields storing application information
 	 */
-	static final String appName = loadInfo("application.name");
+	static final String appName = "Svarog Business Platform";
 	/**
 	 * Fields storing Application version
 	 */
-	static final String appVersion = loadInfo("application.version");
+	static final String appVersion = loadInfo("git.build.version");
 	/**
 	 * Fields storing Application build number
 	 */
-	static final String appBuild = loadInfo("application.build");
+	static final String appBuild = loadInfo("git.build.time");
 
 	/**
 	 * Array holding the list of service classes allowed to switch to the
 	 * Service user without being authenticated
 	 */
 	static ArrayList<String> serviceClasses = new ArrayList<String>();
+
+	/**
+	 * Array holding the list of service classes allowed to switch to the System
+	 * user without being authenticated. Use only for importing
+	 */
+	static ArrayList<String> systemClasses = new ArrayList<String>();
+
 	/**
 	 * Properties object holding the svarog master configuration
 	 */
@@ -302,6 +309,12 @@ public class SvConf {
 	private static ResourceBundle sqlKw = null;
 
 	/**
+	 * flag to enable or disable overriding the DtInsert and dt Delete
+	 * timestamps
+	 */
+	private static boolean overrideTimeStamps = true;
+
+	/**
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
 	 * @return ISvDatabaseIO instance
@@ -370,6 +383,13 @@ public class SvConf {
 			log4j.info("Starting " + appName);
 			log4j.info("Version:" + appVersion);
 			log4j.info("Build:" + appBuild);
+			
+			log4j.debug("Commit:" + loadInfo("git.commit.id.full"));
+			log4j.debug("Commit Desc:" + loadInfo("git.commit.id.describe"));
+			log4j.debug("Host:" + loadInfo("git.build.host"));
+			log4j.debug("Branch:" + loadInfo("git.branch"));
+			log4j.debug("Repository:" + loadInfo("git.remote.origin.url"));
+
 			// load all the properties from this file
 			Properties temp = new Properties();
 			temp.load(props);
@@ -467,6 +487,23 @@ public class SvConf {
 
 	}
 
+	static void privilegedClassesConf(Properties mainProperties) {
+		// configure svarog service classes
+		String svcClass = mainProperties.getProperty("sys.service_class");
+		if (svcClass != null && svcClass.length() > 1) {
+			String[] list = svcClass.trim().split(";");
+			if (list.length > 0)
+				serviceClasses.addAll(Arrays.asList(list));
+		}
+		// configure svarog service classes
+		svcClass = mainProperties.getProperty("sys.system_class");
+		if (svcClass != null && svcClass.length() > 1) {
+			String[] list = svcClass.trim().split(";");
+			if (list.length > 0)
+				systemClasses.addAll(Arrays.asList(list));
+		}
+	}
+
 	/**
 	 * Method to locate and read the main svarog.properties config file
 	 * 
@@ -489,6 +526,8 @@ public class SvConf {
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
+
+			// cluster params
 			clusterMaintenanceInterval = getProperty(mainProperties, "sys.cluster.max_maintenance", 60);
 			heartBeatPort = getProperty(mainProperties, "sys.cluster.heartbeat_port", 6783);
 			heartBeatInterval = getProperty(mainProperties, "sys.cluster.heartbeat_interval", 1000);
@@ -496,13 +535,11 @@ public class SvConf {
 			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
 			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
 
-			// configure svarog service classes
-			String svcClass = mainProperties.getProperty("sys.service_class");
-			if (svcClass != null && svcClass.length() > 1) {
-				String[] list = svcClass.trim().split(";");
-				if (list.length > 0)
-					serviceClasses.addAll(Arrays.asList(list));
-			}
+			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
+
+			// make sure we configure the service classes as well as system
+			// classes
+			privilegedClassesConf(mainProperties);
 			// init was successful
 			hasErrors = false;
 		} catch (Exception e) {
@@ -668,6 +705,18 @@ public class SvConf {
 	 */
 	static boolean isServiceClass(String className) {
 		return serviceClasses.contains(className);
+	}
+
+	/**
+	 * Method to check if a class name is registered in the list of system
+	 * classes in svarog.properties.
+	 * 
+	 * @param className
+	 *            The class name to be checked
+	 * @return True if the class name is a registered service class
+	 */
+	static boolean isSystemClass(String className) {
+		return systemClasses.contains(className);
 	}
 
 	/**
@@ -970,5 +1019,13 @@ public class SvConf {
 
 	public static void setClusterEnabled(boolean enableCluster) {
 		SvConf.clusterEnabled = enableCluster;
+	}
+
+	public static boolean isOverrideTimeStamps() {
+		return overrideTimeStamps;
+	}
+
+	public static void setOverrideTimeStamps(boolean overrideTimeStamps) {
+		SvConf.overrideTimeStamps = overrideTimeStamps;
 	}
 }

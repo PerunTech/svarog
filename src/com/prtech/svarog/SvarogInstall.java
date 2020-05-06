@@ -47,7 +47,6 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -214,7 +213,7 @@ public class SvarogInstall {
 					returnStatus = -2;
 			}
 		} catch (Exception exp) {
-			System.out.println("Unexpected exception:" + exp.getMessage());
+			log4j.error("Main thread raised unhandled exception.", exp);
 			returnStatus = -2;
 		}
 		if (!SvCore.svDaemonRunning.get())
@@ -1242,6 +1241,9 @@ public class SvarogInstall {
 	static void prepareConfig() {
 		if (iSvCfgs == null) {
 			iSvCfgs = new ArrayList<ISvConfiguration>();
+			// add the system implementation
+			iSvCfgs.add(new SvConfigurationImpl());
+
 			ArrayList<Object> cfgs = DbInit.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY),
 					ISvConfiguration.class);
 			if (cfgs != null)
@@ -2282,13 +2284,14 @@ public class SvarogInstall {
 	 *            The JDBC Connection to be used for executing queries.
 	 * @return True/false if the column exists in the specified table
 	 */
-	static synchronized Boolean tableColumnExists(String columnName, String tableName, Connection conn) {
+	static synchronized Boolean tableColumnExists(String columnName, String tableName, Connection conn,
+			String schemaName) {
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("DB_TYPE", SvConf.getDbType().toString());
 		params.put("DB_USER", SvConf.getUserName());
 		params.put("TABLE_NAME", tableName);
 		params.put("COLUMN_NAME", columnName);
-		params.put("SCHEMA_NAME", SvConf.getDefaultSchema());
+		params.put("SCHEMA_NAME", schemaName);
 		ResultSet[] rs = new ResultSet[1];
 		PreparedStatement[] ps = new PreparedStatement[1];
 		Integer objCnt = 0;
