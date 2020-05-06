@@ -513,11 +513,6 @@ public class SvWriter extends SvCore {
 			Timestamp dtInsert = new Timestamp(milis);
 
 			Connection conn = this.dbGetConn();
-<<<<<<< src/com/prtech/svarog/SvWriter.java
-			psInvalidateOld = conn
-					.prepareStatement(UPDATE + " " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
-=======
->>>>>>> src/com/prtech/svarog/SvWriter.java
 
 			// prepare the repo insert statements
 			if (!dbHandler.getOverrideInsertRepo())
