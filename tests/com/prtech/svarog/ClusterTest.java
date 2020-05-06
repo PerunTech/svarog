@@ -24,7 +24,7 @@ public class ClusterTest {
 	@BeforeClass
 	public static void init() {
 		SvConf.setClusterEnabled(false);
-		//SvMaintenance.shutdown();
+		// SvMaintenance.shutdown();
 		SvClusterClient.shutdown();
 		SvClusterNotifierClient.shutdown();
 		SvClusterServer.shutdown();
@@ -33,6 +33,7 @@ public class ClusterTest {
 		SvLock.clearLocks();
 
 	}
+
 	public void promoteToCoordinator() {
 		System.out.print("Test promoteToCoordinator");
 		try {
@@ -653,6 +654,7 @@ public class ClusterTest {
 
 	@Test
 	public void ClusterLogoffTest() {
+		System.out.print("Test ClusterLogoffTest");
 		try {
 
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
@@ -687,9 +689,15 @@ public class ClusterTest {
 			SvClusterNotifierClient.publishLogoff(newToken);
 
 			// sleep to let the logoff become effective
-			Thread.sleep(500);
 
-			localToken = DbCache.getObject(newToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
+			int timeOut = SvClusterClient.heartBeatTimeOut;
+
+			while (timeOut > 0 && localToken != null) {
+				localToken = DbCache.getObject(newToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
+				Thread.sleep(200);
+				timeOut -= 200;
+			}
+
 			// now the token should be invalid
 			if (localToken != null)
 				fail("Logoff failed!");
@@ -1191,7 +1199,7 @@ public class ClusterTest {
 			// TODO Auto-generated catch block
 			fail("Test raised exception");
 		} finally {
-			if(svr!=null)
+			if (svr != null)
 				svr.release();
 			SvClusterClient.shutdown();
 			SvCluster.shutdown();
