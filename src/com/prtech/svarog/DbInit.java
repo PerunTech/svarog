@@ -72,6 +72,8 @@ public class DbInit {
 	static final String Y2K_START_DATE = "2000-01-01T00:00:00";
 	static final String CODE_LIST_ID = "CODE_LIST_ID";
 	static final String LABEL_CODE = "LABEL_CODE";
+	static final String VERSION = "VERSION";
+	static final String SORT_ORDER = "SORT_ORDER";
 	static final String TABLE_NAME = "table_name";
 	static final String REPO_TABLE_NAME = "{REPO_TABLE_NAME}";
 	static final String MASTER_REPO_NAME = "{MASTER_REPO}";
@@ -106,7 +108,7 @@ public class DbInit {
 		dbe2.setLabel_code("plugin_conf.plugin_context");
 
 		DbDataField dbe3 = new DbDataField();
-		dbe3.setDbFieldName("LABEL_CODE");
+		dbe3.setDbFieldName(LABEL_CODE);
 		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe3.setDbFieldSize(50);
 		dbe3.setIsNull(false);
@@ -148,14 +150,14 @@ public class DbInit {
 		dbf8.setLabel_code("master_repo.menu_conf");
 
 		DbDataField dbf9 = new DbDataField();
-		dbf9.setDbFieldName("VERSION");
+		dbf9.setDbFieldName(VERSION);
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(3);
 		dbf9.setDbFieldScale(0);
 		dbf9.setIsNull(false);
 
 		DbDataField dbf10 = new DbDataField();
-		dbf10.setDbFieldName("SORT_ORDER");
+		dbf10.setDbFieldName(SORT_ORDER);
 		dbf10.setDbFieldType(DbFieldType.NUMERIC);
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);
@@ -329,7 +331,7 @@ public class DbInit {
 		dbf7.setLabel_code("master_repo.executor_end_date");
 		// f1
 		DbDataField dbf8 = new DbDataField();
-		dbf8.setDbFieldName("VERSION");
+		dbf8.setDbFieldName(VERSION);
 		dbf8.setDbFieldType(DbFieldType.NUMERIC);
 		dbf8.setDbFieldSize(3);
 		dbf8.setDbFieldScale(0);
@@ -376,7 +378,7 @@ public class DbInit {
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("LABEL_CODE");
+		dbf2.setDbFieldName(LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -662,7 +664,7 @@ public class DbInit {
 
 		// f9
 		DbDataField dbf9 = new DbDataField();
-		dbf9.setDbFieldName("SORT_ORDER");
+		dbf9.setDbFieldName(SORT_ORDER);
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(9);
 		dbf9.setIsNull(false);
@@ -912,7 +914,7 @@ public class DbInit {
 		dbf12.setLabel_code("master_repo.is_visible_ui");
 
 		DbDataField dbf14 = new DbDataField();
-		dbf14.setDbFieldName("SORT_ORDER");
+		dbf14.setDbFieldName(SORT_ORDER);
 		dbf14.setDbFieldType(DbFieldType.NUMERIC);
 		dbf14.setDbFieldSize(18);
 		dbf14.setDbFieldScale(0);
@@ -1088,7 +1090,7 @@ public class DbInit {
 		dbe5_1.setIsNull(false);
 
 		DbDataField dbe6 = new DbDataField();
-		dbe6.setDbFieldName("SORT_ORDER");
+		dbe6.setDbFieldName(SORT_ORDER);
 		dbe6.setDbFieldType(DbFieldType.NUMERIC);
 		dbe6.setDbFieldSize(18);
 		dbe5.setIsNull(true);
@@ -2026,7 +2028,7 @@ public class DbInit {
 
 		// Column 4
 		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName("VERSION");
+		dbf4.setDbFieldName(VERSION);
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(50);
 		dbf4.setIsNull(true);
@@ -3773,7 +3775,7 @@ public class DbInit {
 			dbf3.setLabel_code("master_repo.label_id");
 
 			DbDataField dbf4 = new DbDataField();
-			dbf4.setDbFieldName("SORT_ORDER");
+			dbf4.setDbFieldName(SORT_ORDER);
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(9);
 			dbf4.setIsNull(false);
@@ -4076,7 +4078,7 @@ public class DbInit {
 			dbf13.setLabel_code("master_repo.field_is_updateable");
 
 			DbDataField dbf14 = new DbDataField();
-			dbf14.setDbFieldName("SORT_ORDER");
+			dbf14.setDbFieldName(SORT_ORDER);
 			dbf14.setDbFieldType(DbFieldType.NUMERIC);
 			dbf14.setDbFieldSize(18);
 			dbf14.setDbFieldScale(0);
