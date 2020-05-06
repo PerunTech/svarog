@@ -467,41 +467,36 @@ public class SvExecManager extends SvCore {
 		return exeInstance;
 	}
 
+	/**
+	 * Method to load executor services from the OSGI tracker
+	 * 
+	 * @param key
+	 *            The key of the executor to load
+	 * @param execs
+	 *            List of executors to add the executor to
+	 */
 	void loadOSGIExecutors(String key, CopyOnWriteArrayList<SvExecInstance> execs) {
-
 		Object[] services = getOSGIServices();
 		for (int i = 0; (services != null) && (i < services.length); i++) {
 			SvExecInstance svx = null;
-			ISvExecutor sve = null;
-			ISvExecutorGroup svg = null;
 			if (services[i] instanceof ISvExecutor) {
-				sve = (ISvExecutor) services[i];
-				if (sve.getName() == null || sve.getCategory() == null) {
-					log4j.error("Executor not loaded. Executor can't be used if Name or Category is null. Key:"
-							+ getKey(sve));
-					continue;
+				ISvExecutor sve = (ISvExecutor) services[i];
+				if (sve != null && getKey(sve).equals(key)) {
+					// get start and end date from database and
+					// update the SVE
+					svx = new SvExecInstance(sve, sve.getStartDate(), sve.getEndDate());
+					svx.setStatus(svCONST.STATUS_VALID);
 				}
 			}
 			if (services[i] instanceof ISvExecutorGroup) {
-				svg = (ISvExecutorGroup) services[i];
-				if (svg.getNames() == null || svg.getCategory() == null || svg.getNames().isEmpty()) {
-					log4j.error("ExecutorGroup not loaded. Executor can't be used if Name or Category is null. Key:"
-							+ getKeys(svg));
-					continue;
+				ISvExecutorGroup svg = (ISvExecutorGroup) services[i];
+				if (svg != null && getKeys(svg).contains(key)) {
+					ISvExecutor svge = new SvExecutorWrapper(svg, getName(svg.getCategory(), key));
+					svx = new SvExecInstance(svge, svge.getStartDate(), svge.getEndDate());
+					svx.setStatus(svCONST.STATUS_VALID);
 				}
 			}
 
-			if (sve != null && getKey(sve).equals(key)) {
-				// get start and end date from database and
-				// update the SVE
-				svx = new SvExecInstance(sve, sve.getStartDate(), sve.getEndDate());
-				svx.setStatus(svCONST.STATUS_VALID);
-			}
-			if (svg != null && getKeys(svg).contains(key)) {
-				ISvExecutor svge = new SvExecutorWrapper(svg, getName(svg.getCategory(), key));
-				svx = new SvExecInstance(svge, svge.getStartDate(), svge.getEndDate());
-				svx.setStatus(svCONST.STATUS_VALID);
-			}
 			if (svx != null && !execs.contains(svx))
 				execs.add(initExecInstance(svx));
 		}
@@ -578,8 +573,9 @@ public class SvExecManager extends SvCore {
 	 */
 	static List<String> getKeys(ISvExecutorGroup svg) {
 		List<String> keys = new ArrayList<String>();
-		for (String name : svg.getNames())
-			keys.add(getKey(svg.getCategory(), name));
+		if (svg.getNames() != null)
+			for (String name : svg.getNames())
+				keys.add(getKey(svg.getCategory(), name));
 		return keys;
 	}
 

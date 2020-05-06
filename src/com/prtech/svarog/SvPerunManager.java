@@ -54,6 +54,10 @@ import com.prtech.svarog_interfaces.ISvExecutorGroup;
  *
  */
 public class SvPerunManager extends SvCore {
+	static final String CONTEXT_NAME = "CONTEXT_NAME";
+	static final String MENU_CONF = "MENU_CONF";
+	static final String CONTEXT_MENU_CONF = "CONTEXT_MENU_CONF";
+
 	/**
 	 * Callback class to refresh the plugin according to changes in Svarog
 	 * database
@@ -71,7 +75,7 @@ public class SvPerunManager extends SvCore {
 
 		@Override
 		public void afterSave(SvCore parentCore, DbDataObject dbo) {
-			String name = (String) dbo.getVal("CONTEXT_NAME");
+			String name = (String) dbo.getVal(CONTEXT_MENU_CONF);
 			if (name != null) {
 				SvPerunInstance inst = pluginMap.get(name);
 				if (inst != null) {
@@ -262,16 +266,16 @@ public class SvPerunManager extends SvCore {
 		DbDataObject dboPlugin = new DbDataObject(svCONST.OBJECT_TYPE_PERUN_PLUGIN);
 
 		JsonObject jso = plugin.getMenu((JsonObject) null, null);
-		dboPlugin.setVal("MENU_CONF", jso);
+		dboPlugin.setVal(MENU_CONF, jso);
 		jso = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
-		dboPlugin.setVal("CONTEXT_MENU_CONF", jso);
+		dboPlugin.setVal(CONTEXT_MENU_CONF, jso);
 		dboPlugin.setVal("PERMISSION_CODE", plugin.getPermissionCode());
 		dboPlugin.setVal("LABEL_CODE", plugin.getLabelCode());
 		dboPlugin.setVal("IMG_PATH", plugin.getIconPath());
 		dboPlugin.setVal("JAVASCRIPT_PATH", plugin.getJsPluginUrl());
 		dboPlugin.setVal("SORT_ORDER", plugin.getSortOrder());
 		dboPlugin.setVal("VERSION", plugin.getVersion());
-		dboPlugin.setVal("CONTEXT_NAME", plugin.getContextName());
+		dboPlugin.setVal(CONTEXT_MENU_CONF, plugin.getContextName());
 
 		return dboPlugin;
 	}
@@ -290,7 +294,7 @@ public class SvPerunManager extends SvCore {
 		SvReader svr = null;
 		SvWriter svw = null;
 		SvSecurity svs = null;
-		String unqNameField = "CONTEXT_NAME";
+		String unqNameField = CONTEXT_MENU_CONF;
 		try {
 
 			svr = new SvReader();
@@ -302,39 +306,14 @@ public class SvPerunManager extends SvCore {
 			}
 
 			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_PERUN_PLUGIN), search, null, null);
-			DbDataArray objects = svr.getObjects(dqo, 0, 0);
+			DbDataArray dboPlugins = svr.getObjects(dqo, 0, 0);
 			// switch to service user in order to be able to manage permissions
 			svr.switchUser(svCONST.serviceUser);
 			svw = new SvWriter(svr);
 			svs = new SvSecurity(svw);
 			svw.setAutoCommit(false);
-			DbDataArray upgradedList = new DbDataArray();
-			objects.rebuildIndex(unqNameField);
-			for (IPerunPlugin plugin : plugins) {
-				DbDataObject pluginDbo = objects.getItemByIdx(plugin.getContextName());
-				// get the new version of the descriptor
-				DbDataObject newVersion = buildDboPlugin(plugin);
-				if (pluginDbo != null) {
-					if (plugin.getVersion() > (int) pluginDbo.getVal("VERSION")) {
-						// if we should keep the old menu, copy from old
-						if (!plugin.replaceMenuOnNew())
-							newVersion.setVal("MENU_CONF", pluginDbo.getVal("MENU_CONF"));
-						// if we should keep the old context menu, copy from old
-						if (!plugin.replaceContextMenuOnNew())
-							newVersion.setVal("CONTEXT_MENU_CONF", pluginDbo.getVal("CONTEXT_MENU_CONF"));
-						newVersion.setPkid(pluginDbo.getPkid());
-						newVersion.setObjectId(pluginDbo.getObjectId());
-						pluginDbo = newVersion;
-						upgradedList.addDataItem(pluginDbo);
-					}
-
-				} else {
-					pluginDbo = newVersion;
-					upgradedList.addDataItem(pluginDbo);
-				}
-				SvPerunInstance inst = new SvPerunInstance(plugin, pluginDbo);
-				pluginMap.put(plugin.getContextName(), inst);
-			}
+			dboPlugins.rebuildIndex(unqNameField);
+			DbDataArray upgradedList = configurePlugins(plugins, dboPlugins);
 			svw.saveObject(upgradedList);
 			svw.dbCommit();
 		} catch (SvException e) {
@@ -348,6 +327,47 @@ public class SvPerunManager extends SvCore {
 			if (svs != null)
 				svs.release();
 		}
+	}
+
+	/**
+	 * Method to math the plugin instances loaded in the OSGI container with the
+	 * database configuration and reconfigure if needed.
+	 * 
+	 * @param plugins
+	 *            The list of pluings loaded in the OSGI
+	 * @param dboPlugins
+	 *            The list of database objects configured in the database
+	 * @return List of database objects which should be used for upgrade of the
+	 *         database
+	 */
+	static DbDataArray configurePlugins(List<IPerunPlugin> plugins, DbDataArray dboPlugins) {
+		DbDataArray upgradedList = new DbDataArray();
+		for (IPerunPlugin plugin : plugins) {
+			DbDataObject pluginDbo = dboPlugins.getItemByIdx(plugin.getContextName());
+			// get the new version of the descriptor
+			DbDataObject newVersion = buildDboPlugin(plugin);
+			if (pluginDbo != null) {
+				if (plugin.getVersion() > (int) pluginDbo.getVal("VERSION")) {
+					// if we should keep the old menu, copy from old
+					if (!plugin.replaceMenuOnNew())
+						newVersion.setVal(MENU_CONF, pluginDbo.getVal(MENU_CONF));
+					// if we should keep the old context menu, copy from old
+					if (!plugin.replaceContextMenuOnNew())
+						newVersion.setVal(CONTEXT_MENU_CONF, pluginDbo.getVal(CONTEXT_MENU_CONF));
+					newVersion.setPkid(pluginDbo.getPkid());
+					newVersion.setObjectId(pluginDbo.getObjectId());
+					pluginDbo = newVersion;
+					upgradedList.addDataItem(pluginDbo);
+				}
+
+			} else {
+				pluginDbo = newVersion;
+				upgradedList.addDataItem(pluginDbo);
+			}
+			SvPerunInstance inst = new SvPerunInstance(plugin, pluginDbo);
+			pluginMap.put(plugin.getContextName(), inst);
+		}
+		return upgradedList;
 	}
 
 	/**
