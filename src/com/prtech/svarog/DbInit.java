@@ -434,7 +434,7 @@ public class DbInit {
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("LEVEL");
+		dbf3.setDbFieldName("PACK_LEVEL");
 		dbf3.setDbFieldType(DbFieldType.NUMERIC);
 		dbf3.setDbFieldSize(18);
 		dbf3.setIsUnique(true);
