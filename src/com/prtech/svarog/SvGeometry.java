@@ -379,10 +379,9 @@ public class SvGeometry extends SvCore {
 	 * @param tileParams
 	 *            Array of strings containing tile id or file path.
 	 * @return Instance of the tile, either from the cache of newly created
-
+	 * 
 	 */
-	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
-			{
+	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
 
 		Cache<String, SvSDITile> cache = null;
 		synchronized (sdiCache) {
@@ -629,14 +628,15 @@ public class SvGeometry extends SvCore {
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
 
-		//if area is not set or we have configured to override
-		if(dbo.getVal("AREA")==null || SvConf.sdiOverrideGeomCalc)
+		// if area is not set or we have configured to override
+		if (dbo.getVal("AREA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA", geom.getArea());
-		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA_HA", geom.getArea() / 10000);
-		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
-			dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for moemris
-		if(dbo.getVal("AREA_HA")==null || SvConf.sdiOverrideGeomCalc)
+		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
+			dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for
+																// moemris
+		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
 
@@ -681,10 +681,51 @@ public class SvGeometry extends SvCore {
 				} else if (!allowNullGeometry)
 					throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
 			}
+			List<Geometry> tileGeomList = null;
+			List<SvSDITile> tileList = new ArrayList<SvSDITile>();
 			svw.saveObject(dba, isBatch);
+			for (DbDataObject dbo : dba.getItems()) {
+				Geometry vdataGeom = SvGeometry.getGeometry(dbo);
+				if (vdataGeom != null) {
+					Envelope env = vdataGeom.getEnvelopeInternal();
+					tileGeomList = SvGeometry.getTileGeometries(env);
+					for (Geometry tgl : tileGeomList) {
+						String tileID = (String) tgl.getUserData();
+						SvSDITile tile = SvGeometry.getTile(dbo.getObjectType(), tileID, null);
+						tileList.add(tile);
+					}
+				}
+			}
+
+			cacheCleanup(tileList);
 		} finally {
 			if (svw != null)
 				svw.release();
+		}
+	}
+
+	private void cacheCleanup(List<SvSDITile> tileList) {
+		for (SvSDITile tile : tileList) {
+			tile.setIsTileDirty(true);
+		}
+		// broadcast the dirty objects to the cluster
+		// if we are coordinator, broadcast through the proxy otherwise
+		// broadcast through the client
+		if (SvCluster.getIsActive().get()) {
+			if (!SvCluster.isCoordinator())
+				SvClusterNotifierClient.publishDirtyTileArray(tileList);
+			else
+				SvClusterNotifierProxy.publishDirtyTileArray(tileList);
+		}
+
+	}
+
+	static void markDirtyTile(long tileTypeId, int[] cell) {
+		if (cell != null && cell.length > 2) {
+			String tileId = Integer.toString(cell[0]) + ":" + Integer.toString(cell[1]);
+			SvSDITile tile = getTile(tileTypeId, tileId, null);
+			if (tile != null)
+				tile.setIsTileDirty(true);
 		}
 	}
 

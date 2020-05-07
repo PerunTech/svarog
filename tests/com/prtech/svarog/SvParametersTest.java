@@ -30,7 +30,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 import com.prtech.svarog_common.DbSearchExpression;
 
-public class testParameters {
+public class SvParametersTest {
 
 	@Test
 	public void testSetAndGetParamString() {

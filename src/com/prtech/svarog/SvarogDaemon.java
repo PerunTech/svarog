@@ -27,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.joda.time.DateTime;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
@@ -53,11 +54,7 @@ public class SvarogDaemon {
 	 */
 
 	static ServiceTracker<ISvExecutor, ISvExecutor> svcTracker = null;
-	/**
-	 * The property name used to specify whether the launcher should install a
-	 * shutdown hook.
-	 **/
-	public static final String SHUTDOWN_HOOK_PROP = "felix.shutdown.hook";
+
 	/**
 	 * The property name used to specify an URL to the system property file.
 	 **/
@@ -83,12 +80,18 @@ public class SvarogDaemon {
 	/**
 	 * The felix instance reference
 	 */
-	private static Framework osgiFramework = null;
+	static Framework osgiFramework = null;
 
 	/**
 	 * Satus code used by svarog installed to notify that the daemon should run
 	 */
 	public static int svarogDaemonStatus = -13;
+
+	/**
+	 * Local field to keep reference to the internal hearbeat client
+	 */
+	static Thread internalClient = null;
+	private static boolean hasCluster;
 
 	/**
 	 * <p>
@@ -179,11 +182,22 @@ public class SvarogDaemon {
 	 **/
 	public static void main(String[] args) throws Exception {
 
-		// set svarog daemon flag, to prevent cleanup on its own.
-		SvCore.svDaemonRunning.compareAndSet(false, true);
+		// if svarog is initialised just exit
+		if (SvCore.isInitialized.get()) {
+			System.err.println("Svarog is already initialized as library");
+			System.exit(-1);
+		} else
+			// set svarog daemon flag, to prevent cleanup on its own.
+			SvCore.svDaemonRunning.compareAndSet(false, true);
+
+		// if the daemon was started without params, assume -dm to start the
+		// daemon and enable integration with the Svarog Install
 		if (args.length == 0)
 			args = new String[] { "-dm" };
 
+		// since the Daemon main should be a single point of entry, we simply
+		// pass it to the install class. If the install class returns the daemon
+		// status then no SvarogInstall operation was required
 		int cmdLineStatus = SvarogInstall.main(args);
 		if (cmdLineStatus != svarogDaemonStatus)
 			System.exit(cmdLineStatus);
@@ -196,34 +210,16 @@ public class SvarogDaemon {
 		SvarogDaemon.loadSystemProperties();
 
 		// Read configuration properties.
-		Map<String, Object> configProps = SvarogDaemon.loadConfigProperties();
+		final Map<String, Object> configProps = SvarogDaemon.loadConfigProperties();
 		// If no configuration properties were found, then create
 		// an empty properties object.
 		if (configProps == null) {
 			System.err.println("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");
-			configProps = new HashMap<String, Object>();
 		}
 
 		// Copy framework properties from the system properties.
 		SvarogDaemon.copySystemProperties(configProps);
 
-		// If enabled, register a shutdown hook to make sure the framework is
-		// cleanly shutdown when the VM exits.
-		String enableHook = (String) configProps.get(SHUTDOWN_HOOK_PROP);
-		if ((enableHook == null) || !enableHook.equalsIgnoreCase("false")) {
-			Runtime.getRuntime().addShutdownHook(new Thread("Felix Shutdown Hook") {
-				public void run() {
-					try {
-						if (osgiFramework != null) {
-							osgiFramework.stop();
-							osgiFramework.waitForStop(0);
-						}
-					} catch (Exception ex) {
-						System.err.println("Error stopping framework: " + ex);
-					}
-				}
-			});
-		}
 
 		try {
 
@@ -246,32 +242,50 @@ public class SvarogDaemon {
 			log4j.info("Starting OSGI auto-deploy from directory:"
 					+ configProps.get(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY));
 			AutoProcessor.process(configProps, osgiFramework.getBundleContext());
-			FrameworkEvent event;
-			// Start the framework.
+			FrameworkEvent event = null;
+			// Start the OSGI framework.
 			osgiFramework.start();
+
+			// Prepare the maintenance thread. If we are daemon we will run in
+			// this thread and the osgi Framework will do wait. So we dont wait
+			// and we set the current thread as maintenance
+			SvMaintenance.maintenanceThread = Thread.currentThread();
+			// Set the proxy to process the notifications it self
+			SvClusterNotifierProxy.processNotification = true;
+			// set the client to rejoin on failed beat
+			SvClusterClient.rejoinOnFailedHeartBeat = true;
+
 			boolean shutdown = false;
 			while (!shutdown) {
-				// Wait for framework to stop to exit the VM.
-				event = osgiFramework.waitForStop(SvConf.getCoreIdleTimeout());
-				if (event.getType() == FrameworkEvent.WAIT_TIMEDOUT) {
-					SvCore.trackedConnCleanup(true);
+				// Wait for framework to stop to exit the VM. Wait just enough
+				// to run the cluster maintenance as well as tracked connection
+				// cleanup.
+				try {
 					shutdown = false;
-				} else
-					shutdown = true;
-				// if the system bundle was restarted due to update then restart
-				// it and mark
-				// shutdown as false
-				if (event.getType() == FrameworkEvent.STOPPED_UPDATE) {
-					osgiFramework.start();
-					shutdown = false;
+					event = null;
+					long timeout = SvMaintenance.performMaintenance();
+					event = osgiFramework.waitForStop(timeout);
+
+					if (event.getType() == FrameworkEvent.STOPPED_UPDATE)
+						osgiFramework.start();
+
+					if (event.getType() != FrameworkEvent.WAIT_TIMEDOUT
+							&& event.getType() != FrameworkEvent.STOPPED_UPDATE)
+						shutdown = true;
+
+				} catch (InterruptedException e) {
+					// if our thread was interrupted, set the flag and back to
+					// maintenance
+					Thread.currentThread().interrupt();
 				}
+
 			}
 			log4j.info("OSGI Framework stopped. Shutting down SvarogDaemon");
 			// Otherwise, exit.
 			System.exit(0);
 		} catch (Exception ex) {
 			log4j.info("Could not start OSGI framework!", ex);
-			System.exit(0);
+			System.exit(-1);
 		}
 	}
 
@@ -431,4 +445,6 @@ public class SvarogDaemon {
 			}
 		}
 	}
+
+
 }
