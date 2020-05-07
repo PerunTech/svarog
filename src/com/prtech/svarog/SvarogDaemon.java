@@ -34,7 +34,10 @@ import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
 import org.osgi.util.tracker.ServiceTracker;
 
+
+import com.prtech.svarog_interfaces.IPerunPlugin;
 import com.prtech.svarog_interfaces.ISvExecutor;
+import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
  * <p>
@@ -53,7 +56,7 @@ public class SvarogDaemon {
 	 * Service tracker to list all SvarogExecutors loaded from bundles
 	 */
 
-	static ServiceTracker<ISvExecutor, ISvExecutor> svcTracker = null;
+	static ServiceTracker<?, ?> svcTracker = null;
 
 	/**
 	 * The property name used to specify an URL to the system property file.
@@ -220,7 +223,6 @@ public class SvarogDaemon {
 		// Copy framework properties from the system properties.
 		SvarogDaemon.copySystemProperties(configProps);
 
-
 		try {
 
 			List<SvActivator> list = new ArrayList<SvActivator>();
@@ -231,10 +233,15 @@ public class SvarogDaemon {
 			// Initialize the framework, but don't start it yet.
 			osgiFramework.init();
 
+			// track executors, executor groups and perun plugings
+			String serviceFilter = "(|(objectClass=" + ISvExecutor.class.getName() + ")(|(objectClass="
+					+ ISvExecutorGroup.class.getName() + ")(objectClass=" + IPerunPlugin.class.getName() + ")))";
+
 			// Use the framework bundle context to register a service tracker
 			// in order to track Svarog Executors coming and going in the system
-			svcTracker = new ServiceTracker<ISvExecutor, ISvExecutor>(osgiFramework.getBundleContext(),
-					ISvExecutor.class.getName(), null);
+			svcTracker = new ServiceTracker(osgiFramework.getBundleContext(),
+					osgiFramework.getBundleContext().createFilter(serviceFilter),
+					new SvServiceTracker());
 			svcTracker.open();
 
 			// Use the system bundle context to process the auto-deploy
@@ -445,6 +452,5 @@ public class SvarogDaemon {
 			}
 		}
 	}
-
 
 }

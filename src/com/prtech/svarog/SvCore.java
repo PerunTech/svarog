@@ -1318,9 +1318,9 @@ public abstract class SvCore implements ISvCore {
 						execSvarogShutDownHooks(shutDownExec);
 
 					log4j.info("Shutting down the cluster infrastructure");
-					SvCluster.resignCoordinator();
 					SvCluster.shutdown(false);
 					SvMaintenance.shutdown();
+					SvCluster.resignCoordinator();
 
 					log4j.info("Shutting down the OSGI Framework");
 					if (SvarogDaemon.osgiFramework != null) {
@@ -1350,7 +1350,6 @@ public abstract class SvCore implements ISvCore {
 		// if Svarog is already initialised, simply return
 		if (!isInitialized.compareAndSet(false, true))
 			return true;
-		isValid.set(false);
 
 		log4j.info("Svarog initialization in progress");
 		DbCache.clean();
@@ -3092,17 +3091,20 @@ public abstract class SvCore implements ISvCore {
 			break;
 		case TEXT:
 		case NVARCHAR:
-			Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
-			if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
-				StringBuilder bindVal = new StringBuilder();
-				for (String oVal : (ArrayList<String>) value) {
-					bindVal.append(oVal + SvConf.getMultiSelectSeparator());
+			if (value == null)
+				ps.setString(bindAtPosition, null);
+			else {
+				Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
+				if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
+					StringBuilder bindVal = new StringBuilder();
+					for (String oVal : (ArrayList<String>) value) {
+						bindVal.append(oVal + SvConf.getMultiSelectSeparator());
+					}
+					bindVal.setLength(bindVal.length() - 1);
+					value = bindVal.toString();
 				}
-				bindVal.setLength(bindVal.length() - 1);
-				value = bindVal.toString();
+				ps.setString(bindAtPosition, value.toString());
 			}
-			ps.setString(bindAtPosition, (String) value);
-
 			break;
 		case GEOMETRY:
 			byte[] byteVal = getWKBWriter().write((Geometry) value);

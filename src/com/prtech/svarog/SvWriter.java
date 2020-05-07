@@ -122,6 +122,11 @@ public class SvWriter extends SvCore {
 	static HashMap<Long, String> queryCache = new HashMap<Long, String>();
 
 	/**
+	 * Constant for the keyword update
+	 */
+	static final String UPDATE = "UPDATE";
+
+	/**
 	 * String array holding the svarog standard keys PKID and OBJECT_ID
 	 */
 	private static String[] genKeyIds = new String[] {
@@ -1351,7 +1356,7 @@ public class SvWriter extends SvCore {
 			String repo_name = dbt.getVal("repo_name").toString();
 			DateTime dt_insert = new DateTime();
 
-			String sqlDel = "UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?";
+			String sqlDel = UPDATE + " " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?";
 			if (dbo.getPkid() != 0) {
 				ps = conn.prepareStatement(sqlDel);
 				ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
@@ -1440,7 +1445,7 @@ public class SvWriter extends SvCore {
 			String repo_name = dbt.getVal("repo_name").toString();
 			DateTime dt_insert = new DateTime();
 
-			String delByParentSQL = "UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE parent_id=?"
+			String delByParentSQL = UPDATE + " " + schema + "." + repo_name + " SET dt_delete=? WHERE parent_id=?"
 					+ " and ? between dt_insert and dt_delete and object_type=?";
 
 			log4j.trace("Invalidate the old one first");
@@ -1573,7 +1578,7 @@ public class SvWriter extends SvCore {
 
 			DateTime dt_insert = new DateTime();
 			if (!oldPkid.equals(0L)) {
-				String sqlUpdate = "UPDATE " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo()
+				String sqlUpdate = UPDATE + " " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo()
 						+ " set DT_DELETE=? where pkid in (SELECT fields.PKID FROM " + SvConf.getDefaultSchema() + "."
 						+ SvConf.getMasterRepo() + " fields where fields.parent_id=? "
 						+ " and fields.object_type=? and fields.dt_delete=?)";

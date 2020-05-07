@@ -143,7 +143,8 @@ public class SvClusterNotifierProxy implements Runnable {
 			key = lockKey.getBytes(ZMQ.CHARSET);
 			// allocate one byte for message type, one long for node Id and the
 			// rest for the token
-			ByteBuffer msgBuffer = ByteBuffer.allocate(1 + Integer.BYTES + Long.BYTES + (key != null ? key.length : 0));
+			ByteBuffer msgBuffer = ByteBuffer
+					.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.INT + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
 			msgBuffer.put(actionType);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.putInt(hashCode);
