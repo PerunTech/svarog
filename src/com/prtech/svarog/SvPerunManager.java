@@ -220,39 +220,6 @@ public class SvPerunManager extends SvCore {
 
 	}
 
-	/**
-	 * Method to get the main plugin menu based on the authorisations
-	 * 
-	 * @param context
-	 *            the context name for which we want to get the menu
-	 * @return JsonObject containing the menu of the module
-	 */
-	JsonObject getMenu(String context) {
-		SvPerunInstance instance = pluginMap.get(context);
-		if (this.hasPermission(instance.getPermissionCode()))
-			return instance.getMainMenu(this);
-		else
-			return null;
-
-	}
-
-	/**
-	 * Method to get the plugin context menu based on the authorisations and
-	 * context
-	 * 
-	 * @param context
-	 *            the context name for which we want to get the menu
-	 * @param contextMap
-	 *            the context parameters to parameterise the menu
-	 * @return JsonObject containing the menu of the module
-	 */
-	JsonObject getContextMenu(String context, HashMap<String, String> contextMap) {
-		SvPerunInstance instance = pluginMap.get(context);
-		if (this.hasPermission(instance.getPermissionCode()))
-			return instance.getContextMenu(contextMap, this);
-		else
-			return null;
-	}
 
 	/**
 	 * Method to build a DbDataObject instance from a IPerunPlugin class
@@ -391,6 +358,40 @@ public class SvPerunManager extends SvCore {
 				iter.remove();
 		}
 		return entries;
+	}
+
+	/**
+	 * Method to get the main plugin menu based on the authorisations
+	 * 
+	 * @param context
+	 *            the context name for which we want to get the menu
+	 * @return JsonObject containing the menu of the module
+	 */
+	public JsonObject getMenu(String context) {
+		SvPerunInstance instance = pluginMap.get(context);
+		if (this.hasPermission(instance.getPermissionCode()))
+			return instance.getMainMenu(this);
+		else
+			return null;
+
+	}
+
+	/**
+	 * Method to get the plugin context menu based on the authorisations and
+	 * context
+	 * 
+	 * @param context
+	 *            the context name for which we want to get the menu
+	 * @param contextMap
+	 *            the context parameters to parameterise the menu
+	 * @return JsonObject containing the menu of the module
+	 */
+	public JsonObject getContextMenu(String context, HashMap<String, String> contextMap) {
+		SvPerunInstance instance = pluginMap.get(context);
+		if (this.hasPermission(instance.getPermissionCode()))
+			return instance.getContextMenu(contextMap, this);
+		else
+			return null;
 	}
 
 }
