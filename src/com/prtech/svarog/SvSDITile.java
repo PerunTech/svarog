@@ -231,4 +231,35 @@ public abstract class SvSDITile {
 	public void setIsTileDirty(Boolean isTileDirty) {
 		this.isTileDirty = isTileDirty;
 	}
+
+	public Long getTileTypeId() {
+		return tileTypeId;
+	}
+
+	public void setTileTypeId(Long tileTypeId) {
+		this.tileTypeId = tileTypeId;
+	}
+
+	public String getTilelId() {
+		return tilelId;
+	}
+
+	public void setTilelId(String tilelId) {
+		this.tilelId = tilelId;
+	}
+
+	public void getTilelId(int[] cell) {
+		if (cell != null && cell.length > 2) {
+			String[] tileColRow = tilelId.split(":");
+			cell[0] = Integer.parseInt(tileColRow[0]);
+			cell[1] = Integer.parseInt(tileColRow[1]);
+		}
+	}
+
+	public void setTilelId(int[] cell) {
+		if (cell != null && cell.length > 2) {
+			this.tilelId = Integer.toString(cell[0]) + ":" + Integer.toString(cell[1]);
+		}
+	}
+
 }
