@@ -47,7 +47,6 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -90,7 +89,7 @@ public class SvarogInstall {
 
 	static final String JDBC_ERR = "Can't close JDBC connection";
 	static final String TABLE_NAME = "table_name";
-
+	static final String UNEXPECTED_EX = "Unexpected exception:";
 	/**
 	 * Path of the JSON file containing list of system Locales
 	 */
@@ -214,7 +213,7 @@ public class SvarogInstall {
 					returnStatus = -2;
 			}
 		} catch (Exception exp) {
-			System.out.println("Unexpected exception:" + exp.getMessage());
+			log4j.error("Main thread raised unhandled exception.", exp);
 			returnStatus = -2;
 		}
 		if (!SvCore.svDaemonRunning.get())
@@ -359,7 +358,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -437,7 +436,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -508,7 +507,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -553,7 +552,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -676,7 +675,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -725,7 +724,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -770,7 +769,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -837,7 +836,7 @@ public class SvarogInstall {
 			if (ex instanceof SvException)
 				System.out.println(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println("Unexpected exception:");
+				System.out.println(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;

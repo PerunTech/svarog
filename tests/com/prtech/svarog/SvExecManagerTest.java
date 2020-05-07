@@ -2,10 +2,14 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.prtech.svarog_common.DbDataArray;
@@ -16,11 +20,88 @@ import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvExecutor;
+import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 public class SvExecManagerTest {
+	@BeforeClass
+	public static void init() {
+		try {
+			SvCore.initSvCore();
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
 	static final Logger log4j = SvConf.getLogger(SvExecManagerTest.class);
 	private final String category = "TEST";
 	private final String name = "TESTEXEC";
+
+	public class TestExecutorGroup implements ISvExecutorGroup {
+
+		// final Logger log4j = SvConf.getLogger(TestExecutor.class);
+
+		private final String description = "Text executor group";
+		private final DateTime start = new DateTime("2012-12-31T00:00:00+00");
+		private final DateTime end = new DateTime("9999-12-31T00:00:00+00");
+		private final Class<?> type = DbDataObject.class;
+
+		@Override
+		public String getCategory() {
+			return category;
+		}
+
+		@Override
+		public DateTime getStartDate() {
+			return start;
+		}
+
+		@Override
+		public DateTime getEndDate() {
+			return end;
+		}
+
+		@Override
+		public long versionUID() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		public Map<String, Class<?>> getReturningTypes() {
+			// TODO Auto-generated method stub
+			Map<String, Class<?>> retval = new HashMap<String, Class<?>>();
+			retval.put(name + "g1", type);
+			retval.put(name + "g2", type);
+			return retval;
+		}
+
+		@Override
+		public List<String> getNames() {
+			ArrayList<String> retval = new ArrayList<String>();
+			retval.add(name + "g1");
+			retval.add(name + "g2");
+			return retval;
+
+		}
+
+		@Override
+		public Map<String, String> getDescriptions() {
+			Map<String, String> retval = new HashMap<String, String>();
+			retval.put(name + "g1", description + "g1");
+			retval.put(name + "g2", description + "g2");
+			return retval;
+		}
+
+		@Override
+		public Object execute(String name, Map<String, Object> params, ISvCore svCore) throws SvException {
+			// TODO Auto-generated method stub
+			log4j.info("Method called:" + name + " params:" + (params != null ? params.toString() : "no params"));
+			return null;
+		}
+
+	}
 
 	public class TestExecutor implements ISvExecutor {
 
@@ -90,7 +171,28 @@ public class SvExecManagerTest {
 			if (sve != null)
 				sve.release();
 		}
-		if (SvConnTracker.hasTrackedConnections())
+
+		if (SvConnTracker.hasTrackedConnections(false, false))		
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void callExecutorGroup() {
+		SvExecManager sve = null;
+		try {
+			sve = new SvExecManager();
+			sve.osgiServices = new Object[2];
+			sve.osgiServices[0] = new TestExecutor();
+			sve.osgiServices[1] = new TestExecutorGroup();
+			sve.execute(category, name + "g2", null, null);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Test raised execption" + e.toString());
+		} finally {
+			if (sve != null)
+				sve.release();
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -147,7 +249,7 @@ public class SvExecManagerTest {
 			if (svw != null)
 				svw.release();
 		}
-		if (SvConnTracker.hasTrackedConnections())
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -209,7 +311,7 @@ public class SvExecManagerTest {
 				svw.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections())
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 }

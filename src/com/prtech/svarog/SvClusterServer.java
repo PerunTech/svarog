@@ -150,7 +150,7 @@ public class SvClusterServer implements Runnable {
 			}
 			// allocate one byte for message type, one long for node Id and the
 			// rest for the token
-			respBuffer = ByteBuffer.allocate(1 + Long.BYTES + (token != null ? token.length : 0));
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (token != null ? token.length : 0));
 			if (token != null) {
 				respBuffer.put(SvCluster.MSG_SUCCESS);
 				respBuffer.putLong(nodeId);
@@ -160,14 +160,14 @@ public class SvClusterServer implements Runnable {
 			break;
 		case SvCluster.MSG_AUTH_TOKEN_PUT:
 			String strToken = new String(
-					Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES, msgBuffer.array().length), ZMQ.CHARSET);
+					Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
 			DbDataObject svTokenIn = new DbDataObject();
 			Gson g = new Gson();
 			svTokenIn.fromSimpleJson(g.fromJson(strToken, JsonObject.class));
 			svTokenIn.setIsDirty(false);
 			DboFactory.makeDboReadOnly(svTokenIn);
 			DbCache.addObject(svTokenIn, (String) svTokenIn.getVal("session_id"));
-			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(nodeId);
 			break;
@@ -176,7 +176,7 @@ public class SvClusterServer implements Runnable {
 			long leastSBits = msgBuffer.getLong();
 			UUID uuidIn = new UUID(mostSBits, leastSBits);
 			DbDataObject tmpToken = DbCache.getObject(uuidIn.toString(), svCONST.OBJECT_TYPE_SECURITY_LOG);
-			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 			if (tmpToken != null)
 				respBuffer.put(SvCluster.MSG_SUCCESS);
 			else
@@ -201,9 +201,9 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private List<ByteBuffer> processJoin(long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		List<ByteBuffer> response = new ArrayList<ByteBuffer>();
-		String nodeInfo = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES, msgBuffer.array().length),
+		String nodeInfo = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
 				ZMQ.CHARSET);
 		SvWriter svw = null;
 		DbDataObject node = null;
@@ -241,7 +241,7 @@ public class SvClusterServer implements Runnable {
 					key = entry.getKey().getBytes(ZMQ.CHARSET);
 					// allocate one byte for message type, one long for node Id
 					// and the rest for the token
-					respBuffer = ByteBuffer.allocate(Long.BYTES + Integer.BYTES + (key != null ? key.length : 0));
+					respBuffer = ByteBuffer.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
 					respBuffer.putLong(entry.getValue().nodeId);
 					respBuffer.putInt(entry.getValue().lockHash);
 					respBuffer.put(key);
@@ -269,9 +269,9 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processPart(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		{
-			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(nodeId);
 			nodeHeartBeats.remove(nodeId);
@@ -299,7 +299,7 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processHeartBeat(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		if (nodeHeartBeats.containsKey(nodeId)) {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			nodeHeartBeats.put(nodeId, DateTime.now());
@@ -339,12 +339,12 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		Integer lockHash = msgBuffer.getInt();
 
 		// unlock the lock using the server lists of locks
 		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
-		respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		if (lockKey != null) {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			// send a broadcast that the lock was acquired
@@ -384,8 +384,8 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
-		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + Long.BYTES, msgBuffer.array().length),
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
 				ZMQ.CHARSET);
 		Long[] extNodeInfo = new Long[1];
 
@@ -393,7 +393,7 @@ public class SvClusterServer implements Runnable {
 		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, distributedLocks,
 				null);
 
-		respBuffer = ByteBuffer.allocate(1 + Long.BYTES + (lock == null ? Long.BYTES : Integer.BYTES));
+		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (lock == null ? SvUtil.sizeof.LONG : SvUtil.sizeof.INT));
 		if (lock == null)
 			respBuffer.put(SvCluster.MSG_FAIL);
 		else {
@@ -441,7 +441,7 @@ public class SvClusterServer implements Runnable {
 		// if the node is not in the cluster and the message isn't join, reject
 		// the message by responding FAIL
 		if (!nodeHeartBeats.containsKey(nodeId)) {
-			respBuffer = ByteBuffer.allocate(1 + Long.BYTES);
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 			respBuffer.put(SvCluster.MSG_FAIL);
 			respBuffer.putLong(nodeId);
 		} else
