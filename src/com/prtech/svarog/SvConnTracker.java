@@ -26,8 +26,8 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 /**
- * Svarog Connection Tracker. Class to track the number of SvCore based objects that use a single JDBC
- * connection
+ * Svarog Connection Tracker. Class to track the number of SvCore based objects
+ * that use a single JDBC connection
  * 
  * @author PR01
  *
@@ -45,6 +45,7 @@ class SvConnTracker {
 
 	/**
 	 * Method to check if the connection tracker has open DB connections
+	 * 
 	 * @return
 	 */
 	static Boolean hasTrackedConnections() {
@@ -52,17 +53,23 @@ class SvConnTracker {
 	}
 
 	static Boolean hasTrackedConnections(boolean printStack) {
-		boolean hasConns = tracker.size() > 0;
-		if (hasConns && printStack) {
+		return hasTrackedConnections(printStack, true);
+	}
+
+	static Boolean hasTrackedConnections(boolean printStack, boolean countInternal) {
+		int connCount = 0;
+		if (printStack || !countInternal) {
 			for (SoftReference<SvCore> svSoft : tracker.keySet()) {
 				SvCore svc = svSoft.get();
-				if (SvCore.isDebugEnabled) {
+				if (SvCore.isDebugEnabled && printStack) {
 					log4j.info("The rogue SvCore instance was created at: " + svc.getCoreTraceInfo());
 				}
-
+				if (countInternal || (!svc.isInternal && !countInternal))
+					connCount++;
 			}
-		}
-		return hasConns;
+		} else
+			connCount = tracker.size();
+		return connCount > 0;
 	}
 
 	static Boolean hasTrackedConnection(SoftReference<SvCore> toCore) {

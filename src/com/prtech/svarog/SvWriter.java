@@ -162,8 +162,7 @@ public class SvWriter extends SvCore {
 					|| ((Boolean) formType.getVal("multi_entry") && formType.getVal("MAX_INSTANCES") != null))) {
 
 				// TODO Check the form existence in the cache instead of firing
-				// a
-				// get objects request
+				// a get objects request
 				DbSearchExpression dbse = new DbSearchExpression();
 				dbse.addDbSearchItem(new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, dbo.getParentId()));
 				dbse.addDbSearchItem(new DbSearchCriterion("FORM_TYPE_ID", DbCompareOperand.EQUAL, formTypeId));
@@ -422,6 +421,7 @@ public class SvWriter extends SvCore {
 	 * repo insert requests.
 	 * 
 	 * @return
+	 * @throws SvException
 	 * @throws SQLServerException
 	 *             SQLServerDataTable prepRepoDataTable() throws
 	 *             SQLServerException { if
@@ -446,6 +446,28 @@ public class SvWriter extends SvCore {
 	 *             java.sql.Types.NUMERIC); return repoTypeDT; } else return
 	 *             null; }
 	 */
+
+	/**
+	 * Method to execute on save call backs on the object subject of saving
+	 * 
+	 * @param dbo
+	 *            the reference to the object
+	 * @throws SvException
+	 *             any exception that is thrown by the callbacks
+	 */
+	private void executeOnSaveCallbacks(DbDataObject dbo) throws SvException {
+		CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
+		CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
+		if (globalCallback != null)
+			for (ISvOnSave onSave : globalCallback) {
+				onSave.beforeSave(this, dbo);
+			}
+		localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
+		if (localCallbacks != null)
+			for (ISvOnSave onSave : localCallbacks) {
+				onSave.beforeSave(this, dbo);
+			}
+	}
 
 	/**
 	 * Method to save the base repo data for the object.
@@ -476,9 +498,9 @@ public class SvWriter extends SvCore {
 			ISvDatabaseIO dbHandler = SvConf.getDbHandler();
 
 			String schema = dbt.getVal("schema").toString();
-			String repo_name = dbt.getVal("repo_name").toString();
+			String repoName = dbt.getVal("repo_name").toString();
 			Boolean isUpdate = dba.getItems().get(0).getObjectId() != 0L;
-			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repo_name);
+			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repoName);
 			log4j.debug(sqlInsRepo);
 			// sort the milis of the ending/starting time
 			long milis = new DateTime().getMillis();
@@ -486,15 +508,13 @@ public class SvWriter extends SvCore {
 			Timestamp dtInsert = new Timestamp(milis);
 
 			Connection conn = this.dbGetConn();
-			psInvalidateOld = conn
-					.prepareStatement("UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
 
 			// prepare the repo insert statements
 			if (!dbHandler.getOverrideInsertRepo())
 				psInsRepo = conn.prepareStatement(sqlInsRepo, genKeyIds);
 			else {// if the handler overrides the repo insert, pass the
 					// generation of the statement to the handler
-				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo, schema, repo_name);
+				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo, schema, repoName);
 				if (psInsRepo == null)
 					throw (new SvException("system.error.jdbc_bad_database_handler", instanceUser));
 				extendedRepoStruct = dbHandler.getInsertRepoStruct(conn, dba.size());
@@ -504,20 +524,11 @@ public class SvWriter extends SvCore {
 				oldRepoData = preSaveChecks(dbt, dba, isUpdate, skipPreSaveChecks);
 			}
 
-			CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
-			CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
-
 			int rowIndex = 0;
 			for (DbDataObject dbo : dba.getItems()) {
-				if (globalCallback != null)
-					for (ISvOnSave onSave : globalCallback) {
-						onSave.beforeSave(this, dbo);
-					}
-				localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
-				if (localCallbacks != null)
-					for (ISvOnSave onSave : localCallbacks) {
-						onSave.beforeSave(this, dbo);
-					}
+				// execute the call backs
+				executeOnSaveCallbacks(dbo);
+
 				// make sure we save SDI objects only when SvWriter is used
 				// internally by SvGeometry
 				if (!isInternal && hasGeometries(dbo.getObjectType()))
@@ -525,23 +536,29 @@ public class SvWriter extends SvCore {
 
 				// perform the basic repo checks over the object before saving
 				checkRepoData(dbo, isUpdate, skipPreSaveChecks);
+
 				// if the object is a new object, make sure we assign the
 				// default status to it.
 				if ((dbo.getPkid() == 0 || dbo.getObjectId() == 0)
 						&& (dbo.getStatus() == null || dbo.getStatus() == ""))
 					dbo.setStatus(getDefaultStatus(dbt));
+				// get the old repo objects if any
 				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObjectId()) : null;
+				if (dbo.getPkid() != 0L && psInvalidateOld == null)
+					psInvalidateOld = conn.prepareStatement(getUpdateRepoSql(schema, repoName));
+
+				// ensure the object is batched for saving
 				addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidateOld, psInsRepo, dtInsert, dtEndPrev,
 						extendedRepoStruct, rowIndex);
 				rowIndex++;
 
 			}
 
-			int[] updatedRows = psInvalidateOld.executeBatch();
-			int[] insertedRows = null;
+			int[] updatedRows = psInvalidateOld != null ? psInvalidateOld.executeBatch() : null;
+
 			int objectIndex = 0;
 			if (!dbHandler.getOverrideInsertRepo()) {
-				insertedRows = psInsRepo.executeBatch();
+				psInsRepo.executeBatch();
 				rsGenKeys = psInsRepo.getGeneratedKeys();
 				while (rsGenKeys.next()) {
 					setKeys(dba, rsGenKeys.getLong(1), rsGenKeys.getLong(2), objectIndex);
@@ -557,7 +574,8 @@ public class SvWriter extends SvCore {
 				}
 			}
 
-			if (dba.getItems().size() != objectIndex || (isUpdate && !isInternal && objectIndex != updatedRows.length))
+			if (dba.getItems().size() != objectIndex || (isUpdate && !isInternal
+					&& objectIndex != (updatedRows != null ? updatedRows.length : objectIndex)))
 				throw (new SvException("system.error.batch_size_err", instanceUser, dba, dbt));
 
 		} catch (SQLException ex) {
@@ -571,6 +589,20 @@ public class SvWriter extends SvCore {
 		}
 		return oldRepoData;
 
+	}
+
+	/**
+	 * Method to generate the sql statement for update of the delete repo
+	 * objects
+	 * 
+	 * @param schema
+	 *            The Schema name
+	 * @param repoName
+	 *            The name of the repo table
+	 * @return String containing valid SQL statement
+	 */
+	private String getUpdateRepoSql(String schema, String repoName) {
+		return "UPDATE " + schema + "." + repoName + " SET dt_delete=? WHERE pkid=?";
 	}
 
 	/**
@@ -597,6 +629,24 @@ public class SvWriter extends SvCore {
 		}
 	}
 
+	void addRepoBatchImpl(Long PKID, Long oldMetaPKID, Long objectId, Timestamp tsInsert, Timestamp tsDelete,
+			Long parentId, Long objType, String objStatus, Long userId, PreparedStatement psInsert)
+			throws SQLException {
+		int paramCount = 1;
+		if (objectId != 0)
+			psInsert.setLong(paramCount++, objectId);
+		psInsert.setTimestamp(paramCount++, tsInsert);
+		psInsert.setTimestamp(paramCount++, tsDelete);
+		psInsert.setLong(paramCount++, parentId);
+		psInsert.setLong(paramCount++, objType);
+		// if there's no meta update, use the existing META_PKID
+		if (oldMetaPKID != 0)
+			psInsert.setLong(paramCount++, oldMetaPKID);
+		psInsert.setString(paramCount++, objStatus);
+		psInsert.setLong(paramCount, userId);
+		psInsert.addBatch();
+	}
+
 	/**
 	 * Method for saving base object repository data.
 	 * 
@@ -617,6 +667,7 @@ public class SvWriter extends SvCore {
 			Object extendedRepoStruct, int rowIndex) throws SQLException {
 
 		ISvDatabaseIO dbHandler = SvConf.getDbHandler();
+		Timestamp tsInsert, tsDelete;
 
 		if (dbo.getPkid() != 0) {
 			psInvalidate.setTimestamp(1, dtEndPrev);
@@ -629,26 +680,24 @@ public class SvWriter extends SvCore {
 		Long objParent = dbo.getParentId() == null ? 0 : dbo.getParentId();
 		Long oldMetaPKID = repoObjects != null && withMetaUpdate == false ? (Long) repoObjects[4] : 0L;
 		Long userId = this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId();
-		int paramCount = 1;
-		if (!dbHandler.getOverrideInsertRepo()) { // if the handler does not
-													// override the insert repo
-			if (dbo.getObjectId() != 0)
-				psInsert.setLong(paramCount++, dbo.getObjectId());
-			psInsert.setTimestamp(paramCount++, dtInsert);
-			psInsert.setTimestamp(paramCount++, SvConf.MAX_DATE_SQL);
-			psInsert.setLong(paramCount++, objParent);
-			psInsert.setLong(paramCount++, objType);
-			// if there's no meta update, use the existing META_PKID
-			if (oldMetaPKID != 0)
-				psInsert.setLong(paramCount++, oldMetaPKID);
-			psInsert.setString(paramCount++, objStatus);
-			psInsert.setLong(paramCount, userId);
-			psInsert.addBatch();
 
+		if (SvConf.isOverrideTimeStamps()) {
+			dbo.setDtInsert(new DateTime(dtInsert));
+			dbo.setDtDelete(SvConf.MAX_DATE);
+			tsInsert = dtInsert;
+			tsDelete = SvConf.MAX_DATE_SQL;
+		} else {
+			tsInsert = new Timestamp(dbo.getDtInsert().getMillis());
+			tsDelete = new Timestamp(dbo.getDtDelete().getMillis());
+		}
+
+		if (!dbHandler.getOverrideInsertRepo()) { // if the handler does not
+			addRepoBatchImpl(0L, oldMetaPKID, dbo.getObjectId(), tsInsert, tsDelete, objParent, objType, objStatus,
+					userId, psInsert);
 		} else {
 			// if the insert is overriden then call overrided add repo batch
-			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObjectId(), dtInsert,
-					SvConf.MAX_DATE_SQL, objParent, objType, objStatus, userId, rowIndex);
+			dbHandler.addRepoBatch(extendedRepoStruct, 0L, oldMetaPKID, dbo.getObjectId(), tsInsert, tsDelete,
+					objParent, objType, objStatus, userId, rowIndex);
 		}
 	}
 
@@ -791,27 +840,38 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for cleaning up the cache for a specific DbDataObject
 	 * 
-	 * @param dbo
-	 *            The DbDataObject for which the cache should purged
-	 * @param dbt
-	 *            The type descriptor of the object
-	 * @param conn
-	 *            The JDBC connection to be used for the potential refresh
-	 * @return Standard Svarog Error Code as per svCONST
+	 * @param objectId
+	 *            The object id of the DbDataObject for which the cache should
+	 *            purged
+	 * @param objectTypeId
+	 *            The object type id of the DbDataObject
 	 * @throws SvException
 	 */
-	void cacheCleanup(DbDataObject dbo, DbDataObject dbt) throws SvException {
+	static void cacheCleanup(Long objectId, Long objectTypeId) throws SvException {
+		DbDataObject dbo = DbCache.getObject(objectId, objectTypeId);
+		if (dbo != null)
+			cacheCleanup(dbo);
+	}
+
+	/**
+	 * Method for cleaning up the cache for a specific DbDataObject
+	 * 
+	 * @param dbo
+	 *            The DbDataObject for which the cache should purged
+	 * @throws SvException
+	 */
+	static void cacheCleanup(DbDataObject dbo) throws SvException {
 
 		if (isCfgInDb) {
-			if (dbt.getObjectId() != svCONST.OBJECT_TYPE_TABLE && dbt.getObjectId() != svCONST.OBJECT_TYPE_FIELD) {
-				DbCache.removeObject(dbo.getObjectId(), dbt.getObjectId());
+			if (dbo.getObjectType() != svCONST.OBJECT_TYPE_TABLE && dbo.getObjectType() != svCONST.OBJECT_TYPE_FIELD) {
+				DbCache.removeObject(dbo.getObjectId(), dbo.getObjectType());
 				DbCache.removeObjectSupport(dbo);
 				dbo.setIsDirty(false);
 			} else {
-				SvReader svr = new SvReader(this);
+				SvReader svr = new SvReader();
 				DbDataObject dboRefresh = null;
 				try {
-					dboRefresh = svr.getObjectById(dbo.getObjectId(), dbt, null);
+					dboRefresh = svr.getObjectById(dbo.getObjectId(), dbo.getObjectType(), null);
 				} finally {
 					svr.release();
 				}
@@ -822,20 +882,31 @@ public class SvWriter extends SvCore {
 				removeLinkCache(dbo);
 			}
 
-			CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
-			CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
-			if (globalCallback != null)
-				for (ISvOnSave onSave : globalCallback) {
-					onSave.afterSave(this, dbo);
-				}
-
-			localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
-			if (localCallbacks != null)
-				for (ISvOnSave onSave : localCallbacks) {
-					onSave.afterSave(this, dbo);
-				}
-
 		}
+
+	}
+
+	/**
+	 * Method to execute all registered After Save callbacks in Svarog.
+	 * 
+	 * @param dbo
+	 *            The object which was saved
+	 * @throws SvException
+	 *             If any exception was raised by the callbacks, throw it
+	 */
+	void executeAfterSaveCallbacks(DbDataObject dbo) throws SvException {
+		CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
+		CopyOnWriteArrayList<ISvOnSave> localCallbacks = null;
+		if (globalCallback != null)
+			for (ISvOnSave onSave : globalCallback) {
+				onSave.afterSave(this, dbo);
+			}
+
+		localCallbacks = onSaveCallbacks.get(dbo.getObjectType());
+		if (localCallbacks != null)
+			for (ISvOnSave onSave : localCallbacks) {
+				onSave.afterSave(this, dbo);
+			}
 
 	}
 
@@ -1086,8 +1157,20 @@ public class SvWriter extends SvCore {
 			}
 
 		for (DbDataObject dbo : dba.getItems()) {
-			cacheCleanup(dbo, dbt);
+			cacheCleanup(dbo);
+			executeAfterSaveCallbacks(dbo);
 		}
+		// broadcast the dirty objects to the cluster
+		// if we are coordinator, broadcast through the proxy otherwise
+		// broadcast through the client
+		if (SvCluster.getIsActive().get()) {
+			if (!SvCluster.isCoordinator())
+				SvClusterNotifierClient.publishDirtyArray(dba);
+			else
+				SvClusterNotifierProxy.publishDirtyArray(dba);
+
+		}
+
 	}
 
 	/**
@@ -1268,15 +1351,18 @@ public class SvWriter extends SvCore {
 			String repo_name = dbt.getVal("repo_name").toString();
 			DateTime dt_insert = new DateTime();
 
+			String sqlDel = "UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?";
 			if (dbo.getPkid() != 0) {
-				ps = conn.prepareStatement("UPDATE " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?");
+				ps = conn.prepareStatement(sqlDel);
 				ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
 				ps.setLong(2, dbo.getPkid());
 				int invalidatedRows = ps.executeUpdate();
 				if (invalidatedRows != 1) {
 					throw (new SvException("system.error.multiple_rows_updated", instanceUser, dbo, null));
-				} else
-					cacheCleanup(dbo, dbt);
+				} else {
+					cacheCleanup(dbo);
+					executeAfterSaveCallbacks(dbo);
+				}
 				// DbCache.removeObject(dbo.getObjectId(),
 				// dbo.getObjectType());
 			}
@@ -1716,7 +1802,7 @@ public class SvWriter extends SvCore {
 	 * @param linkDbo
 	 *            The link object
 	 */
-	void removeLinkCache(DbDataObject linkDbo) {
+	static void removeLinkCache(DbDataObject linkDbo) {
 		DbDataObject dbl = getLinkType((Long) linkDbo.getVal("LINK_TYPE_ID"));
 		DbCache.invalidateLinkCache((Long) linkDbo.getVal("LINK_OBJ_ID_1"), dbl.getObjectId(),
 				(Long) dbl.getVal("LINK_OBJ_TYPE_2"));

@@ -60,6 +60,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DboFactory;
+import com.prtech.svarog_common.DboUnderground;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.prtech.svarog_common.ISvOnSave;
@@ -92,6 +93,19 @@ public abstract class SvCore implements ISvCore {
 	 * Log4j instance used for logging
 	 */
 	static final Logger log4j = SvConf.getLogger(SvCore.class);
+
+	/**
+	 * The property name used to specify whether the launcher should execute a
+	 * svarog shutdown hook.
+	 **/
+	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
+
+	/**
+	 * Static block to set the shutdown hooks only once at boot
+	 */
+	static {
+		setShutDownHook();
+	}
 
 	/**
 	 * Enumeration holding flags about access over svarog objects.
@@ -180,6 +194,14 @@ public abstract class SvCore implements ISvCore {
 	 * Information about the source of the loaded Svarog config (DB or file)
 	 */
 	static Boolean isCfgInDb = false;
+
+	/**
+	 * Minimum time between two session refresh notifications are published in
+	 * the cluster The purpose is to prevent throttling of the refresh
+	 * notification in the cluster.
+	 */
+	static long sessionDebounceInterval = 5000;
+
 	/**
 	 * The POA types defined in Svarog, we need them for security checks.
 	 */
@@ -251,11 +273,6 @@ public abstract class SvCore implements ISvCore {
 	 * The internal static geometry handler instance
 	 */
 	private static ISvDatabaseIO dbHandler = null;
-
-	/**
-	 * Atomic boolean flat to signify a maintenance thread is in progress
-	 */
-	static AtomicBoolean maintenanceRunning = new AtomicBoolean();
 
 	/////////////////////////////////////////////////////////////
 	// SvCore instance (non-static) variables and methods
@@ -361,43 +378,6 @@ public abstract class SvCore implements ISvCore {
 	protected Boolean autoCommit = true;
 
 	/**
-	 * Perform good house keeping and cleanup any previous tracked connections.
-	 * The cleaning is executed in a separate thread
-	 * 
-	 * @param useCurrentThread
-	 *            Flag to tell the cleanup to use the current thread or to
-	 *            launch a new maintenance thread. If the SvarogDaemon is
-	 *            running, the maintenance shall be executed in the current
-	 *            thread. If svarog is used as external library without daemon,
-	 *            it shall launch a new maintenance thread
-	 */
-	static void trackedConnCleanup(boolean useCurrentThread) {
-		// ensure that we do cleanup only periodically (after a time out period)
-		if ((DateTime.now().getMillis() - coreLastCleanup) < SvConf.getCoreIdleTimeout())
-			return;
-		else {
-			// try to get a lock for the SvConnCleaner, if we fail, just pass
-			if (maintenanceRunning.compareAndSet(false, true)) {
-				coreLastCleanup = DateTime.now().getMillis();
-				// if the cleanup is invoked from the svarog daemon it shall use
-				// the current thread
-				if (useCurrentThread) {
-					SvConnCleaner clean = new SvConnCleaner();
-					clean.run();
-				} else { // run the cleanup in new thread
-					Thread cleanerThread = new Thread(new SvConnCleaner());
-					cleanerThread.setName(svCONST.maintenanceThreadId);
-					// do we actually want to know when the cleaner finished?
-					// Can we
-					// have multiple active cleaners? right?
-					cleanerThread.start();
-				}
-			}
-
-		}
-	}
-
-	/**
 	 * Method to set the information about the line number, method and class
 	 * where the instance was created. This is usefull when looking for
 	 * connection leaks.
@@ -442,19 +422,22 @@ public abstract class SvCore implements ISvCore {
 				throw (new SvException("system.error.cant_use_svsec_as_core", instanceUser));
 
 		this.instanceUser = (srcCore != null ? srcCore.instanceUser : instanceUser);
+		this.isInternal = (srcCore != null ? srcCore.isInternal : this.isInternal);
 
 		if (this.instanceUser == null)
 			throw (new SvException("system.error.instance_user_null", svCONST.systemUser));
 
 		this.autoCommit = (srcCore != null ? srcCore.autoCommit : this.autoCommit);
 
+		if (SvConf.isClusterEnabled() && (SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
+			if ((srcCore != null && !srcCore.isInternal))
+				throw (new SvException("system.error.cluster_inactive", instanceUser));
+		}
 		// if the svarog core is not in valid state we should start the
 		// initialisation
 		if (!isValid.get())
 			initSvCoreImpl(false);
 
-		if (!svDaemonRunning.get())
-			trackedConnCleanup(false);
 		if (srcCore != null && srcCore != this) {
 			weakSrcCore = srcCore.weakThis;
 			this.coreSessionId = srcCore.getSessionId();
@@ -600,6 +583,16 @@ public abstract class SvCore implements ISvCore {
 		global.add(callback);
 	}
 
+	/**
+	 * Method to register an OnSave callback for specific object type
+	 * 
+	 * @param callback
+	 *            Reference to a class implementing the {@link ISvOnSave}
+	 *            interface
+	 * @param type
+	 *            The id of the object type for which we want the call back to
+	 *            be executed
+	 */
 	public synchronized static void registerOnSaveCallback(ISvOnSave callback, Long type) {
 		CopyOnWriteArrayList<ISvOnSave> local = onSaveCallbacks.get(type);
 		if (local == null) {
@@ -972,13 +965,15 @@ public abstract class SvCore implements ISvCore {
 		} finally {
 			try {
 				closeResource((AutoCloseable) rs, svCONST.systemUser);
-				closeResource((AutoCloseable) ps, svCONST.systemUser);
-				/*
-				 * if (rs != null) rs.close(); if (ps != null) ps.close();
-				 */
 			} catch (Exception e) {
 				log4j.error("Recordset can't be released!", e);
 			}
+			try {
+				closeResource((AutoCloseable) ps, svCONST.systemUser);
+			} catch (Exception e) {
+				log4j.error("Recordset can't be released!", e);
+			}
+
 		}
 		return false;
 	}
@@ -1279,6 +1274,68 @@ public abstract class SvCore implements ISvCore {
 	}
 
 	/**
+	 * Method to execute list of shut down executors loaded from
+	 * svarog.properties.
+	 * 
+	 * @param shutDownExec
+	 *            List of key of svarog executors. Semicolon is the list
+	 *            separator
+	 */
+	private static void execSvarogShutDownHooks(String shutDownExec) {
+		SvExecManager sve = null;
+		String[] list = shutDownExec.trim().split(";");
+		try {
+			sve = new SvExecManager();
+			for (int i = 0; i < list.length; i++) {
+				try {
+					sve.execute(list[i].toUpperCase(), null, new DateTime());
+					log4j.info("Executed shut down executor: " + list[i]);
+				} catch (Exception e) {
+					log4j.info("Could not execute shut down executor: " + list[i], e);
+				}
+			}
+		} catch (SvException e) {
+			log4j.info("Error Svarog shut down", e);
+		} finally {
+			if (sve != null) {
+				sve.release();
+			}
+		}
+	}
+
+	/**
+	 * Method to set a shutdown hook to the JVM in order to perform cleanup and
+	 * shutdown the osgi framework
+	 */
+	static void setShutDownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread("Svarog Shutdown Hook") {
+			public void run() {
+				try {
+					log4j.info("Shutting down svarog");
+					// Svarog shut down executing list of executors
+					String shutDownExec = (String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP);
+					if (shutDownExec != null && !shutDownExec.isEmpty())
+						execSvarogShutDownHooks(shutDownExec);
+
+					log4j.info("Shutting down the cluster infrastructure");
+					SvCluster.resignCoordinator();
+					SvCluster.shutdown(false);
+					SvMaintenance.shutdown();
+
+					log4j.info("Shutting down the OSGI Framework");
+					if (SvarogDaemon.osgiFramework != null) {
+						SvarogDaemon.osgiFramework.stop();
+						SvarogDaemon.osgiFramework.waitForStop(0);
+					}
+					log4j.info("Svarog shut down successfully");
+				} catch (Exception ex) {
+					System.err.println("Error stopping Svarog: " + ex);
+				}
+			}
+		});
+	}
+
+	/**
 	 * Default method for initialising the system. It first uses the JSON config
 	 * files for temporary initialisation, then loads the configuration from the
 	 * database.
@@ -1293,6 +1350,7 @@ public abstract class SvCore implements ISvCore {
 		// if Svarog is already initialised, simply return
 		if (!isInitialized.compareAndSet(false, true))
 			return true;
+		isValid.set(false);
 
 		log4j.info("Svarog initialization in progress");
 		DbCache.clean();
@@ -1382,6 +1440,23 @@ public abstract class SvCore implements ISvCore {
 				}
 				if (SvWriter.queryCache != null)
 					SvWriter.queryCache.clear();
+
+				DbDataObject sessionDbt = getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
+				// the cache expiry is in minutes, convert to milis 60*1000
+				Long ttlMilis = (Long) sessionDbt.getVal("cache_expiry") * 60 * 1000;
+				// set the debounce interval at 1% of the cache expiry
+				sessionDebounceInterval = (new Double(ttlMilis * 0.01)).intValue();
+
+				// if the daemon is not running, start the maintenance thread
+				if (!SvCore.svDaemonRunning.get()) {
+					// Set the proxy to process the notifications it self
+					SvClusterNotifierProxy.processNotification = true;
+					// set the client to rejoin on failed beat
+					SvClusterClient.rejoinOnFailedHeartBeat = true;
+					// start the maintenance
+					SvMaintenance.initMaintenance();
+				}
+
 				isCfgInDb = true;
 				svarogState = true;
 			} catch (Exception ex) {
@@ -1457,10 +1532,40 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public static DbDataObject getUserBySession(String session_id) throws SvException {
 		DbDataObject svToken = DbCache.getObject(session_id, svCONST.OBJECT_TYPE_SECURITY_LOG);
-		DbDataObject dbu = null;
+		if (!SvCluster.isCoordinator() && SvCluster.getIsActive().get()) {
+			// we are not coordinator so lets communucate our session
+			// management with the coordinator
+			if (svToken != null) {
+				// we found a local session, and send refresh to coordinator
+				if (((DateTime) svToken.getVal("last_refresh")).withDurationAdded(sessionDebounceInterval, 1)
+						.isBeforeNow()) {
+					if (SvClusterClient.refreshToken(session_id)) {
+						DboUnderground.revertReadOnly(svToken, new SvReader());
+						svToken.setVal("last_refresh", DateTime.now());
+						svToken.setIsDirty(false);
+						DboFactory.makeDboReadOnly(svToken);
+						DbCache.addObject(svToken, session_id);
+					}
+				}
+			} else // no local session was found get one from coordinator
+			{
+				svToken = SvClusterClient.getToken(session_id);
+				if (svToken != null) {
+					svToken.setVal("last_refresh", DateTime.now());
+					svToken.setIsDirty(false);
+					DboFactory.makeDboReadOnly(svToken);
+					DbCache.addObject(svToken, session_id);
+				}
+
+			}
+		}
+
 		if (svToken == null)
 			throw (new SvException("error.invalid_session", svCONST.systemUser));
 
+		DbDataObject dbu = null;
+		// if the last refresh + the interval is in the past, send a refresh in
+		// the cluster
 		SvSecurity svs = null;
 		try {
 			svs = new SvSecurity();
@@ -1885,7 +1990,6 @@ public abstract class SvCore implements ISvCore {
 			}
 		}
 		return retVal;
-		// TODO work in progress
 	}
 
 	void bindQueryVals(PreparedStatement ps, ArrayList<Object> bindVals) throws SQLException {
@@ -2508,7 +2612,7 @@ public abstract class SvCore implements ISvCore {
 	 * @throws ParseException
 	 *             Any underlying exception is re-thrown
 	 */
-	@SuppressWarnings("unused")
+
 	private Object getObjectFromCol(ResultSet rs, String fieldType, int colIndex, ResultSetMetaData rsmt)
 			throws SQLException, ParseException {
 
@@ -2660,8 +2764,6 @@ public abstract class SvCore implements ISvCore {
 			SvAccess accessLevel) throws SvException {
 		boolean hasAccess = false;
 		DbDataObject dbt = dqo.getDbt();
-
-		// TODO WIP
 
 		// create expression to hold the config criteria
 		DbSearchExpression innerDbx = new DbSearchExpression();
@@ -3091,6 +3193,17 @@ public abstract class SvCore implements ISvCore {
 
 	public void setSaveAsUser(DbDataObject saveAsUser) {
 		this.saveAsUser = saveAsUser;
+	}
+
+	public Boolean getIsInternal() {
+		return isInternal;
+	}
+
+	public void setIsInternal(Boolean isInternal) throws SvException {
+		if (!SvConf.isSystemClass(SvUtil.getCallerClassName(SvCore.class)))
+			throw (new SvException("system.error.sysclass_not_registered", instanceUser));
+
+		this.isInternal = isInternal;
 	}
 
 }

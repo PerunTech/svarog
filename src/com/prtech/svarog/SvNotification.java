@@ -16,9 +16,13 @@ package com.prtech.svarog;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.DbSearchExpression;
 
 public class SvNotification extends SvCore {
 
@@ -73,7 +77,7 @@ public class SvNotification extends SvCore {
 
 	public DbDataObject createNotificationObj(String type, String title, String message, String sender, Long eventId) {
 		DbDataObject notificationObj = new DbDataObject();
-		notificationObj.setObject_type(svCONST.OBJECT_TYPE_NOTIFICATION);
+		notificationObj.setObjectType(svCONST.OBJECT_TYPE_NOTIFICATION);
 		notificationObj.setStatus(svCONST.STATUS_VALID);
 		notificationObj.setVal("TYPE", type);
 		notificationObj.setVal("TITLE", title);
@@ -102,7 +106,7 @@ public class SvNotification extends SvCore {
 			svw.saveObject(notificationObj, autoCommit);
 			DbDataObject linkNotificationUser = SvLink.getLinkType("LINK_NOTIFICATION_USER",
 					svCONST.OBJECT_TYPE_NOTIFICATION, svCONST.OBJECT_TYPE_USER);
-			svl.linkObjects(notificationObj.getObject_id(), userObj.getObject_id(), linkNotificationUser.getObject_id(),
+			svl.linkObjects(notificationObj.getObjectId(), userObj.getObjectId(), linkNotificationUser.getObjectId(),
 					"", false, autoCommit);
 		} catch (SvException sv) {
 			log4j.error("Error in createNotificationPerUser" + sv.getFormattedMessage(), sv.fillInStackTrace());
@@ -133,7 +137,7 @@ public class SvNotification extends SvCore {
 					svCONST.OBJECT_TYPE_NOTIFICATION, svCONST.OBJECT_TYPE_USER);
 
 			// get all notifications per user
-			notificationsFoundPerUser = svr.getObjectsByLinkedId(userObj.getObject_id(), svCONST.OBJECT_TYPE_USER,
+			notificationsFoundPerUser = svr.getObjectsByLinkedId(userObj.getObjectId(), svCONST.OBJECT_TYPE_USER,
 					linkNotificationUser, svCONST.OBJECT_TYPE_NOTIFICATION, true, null, 0, 0);
 
 			if (notificationsFoundPerUser.size() > 0)
@@ -150,7 +154,7 @@ public class SvNotification extends SvCore {
 				DbDataArray tempNotificationsFound = new DbDataArray();
 				// check if notifications exist, per each userGroup
 				for (DbDataObject tempUserGroup : userGroups.getItems()) {
-					tempNotificationsFound = svr.getObjectsByLinkedId(tempUserGroup.getObject_id(),
+					tempNotificationsFound = svr.getObjectsByLinkedId(tempUserGroup.getObjectId(),
 							svCONST.OBJECT_TYPE_GROUP, linkNotificationUserGroup, svCONST.OBJECT_TYPE_NOTIFICATION,
 							true, null, 0, 0);
 					if (tempNotificationsFound.size() > 0) {
@@ -175,5 +179,39 @@ public class SvNotification extends SvCore {
 			if (svl != null)
 				svl.release();
 		}
+	}
+	
+	/**
+	 * Method to return an array of notification for specific notification type
+	 * 
+	 * @param type
+	 *            The type of the notifications
+	 * 
+	 * @return The resulting array of notification in the same type
+	 * @throws SvException
+	 *             Underlying exception
+	 */
+	public static DbDataArray getNotificationPerType(String type) throws SvException {
+		DbDataArray notifications = null;
+		SvReader svr = null;
+
+		try {
+			svr = new SvReader();
+			DateTime now = new DateTime();
+
+			DbSearchCriterion dscType = new DbSearchCriterion("TYPE", DbCompareOperand.EQUAL, type);
+			DbSearchCriterion dscValidFrom = new DbSearchCriterion("VALID_FROM", DbCompareOperand.LESS_EQUAL, now);
+			DbSearchCriterion dscValidTo = new DbSearchCriterion("VALID_TO", DbCompareOperand.GREATER_EQUAL, now);
+			DbSearchExpression dse = new DbSearchExpression();
+			dse.addDbSearchItem(dscType).addDbSearchItem(dscValidFrom).addDbSearchItem(dscValidTo);
+
+			notifications = svr.getObjects(dse, svCONST.OBJECT_TYPE_NOTIFICATION, null, 0, 0);
+
+		} finally {
+			if (svr != null)
+				svr.release();
+		}
+
+		return notifications;
 	}
 }
