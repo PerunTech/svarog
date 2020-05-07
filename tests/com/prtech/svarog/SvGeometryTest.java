@@ -38,7 +38,7 @@ import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
-public class SvGeometryTests {
+public class SvGeometryTest {
 	@Test
 	public void testGrid() {
 		if(!SvConf.isSdiEnabled())

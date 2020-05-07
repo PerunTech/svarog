@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<class-diagram version="1.2.4" icons="true" automaticImage="PNG" always-add-relationships="false" generalizations="true" 
+  realizations="true" associations="true" dependencies="false" nesting-relationships="true" router="FAN">  
+  <class id="1" language="java" name="com.prtech.svarog.SvExecManager" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvExecManager.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="230" width="425" x="907" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="2" language="java" name="com.prtech.svarog.CodeList" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/CodeList.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="284" width="372" x="1372" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="3" language="java" name="com.prtech.svarog.SvSDIDbTile" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvSDIDbTile.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="86" width="321" x="-51" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="4" language="java" name="com.prtech.svarog.SvSDITile" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvSDITile.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="338" width="408" x="310" y="-434"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="5" language="java" name="com.prtech.svarog.SvSequence" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvSequence.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="158" width="236" x="1784" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="6" language="java" name="com.prtech.svarog.SvNotification" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvNotification.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="158" width="521" x="2539" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="7" language="java" name="com.prtech.svarog.SvParameter" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvParameter.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="644" width="575" x="3100" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="8" language="java" name="com.prtech.svarog.SvSecurity" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvSecurity.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="734" width="621" x="3715" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <enumeration id="9" language="java" name="com.prtech.svarog.SvSDITile.SDIRelation" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvSDITile.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="266" width="186" x="310" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </enumeration>  
+  <class id="10" language="java" name="com.prtech.svarog.SvExecManager.SvExecInstance" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvExecManager.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="248" width="197" x="907" y="1834"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="11" language="java" name="com.prtech.svarog.SvFileStore" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvFileStore.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="284" width="432" x="4376" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="12" language="java" name="com.prtech.svarog.SvGeometry" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvGeometry.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="662" width="365" x="4848" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <enumeration id="13" language="java" name="com.prtech.svarog.SvCore.SvAccess" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvCore.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="194" width="182" x="5253" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </enumeration>  
+  <class id="14" language="java" name="com.prtech.svarog.SvWriter" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvWriter.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="410" width="418" x="2060" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="15" language="java" name="com.prtech.svarog.SvWorkflow" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvWorkflow.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="158" width="298" x="5475" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="16" language="java" name="com.prtech.svarog.SvLink" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvLink.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="194" width="461" x="5813" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="17" language="java" name="com.prtech.svarog.SvReader" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvReader.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="446" width="646" x="2499" y="1834"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="18" language="java" name="com.prtech.svarog.SvSDIJsonTile" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvSDIJsonTile.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="86" width="331" x="536" y="1060"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <class id="19" language="java" name="com.prtech.svarog.SvCore" project="svarog" 
+    file="/svarog/src/com/prtech/svarog/SvCore.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="1454" width="437" x="2539" y="-434"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="false" protected="false" private="false" static="true"/>      
+      <operations public="true" package="false" protected="false" private="false" static="true"/>    
+    </display>  
+  </class>  
+  <generalization id="20">    
+    <end type="SOURCE" refId="1"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="21">    
+    <end type="SOURCE" refId="11"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="22">    
+    <end type="SOURCE" refId="14"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="23">    
+    <end type="SOURCE" refId="18"/>    
+    <end type="TARGET" refId="4"/>  
+  </generalization>  
+  <generalization id="24">    
+    <end type="SOURCE" refId="3"/>    
+    <end type="TARGET" refId="4"/>  
+  </generalization>  
+  <association id="25">    
+    <end type="SOURCE" refId="19" navigable="false">      
+      <attribute id="26" name="instanceCodeList"/>      
+      <multiplicity id="27" minimum="0" maximum="1"/>    
+    </end>    
+    <end type="TARGET" refId="2" navigable="true"/>    
+    <display labels="true" multiplicity="true"/>  
+  </association>  
+  <generalization id="28">    
+    <end type="SOURCE" refId="5"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="29">    
+    <end type="SOURCE" refId="7"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <nesting id="30">    
+    <end type="SOURCE" refId="19"/>    
+    <end type="TARGET" refId="13"/>  
+  </nesting>  
+  <generalization id="31">    
+    <end type="SOURCE" refId="15"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <nesting id="32">    
+    <end type="SOURCE" refId="4"/>    
+    <end type="TARGET" refId="9"/>  
+  </nesting>  
+  <generalization id="33">    
+    <end type="SOURCE" refId="16"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <nesting id="34">    
+    <end type="SOURCE" refId="1"/>    
+    <end type="TARGET" refId="10"/>  
+  </nesting>  
+  <generalization id="35">    
+    <end type="SOURCE" refId="8"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="36">    
+    <end type="SOURCE" refId="12"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="37">    
+    <end type="SOURCE" refId="2"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <association id="38">    
+    <end type="SOURCE" refId="14" navigable="false">      
+      <attribute id="39" name="internalReader"/>      
+      <multiplicity id="40" minimum="0" maximum="1"/>    
+    </end>    
+    <end type="TARGET" refId="17" navigable="true"/>    
+    <display labels="true" multiplicity="true"/>  
+  </association>  
+  <generalization id="41">    
+    <end type="SOURCE" refId="6"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <generalization id="42">    
+    <bendpoint x="2508" y="1060"/>    
+    <end type="SOURCE" refId="17"/>    
+    <end type="TARGET" refId="19"/>  
+  </generalization>  
+  <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+    sort-features="false" accessors="true" visibility="true">    
+    <attributes public="true" package="false" protected="false" private="false" static="true"/>    
+    <operations public="true" package="false" protected="false" private="false" static="true"/>  
+  </classifier-display>  
+  <association-display labels="true" multiplicity="true"/>
+</class-diagram>
