@@ -43,6 +43,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ISvOnSave;
 import com.prtech.svarog_interfaces.IPerunPlugin;
+import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
@@ -220,7 +221,6 @@ public class SvPerunManager extends SvCore {
 
 	}
 
-
 	/**
 	 * Method to build a DbDataObject instance from a IPerunPlugin class
 	 * 
@@ -232,18 +232,28 @@ public class SvPerunManager extends SvCore {
 	static DbDataObject buildDboPlugin(IPerunPlugin plugin) {
 		DbDataObject dboPlugin = new DbDataObject(svCONST.OBJECT_TYPE_PERUN_PLUGIN);
 
-		JsonObject jso = plugin.getMenu((JsonObject) null, null);
-		dboPlugin.setVal(MENU_CONF, jso);
-		jso = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
-		dboPlugin.setVal(CONTEXT_MENU_CONF, jso);
-		dboPlugin.setVal("PERMISSION_CODE", plugin.getPermissionCode());
-		dboPlugin.setVal("LABEL_CODE", plugin.getLabelCode());
-		dboPlugin.setVal("IMG_PATH", plugin.getIconPath());
-		dboPlugin.setVal("JAVASCRIPT_PATH", plugin.getJsPluginUrl());
-		dboPlugin.setVal("SORT_ORDER", plugin.getSortOrder());
-		dboPlugin.setVal("VERSION", plugin.getVersion());
-		dboPlugin.setVal(CONTEXT_MENU_CONF, plugin.getContextName());
+		ISvCore svc = null;
+		try {
+			svc = new SvReader();
+			JsonObject jso = plugin.getMenu((JsonObject) null, svc);
+			dboPlugin.setVal(MENU_CONF, jso);
+			JsonObject jsoContext = plugin.getContextMenu((HashMap) null, (JsonObject) null, svc);
+			dboPlugin.setVal(CONTEXT_MENU_CONF, jsoContext);
+			dboPlugin.setVal("PERMISSION_CODE", plugin.getPermissionCode());
+			dboPlugin.setVal("LABEL_CODE", plugin.getLabelCode());
+			dboPlugin.setVal("IMG_PATH", plugin.getIconPath());
+			dboPlugin.setVal("JAVASCRIPT_PATH", plugin.getJsPluginUrl());
+			dboPlugin.setVal("SORT_ORDER", plugin.getSortOrder());
+			dboPlugin.setVal("VERSION", plugin.getVersion());
+			dboPlugin.setVal(CONTEXT_NAME, plugin.getContextName());
+			dboPlugin.setStatus(svCONST.STATUS_VALID);
 
+		} catch (SvException e) {
+			log4j.error("Error generating perun pluing structure", e);
+		} finally {
+			if (svc != null)
+				svc.release();
+		}
 		return dboPlugin;
 	}
 
@@ -261,10 +271,12 @@ public class SvPerunManager extends SvCore {
 		SvReader svr = null;
 		SvWriter svw = null;
 		SvSecurity svs = null;
-		String unqNameField = CONTEXT_MENU_CONF;
+		String unqNameField = CONTEXT_NAME;
 		try {
 
 			svr = new SvReader();
+			svr.switchUser(svCONST.serviceUser);
+			svr.isInternal = true;
 			// add all plugin names in one big OR list
 			DbSearchExpression search = new DbSearchExpression();
 			for (IPerunPlugin plugin : plugins) {
@@ -275,7 +287,6 @@ public class SvPerunManager extends SvCore {
 			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_PERUN_PLUGIN), search, null, null);
 			DbDataArray dboPlugins = svr.getObjects(dqo, 0, 0);
 			// switch to service user in order to be able to manage permissions
-			svr.switchUser(svCONST.serviceUser);
 			svw = new SvWriter(svr);
 			svs = new SvSecurity(svw);
 			svw.setAutoCommit(false);
@@ -309,6 +320,7 @@ public class SvPerunManager extends SvCore {
 	 */
 	static DbDataArray configurePlugins(List<IPerunPlugin> plugins, DbDataArray dboPlugins) {
 		DbDataArray upgradedList = new DbDataArray();
+		dboPlugins.rebuildIndex(CONTEXT_NAME,true);
 		for (IPerunPlugin plugin : plugins) {
 			DbDataObject pluginDbo = dboPlugins.getItemByIdx(plugin.getContextName());
 			// get the new version of the descriptor
