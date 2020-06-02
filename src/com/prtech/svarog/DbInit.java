@@ -5292,6 +5292,10 @@ public class DbInit {
 		dbtt = getMasterCluster();
 		dbtList.add(addSortOrder(dbtt));
 		
+		
+		dbtt = getPluginConf();
+		dbtList.add(addSortOrder(dbtt));
+
 		dbtt = getExecutorGroup();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = getExecutorPack();
