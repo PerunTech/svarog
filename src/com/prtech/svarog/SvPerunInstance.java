@@ -2,6 +2,9 @@ package com.prtech.svarog;
 
 import java.util.HashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -16,6 +19,10 @@ import com.prtech.svarog_interfaces.ISvCore;
  */
 
 public class SvPerunInstance {
+	/**
+	 * Log4j instance used for logging
+	 */
+	static final Logger log4j = LogManager.getLogger(SvPerunInstance.class.getName());
 
 	String status;
 	JsonObject mainMenu;
@@ -33,19 +40,34 @@ public class SvPerunInstance {
 		this.status = dboPlugin.getStatus();
 		Gson g = new Gson();
 		if (dboPlugin.getVal("MENU_CONF") != null) {
-			String menuStr = (String) dboPlugin.getVal("MENU_CONF");
-			this.mainMenu = g.fromJson(menuStr, JsonObject.class);
+			if (dboPlugin.getVal("MENU_CONF") instanceof JsonObject)
+				this.mainMenu = (JsonObject) dboPlugin.getVal("MENU_CONF");
+			else if (dboPlugin.getVal("MENU_CONF") instanceof String) {
+				String menuStr = (String) dboPlugin.getVal("MENU_CONF");
+				this.mainMenu = g.fromJson(menuStr, JsonObject.class);
+			} else
+				log4j.error("Can't parse menu config");
 		} else
 			this.mainMenu = plugin.getMenu((JsonObject) null, null);
 
 		if (dboPlugin.getVal("CONTEXT_MENU_CONF") != null) {
-			String menuStr = (String) dboPlugin.getVal("CONTEXT_MENU_CONF");
-			this.contextMenu = g.fromJson(menuStr, JsonObject.class);
+			if (dboPlugin.getVal("CONTEXT_MENU_CONF") instanceof JsonObject)
+				this.contextMenu = (JsonObject) dboPlugin.getVal("CONTEXT_MENU_CONF");
+			else if (dboPlugin.getVal("CONTEXT_MENU_CONF") instanceof String) {
+				String menuStr = (String) dboPlugin.getVal("CONTEXT_MENU_CONF");
+				try {
+					this.contextMenu = g.fromJson(menuStr, JsonObject.class);
+				} catch (Exception e) {
+					log4j.error("Can't parse context menu config:" + menuStr, e);
+				}
+			} else
+				log4j.error("Can't parse context menu config");
 		} else
 			this.contextMenu = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
 
 		this.permissionCode = (String) (dboPlugin.getVal("PERMISSION_CODE") != null
-				? dboPlugin.getVal("PERMISSION_CODE") : plugin.getPermissionCode());
+				? dboPlugin.getVal("PERMISSION_CODE")
+				: plugin.getPermissionCode());
 		this.labelCode = (String) (dboPlugin.getVal("LABEL_CODE") != null ? dboPlugin.getVal("LABEL_CODE")
 				: plugin.getLabelCode());
 		this.imgPath = (String) (dboPlugin.getVal("IMG_PATH") != null ? dboPlugin.getVal("IMG_PATH")
