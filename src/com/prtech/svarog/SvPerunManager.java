@@ -246,6 +246,7 @@ public class SvPerunManager extends SvCore {
 			dboPlugin.setVal("SORT_ORDER", plugin.getSortOrder());
 			dboPlugin.setVal("VERSION", plugin.getVersion());
 			dboPlugin.setVal(CONTEXT_NAME, plugin.getContextName());
+			dboPlugin.setStatus(svCONST.STATUS_VALID);
 
 		} catch (SvException e) {
 			log4j.error("Error generating perun pluing structure", e);
