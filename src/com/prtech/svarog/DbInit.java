@@ -130,7 +130,7 @@ public class DbInit {
 
 		DbDataField dbe6 = new DbDataField();
 		dbe6.setDbFieldName("PERMISSION_CODE");
-		dbe6.setDbFieldType(DbFieldType.NUMERIC);
+		dbe6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe6.setDbFieldSize(50);
 		dbe6.setIsNull(false);
 		dbe6.setLabel_code("plugin_conf.permission_code");
