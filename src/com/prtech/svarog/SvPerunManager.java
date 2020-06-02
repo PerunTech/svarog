@@ -43,6 +43,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ISvOnSave;
 import com.prtech.svarog_interfaces.IPerunPlugin;
+import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
@@ -231,18 +232,27 @@ public class SvPerunManager extends SvCore {
 	static DbDataObject buildDboPlugin(IPerunPlugin plugin) {
 		DbDataObject dboPlugin = new DbDataObject(svCONST.OBJECT_TYPE_PERUN_PLUGIN);
 
-		JsonObject jso = plugin.getMenu((JsonObject) null, null);
-		dboPlugin.setVal(MENU_CONF, jso);
-		JsonObject jsoContext = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
-		dboPlugin.setVal(CONTEXT_MENU_CONF, jsoContext);
-		dboPlugin.setVal("PERMISSION_CODE", plugin.getPermissionCode());
-		dboPlugin.setVal("LABEL_CODE", plugin.getLabelCode());
-		dboPlugin.setVal("IMG_PATH", plugin.getIconPath());
-		dboPlugin.setVal("JAVASCRIPT_PATH", plugin.getJsPluginUrl());
-		dboPlugin.setVal("SORT_ORDER", plugin.getSortOrder());
-		dboPlugin.setVal("VERSION", plugin.getVersion());
-		dboPlugin.setVal(CONTEXT_NAME, plugin.getContextName());
+		ISvCore svc = null;
+		try {
+			svc = new SvReader();
+			JsonObject jso = plugin.getMenu((JsonObject) null, svc);
+			dboPlugin.setVal(MENU_CONF, jso);
+			JsonObject jsoContext = plugin.getContextMenu((HashMap) null, (JsonObject) null, svc);
+			dboPlugin.setVal(CONTEXT_MENU_CONF, jsoContext);
+			dboPlugin.setVal("PERMISSION_CODE", plugin.getPermissionCode());
+			dboPlugin.setVal("LABEL_CODE", plugin.getLabelCode());
+			dboPlugin.setVal("IMG_PATH", plugin.getIconPath());
+			dboPlugin.setVal("JAVASCRIPT_PATH", plugin.getJsPluginUrl());
+			dboPlugin.setVal("SORT_ORDER", plugin.getSortOrder());
+			dboPlugin.setVal("VERSION", plugin.getVersion());
+			dboPlugin.setVal(CONTEXT_NAME, plugin.getContextName());
 
+		} catch (SvException e) {
+			log4j.error("Error generating perun pluing structure", e);
+		} finally {
+			if (svc != null)
+				svc.release();
+		}
 		return dboPlugin;
 	}
 
