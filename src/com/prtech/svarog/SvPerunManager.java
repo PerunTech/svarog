@@ -320,6 +320,7 @@ public class SvPerunManager extends SvCore {
 	 */
 	static DbDataArray configurePlugins(List<IPerunPlugin> plugins, DbDataArray dboPlugins) {
 		DbDataArray upgradedList = new DbDataArray();
+		dboPlugins.rebuildIndex(CONTEXT_NAME,true);
 		for (IPerunPlugin plugin : plugins) {
 			DbDataObject pluginDbo = dboPlugins.getItemByIdx(plugin.getContextName());
 			// get the new version of the descriptor
