@@ -3071,8 +3071,17 @@ public abstract class SvCore implements ISvCore {
 			else {
 				Long fScale = (Long) dbf.getVal("FIELD_SCALE");
 				if (fScale != null && fScale > 0) {
-					double dbl = ((Number) value).doubleValue();
-					ps.setBigDecimal(bindAtPosition, new BigDecimal(dbl).setScale(fScale.intValue()));
+					BigDecimal bdcml;
+					if (value instanceof BigDecimal) {
+						bdcml = (BigDecimal) value;
+						if (bdcml.scale() > fScale) {
+							bdcml = bdcml.setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+						}
+					} else {
+						double dbl = ((Number) value).doubleValue();
+						bdcml = new BigDecimal(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+					}
+					ps.setBigDecimal(bindAtPosition, bdcml);
 				} else
 					ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
 			}
