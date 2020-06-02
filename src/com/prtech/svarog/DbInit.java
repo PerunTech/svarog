@@ -155,6 +155,7 @@ public class DbInit {
 		dbf9.setDbFieldSize(3);
 		dbf9.setDbFieldScale(0);
 		dbf9.setIsNull(false);
+		dbf9.setLabel_code("master_repo.version");
 
 		DbDataField dbf10 = new DbDataField();
 		dbf10.setDbFieldName(SORT_ORDER);
@@ -162,6 +163,7 @@ public class DbInit {
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);
 		dbf10.setIsNull(false);
+		dbf10.setLabel_code("master_repo.sort_order");
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
