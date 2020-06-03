@@ -290,7 +290,8 @@ public class SvPerunManager extends SvCore {
 			svw = new SvWriter(svr);
 			svs = new SvSecurity(svw);
 			svw.setAutoCommit(false);
-			dboPlugins.rebuildIndex(unqNameField);
+			dboPlugins.rebuildIndex(unqNameField, true);
+		
 			DbDataArray upgradedList = configurePlugins(plugins, dboPlugins);
 			svw.saveObject(upgradedList);
 			svw.dbCommit();
@@ -320,13 +321,13 @@ public class SvPerunManager extends SvCore {
 	 */
 	static DbDataArray configurePlugins(List<IPerunPlugin> plugins, DbDataArray dboPlugins) {
 		DbDataArray upgradedList = new DbDataArray();
-		dboPlugins.rebuildIndex(CONTEXT_NAME,true);
+
 		for (IPerunPlugin plugin : plugins) {
 			DbDataObject pluginDbo = dboPlugins.getItemByIdx(plugin.getContextName());
 			// get the new version of the descriptor
 			DbDataObject newVersion = buildDboPlugin(plugin);
 			if (pluginDbo != null) {
-				if (plugin.getVersion() > (int) pluginDbo.getVal("VERSION")) {
+				if (plugin.getVersion() > ((Long) pluginDbo.getVal("VERSION")).intValue()) {
 					// if we should keep the old menu, copy from old
 					if (!plugin.replaceMenuOnNew())
 						newVersion.setVal(MENU_CONF, pluginDbo.getVal(MENU_CONF));
