@@ -327,7 +327,7 @@ public class SvPerunManager extends SvCore {
 			// get the new version of the descriptor
 			DbDataObject newVersion = buildDboPlugin(plugin);
 			if (pluginDbo != null) {
-				if (plugin.getVersion() > ((Long) pluginDbo.getVal("VERSION")).intValue()) {
+				if (plugin.getVersion() > (Long.valueOf(pluginDbo.getVal("VERSION").toString())).intValue()) {
 					// if we should keep the old menu, copy from old
 					if (!plugin.replaceMenuOnNew())
 						newVersion.setVal(MENU_CONF, pluginDbo.getVal(MENU_CONF));
