@@ -56,4 +56,4 @@ dev_oracle_password: SVAROG3_DEV
 
 ###### DEV ORACLE SVAROG SETTINGS ########
 ut_oracle_username: SVAROG3_UT
-ut_oracle_password: SVAROG3_UT
+ut_oracle_password: SVAROG3_UT3
