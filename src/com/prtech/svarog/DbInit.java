@@ -130,7 +130,7 @@ public class DbInit {
 
 		DbDataField dbe6 = new DbDataField();
 		dbe6.setDbFieldName("PERMISSION_CODE");
-		dbe6.setDbFieldType(DbFieldType.NUMERIC);
+		dbe6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe6.setDbFieldSize(50);
 		dbe6.setIsNull(false);
 		dbe6.setLabel_code("plugin_conf.permission_code");
@@ -155,6 +155,7 @@ public class DbInit {
 		dbf9.setDbFieldSize(3);
 		dbf9.setDbFieldScale(0);
 		dbf9.setIsNull(false);
+		dbf9.setLabel_code("master_repo.version");
 
 		DbDataField dbf10 = new DbDataField();
 		dbf10.setDbFieldName(SORT_ORDER);
@@ -162,6 +163,7 @@ public class DbInit {
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);
 		dbf10.setIsNull(false);
+		dbf10.setLabel_code("master_repo.sort_order");
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
@@ -5292,6 +5294,10 @@ public class DbInit {
 		dbtt = getMasterCluster();
 		dbtList.add(addSortOrder(dbtt));
 		
+		
+		dbtt = getPluginConf();
+		dbtList.add(addSortOrder(dbtt));
+
 		dbtt = getExecutorGroup();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = getExecutorPack();

@@ -28,7 +28,15 @@ public class SvServiceTracker implements ServiceTrackerCustomizer {
 		log4j.debug("Adding service with reference: " + arg0.getClass().getCanonicalName());
 		Object result = arg0.getBundle().getBundleContext().getService(arg0);
 		if (result instanceof IPerunPlugin) {
-			SvPerunManager.addPlugin((IPerunPlugin) result);
+			try {
+				SvPerunManager.addPlugin((IPerunPlugin) result);
+			} catch (Exception e) {
+				log4j.error(
+						"Error loading plugin:"
+								+ (result != null ? ((IPerunPlugin) result).getContextName() : "Null plugin reference"),
+						e);
+				result = null;
+			}
 		}
 		return result;
 	}

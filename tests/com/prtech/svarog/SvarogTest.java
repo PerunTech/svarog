@@ -2342,7 +2342,7 @@ public class SvarogTest {
 				svw.saveObject(formInstance);
 				fail("No exception was raised");
 			} catch (SvException sv) {
-				if (!sv.getMessage().equals("system.error.field_value_too_long"))
+				if (!sv.getLabelCode().equals("system.error.field_value_too_long"))
 					fail("Field validation failed, value exceeds maximum field size:" + sv.getMessage());
 
 			}
@@ -2519,8 +2519,8 @@ public class SvarogTest {
 			try {
 				svw.saveObject(formInstance);
 			} catch (SvException sv) {
-				if (!(sv.getMessage().equals("system.error.form_type_is_single")
-						|| sv.getMessage().equals("system.error.form_max_count_exceeded")))
+				if (!(sv.getLabelCode().equals("system.error.form_type_is_single")
+						|| sv.getLabelCode().equals("system.error.form_max_count_exceeded")))
 					fail("Form type is single but svarog allowed saving a duplicate instance:"
 							+ sv.getFormattedMessage());
 
@@ -2535,7 +2535,7 @@ public class SvarogTest {
 			try {
 				svw.saveObject(formInstance);
 			} catch (SvException sv) {
-				if (!sv.getMessage().equals("system.error.form_max_count_exceeded"))
+				if (!sv.getLabelCode().equals("system.error.form_max_count_exceeded"))
 					fail("Form type has max count but svarog allowed saving more instances than allowed!");
 			}
 
