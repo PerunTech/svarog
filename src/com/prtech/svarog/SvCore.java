@@ -85,7 +85,7 @@ import com.vividsolutions.jts.io.WKBWriter;
  * POJOs.
  * 
  */
-public abstract class SvCore implements ISvCore {
+public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/////////////////////////////////////////////////////////////
 	// SvCore static variables and methods
 	/////////////////////////////////////////////////////////////
@@ -1784,6 +1784,16 @@ public abstract class SvCore implements ISvCore {
 	 */
 	public void release() {
 		release(false);
+	}
+
+	/**
+	 * Overriden method of the Autocloseable interface to allow Svarog to be
+	 * used in try-with-resources
+	 */
+	@Override
+	public void close() {
+		release();
+
 	}
 
 	/**
