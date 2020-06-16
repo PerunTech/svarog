@@ -114,7 +114,7 @@ public class SvExecManagerTest {
 		private final String exName;
 
 		TestExecutor(String executorName) {
-			if (name != null)
+			if (executorName != null)
 				this.exName = executorName;
 			else
 				this.exName = name;
