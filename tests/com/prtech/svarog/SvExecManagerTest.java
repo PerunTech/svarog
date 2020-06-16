@@ -111,6 +111,14 @@ public class SvExecManagerTest {
 		private final DateTime start = new DateTime("2012-12-31T00:00:00+00");
 		private final DateTime end = new DateTime("9999-12-31T00:00:00+00");
 		private final Class<?> type = DbDataObject.class;
+		private final String exName;
+
+		TestExecutor(String executorName) {
+			if (name != null)
+				this.exName = executorName;
+			else
+				this.exName = name;
+		}
 
 		@Override
 		public Class<?> getReturningType() {
@@ -124,7 +132,7 @@ public class SvExecManagerTest {
 
 		@Override
 		public String getName() {
-			return name;
+			return exName;
 		}
 
 		@Override
@@ -162,7 +170,7 @@ public class SvExecManagerTest {
 		try {
 			sve = new SvExecManager();
 			sve.osgiServices = new Object[1];
-			sve.osgiServices[0] = new TestExecutor();
+			sve.osgiServices[0] = new TestExecutor(null);
 			sve.execute(category, name, null, null);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -172,7 +180,7 @@ public class SvExecManagerTest {
 				sve.release();
 		}
 
-		if (SvConnTracker.hasTrackedConnections(false, false))		
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -182,7 +190,7 @@ public class SvExecManagerTest {
 		try {
 			sve = new SvExecManager();
 			sve.osgiServices = new Object[2];
-			sve.osgiServices[0] = new TestExecutor();
+			sve.osgiServices[0] = new TestExecutor(null);
 			sve.osgiServices[1] = new TestExecutorGroup();
 			sve.execute(category, name + "g2", null, null);
 		} catch (Exception e) {
@@ -206,7 +214,7 @@ public class SvExecManagerTest {
 			svr = new SvReader(sve);
 			svw = new SvWorkflow(sve);
 			sve.osgiServices = new Object[1];
-			ISvExecutor svExec = new TestExecutor();
+			ISvExecutor svExec = new TestExecutor(null);
 			sve.osgiServices[0] = svExec;
 			sve.execute(category, name, null, null);
 
@@ -264,7 +272,7 @@ public class SvExecManagerTest {
 			svr = new SvReader(sve);
 			svw = new SvWriter(sve);
 			sve.osgiServices = new Object[1];
-			ISvExecutor svExec = new TestExecutor();
+			ISvExecutor svExec = new TestExecutor(null);
 			sve.osgiServices[0] = svExec;
 			sve.execute(category, name, null, null);
 
@@ -310,6 +318,46 @@ public class SvExecManagerTest {
 			if (svw != null)
 				svw.release();
 
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void getExecutorPackItems() {
+
+		try (SvExecManager sve = new SvExecManager()) {
+			sve.setAutoCommit(false);
+			sve.osgiServices = new Object[3];
+			sve.osgiServices[0] = new TestExecutor(name + "1");
+			sve.osgiServices[1] = new TestExecutor(name + "2");
+			sve.osgiServices[2] = new TestExecutor(name + "3");
+
+			DbDataObject rootPack = sve.createExecutorPack("test.pack", null);
+			DbDataObject childPack = sve.createExecutorPack("test.pack.child", null, rootPack.getObjectId());
+
+			sve.createExecutorPackItem(rootPack, "test.pack.item", (ISvExecutor) sve.osgiServices[0]);
+			sve.createExecutorPackItem(rootPack, "test.pack.item1", (ISvExecutor) sve.osgiServices[1]);
+			sve.createExecutorPackItem(childPack, "test.pack.item", (ISvExecutor) sve.osgiServices[2]);
+			Map<String, ISvExecutor> rootItems = sve.getExecutorPackItems(rootPack, null);
+
+			Map<String, ISvExecutor> childItems = sve.getExecutorPackItems(childPack, null);
+
+			if (!rootItems.get("test.pack.item").equals(sve.osgiServices[0]))
+				fail("Non matching root item");
+
+			if (!rootItems.get("test.pack.item1").equals(sve.osgiServices[1]))
+				fail("Non matching root item1");
+
+			if (!childItems.get("test.pack.item").equals(sve.osgiServices[2]))
+				fail("Non matching root item");
+
+			if (!childItems.get("test.pack.item1").equals(sve.osgiServices[1]))
+				fail("Non matching root item1");
+			sve.dbRollback();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Test raised execption" + e.toString());
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");

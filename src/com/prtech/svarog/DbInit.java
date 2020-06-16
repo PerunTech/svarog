@@ -79,7 +79,7 @@ public class DbInit {
 	static final String MASTER_REPO_NAME = "{MASTER_REPO}";
 	static final String DEFAULT_SCHEMA = "{DEFAULT_SCHEMA}";
 	
-	static DbDataTable getPluginConf() {
+	private static DbDataTable getPluginConf() {
 		DbDataTable dbe = new DbDataTable();
 		dbe.setDbTableName("{MASTER_REPO}_PERUN_PLUGIN");
 		dbe.setDbRepoName("{MASTER_REPO}");
@@ -355,18 +355,19 @@ public class DbInit {
 		return dbt;
 	}
 	
-	
-	// table EXECUTOR_GROUPS
-	private static DbDataTable getExecutorGroup() {
+
+	// table EXECUTOR_PACK
+	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_executor_group");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_exec_pack");
 		dbt.setDbRepoName(MASTER_REPO_NAME);
 		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
-		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_GROUP);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.executor_group");
+		dbt.setLabel_code("master_repo.executor_pack");
 		dbt.setUse_cache(false);
+		
 
 		// f1
 		DbDataField dbf1 = new DbDataField();
@@ -387,34 +388,36 @@ public class DbInit {
 		dbf2.setIsUnique(true);
 		dbf2.setLabel_code("master_repo.label_code");
 
-		// f3
-		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("DESCTIPTION");
-		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf3.setDbFieldSize(2000);
-		dbf3.setIsUnique(true);
-		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.description");
-	
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("NOTES");
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(1000);
+		dbf4.setIsUnique(false);
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code("master_repo.notes");
 
+		
 		DbDataField[] dbTableFields = new DbDataField[3];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
-		dbTableFields[2] = dbf3;
+		dbTableFields[2] = dbf4;
 		dbt.setDbTableFields(dbTableFields);
 		return dbt;
 	}
 
+
 	// table EXECUTOR_PACK
-	private static DbDataTable getExecutorPack() {
+	private static DbDataTable getExecutorPackItems() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_exec_pack");
+		dbt.setDbTableName(REPO_TABLE_NAME+"_EXPCK_ITEMS");
 		dbt.setDbRepoName(MASTER_REPO_NAME);
 		dbt.setDbSchema(DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
-		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECPACK_ITEM);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.executor_pack");
+		dbt.setParent_id(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
+		dbt.setLabel_code("master_repo.executor_pack_items");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -429,41 +432,29 @@ public class DbInit {
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("NAME");
+		dbf2.setDbFieldName("EXECUTOR_KEY");
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf2.setDbFieldSize(100);
+		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
-		dbf2.setIsUnique(true);
-		dbf2.setLabel_code("master_repo.name");
+		dbf2.setLabel_code("master_repo.label_code");
 
-		// f3
+		// f2
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("PACK_LEVEL");
-		dbf3.setDbFieldType(DbFieldType.NUMERIC);
-		dbf3.setDbFieldSize(18);
-		dbf3.setIsUnique(true);
+		dbf3.setDbFieldName(LABEL_CODE);
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.executor_level");
+		dbf3.setIsUnique(true);
+		dbf3.setUnique_level("PARENT");
+		dbf3.setLabel_code("master_repo.label_code");
 		
-
-		// f4
-		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName("NOTES");
-		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf4.setDbFieldSize(1000);
-		dbf4.setIsUnique(true);
-		dbf4.setIsNull(false);
-		dbf4.setLabel_code("master_repo.notes");
-
-		DbDataField[] dbTableFields = new DbDataField[4];
+		DbDataField[] dbTableFields = new DbDataField[3];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
 		dbTableFields[2] = dbf3;
-		dbTableFields[3] = dbf4;
 		dbt.setDbTableFields(dbTableFields);
 		return dbt;
 	}
-
 	// RULE ENGINE
 	private static DbDataTable getMasterNotes() {
 		DbDataTable dbt = new DbDataTable();
@@ -5298,10 +5289,11 @@ public class DbInit {
 		dbtt = getPluginConf();
 		dbtList.add(addSortOrder(dbtt));
 
-		dbtt = getExecutorGroup();
-		dbtList.add(addSortOrder(dbtt));
 		dbtt = getExecutorPack();
 		dbtList.add(addSortOrder(dbtt));
+		dbtt = 	getExecutorPackItems();
+		dbtList.add(addSortOrder(dbtt));
+
 
 		// Add SDI structure
 		if (SvConf.isSdiEnabled()) {
@@ -6274,6 +6266,7 @@ public class DbInit {
 		dblPrint.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_UI_STRUCTURE_SOURCE);
 		defaultObjests.addDataItem(dblPrint);
 
+		
 		DbDataObject coordinator = new DbDataObject();
 		dblPrint.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
 		dblPrint.setObjectType(svCONST.OBJECT_TYPE_CLUSTER);
