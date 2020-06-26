@@ -238,7 +238,7 @@ public class SvarogInstall {
 				errStatus = 0;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			log4j.info("DbConnection.getDBConnection() raised an exception");
+			log4j.info("Can't connect to target database. Check svarog.properties configuration.");
 			log4j.debug("Connection exception:", e);
 
 		} finally {

@@ -194,7 +194,31 @@ public class SvMaintenance implements Runnable {
 
 		try {
 			StringBuilder sbr = new StringBuilder(100);
+
+			sbr = new StringBuilder(100);
 			sbr.append("DELETE FROM ");
+			sbr.append(SvConf.getDefaultSchema() + ".");
+			sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("REPO_NAME") + " WHERE ");
+			sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER) + " AND  PKID NOT IN (");
+			// append the ids which we should not delete
+			sbr.append(dontDeleteIDs);
+			sbr.setLength(sbr.length() - 1);
+			sbr.append("))");
+			conn.setAutoCommit(false);
+			ps = conn.prepareStatement(sbr.toString());
+			ps.execute();
+		} finally {
+			try {
+				SvCore.closeResource(ps, svCONST.systemUser);
+			} catch (SvException e) {
+				log4j.error("Svarog cluster maintenance failed!", e);
+			}
+		}
+
+		try {
+			StringBuilder sbr = new StringBuilder(100);
+
+			sbr = new StringBuilder(100);
 			sbr.append(SvConf.getDefaultSchema() + ".");
 			sbr.append(
 					(String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME") + " WHERE PKID NOT IN (");
@@ -204,7 +228,6 @@ public class SvMaintenance implements Runnable {
 			sbr.append(")");
 			conn.setAutoCommit(false);
 			ps = conn.prepareStatement(sbr.toString());
-
 			ps.execute();
 
 		} finally {
