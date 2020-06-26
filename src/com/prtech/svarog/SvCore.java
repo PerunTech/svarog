@@ -2851,7 +2851,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					hasAccess = authoriseDqoByConfigType(dqo, aclMap, accessLevel);
 				}
 			}
-
+			if(!hasAccess)
+				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
+						accessLevel.toString()));
 		} else
 			hasAccess = true;
 		return hasAccess;
@@ -2859,8 +2861,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 	private boolean hasDQOTreeAccess(DbQueryObject dqo, SvAccess accessLevel) throws SvException {
 		// DbDataArray perms = getPermissions();
-		// TODO add this change asap
-		return true;
+		boolean hasAccess = authoriseDqo(dqo, SvAccess.READ);
+		for(DbQueryObject dqoChild: dqo.getChildren())
+		{
+			hasAccess = hasDQOTreeAccess(dqoChild,accessLevel);
+		}
+		return hasAccess;
 
 	}
 
@@ -3089,7 +3095,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 						}
 					} else {
 						double dbl = ((Number) value).doubleValue();
-						bdcml = new BigDecimal(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+						bdcml = BigDecimal.valueOf(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
 					}
 					ps.setBigDecimal(bindAtPosition, bdcml);
 				} else

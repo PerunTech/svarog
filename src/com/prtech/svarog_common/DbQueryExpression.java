@@ -130,7 +130,7 @@ public class DbQueryExpression extends DbQuery {
 	 *            The sequence inside the DQO or global sequence
 	 * @return
 	 */
-	DbQueryObject getDqo(DbQueryObject currentDqo, Integer sequence) {
+	private DbQueryObject getDqo(DbQueryObject currentDqo, Integer sequence) {
 		DbQueryObject dqo = null;
 		if (isReverseExpression) {
 			if (currentDqo == null)

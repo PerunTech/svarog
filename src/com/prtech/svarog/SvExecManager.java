@@ -140,6 +140,7 @@ public class SvExecManager extends SvCore {
 		}
 	}
 
+
 	/**
 	 * Global member which we can use for unit testing also! In JUnit just set
 	 * the value of the services you want to test.
@@ -407,13 +408,13 @@ public class SvExecManager extends SvCore {
 			search.addDbSearchItem(new DbSearchCriterion("NAME", DbCompareOperand.EQUAL, name));
 			search.addDbSearchItem(new DbSearchCriterion("CATEGORY", DbCompareOperand.EQUAL, category));
 			if (version != null)
-				search.addDbSearchItem(new DbSearchCriterion("VERSION", DbCompareOperand.EQUAL, version));
+				search.addDbSearchItem(new DbSearchCriterion(Sv.VERSION, DbCompareOperand.EQUAL, version));
 
 			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), search, null, null);
 			DbDataArray objects = svr.getObjects(dqo, 0, 0);
 			if (objects.size() > 0) {
 				// make sure we reverse the sort to get the highest version
-				ArrayList<DbDataObject> sort = objects.getSortedItems("VERSION");
+				ArrayList<DbDataObject> sort = objects.getSortedItems(Sv.VERSION);
 				Collections.reverse(sort);
 				execDbo = objects.get(0);
 			}
@@ -434,7 +435,6 @@ public class SvExecManager extends SvCore {
 	SvExecInstance initExecInstance(SvExecInstance exeInstance) {
 		ISvExecutor executor = exeInstance.getExecutor();
 
-		SvReader svr = null;
 		SvWriter svw = null;
 		SvSecurity svs = null;
 		try {
@@ -457,7 +457,7 @@ public class SvExecManager extends SvCore {
 				dbo.setVal("DESCRIPTION", executor.getDescription());
 				dbo.setVal("START_DATE", executor.getStartDate());
 				dbo.setVal("END_DATE", executor.getEndDate());
-				dbo.setVal("VERSION", executor.versionUID());
+				dbo.setVal(Sv.VERSION, executor.versionUID());
 				svw.saveObject(dbo);
 				String executorKey = getKey(executor);
 				DbDataArray perms = svs.getPermissions(executorKey);
@@ -470,8 +470,6 @@ public class SvExecManager extends SvCore {
 			log4j.error("Error loading executor data from db. Executor:'" + getKey(executor) + "', version:"
 					+ executor.versionUID(), e);
 		} finally {
-			if (svr != null)
-				svr.release();
 			if (svw != null)
 				svw.release();
 			if (svs != null)
@@ -872,7 +870,7 @@ public class SvExecManager extends SvCore {
 	 */
 	public DbDataObject createExecutorPack(String labelCode, String notes, Long parentPackId) throws SvException {
 		DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
-		dbo.setVal("LABEL_CODE", labelCode);
+		dbo.setVal(Sv.LABEL_CODE, labelCode);
 		dbo.setVal("NOTES", labelCode);
 		dbo.setParentId(parentPackId);
 		try (SvWriter svw = new SvWriter(this)) {
@@ -921,8 +919,8 @@ public class SvExecManager extends SvCore {
 			String exeName) throws SvException {
 		if (execPack.getObjectId() > 0L) {
 			DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECPACK_ITEM);
-			dbo.setVal("EXECUTOR_KEY", SvExecManager.getKey(exeCategory, exeName));
-			dbo.setVal("LABEL_CODE", labelCode);
+			dbo.setVal(Sv.EXECUTOR_KEY, SvExecManager.getKey(exeCategory, exeName));
+			dbo.setVal(Sv.LABEL_CODE, labelCode);
 			dbo.setParentId(execPack.getObjectId());
 			try (SvWriter svw = new SvWriter(this)) {
 				svw.saveObject(dbo);
@@ -964,8 +962,8 @@ public class SvExecManager extends SvCore {
 				DbDataArray dba = svr.getObjectsByParentId(execPack.getObjectId(), svCONST.OBJECT_TYPE_EXECPACK_ITEM,
 						null);
 				for (DbDataObject dbo : dba.getItems()) {
-					ISvExecutor sve = this.getExecutor((String) dbo.getVal("EXECUTOR_KEY"), executorRefDate);
-					items.put((String) dbo.getVal("LABEL_CODE"), sve);
+					ISvExecutor sve = this.getExecutor((String) dbo.getVal(Sv.EXECUTOR_KEY), executorRefDate);
+					items.put((String) dbo.getVal(Sv.LABEL_CODE), sve);
 				}
 
 			}
