@@ -61,6 +61,7 @@ public class SvConfigurationImpl implements ISvConfiguration {
 		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_WORKFLOW", "OBJECT_SUB_CODE");
 		msg += "; ";
 		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_EXEC_PACK", "NAME");
+		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_EXEC_PACK", "PACK_LEVEL");
 		deleteRedundantDbt(svc, svCONST.OBJECT_TYPE_RESERVED_DONTUSE1);
 		deleteRedundantDbt(svc, svCONST.OBJECT_TYPE_RESERVED_DONTUSE2);
 		return msg;
