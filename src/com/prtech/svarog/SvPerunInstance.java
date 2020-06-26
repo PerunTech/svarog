@@ -84,7 +84,7 @@ public class SvPerunInstance {
 				: plugin.getIconPath());
 		this.jsPath = (String) (dboPlugin.getVal("JAVASCRIPT_PATH") != null ? dboPlugin.getVal("JAVASCRIPT_PATH")
 				: plugin.getJsPluginUrl());
-		this.sortOrder = (int) (dboPlugin.getVal("SORT_ORDER") != null ? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
+		this.sortOrder = (dboPlugin.getVal("SORT_ORDER") != null ? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
 				: plugin.getSortOrder());
 		this.plugin = plugin;
 

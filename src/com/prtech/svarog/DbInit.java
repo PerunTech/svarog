@@ -75,6 +75,7 @@ public class DbInit {
 	static final String VERSION = "VERSION";
 	static final String SORT_ORDER = "SORT_ORDER";
 	static final String TABLE_NAME = "table_name";
+	static final String PARENT = "PARENT";
 	static final String REPO_TABLE_NAME = "{REPO_TABLE_NAME}";
 	static final String MASTER_REPO_NAME = "{MASTER_REPO}";
 	static final String DEFAULT_SCHEMA = "{DEFAULT_SCHEMA}";
@@ -163,7 +164,7 @@ public class DbInit {
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);
 		dbf10.setIsNull(false);
-		dbf10.setLabel_code("master_repo.sort_order");
+		dbf10.setLabel_code("master_repo."+SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
@@ -445,7 +446,7 @@ public class DbInit {
 		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(false);
 		dbf3.setIsUnique(true);
-		dbf3.setUnique_level("PARENT");
+		dbf3.setUnique_level(PARENT);
 		dbf3.setLabel_code("master_repo.label_code");
 		
 		DbDataField[] dbTableFields = new DbDataField[3];
@@ -484,7 +485,7 @@ public class DbInit {
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
-		dbf2.setUnique_level("PARENT");
+		dbf2.setUnique_level(PARENT);
 		dbf2.setLabel_code("master_repo.note_name");
 
 		// f3
@@ -661,7 +662,7 @@ public class DbInit {
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(9);
 		dbf9.setIsNull(false);
-		dbf9.setLabel_code("master_repo.sort_order");
+		dbf9.setLabel_code("master_repo."+SORT_ORDER);
 
 		// f10
 		DbDataField dbf10 = new DbDataField();
@@ -912,7 +913,7 @@ public class DbInit {
 		dbf14.setDbFieldSize(18);
 		dbf14.setDbFieldScale(0);
 		dbf14.setIsNull(true);
-		dbf14.setLabel_code("master_repo.field_sort_order");
+		dbf14.setLabel_code("master_repo.field_"+SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
@@ -1087,7 +1088,7 @@ public class DbInit {
 		dbe6.setDbFieldType(DbFieldType.NUMERIC);
 		dbe6.setDbFieldSize(18);
 		dbe5.setIsNull(true);
-		dbe6.setLabel_code("form_type.sort_order");
+		dbe6.setLabel_code("form_type."+SORT_ORDER);
 
 		DbDataField dbe7 = new DbDataField();
 		dbe7.setDbFieldName("ACL_OBJECT_ID");
@@ -1482,7 +1483,7 @@ public class DbInit {
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(18);
 		dbf9.setIsNull(true);
-		dbf9.setLabel_code("param_type.sort_order");
+		dbf9.setLabel_code("param_type."+SORT_ORDER);
 
 		// Column 10
 		DbDataField dbf10 = new DbDataField();
@@ -1563,7 +1564,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NUMERIC);
 		dbf4.setDbFieldSize(18);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("param_type.sort_order");
+		dbf4.setLabel_code("param_type."+SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[4];
 		dbTableFields[0] = dbf1;
@@ -2134,7 +2135,7 @@ public class DbInit {
 		dbf8.setDbFieldType(DbFieldType.NUMERIC);
 		dbf8.setDbFieldSize(9);
 		dbf8.setIsNull(false);
-		dbf8.setLabel_code("ui_struct_type.sort_order");
+		dbf8.setLabel_code("ui_struct_type."+SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[8];
 		dbTableFields[0] = dbf1;
@@ -2198,7 +2199,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NUMERIC);
 		dbf4.setDbFieldSize(9);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("ui_struct_source.sort_order");
+		dbf4.setLabel_code("ui_struct_source."+SORT_ORDER);
 
 		// Column 5
 		DbDataField dbf5 = new DbDataField();
@@ -3386,7 +3387,7 @@ public class DbInit {
 			dbf2_1.setIsNull(false);
 			dbf2_1.setIsUnique(true);
 			dbf2_1.setUnique_constraint_name("uq_object_from_to_status");
-			dbf2_1.setUnique_level("PARENT");
+			dbf2_1.setUnique_level(PARENT);
 			dbf2_1.setLabel_code("master_repo.workflow_name");
 			dbf2_1.setIs_updateable(false);
 
@@ -3396,7 +3397,7 @@ public class DbInit {
 			dbf6.setDbFieldSize(10);
 			dbf6.setIsNull(false);
 //			dbf6.setUnique_constraint_name("uq_object_from_to_status");
-//			dbf6.setUnique_level("PARENT");
+//			dbf6.setUnique_level(PARENT);
 //			dbf6.setIsUnique(true);
 			dbf6.setCode_list_user_code("OBJ_STATUS");
 			dbf6.setLabel_code("master_repo.from_status");
@@ -3407,7 +3408,7 @@ public class DbInit {
 			dbf7.setDbFieldSize(10);
 			dbf7.setIsNull(false);
 //			dbf7.setIsUnique(true);
-//			dbf7.setUnique_level("PARENT");
+//			dbf7.setUnique_level(PARENT);
 //			dbf7.setUnique_constraint_name("uq_object_from_to_status");
 			dbf7.setCode_list_user_code("OBJ_STATUS");
 			dbf7.setLabel_code("master_repo.object_status");
@@ -3659,7 +3660,7 @@ public class DbInit {
 			dbf2_1.setIsNull(false);
 			dbf2_1.setLabel_code("master_repo.file_name");
 			dbf2_1.setIsUnique(false);
-			dbf2_1.setUnique_level("PARENT");
+			dbf2_1.setUnique_level(PARENT);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -3757,7 +3758,7 @@ public class DbInit {
 			dbf2_1.setIsNull(false);
 			dbf2_1.setLabel_code("master_repo.code_value");
 			dbf2_1.setIsUnique(true);
-			dbf2_1.setUnique_level("PARENT");
+			dbf2_1.setUnique_level(PARENT);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -3772,7 +3773,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(9);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.sort_order");
+			dbf4.setLabel_code("master_repo."+SORT_ORDER);
 
 			// f2
 			DbDataField dbf5 = new DbDataField();
@@ -3956,7 +3957,7 @@ public class DbInit {
 			dbf2.setIsNull(false);
 			dbf2.setLabel_code("master_repo.field_name");
 			dbf2.setIsUnique(true);
-			dbf2.setUnique_level("PARENT");
+			dbf2.setUnique_level(PARENT);
 			;
 
 			DbDataField dbf2_1 = new DbDataField();
@@ -4076,7 +4077,7 @@ public class DbInit {
 			dbf14.setDbFieldSize(18);
 			dbf14.setDbFieldScale(0);
 			dbf14.setIsNull(true);
-			dbf14.setLabel_code("master_repo.field_sort_order");
+			dbf14.setLabel_code("master_repo.field_"+SORT_ORDER);
 
 			DbDataField dbf15 = new DbDataField();
 			dbf15.setDbFieldName("CODE_LIST_MNEMONIC");
@@ -6032,7 +6033,7 @@ public class DbInit {
 				// unique constraint
 				if (dbf.getDbFieldName().equalsIgnoreCase(dbt.getConfigColumnName())) {
 					if (!dbf.getIsUnique()
-							|| !(dbf.getUnique_level().equals("TABLE") || dbf.getUnique_level().equals("PARENT"))) {
+							|| !(dbf.getUnique_level().equals("TABLE") || dbf.getUnique_level().equals(PARENT))) {
 						errMsg.append("Table:" + dbt.getDbTableName() + ",Field:" + dbf.getDbFieldName()
 								+ " is set as config field but not unique or unique level is other than TABLE/PARENT");
 						return svObjectId;
@@ -6076,7 +6077,7 @@ public class DbInit {
 				}
 				dbo.setVal("code_list_mnemonic", dbf.getCode_user_code());
 				dbo.setVal("is_updateable", dbf.getIs_updateable());
-				dbo.setVal("sort_order", dbf.getSort_order());
+				dbo.setVal(SORT_ORDER, dbf.getSort_order());
 
 				dbarrOut.getItems().add(dbo);
 
@@ -6523,7 +6524,7 @@ public class DbInit {
 
 			dbo.setVal("code_value", inObj.get("user_code").getAsString());
 			dbo.setVal(LABEL_CODE, inObj.get("label_code").getAsString());
-			dbo.setVal("sort_order", sort);
+			dbo.setVal(SORT_ORDER, sort);
 
 			dbo.setVal("PARENT_CODE_VALUE", parentCodeValue != null ? parentCodeValue.getAsString() : null);
 
