@@ -164,7 +164,7 @@ public class DbInit {
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);
 		dbf10.setIsNull(false);
-		dbf10.setLabel_code("master_repo."+SORT_ORDER);
+		dbf10.setLabel_code("master_repo."+SORT_ORDER.toLowerCase());
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
