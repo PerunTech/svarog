@@ -20,13 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.ResourceBundle;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -35,11 +33,10 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.ConfigurationSource;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 
 /**
@@ -286,6 +283,7 @@ public class SvConf {
 						+ "! All available timezones in the system can be found here: http://joda-time.sourceforge.net/timezones.html");
 			}
 		}
+		DboFactory.setInitialMaxDate(maxDate);
 		log4j.debug("Set MAX_DATE:" + maxDate.toString());
 
 		return maxDate;
@@ -383,7 +381,7 @@ public class SvConf {
 			log4j.info("Starting " + appName);
 			log4j.info("Version:" + appVersion);
 			log4j.info("Build:" + appBuild);
-			
+
 			log4j.debug("Commit:" + loadInfo("git.commit.id.full"));
 			log4j.debug("Commit Desc:" + loadInfo("git.commit.id.describe"));
 			log4j.debug("Host:" + loadInfo("git.build.host"));
