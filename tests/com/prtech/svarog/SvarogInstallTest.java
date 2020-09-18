@@ -28,6 +28,8 @@ public class SvarogInstallTest {
 			if (!SvarogInstall.shouldUpgradeConfig(dbo1, dbo2, dboFields))
 				fail("shouldUpgrade returned false!");
 
+			dbt = SvCore.getDbt(57L);
+			System.out.println(dbt.getVal(Sv.GUI_METADATA).toString());
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			fail("Exception was raised");

@@ -4274,7 +4274,19 @@ public class DbInit {
 			dbf16.setDbFieldSize(18);
 			dbf16.setLabel_code("master_repo.config_relation_id");
 
-			dbt.setDbTableFields(new DbDataField[16]);
+			DbDataField dbf17 = new DbDataField();
+			dbf17.setDbFieldName("GUI_METADATA");
+			dbf17.setDbFieldType(DbFieldType.TEXT);
+			dbf17.setIsNull(true);
+			dbf17.setLabel_code("master_repo.ext_params");
+			
+			DbDataField dbf18 = new DbDataField();
+			dbf18.setDbFieldName("EXTENDED_PARAMS");
+			dbf18.setDbFieldType(DbFieldType.TEXT);
+			dbf18.setIsNull(true);
+			dbf18.setLabel_code("master_repo.ext_params");
+			
+			dbt.setDbTableFields(new DbDataField[18]);
 			dbt.getDbTableFields()[0] = dbf1;
 			dbt.getDbTableFields()[1] = dbf2;
 			dbt.getDbTableFields()[2] = dbf3;
@@ -4291,6 +4303,8 @@ public class DbInit {
 			dbt.getDbTableFields()[13] = dbf14;
 			dbt.getDbTableFields()[14] = dbf15;
 			dbt.getDbTableFields()[15] = dbf16;
+			dbt.getDbTableFields()[16] = dbf17;
+			dbt.getDbTableFields()[17] = dbf18;
 			return dbt;
 		}
 	}
