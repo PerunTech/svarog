@@ -1103,22 +1103,23 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * 
 	 * @param fields
 	 *            The fields array to be preprocessed
+	 * @throws SvException
 	 */
-	private static void prepareFields(DbDataArray fields) {
+	private static void prepareFields(DbDataArray fields) throws SvException {
 		for (DbDataObject dbo : fields.getItems()) {
 			Gson gs = new Gson();
-			if (dbo.getVal("gui_metadata") != null) {
+			if (dbo.getVal(Sv.GUI_METADATA) != null) {
 				try {
-					JsonObject jo = gs.fromJson((String) dbo.getVal("gui_metadata"), JsonObject.class);
-					dbo.setVal("gui_metadata", jo);
+					JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.GUI_METADATA), JsonObject.class);
+					dbo.setVal(Sv.GUI_METADATA, jo);
 					dbo.setIsDirty(false);
 				} catch (Exception e) {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata");
 				}
 			}
-			if (dbo.getVal("EXTENDED_PARAMS") != null) {
+			if (dbo.getVal(Sv.EXTENDED_PARAMS) != null) {
 				try {
-					JsonObject jo = gs.fromJson((String) dbo.getVal("EXTENDED_PARAMS"), JsonObject.class);
+					JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.EXTENDED_PARAMS), JsonObject.class);
 					for (Entry<String, JsonElement> je : jo.entrySet()) {
 						JsonElement jel = je.getValue();
 						if (jel.isJsonPrimitive()) {
@@ -1139,8 +1140,61 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
 				}
 			}
+			// finally link the ext params and gui metadata to the parent meta
+			linkToParentDbt(dbo);
 
 		}
+	}
+
+	private static void linkToParentDbt(DbDataObject dbo) throws SvException {
+		DbDataObject dbt = SvCore.getDbt(dbo.getParentId());
+		assert (dbt != null);
+
+		
+		JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
+		if (meta == null) {
+		
+			try(SvReader svr = new SvReader())
+			{
+				DboUnderground.revertReadOnly(dbt, svr);
+				meta = new JsonObject();
+				dbt.setVal(Sv.GUI_METADATA, meta);
+				dbt.setIsDirty(false);
+				DboFactory.makeDboReadOnly(dbt);
+			}
+		}
+
+		JsonElement j = meta.get(Sv.FIELDS);
+		if (j == null) {
+			j = new JsonObject();
+			meta.add(Sv.FIELDS, j);
+		}
+
+		JsonObject jo = j.getAsJsonObject();
+		if (dbo.getVal(Sv.GUI_METADATA) != null)
+			jo.add((String) dbo.getVal(Sv.FIELD_NAME), (JsonElement) dbo.getVal(Sv.GUI_METADATA));
+
+		JsonObject params = (JsonObject) dbt.getVal(Sv.EXTENDED_PARAMS);
+		if (params == null) {
+			try(SvReader svr = new SvReader())
+			{
+				DboUnderground.revertReadOnly(dbt, svr);
+				params = new JsonObject();
+				dbt.setVal(Sv.EXTENDED_PARAMS, params);
+				dbt.setIsDirty(false);
+				DboFactory.makeDboReadOnly(dbt);
+			}
+		}
+		JsonElement jx = params.get(Sv.FIELDS);
+		if (jx == null) {
+			jx = new JsonObject();
+			params.add(Sv.FIELDS, jx);
+		}
+		
+		JsonObject jox = jx.getAsJsonObject();
+		if (dbo.getVal(Sv.EXTENDED_PARAMS) != null)
+			jox.add((String) dbo.getVal(Sv.FIELD_NAME), (JsonElement) dbo.getVal(Sv.EXTENDED_PARAMS));
+
 	}
 
 	/**
@@ -1231,6 +1285,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 
 		// verify minimal configuration exists
+		validateSvarogConfig();
+	}
+
+	/**
+	 * Method to validate the currently loaded svarog configuration contains the
+	 * base tables.
+	 * 
+	 * @throws Exception
+	 *             In case of bad config exception is thrown
+	 */
+	public static void validateSvarogConfig() throws Exception {
 		DbDataArray coreObjects = new DbDataArray();
 		DbDataArray coreCodes = new DbDataArray();
 
@@ -1244,7 +1309,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					throw (new Exception("Misconfigured core tables. Svarog can not be initialised. Missing " + key));
 			}
 		}
-
 	}
 
 	/**
@@ -2851,9 +2915,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					hasAccess = authoriseDqoByConfigType(dqo, aclMap, accessLevel);
 				}
 			}
-			if(!hasAccess)
-				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
-						accessLevel.toString()));
+			if (!hasAccess)
+				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt, accessLevel.toString()));
 		} else
 			hasAccess = true;
 		return hasAccess;
@@ -2862,9 +2925,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	private boolean hasDQOTreeAccess(DbQueryObject dqo, SvAccess accessLevel) throws SvException {
 		// DbDataArray perms = getPermissions();
 		boolean hasAccess = authoriseDqo(dqo, SvAccess.READ);
-		for(DbQueryObject dqoChild: dqo.getChildren())
-		{
-			hasAccess = hasDQOTreeAccess(dqoChild,accessLevel);
+		for (DbQueryObject dqoChild : dqo.getChildren()) {
+			hasAccess = hasDQOTreeAccess(dqoChild, accessLevel);
 		}
 		return hasAccess;
 
@@ -3141,22 +3203,38 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 	}
 
+	/**
+	 * Method to get the lazy initialized singleton WKB Writer class instance
+	 * 
+	 * @return WKBWriter instance
+	 */
 	private WKBWriter getWKBWriter() {
 		if (wkbWriter == null)
 			wkbWriter = new WKBWriter();
 		return wkbWriter;
 	}
 
+	/**
+	 * Method to get the lazy initialized singleton WKB Reader class instance
+	 * 
+	 * @return WKBReader instance
+	 */
 	private WKBReader getWKBReader() {
 		if (wkbReader == null)
 			wkbReader = new WKBReader(SvUtil.sdiFactory);
 		return wkbReader;
 	}
 
+	/**
+	 * Return the auto commit flag of the SvCore instance
+	 */
 	public Boolean getAutoCommit() {
 		return autoCommit;
 	}
 
+	/**
+	 * Set the auto commit flag of the SvCore instance
+	 */
 	public void setAutoCommit(Boolean autoCommit) {
 		this.autoCommit = autoCommit;
 	}

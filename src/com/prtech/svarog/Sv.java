@@ -16,5 +16,6 @@ public class Sv {
 	public static final String GUI_METADATA = "GUI_METADATA";
 	public static final String EXTENDED_PARAMS = "EXTENDED_PARAMS";
 	public static final String FIELD_NAME = "FIELD_NAME";
+	public static final String FIELDS = "FIELDS";
 	
 }
