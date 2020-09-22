@@ -34,12 +34,12 @@ public class SvConfigurationImpl implements ISvConfiguration {
 				HashMap<String, String> params = new HashMap<String, String>();
 				params.put("DB_TYPE", SvConf.getDbType().toString());
 				params.put("DB_USER", SvConf.getUserName());
-				params.put("VIEW_NAME", "V"+tableName);
+				params.put("VIEW_NAME", "V" + tableName);
 				params.put("VIEW_SCHEMA", SvConf.getDefaultSchema());
 
-				if (SvConf.getDbType().equals(SvDbType.POSTGRES)) {
-					if (SvarogInstall.dbObjectExists("V"+tableName, conn))
-						SvarogInstall.executeDbScript("drop_view.sql", params, conn);
+				if (SvConf.getDbType().equals(SvDbType.POSTGRES)
+						&& SvarogInstall.dbObjectExists("V" + tableName, conn)) {
+					SvarogInstall.executeDbScript("drop_view.sql", params, conn);
 				}
 
 				ps = conn.prepareStatement(sqlDrop);

@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1117,32 +1119,43 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata");
 				}
 			}
-			if (dbo.getVal(Sv.EXTENDED_PARAMS) != null) {
-				try {
-					JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.EXTENDED_PARAMS), JsonObject.class);
-					for (Entry<String, JsonElement> je : jo.entrySet()) {
-						JsonElement jel = je.getValue();
-						if (jel.isJsonPrimitive()) {
-							if (jel.getAsJsonPrimitive().isBoolean())
-								dbo.setVal(je.getKey(), jel.getAsBoolean());
-							if (jel.getAsJsonPrimitive().isString())
-								dbo.setVal(je.getKey(), jel.getAsString());
-							if (jel.getAsJsonPrimitive().isNumber()) {
-								dbo.setVal(je.getKey(), jel.getAsNumber());
-							}
-						} else if (jel.isJsonArray() || jel.isJsonObject())
-							dbo.setVal(je.getKey(), jel.getAsJsonObject());
-
-					}
-					dbo.setIsDirty(false);
-
-				} catch (Exception e) {
-					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
-				}
-			}
+			prepareExtOpts(dbo);
 			// finally link the ext params and gui metadata to the parent meta
 			linkToParentDbt(dbo);
 
+		}
+	}
+
+	/**
+	 * Method to prepare the extended params field for each Field Descriptor
+	 * 
+	 * @param dbo
+	 *            The field Descriptor
+	 */
+	private static void prepareExtOpts(DbDataObject dbo) {
+		Gson gs = new Gson();
+		if (dbo.getVal(Sv.EXTENDED_PARAMS) != null) {
+			try {
+				JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.EXTENDED_PARAMS), JsonObject.class);
+				for (Entry<String, JsonElement> je : jo.entrySet()) {
+					JsonElement jel = je.getValue();
+					if (jel.isJsonPrimitive()) {
+						if (jel.getAsJsonPrimitive().isBoolean())
+							dbo.setVal(je.getKey(), jel.getAsBoolean());
+						if (jel.getAsJsonPrimitive().isString())
+							dbo.setVal(je.getKey(), jel.getAsString());
+						if (jel.getAsJsonPrimitive().isNumber()) {
+							dbo.setVal(je.getKey(), jel.getAsNumber());
+						}
+					} else if (jel.isJsonArray() || jel.isJsonObject())
+						dbo.setVal(je.getKey(), jel.getAsJsonObject());
+
+				}
+				dbo.setIsDirty(false);
+
+			} catch (Exception e) {
+				log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
+			}
 		}
 	}
 
@@ -1150,12 +1163,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbDataObject dbt = SvCore.getDbt(dbo.getParentId());
 		assert (dbt != null);
 
-		
 		JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
 		if (meta == null) {
-		
-			try(SvReader svr = new SvReader())
-			{
+
+			try (SvReader svr = new SvReader()) {
 				DboUnderground.revertReadOnly(dbt, svr);
 				meta = new JsonObject();
 				dbt.setVal(Sv.GUI_METADATA, meta);
@@ -1171,13 +1182,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 
 		JsonObject jo = j.getAsJsonObject();
-		if (dbo.getVal(Sv.GUI_METADATA) != null)
+		if (dbo.getVal(Sv.GUI_METADATA) != null && !jo.has((String) dbo.getVal(Sv.FIELD_NAME)))
 			jo.add((String) dbo.getVal(Sv.FIELD_NAME), (JsonElement) dbo.getVal(Sv.GUI_METADATA));
 
 		JsonObject params = (JsonObject) dbt.getVal(Sv.EXTENDED_PARAMS);
 		if (params == null) {
-			try(SvReader svr = new SvReader())
-			{
+			try (SvReader svr = new SvReader()) {
 				DboUnderground.revertReadOnly(dbt, svr);
 				params = new JsonObject();
 				dbt.setVal(Sv.EXTENDED_PARAMS, params);
@@ -1190,9 +1200,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			jx = new JsonObject();
 			params.add(Sv.FIELDS, jx);
 		}
-		
+
 		JsonObject jox = jx.getAsJsonObject();
-		if (dbo.getVal(Sv.EXTENDED_PARAMS) != null)
+		if (dbo.getVal(Sv.EXTENDED_PARAMS) != null && !jox.has((String) dbo.getVal(Sv.FIELD_NAME)))
 			jox.add((String) dbo.getVal(Sv.FIELD_NAME), (JsonElement) dbo.getVal(Sv.EXTENDED_PARAMS));
 
 	}
@@ -1629,13 +1639,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbDataObject dbu = null;
 		// if the last refresh + the interval is in the past, send a refresh in
 		// the cluster
-		SvSecurity svs = null;
-		try {
-			svs = new SvSecurity();
+		try (SvSecurity svs = new SvSecurity()) {
 			dbu = svs.getSid((Long) svToken.getVal("user_object_id"), svCONST.OBJECT_TYPE_USER);
-		} finally {
-			if (svs != null)
-				svs.release();
 		}
 
 		if (dbu == null)
@@ -1679,12 +1684,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *             Re-throws any underlying exception
 	 */
 	static DbDataArray getUserGroups(DbDataObject user, boolean returnOnlyDefault, SvCore svc) throws SvException {
-		SvReader svr = null;
 		DbDataArray groups = null;
-		try {
+		try (SvReader svr = new SvReader(svc)) {
 			String userGroupLinkType = "USER_DEFAULT_GROUP";
 			DbDataObject dbLink = getLinkType(userGroupLinkType, svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
-			svr = new SvReader(svc);
+			;
 			svr.isInternal = true;
 			groups = svr.getObjectsByLinkedId(user.getObjectId(), dbLink, null, 0, 0);
 			if (!returnOnlyDefault) {
@@ -1697,9 +1701,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					groups = otherGroups;
 				}
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 
 		return groups;
@@ -1911,14 +1912,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *             If the switch failed, an exception is thrown
 	 */
 	public void switchUser(String userName) throws SvException {
-		SvSecurity svs = null;
-		try {
-			svs = new SvSecurity(this);
+		try (SvSecurity svs = new SvSecurity(this)) {
 			DbDataObject user = svs.getUser(userName);
 			switchUser(user);
-		} finally {
-			if (svs != null)
-				svs.release();
 		}
 
 	}
@@ -2203,9 +2199,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	public DbDataArray getSecurityObjects(DbDataObject sid, SvCore core, DbDataObject returnType) throws SvException {
 		DbDataArray permissions = null;
 		DbDataArray groups = null;
-		SvReader svr = null;
-		try {
-			svr = new SvReader(core);
+		try (SvReader svr = new SvReader(core)) {
+
 			if (sid.getObjectType().equals(svCONST.OBJECT_TYPE_USER))
 				groups = SvCore.getUserGroups(sid, false);
 
@@ -2273,9 +2268,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				dbop.setVal("ACCESS_TYPE", acType);
 				dbop.setIsDirty(false);
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 		return permissions;
 	}
@@ -2471,17 +2463,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *             any underlying SvException
 	 */
 	public DbDataObject getUserLocale(String userId) throws SvException {
-		SvSecurity svc = null;
 		DbDataObject localeObj = null;
-		try {
-			svc = new SvSecurity();
+		try (SvSecurity svc = new SvSecurity()) {
 			DbDataObject user = svc.getUser(userId);
 			localeObj = getUserLocale(user);
-		} finally {
-			if (svc != null)
-				svc.release();
 		}
-
 		return localeObj;
 	}
 
@@ -2496,23 +2482,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *             Any underlying exception
 	 */
 	public void setUserLocale(String userName, String locale) throws SvException {
-		SvParameter svp = null;
-		SvSecurity svc = null;
+
 		DbDataObject localeObj = null;
-		try {
-			svc = new SvSecurity();
+		try (SvParameter svp = new SvParameter(); SvSecurity svc = new SvSecurity()) {
 			DbDataObject userObject = svc.getUser(userName);
 			localeObj = SvarogInstall.getLocaleList().getItemByIdx(locale);
-			svp = new SvParameter();
+
 			if (localeObj != null) {
 				svp.setParamImpl(userObject, "LOCALE", locale, true, true);
 			}
-		} finally {
-			if (svp != null)
-				svp.release();
-			if (svc != null)
-				svc.release();
-
 		}
 	}
 
@@ -3122,12 +3100,14 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *            The position at which the object value will be bind
 	 * @param value
 	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
 	@SuppressWarnings("unchecked")
-	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value)
-			throws SQLException, Exception {
+	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value,
+			SvLob lob) throws SQLException, Exception {
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));
 		if (log4j.isDebugEnabled())
 			log4j.debug("For field:+" + dbf.getVal("field_name") + ", binding value "
@@ -3190,7 +3170,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					bindVal.setLength(bindVal.length() - 1);
 					value = bindVal.toString();
 				}
-				ps.setString(bindAtPosition, value.toString());
+				if (type.equals(DbFieldType.TEXT) && !SvConf.getDbType().equals(SvDbType.POSTGRES)) {
+					ps.setCharacterStream(bindAtPosition, lob.stringReader(value.toString()));
+				} else
+					ps.setString(bindAtPosition, value.toString());
 			}
 			break;
 		case GEOMETRY:

@@ -938,9 +938,9 @@ public class SvWriter extends SvCore {
 			log4j.debug("Executing SQL:" + sql);
 
 		PreparedStatement ps = null;
-		try {
+		try (SvLob lob = new SvLob(this.dbGetConn())) {
 			ps = this.dbGetConn().prepareStatement(sql);
-			int objIndex = 0;
+			// int objIndex = 0;
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
 				int pCount = 1;
 				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObjectId()) : null;
@@ -964,7 +964,7 @@ public class SvWriter extends SvCore {
 						ex.setUserData(objToSave);
 						throw (ex);
 					}
-					bindInsertQueryVars(ps, dbf, pCount, value);
+					bindInsertQueryVars(ps, dbf, pCount, value, lob);
 
 					pCount++;
 
@@ -979,7 +979,7 @@ public class SvWriter extends SvCore {
 				}
 
 				ps.addBatch();
-				objIndex++;
+				// objIndex++;
 			}
 			int[] insertedRows = ps.executeBatch();
 			if (arrayToSave.getItems().size() != insertedRows.length)
@@ -1532,9 +1532,9 @@ public class SvWriter extends SvCore {
 
 		PreparedStatement ps = null;
 		PreparedStatement psInvalidate = null;
-		SvReader svr = null;
-		try {
-			svr = new SvReader(this);
+		
+		try (SvLob lob = new SvLob(this.dbGetConn()); SvReader svr = new SvReader(this)) {
+
 			svr.instanceUser = svCONST.systemUser;
 
 			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
@@ -1558,7 +1558,7 @@ public class SvWriter extends SvCore {
 					continue;
 				Object value = objToSave.getVal(fName);
 				validateFieldData(dbf, value, false);
-				bindInsertQueryVars(ps, dbf, pCount, value);
+				bindInsertQueryVars(ps, dbf, pCount, value, lob);
 
 				pCount++;
 			}
@@ -1604,7 +1604,6 @@ public class SvWriter extends SvCore {
 		} finally {
 			closeResource((AutoCloseable) ps, instanceUser);
 			closeResource((AutoCloseable) psInvalidate, instanceUser);
-			svr.release();
 		}
 
 	}
