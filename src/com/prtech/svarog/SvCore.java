@@ -1119,7 +1119,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata");
 				}
 			}
-			prepareExtOpts(dbo);
+
+			if (dbo.getVal(Sv.EXTENDED_PARAMS) != null)
+				prepareExtOpts(dbo);
 			// finally link the ext params and gui metadata to the parent meta
 			linkToParentDbt(dbo);
 
@@ -1134,23 +1136,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	private static void prepareExtOpts(DbDataObject dbo) {
 		Gson gs = new Gson();
-		if (dbo.getVal(Sv.EXTENDED_PARAMS) != null) {
+		{
 			try {
 				JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.EXTENDED_PARAMS), JsonObject.class);
-				for (Entry<String, JsonElement> je : jo.entrySet()) {
-					JsonElement jel = je.getValue();
-					if (jel.isJsonPrimitive()) {
-						if (jel.getAsJsonPrimitive().isBoolean())
-							dbo.setVal(je.getKey(), jel.getAsBoolean());
-						if (jel.getAsJsonPrimitive().isString())
-							dbo.setVal(je.getKey(), jel.getAsString());
-						if (jel.getAsJsonPrimitive().isNumber()) {
-							dbo.setVal(je.getKey(), jel.getAsNumber());
-						}
-					} else if (jel.isJsonArray() || jel.isJsonObject())
-						dbo.setVal(je.getKey(), jel.getAsJsonObject());
-
-				}
+				for (Entry<String, JsonElement> je : jo.entrySet())
+					dbo.setVal(je.getKey(), je);
 				dbo.setIsDirty(false);
 
 			} catch (Exception e) {
@@ -1159,6 +1149,38 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 	}
 
+	/**
+	 * Method to translate json element into primitive
+	 * 
+	 * @param je
+	 *            The JSON element
+	 * @return The resulting object, primitive or json object.
+	 */
+	private Object getJsonValue(Entry<String, JsonElement> je) {
+		Object returnValue = null;
+		JsonElement jel = je.getValue();
+		if (jel.isJsonPrimitive()) {
+			if (jel.getAsJsonPrimitive().isBoolean())
+				returnValue = jel.getAsBoolean();
+			if (jel.getAsJsonPrimitive().isString())
+				returnValue = jel.getAsString();
+			if (jel.getAsJsonPrimitive().isNumber()) {
+				returnValue = jel.getAsNumber();
+			}
+		} else if (jel.isJsonArray() || jel.isJsonObject())
+			returnValue = jel.getAsJsonObject();
+		return returnValue;
+	}
+
+	/**
+	 * Method to link the meta data from the field descriptor to the parent
+	 * table
+	 * 
+	 * @param dbo
+	 *            The field descriptor
+	 * @throws SvException
+	 *             Any underlying exception that might be thrown
+	 */
 	private static void linkToParentDbt(DbDataObject dbo) throws SvException {
 		DbDataObject dbt = SvCore.getDbt(dbo.getParentId());
 		assert (dbt != null);
@@ -1302,10 +1324,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to validate the currently loaded svarog configuration contains the
 	 * base tables.
 	 * 
-	 * @throws Exception
-	 *             In case of bad config exception is thrown
+	 * @throws SvException
+	 *             In case of bad config exception "system.error.misconfigured_dbt" is thrown 
 	 */
-	public static void validateSvarogConfig() throws Exception {
+	public static void validateSvarogConfig() throws SvException {
+
 		DbDataArray coreObjects = new DbDataArray();
 		DbDataArray coreCodes = new DbDataArray();
 
@@ -1316,7 +1339,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				String key = ((String) baseType.getVal("schema")).toUpperCase() + "."
 						+ ((String) baseType.getVal("table_name")).toUpperCase();
 				if (!dbtMap.containsKey(key))
-					throw (new Exception("Misconfigured core tables. Svarog can not be initialised. Missing " + key));
+					throw (new SvException("system.error.misconfigured_dbt", baseType));
 			}
 		}
 	}
@@ -3105,76 +3128,30 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
-	@SuppressWarnings("unchecked")
 	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value,
 			SvLob lob) throws SQLException, Exception {
+
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));
 		if (log4j.isDebugEnabled())
 			log4j.debug("For field:+" + dbf.getVal("field_name") + ", binding value "
 					+ (value != null ? value.toString() : "null") + " at position " + bindAtPosition + " as data type "
 					+ type.toString());
+
 		switch (type) {
 		case BOOLEAN:
-			if (value == null) {
-				if (SvConf.getDbType().equals(SvDbType.ORACLE))
-					ps.setNull(bindAtPosition, java.sql.Types.CHAR);
-				else
-					ps.setNull(bindAtPosition, java.sql.Types.BOOLEAN);
-			} else
-				ps.setBoolean(bindAtPosition, (Boolean) value);
+			bindBoolean(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case NUMERIC:
-			if (value == null)
-				ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
-			else {
-				Long fScale = (Long) dbf.getVal("FIELD_SCALE");
-				if (fScale != null && fScale > 0) {
-					BigDecimal bdcml;
-					if (value instanceof BigDecimal) {
-						bdcml = (BigDecimal) value;
-						if (bdcml.scale() > fScale) {
-							bdcml = bdcml.setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
-						}
-					} else {
-						double dbl = ((Number) value).doubleValue();
-						bdcml = BigDecimal.valueOf(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
-					}
-					ps.setBigDecimal(bindAtPosition, bdcml);
-				} else
-					ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
-			}
+			bindNumeric(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case DATE:
 		case TIME:
 		case TIMESTAMP:
-			if (value == null)
-				ps.setNull(bindAtPosition, java.sql.Types.TIMESTAMP);
-			else if (value.getClass().equals(DateTime.class)) {
-				ps.setTimestamp(bindAtPosition, new Timestamp(((DateTime) value).getMillis()));
-			} else {
-				DateTime dt = new DateTime(value.toString());
-				ps.setTimestamp(bindAtPosition, new Timestamp(dt.getMillis()));
-			}
+			bindDateTime(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case TEXT:
 		case NVARCHAR:
-			if (value == null)
-				ps.setString(bindAtPosition, null);
-			else {
-				Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
-				if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
-					StringBuilder bindVal = new StringBuilder();
-					for (String oVal : (ArrayList<String>) value) {
-						bindVal.append(oVal + SvConf.getMultiSelectSeparator());
-					}
-					bindVal.setLength(bindVal.length() - 1);
-					value = bindVal.toString();
-				}
-				if (type.equals(DbFieldType.TEXT) && !SvConf.getDbType().equals(SvDbType.POSTGRES)) {
-					ps.setCharacterStream(bindAtPosition, lob.stringReader(value.toString()));
-				} else
-					ps.setString(bindAtPosition, value.toString());
-			}
+			bindString(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case GEOMETRY:
 			byte[] byteVal = getWKBWriter().write((Geometry) value);
@@ -3183,6 +3160,151 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		default:
 			ps.setString(bindAtPosition, (String) value);
 			break;
+		}
+	}
+
+	/**
+	 * Method for binding Booleam parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param dbf
+	 *            The descriptor of the field
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
+	 * @param type
+	 *            The type of the value bound to the field
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindBoolean(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
+			DbFieldType type) throws SQLException {
+
+		if (value == null) {
+			if (SvConf.getDbType().equals(SvDbType.ORACLE))
+				ps.setNull(bindAtPosition, java.sql.Types.CHAR);
+			else
+				ps.setNull(bindAtPosition, java.sql.Types.BOOLEAN);
+		} else
+			ps.setBoolean(bindAtPosition, (Boolean) value);
+
+	}
+
+	/**
+	 * Method for binding Numeric parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param dbf
+	 *            The descriptor of the field
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
+	 * @param type
+	 *            The type of the value bound to the field
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
+			DbFieldType type) throws SQLException {
+		if (value == null)
+			ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
+		else {
+			Long fScale = (Long) dbf.getVal("FIELD_SCALE");
+			if (fScale != null && fScale > 0) {
+				BigDecimal bdcml;
+				if (value instanceof BigDecimal) {
+					bdcml = (BigDecimal) value;
+					if (bdcml.scale() > fScale) {
+						bdcml = bdcml.setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+					}
+				} else {
+					double dbl = ((Number) value).doubleValue();
+					bdcml = BigDecimal.valueOf(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+				}
+				ps.setBigDecimal(bindAtPosition, bdcml);
+			} else
+				ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
+		}
+	}
+
+	/**
+	 * Method for binding DateTime parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param dbf
+	 *            The descriptor of the field
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
+	 * @param type
+	 *            The type of the value bound to the field
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindDateTime(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
+			DbFieldType type) throws SQLException {
+		if (value == null)
+			ps.setNull(bindAtPosition, java.sql.Types.TIMESTAMP);
+		else if (value.getClass().equals(DateTime.class)) {
+			ps.setTimestamp(bindAtPosition, new Timestamp(((DateTime) value).getMillis()));
+		} else {
+			DateTime dt = new DateTime(value.toString());
+			ps.setTimestamp(bindAtPosition, new Timestamp(dt.getMillis()));
+		}
+	}
+
+	/**
+	 * Method for binding string parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param dbf
+	 *            The descriptor of the field
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
+	 * @param type
+	 *            The type of the value bound to the field
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindString(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
+			DbFieldType type) throws SQLException {
+		if (value == null)
+			ps.setString(bindAtPosition, null);
+		else {
+			Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
+			if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
+				StringBuilder bindVal = new StringBuilder();
+				for (String oVal : (ArrayList<String>) value) {
+					bindVal.append(oVal + SvConf.getMultiSelectSeparator());
+				}
+				bindVal.setLength(bindVal.length() - 1);
+				value = bindVal.toString();
+			}
+			if (type.equals(DbFieldType.TEXT) && !SvConf.getDbType().equals(SvDbType.POSTGRES)) {
+				ps.setCharacterStream(bindAtPosition, lob.stringReader(value.toString()));
+			} else
+				ps.setString(bindAtPosition, value.toString());
 		}
 	}
 
