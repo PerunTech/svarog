@@ -69,15 +69,6 @@ public class DbInit {
 
 	}
 
-		//static final String Sv.CODE_LIST_ID = "Sv.CODE_LIST_ID";
-	//static final String LABEL_CODE = "LABEL_CODE";
-	//static final String VERSION = "VERSION";
-	//static final String SORT_ORDER = "SORT_ORDER";
-	//static final String Sv.TABLE_NAME = "table_name";
-	//static final String PARENT = "PARENT";
-	//static final String REPO_TABLE_NAME = "{REPO_TABLE_NAME}";
-	//static final String MASTER_REPO_NAME = "{MASTER_REPO}";
-	//static final String DEFAULT_SCHEMA = "{DEFAULT_SCHEMA}";
 	
 	private static DbDataTable getPluginConf() {
 		DbDataTable dbe = new DbDataTable();
@@ -201,7 +192,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -282,7 +273,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -377,7 +368,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -386,7 +377,7 @@ public class DbInit {
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
-		dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+		dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 
 		// f4
 		DbDataField dbf4 = new DbDataField();
@@ -428,7 +419,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -436,7 +427,7 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
-		dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+		dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 
 		// f2
 		DbDataField dbf3 = new DbDataField();
@@ -446,7 +437,7 @@ public class DbInit {
 		dbf3.setIsNull(false);
 		dbf3.setIsUnique(true);
 		dbf3.setUnique_level(Sv.PARENT);
-		dbf3.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+		dbf3.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 		
 		DbDataField[] dbTableFields = new DbDataField[3];
 		dbTableFields[0] = dbf1;
@@ -475,7 +466,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -525,7 +516,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -597,7 +588,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -709,7 +700,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -766,7 +757,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -904,7 +895,7 @@ public class DbInit {
 		dbf12.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf12.setDbFieldSize(2000);
 		dbf12.setIsNull(true);
-		dbf12.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"is_visible_ui");
+		dbf12.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.IS_VISIBLE_UI);
 
 		DbDataField dbf14 = new DbDataField();
 		dbf14.setDbFieldName(Sv.SORT_ORDER);
@@ -953,7 +944,7 @@ public class DbInit {
 		dbe1.setDbFieldScale(0);
 		dbe1.setIsNull(false);
 		dbe1.setIsPrimaryKey(true);
-		dbe1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbe1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 1N
 		DbDataField dbe1_0 = new DbDataField();
@@ -1034,7 +1025,7 @@ public class DbInit {
 		dbe1.setDbFieldSize(18);
 		dbe1.setDbFieldScale(0);
 		dbe1.setIsNull(false);
-		dbe1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbe1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
@@ -1118,7 +1109,7 @@ public class DbInit {
 		dbf11.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf11.setDbFieldSize(2000);
 		dbf11.setIsNull(true);
-		dbf11.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"is_visible_ui");
+		dbf11.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.IS_VISIBLE_UI);
 
 		DbDataField dbe15 = new DbDataField();
 		dbe15.setDbFieldName("MAX_INSTANCES");
@@ -1171,7 +1162,7 @@ public class DbInit {
 		dbe1.setDbFieldSize(18);
 		dbe1.setDbFieldScale(0);
 		dbe1.setIsNull(false);
-		dbe1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbe1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 1N
 		DbDataField dbe1_1 = new DbDataField();
@@ -1249,7 +1240,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1340,7 +1331,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1413,7 +1404,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1423,7 +1414,7 @@ public class DbInit {
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
 		dbf2.setUnique_level("TABLE");
-		dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+		dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
@@ -1538,7 +1529,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1597,7 +1588,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1655,7 +1646,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1735,7 +1726,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1805,7 +1796,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1864,7 +1855,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1943,7 +1934,7 @@ public class DbInit {
 		dbf0.setDbFieldSize(18);
 		dbf0.setDbFieldScale(0);
 		dbf0.setIsNull(false);
-		dbf0.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf0.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -2000,7 +1991,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -2718,7 +2709,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -2728,7 +2719,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(18);
 			dbf2.setDbFieldScale(0);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"link_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LINK_TYPE);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -2784,7 +2775,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -2872,7 +2863,7 @@ public class DbInit {
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LINK_TYPE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"link_type");
+			dbt.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LINK_TYPE);
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(false);
@@ -2885,7 +2876,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -2896,7 +2887,7 @@ public class DbInit {
 			dbf2.setIsUnique(true);
 			dbf2.setUnique_level("TABLE");
 			dbf2.setCode_list_user_code("LINK_TYPE");
-			dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"link_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LINK_TYPE);
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
@@ -2904,7 +2895,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(200);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"link_type_description");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LINK_TYPE_DESCRIPTION);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -2988,7 +2979,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3047,7 +3038,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3108,7 +3099,7 @@ public class DbInit {
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(200);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"e_mail");
+			dbf5.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.E_MAIL);
 			dbf5.setGui_metadata(getDefaultUiMeta(false, false, false, true).toString());
 
 			DbDataField dbf6 = new DbDataField();
@@ -3183,7 +3174,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -3227,7 +3218,7 @@ public class DbInit {
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(200);
 		dbf5.setIsNull(false);
-		dbf5.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"e_mail");
+		dbf5.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.E_MAIL);
 
 		dbt.setDbTableFields(new DbDataField[6]);
 		dbt.getDbTableFields()[0] = dbf1;
@@ -3269,7 +3260,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -3309,7 +3300,7 @@ public class DbInit {
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(200);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"e_mail");
+		dbf5.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.E_MAIL);
 
 		DbDataField dbf6 = new DbDataField();
 		dbf6.setDbFieldName("PARENT_OU_ID");
@@ -3367,7 +3358,7 @@ public class DbInit {
 			dbf1.setIsNull(false);
 
 			// dbf1.setSort_order(900);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3479,7 +3470,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2_0 = new DbDataField();
@@ -3518,7 +3509,7 @@ public class DbInit {
 			dbf6.setIsUnique(true);
 			dbf6.setUnique_constraint_name("TYPE_OID_CFG_ID");
 
-			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"acl_object_id");
+			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.ACL_OBJECT_ID);
 
 			DbDataField dbf7 = new DbDataField();
 			dbf7.setDbFieldName("ACL_OBJECT_TYPE");
@@ -3529,7 +3520,7 @@ public class DbInit {
 			dbf7.setIsUnique(true);
 			dbf7.setUnique_constraint_name("TYPE_OID_CFG_ID");
 
-			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"acl_object_type");
+			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.ACL_OBJECT_TYPE);
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("ACL_CONFIG_UNQ");
@@ -3584,7 +3575,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3641,7 +3632,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3740,7 +3731,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3817,7 +3808,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3834,7 +3825,7 @@ public class DbInit {
 			dbf2_1.setIsNull(false);
 			dbf2_1.setIsUnique(true);
 
-			dbf2_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"locale_id");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LOCALE_ID);
 			// f3
 
 			DbDataField dbf3 = new DbDataField();
@@ -3878,7 +3869,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3887,7 +3878,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
 			dbf2.setIsUnique(true);
-			dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+			dbf2.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 			dbf2.setUnique_level("TABLE");
 
 			DbDataField dbf2_1 = new DbDataField();
@@ -3905,7 +3896,7 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(200);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_text");
+			dbf3.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_TEXT);
 
 			DbDataField dbf4 = new DbDataField();
 			dbf4.setDbFieldName("LABEL_DESCR");
@@ -3946,7 +3937,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4046,7 +4037,7 @@ public class DbInit {
 			dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf10.setDbFieldSize(100);
 			dbf10.setIsNull(false);
-			dbf10.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+			dbf10.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 
 			DbDataField dbf11 = new DbDataField();
 			dbf11.setDbFieldName(Sv.CODE_LIST_ID);
@@ -4061,7 +4052,7 @@ public class DbInit {
 			dbf12.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf12.setDbFieldSize(2000);
 			dbf12.setIsNull(true);
-			dbf12.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"is_visible_ui");
+			dbf12.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.IS_VISIBLE_UI);
 
 			// f8
 			DbDataField dbf13 = new DbDataField();
@@ -4100,10 +4091,10 @@ public class DbInit {
 			dbf17.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"referential_field");
 
 			DbDataField dbf18 = new DbDataField();
-			dbf18.setDbFieldName("EXTENDED_PARAMS");
+			dbf18.setDbFieldName(Sv.EXTENDED_PARAMS);
 			dbf18.setDbFieldType(DbFieldType.TEXT);
 			dbf18.setIsNull(true);
-			dbf18.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"ext_params");
+			dbf18.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.EXTENDED_PARAMS.toLowerCase());
 
 			dbt.setDbTableFields(new DbDataField[21]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4157,7 +4148,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4207,7 +4198,7 @@ public class DbInit {
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(100);
 			dbf7.setIsNull(false);
-			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"label_code");
+			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.LABEL_CODE_LC);
 
 			// f5
 			DbDataField dbf8 = new DbDataField();
@@ -4221,7 +4212,7 @@ public class DbInit {
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setIsNull(false);
 			dbf9.setDbFieldSize(10);
-			dbf9.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"cache_type");
+			dbf9.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.CACHE_TYPE );
 			dbf9.setCode_list_user_code("CACHE_TYPE");
 
 			DbDataField dbf10 = new DbDataField();
@@ -4274,16 +4265,16 @@ public class DbInit {
 			dbf16.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"config_relation_id");
 
 			DbDataField dbf17 = new DbDataField();
-			dbf17.setDbFieldName("GUI_METADATA");
+			dbf17.setDbFieldName(Sv.GUI_METADATA);
 			dbf17.setDbFieldType(DbFieldType.TEXT);
 			dbf17.setIsNull(true);
-			dbf17.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"ext_params");
+			dbf17.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.GUI_METADATA.toLowerCase());
 			
 			DbDataField dbf18 = new DbDataField();
-			dbf18.setDbFieldName("EXTENDED_PARAMS");
+			dbf18.setDbFieldName(Sv.EXTENDED_PARAMS);
 			dbf18.setDbFieldType(DbFieldType.TEXT);
 			dbf18.setIsNull(true);
-			dbf18.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"ext_params");
+			dbf18.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.EXTENDED_PARAMS.toLowerCase());
 			
 			dbt.setDbTableFields(new DbDataField[18]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4332,7 +4323,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4374,18 +4365,18 @@ public class DbInit {
 			dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf6.setDbFieldSize(50);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"bounds_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.BOUNDS_CLASS.toLowerCase());
 			dbf6.setCode_list_user_code("SDI_UNIT_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(true);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4394,7 +4385,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.GEOMETRY.toLowerCase());
 
 			DbDataField dbf9 = new DbDataField();
 			dbf9.setDbFieldName("EXTERNAL_UNIT_ID");
@@ -4450,7 +4441,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f4
 			DbDataField dbf4 = new DbDataField();
@@ -4467,7 +4458,7 @@ public class DbInit {
 			dbf4_1.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4_1.setDbFieldSize(18);
 			dbf4_1.setDbFieldScale(2);
-			dbf4_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"bounds_area_ha");
+			dbf4_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.BOUNDS_AREA_HA);
 			dbf4_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f5
@@ -4513,13 +4504,13 @@ public class DbInit {
 			dbf6_2.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(true);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4528,7 +4519,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.GEOMETRY.toLowerCase());
 
 			dbt.setDbTableFields(new DbDataField[9]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4568,7 +4559,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f4
 			DbDataField dbf4 = new DbDataField();
@@ -4585,7 +4576,7 @@ public class DbInit {
 			dbf4_1.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4_1.setDbFieldSize(18);
 			dbf4_1.setDbFieldScale(2);
-			dbf4_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"bounds_area_ha");
+			dbf4_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.BOUNDS_AREA_HA);
 			dbf4_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f5
@@ -4604,18 +4595,18 @@ public class DbInit {
 			dbf5.setDbFieldSize(9);
 			dbf5.setDbFieldScale(0);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"bounds_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.BOUNDS_CLASS.toLowerCase());
 			dbf6.setCode_list_user_code("SDI_COVER_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(true);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4624,7 +4615,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.GEOMETRY.toLowerCase());
 
 			dbt.setDbTableFields(new DbDataField[7]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4662,7 +4653,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4697,7 +4688,7 @@ public class DbInit {
 			dbf4_1.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4_1.setDbFieldSize(18);
 			dbf4_1.setDbFieldScale(2);
-			dbf4_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"bounds_area_ha");
+			dbf4_1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.BOUNDS_AREA_HA);
 			dbf4_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f5
@@ -4711,23 +4702,23 @@ public class DbInit {
 
 			// f5
 			DbDataField dbf6 = new DbDataField();
-			dbf6.setDbFieldName("BOUNDS_CLASS");
+			dbf6.setDbFieldName(Sv.BOUNDS_CLASS);
 			dbf6.setDbFieldType(DbFieldType.NUMERIC);
 			dbf6.setDbFieldSize(9);
 			dbf6.setDbFieldScale(0);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"bounds_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.BOUNDS_CLASS.toLowerCase());
 			dbf6.setCode_list_user_code("SDI_BOUNDS_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(false);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4736,7 +4727,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.GEOMETRY.toLowerCase());
 
 			DbDataField dbf9 = new DbDataField();
 			dbf9.setDbFieldName("COVER_CLASS");
@@ -4787,7 +4778,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2 SDI_TYPE
 			DbDataField dbf2 = new DbDataField();
@@ -4917,7 +4908,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 
 			// f2 SERVICE_NAME
 			DbDataField dbf2 = new DbDataField();
@@ -5025,7 +5016,7 @@ public class DbInit {
 			dbf9.setDbFieldScale(0);
 			dbf9.setIsNull(false);
 			dbf9.setIndexName("meta_pkid_idx");
-			dbf9.setLabel_code(Sv.MASTER_REPO+Sv.DOT+"table_meta_pkid");
+			dbf9.setLabel_code(Sv.MASTER_REPO+Sv.DOT+Sv.TABLE_META_PKID);
 			dbf9.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 			// f4
@@ -5490,7 +5481,7 @@ public class DbInit {
 						dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 						dbo.setDtDelete(SvConf.MAX_DATE);
 						dbo.setVal(Sv.LABEL_CODE, (String) pair.getKey());
-						dbo.setVal("label_text", (String) pair.getValue());
+						dbo.setVal(Sv.LABEL_TEXT, (String) pair.getValue());
 						dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
 						try {
@@ -5498,7 +5489,7 @@ public class DbInit {
 						} catch (Exception e) {
 						}
 						;
-						dbo.setVal("locale_id", locale);
+						dbo.setVal(Sv.LOCALE_ID, locale);
 						mLabels.put((String) pair.getKey(), dbo);
 
 					}
@@ -5565,8 +5556,8 @@ public class DbInit {
 		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", accessLevel.toString());
-		dbo.setVal("acl_object_id", (String) dbt.getVal(Sv.TABLE_NAME));
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, (String) dbt.getVal(Sv.TABLE_NAME));
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", null);
 		dbo.setVal(Sv.LABEL_CODE, (String) dbt.getVal(Sv.TABLE_NAME) + "." + accessLevel.toString());
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
@@ -5580,8 +5571,8 @@ public class DbInit {
 		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
-		dbo.setVal("acl_object_id", 0L);
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.SUDO_ACL);
 		dbo.setVal(Sv.LABEL_CODE, svCONST.SUDO_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
@@ -5592,8 +5583,8 @@ public class DbInit {
 		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
-		dbo.setVal("acl_object_id", 0L);
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.INSECURE_SQL_ACL);
 		dbo.setVal(Sv.LABEL_CODE, svCONST.INSECURE_SQL_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
@@ -5604,8 +5595,8 @@ public class DbInit {
 		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
-		dbo.setVal("acl_object_id", 0L);
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.NULL_GEOMETRY_ACL);
 		dbo.setVal(Sv.LABEL_CODE, svCONST.NULL_GEOMETRY_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
@@ -5718,10 +5709,10 @@ public class DbInit {
 								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
 										? aclItem.get("ACCESS_TYPE").getAsString() : null);
-								dbo.setVal("acl_object_id", aclItem.get("acl_object_id") != null
-										? aclItem.get("acl_object_id").getAsString() : null);
-								dbo.setVal("acl_object_type", aclItem.get("acl_object_type") != null
-										? aclItem.get("acl_object_type").getAsString() : null);
+								dbo.setVal(Sv.ACL_OBJECT_ID, aclItem.get(Sv.ACL_OBJECT_ID) != null
+										? aclItem.get(Sv.ACL_OBJECT_ID).getAsString() : null);
+								dbo.setVal(Sv.ACL_OBJECT_TYPE, aclItem.get(Sv.ACL_OBJECT_TYPE) != null
+										? aclItem.get(Sv.ACL_OBJECT_TYPE).getAsString() : null);
 								dbo.setVal("acl_config_unq", aclItem.get("acl_config_unq") != null
 										? aclItem.get("acl_config_unq").getAsString() : null);
 								dbo.setVal(Sv.LABEL_CODE, aclItem.get(Sv.LABEL_CODE.toLowerCase()) != null
@@ -5848,7 +5839,7 @@ public class DbInit {
 				dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 				dbo.setDtDelete(SvConf.MAX_DATE);
 				dbo.setVal(Sv.LABEL_CODE, key);
-				dbo.setVal("label_text", rb.getProperty(key));
+				dbo.setVal(Sv.LABEL_TEXT, rb.getProperty(key));
 				dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
 				try {
@@ -5856,7 +5847,7 @@ public class DbInit {
 				} catch (Exception e) {
 				}
 				;
-				dbo.setVal("locale_id", localeId);
+				dbo.setVal(Sv.LOCALE_ID, localeId);
 				mLabels.put(key, dbo);
 
 			}
@@ -5886,7 +5877,7 @@ public class DbInit {
 			for (DbDataObject entry : locales.getItems()) {
 				try {
 
-					loadInternalLabels((String) entry.getVal("locale_id"), mLabels);
+					loadInternalLabels((String) entry.getVal(Sv.LOCALE_ID), mLabels);
 					// load labers from the custom folder
 					File customFolder = new File("custom/");
 					if (customFolder != null) {
@@ -5896,7 +5887,7 @@ public class DbInit {
 								log4j.debug("Trying to load labels from: " + customJars[i].getAbsolutePath());
 								if (customJars[i].getName().endsWith(".jar"))
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
-											(String) entry.getVal("locale_id"));
+											(String) entry.getVal(Sv.LOCALE_ID));
 							}
 						}
 					}
@@ -5908,7 +5899,7 @@ public class DbInit {
 							for (int i = 0; i < customJars.length; i++) {
 								if (customJars[i].getName().endsWith(".jar")) {
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
-											(String) entry.getVal("locale_id"));
+											(String) entry.getVal(Sv.LOCALE_ID));
 								}
 							}
 						}
@@ -5922,10 +5913,10 @@ public class DbInit {
 					arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
 					String strRetval = "";
 					strRetval = saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath
-							+ SvarogInstall.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
+							+ SvarogInstall.labelsFilePrefix + entry.getVal(Sv.LOCALE_ID) + ".json", arr, true);
 					if (!strRetval.equals("")) {
 						testRetval += testRetval + strRetval + " json/records/20. master_labels_"
-								+ entry.getVal("locale_id") + ".json; ";
+								+ entry.getVal(Sv.LOCALE_ID) + ".json; ";
 					}
 				}
 				arr.getItems().clear();
@@ -6028,11 +6019,11 @@ public class DbInit {
 			dbo.setVal("parent_name", dbt.getParentName());
 
 			if (dbt.getCacheType() == null || !dbt.getCacheType().equals("PERM")) {
-				dbo.setVal("cache_type", dbt.getCacheType() == null ? "LRU_TTL" : dbt.getCacheType());
+				dbo.setVal(Sv.CACHE_TYPE , dbt.getCacheType() == null ? "LRU_TTL" : dbt.getCacheType());
 				dbo.setVal("cache_size", dbt.getCacheSize() == 0 ? 5000 : dbt.getCacheSize());
 				dbo.setVal("cache_expiry", dbt.getCacheTTL() == 0 ? 30 : dbt.getCacheTTL());
 			} else
-				dbo.setVal("cache_type", dbt.getCacheType());
+				dbo.setVal(Sv.CACHE_TYPE , dbt.getCacheType());
 
 			dbarrOut.getItems().add(dbo);
 
@@ -6170,7 +6161,7 @@ public class DbInit {
 		dblFormParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFormParent.setStatus(svCONST.STATUS_VALID);
 		dblFormParent.setVal("LINK_TYPE", "FORM_TYPE_PARENT");
-		dblFormParent.setVal("link_type_description",
+		dblFormParent.setVal(Sv.LINK_TYPE_DESCRIPTION,
 				"Link from form type to svarog object types, to signify which objects can have a form attached");
 		dblFormParent.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_FORM_TYPE);
 		dblFormParent.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_TABLE);
@@ -6179,7 +6170,7 @@ public class DbInit {
 		DbDataObject dblFFieldParent = new DbDataObject();
 		dblFFieldParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFFieldParent.setStatus(svCONST.STATUS_VALID);
-		dblFFieldParent.setVal("link_type_description",
+		dblFFieldParent.setVal(Sv.LINK_TYPE_DESCRIPTION,
 				"Link between form field and form type to signify which fields should be shown on a form");
 		dblFFieldParent.setVal("LINK_TYPE", "FORM_FIELD_LINK");
 		dblFFieldParent.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_FORM_TYPE);
@@ -6536,7 +6527,7 @@ public class DbInit {
 				dbo.setObjectId(svCONST.CODES_FILE_TYPES);
 
 			dbo.setVal("code_value", inObj.get("user_code").getAsString());
-			dbo.setVal(Sv.LABEL_CODE, inObj.get("label_code").getAsString());
+			dbo.setVal(Sv.LABEL_CODE, inObj.get(Sv.LABEL_CODE_LC).getAsString());
 			dbo.setVal(Sv.SORT_ORDER, sort);
 
 			dbo.setVal("PARENT_CODE_VALUE", parentCodeValue != null ? parentCodeValue.getAsString() : null);
@@ -6643,8 +6634,8 @@ public class DbInit {
 			Boolean deferSecurity, SvWriter svw) throws SvException {
 		DbDataObject dboLinkType = new DbDataObject();
 		dboLinkType.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dboLinkType.setVal("link_type", linkType);
-		dboLinkType.setVal("link_type_description", linkDesc);
+		dboLinkType.setVal(Sv.LINK_TYPE, linkType);
+		dboLinkType.setVal(Sv.LINK_TYPE_DESCRIPTION, linkDesc);
 		dboLinkType.setVal("link_obj_type_1", objectTypeId1);
 		dboLinkType.setVal("link_obj_type_2", objectTypeId2);
 		dboLinkType.setVal("defer_security", deferSecurity);
@@ -6728,8 +6719,6 @@ public class DbInit {
 				startingObjId = items.get(items.size() - 1).getObjectId();
 			arr.setItems(items);
 
-			// System.out.println("labels/"+entry.getValues().get("locale_id")+"Labels");
-			;
 			JsonObject obj = ((Jsonable) arr).toJson();
 			String jsonCodes = gson.toJson(obj);
 			// save the array to disk

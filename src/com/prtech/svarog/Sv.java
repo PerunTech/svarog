@@ -29,5 +29,21 @@ public class Sv {
 	public static final String FIELD_NAME = "FIELD_NAME";
 	public static final String FIELDS = "FIELDS";
 	public static final String DOT = ".";
+	
+	public static final String TABLE_META_PKID = "table_meta_pkid";
+	public static final String LABEL_CODE_LC = "label_code";
+	public static final String IS_VISIBLE_UI = "is_visible_ui";
+	public static final String LINK_TYPE = "link_type";
+	public static final String LINK_TYPE_DESCRIPTION = "link_type_description";
+	public static final String E_MAIL = "e_mail";
+	public static final String ACL_OBJECT_ID = "acl_object_id";
+	public static final String ACL_OBJECT_TYPE = "acl_object_type";
+	public static final String LOCALE_ID = "locale_id";
+	public static final String LABEL_TEXT = "label_text";
+	public static final String CACHE_TYPE = "cache_type";
+	public static final String BOUNDS_CLASS = "BOUNDS_CLASS";
+	public static final String CENTROID = "CENTROID";
+	public static final String GEOMETRY = "GEOMETRY";
+	public static final String BOUNDS_AREA_HA = "bounds_area_ha";
 
 }
