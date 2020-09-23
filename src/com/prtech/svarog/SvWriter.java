@@ -979,13 +979,11 @@ public class SvWriter extends SvCore {
 	 *            The PreparedStatement used for this insert
 	 * @param lob
 	 *            The SvLob instance used for binding BLOBs/CLOBs
-	 * @throws SQLException
-	 *             Any SQL exception occured during the bind to JDBC
 	 * @throws Exception
 	 *             Any other generic exception including SvException
 	 */
 	private void bindColumnValues(DbDataObject objToSave, Boolean isUpdate, DbDataArray objectFields,
-			Object[] oldRepoData, PreparedStatement ps, SvLob lob) throws SQLException, Exception {
+			Object[] oldRepoData, PreparedStatement ps, SvLob lob) throws Exception {
 		String fName = "";
 		int pCount = 2;
 		for (DbDataObject dbf : objectFields.getItems()) {
