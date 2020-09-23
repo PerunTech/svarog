@@ -1325,7 +1325,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * base tables.
 	 * 
 	 * @throws SvException
-	 *             In case of bad config exception "system.error.misconfigured_dbt" is thrown 
+	 *             In case of bad config exception
+	 *             "system.error.misconfigured_dbt" is thrown
 	 */
 	public static void validateSvarogConfig() throws SvException {
 
@@ -1497,28 +1498,30 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 						getFields(svCONST.OBJECT_TYPE_FORM_TYPE), null, null, null);
 				DbDataArray formTypes = svc.getObjects(query, null, null);
 
+				// before purging the cache check that we at least have loaded
+				// the config from database
+				if (objectTypes == null || fieldTypes == null || linkTypes == null)
+					throw (new SvException("system.error.misconfigured_dbt", svCONST.systemUser));
+
 				// Purge the initial config from the cache
 				DbCache.clean();
 
 				// initialise the system objects from the Database configuration
 				initSysObjects(objectTypes, fieldTypes, linkTypes);
 
-				if (linkTypes != null) {
-					for (DbDataObject dbo : linkTypes.getItems()) {
-						DboFactory.makeDboReadOnly(dbo);
-						String type = (String) dbo.getVal("link_type");
-						String uqVals = type + "." + dbo.getVal("link_obj_type_1").toString() + "."
-								+ dbo.getVal("link_obj_type_2").toString();
-						DbCache.addObject(dbo, uqVals, true);
-						if (type != null && type.equals("POA"))
-							poaDbLinkTypes.addDataItem(dbo);
-					}
+				for (DbDataObject dbo : linkTypes.getItems()) {
+					DboFactory.makeDboReadOnly(dbo);
+					String type = (String) dbo.getVal("link_type");
+					String uqVals = type + "." + dbo.getVal("link_obj_type_1").toString() + "."
+							+ dbo.getVal("link_obj_type_2").toString();
+					DbCache.addObject(dbo, uqVals, true);
+					if (type != null && type.equals("POA"))
+						poaDbLinkTypes.addDataItem(dbo);
 				}
-				if (formTypes != null) {
-					for (DbDataObject dbo : formTypes.getItems()) {
-						DboFactory.makeDboReadOnly(dbo);
-						DbCache.addObject(dbo, null, true);
-					}
+
+				for (DbDataObject dbo : formTypes.getItems()) {
+					DboFactory.makeDboReadOnly(dbo);
+					DbCache.addObject(dbo, null, true);
 				}
 				// init the default DbLink type
 				DbQueryExpression.setDblt(DbCache.getObject(svCONST.OBJECT_TYPE_LINK, svCONST.OBJECT_TYPE_TABLE));
@@ -3129,7 +3132,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *             Any underlying exception is re-thrown
 	 */
 	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value,
-			SvLob lob) throws SQLException, Exception {
+			SvLob lob) throws SQLException, SvException {
 
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));
 		if (log4j.isDebugEnabled())
@@ -3155,7 +3158,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			break;
 		case GEOMETRY:
 			byte[] byteVal = getWKBWriter().write((Geometry) value);
-			getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+			try {
+				getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+			} catch (Exception e) {
+				throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
+			}
 			break;
 		default:
 			ps.setString(bindAtPosition, (String) value);
@@ -3203,7 +3210,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
-	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value) throws SQLException {
+	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value)
+			throws SQLException {
 		if (value == null)
 			ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
 		else {
