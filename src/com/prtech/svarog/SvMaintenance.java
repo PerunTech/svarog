@@ -17,6 +17,7 @@ import java.lang.ref.Reference;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -191,10 +192,12 @@ public class SvMaintenance implements Runnable {
 	 * @param validNodes
 	 *            The list of objects which we want to keep (don't delete)
 	 *            in string format, comma separated
+	 * @throws SQLException 
+	 * @throws SvException 
 	 * @throws Exception
 	 *             Throw any underlying exception
 	 */
-	static private void clusterListDeleteHistory(Connection conn, DbDataArray validNodes) throws Exception {
+	static private void clusterListDeleteHistory(Connection conn, DbDataArray validNodes) throws SQLException, SvException {
 		PreparedStatement ps = null;
 
 		try {

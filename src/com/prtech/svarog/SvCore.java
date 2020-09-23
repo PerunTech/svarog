@@ -1140,7 +1140,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			try {
 				JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.EXTENDED_PARAMS), JsonObject.class);
 				for (Entry<String, JsonElement> je : jo.entrySet())
-					dbo.setVal(je.getKey(), je);
+					dbo.setVal(je.getKey(), getJsonValue(je));
 				dbo.setIsDirty(false);
 
 			} catch (Exception e) {
@@ -1156,7 +1156,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *            The JSON element
 	 * @return The resulting object, primitive or json object.
 	 */
-	private Object getJsonValue(Entry<String, JsonElement> je) {
+	private static Object getJsonValue(Entry<String, JsonElement> je) {
 		Object returnValue = null;
 		JsonElement jel = je.getValue();
 		if (jel.isJsonPrimitive()) {
@@ -3139,15 +3139,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		switch (type) {
 		case BOOLEAN:
-			bindBoolean(ps, dbf, bindAtPosition, value, lob, type);
+			bindBoolean(ps, bindAtPosition, value);
 			break;
 		case NUMERIC:
-			bindNumeric(ps, dbf, bindAtPosition, value, lob, type);
+			bindNumeric(ps, dbf, bindAtPosition, value);
 			break;
 		case DATE:
 		case TIME:
 		case TIMESTAMP:
-			bindDateTime(ps, dbf, bindAtPosition, value, lob, type);
+			bindDateTime(ps, bindAtPosition, value);
 			break;
 		case TEXT:
 		case NVARCHAR:
@@ -3169,21 +3169,14 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * 
 	 * @param ps
 	 *            The used SQL prepared statement
-	 * @param dbf
-	 *            The descriptor of the field
 	 * @param bindAtPosition
 	 *            The position at which the object value will be bind
 	 * @param value
 	 *            The value which should be bind
-	 * @param lob
-	 *            Reference to the LOB management class
-	 * @param type
-	 *            The type of the value bound to the field
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
-	private void bindBoolean(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
-			DbFieldType type) throws SQLException {
+	private void bindBoolean(PreparedStatement ps, int bindAtPosition, Object value) throws SQLException {
 
 		if (value == null) {
 			if (SvConf.getDbType().equals(SvDbType.ORACLE))
@@ -3207,15 +3200,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *            The position at which the object value will be bind
 	 * @param value
 	 *            The value which should be bind
-	 * @param lob
-	 *            Reference to the LOB management class
-	 * @param type
-	 *            The type of the value bound to the field
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
-	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
-			DbFieldType type) throws SQLException {
+	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value) throws SQLException {
 		if (value == null)
 			ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
 		else {
@@ -3243,21 +3231,14 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * 
 	 * @param ps
 	 *            The used SQL prepared statement
-	 * @param dbf
-	 *            The descriptor of the field
 	 * @param bindAtPosition
 	 *            The position at which the object value will be bind
 	 * @param value
 	 *            The value which should be bind
-	 * @param lob
-	 *            Reference to the LOB management class
-	 * @param type
-	 *            The type of the value bound to the field
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
-	private void bindDateTime(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
-			DbFieldType type) throws SQLException {
+	private void bindDateTime(PreparedStatement ps, int bindAtPosition, Object value) throws SQLException {
 		if (value == null)
 			ps.setNull(bindAtPosition, java.sql.Types.TIMESTAMP);
 		else if (value.getClass().equals(DateTime.class)) {
