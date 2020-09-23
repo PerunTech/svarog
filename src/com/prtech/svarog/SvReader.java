@@ -101,7 +101,7 @@ public class SvReader extends SvCore {
 	 *             Pass through exception from the underlying methods
 	 */
 	SvReader() throws SvException {
-		super();
+		super(svCONST.systemUser, null);
 	}
 
 	/**
