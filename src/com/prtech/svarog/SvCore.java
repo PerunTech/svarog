@@ -1182,7 +1182,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *             Any underlying exception that might be thrown
 	 */
 	private static void linkToParentDbt(DbDataObject dbo) throws SvException {
-		DbDataObject dbt = SvCore.getDbt(dbo.getParentId());
+		DbDataObject dbt = null;
+		try {
+			dbt = SvCore.getDbt(dbo.getParentId());
+		} catch (SvException ex) {
+			if (ex.getLabelCode().equals("system.error.no_dbt_found"))
+				return;
+		}
 		assert (dbt != null);
 
 		JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
