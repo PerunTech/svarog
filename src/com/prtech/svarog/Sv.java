@@ -45,5 +45,7 @@ public class Sv {
 	public static final String CENTROID = "CENTROID";
 	public static final String GEOMETRY = "GEOMETRY";
 	public static final String BOUNDS_AREA_HA = "bounds_area_ha";
+	
+	
 
 }
