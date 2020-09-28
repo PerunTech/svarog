@@ -217,15 +217,15 @@ public class SvConf {
 	/**
 	 * Fields storing application information
 	 */
-	static final String appName = loadInfo("application.name");
+	static final String appName = "Svarog Business Platform";
 	/**
 	 * Fields storing Application version
 	 */
-	static final String appVersion = loadInfo("application.version");
+	static final String appVersion = loadInfo("git.build.version");
 	/**
 	 * Fields storing Application build number
 	 */
-	static final String appBuild = loadInfo("application.build");
+	static final String appBuild = loadInfo("git.build.time");
 
 	/**
 	 * Array holding the list of service classes allowed to switch to the
@@ -383,6 +383,13 @@ public class SvConf {
 			log4j.info("Starting " + appName);
 			log4j.info("Version:" + appVersion);
 			log4j.info("Build:" + appBuild);
+			
+			log4j.debug("Commit:" + loadInfo("git.commit.id.full"));
+			log4j.debug("Commit Desc:" + loadInfo("git.commit.id.describe"));
+			log4j.debug("Host:" + loadInfo("git.build.host"));
+			log4j.debug("Branch:" + loadInfo("git.branch"));
+			log4j.debug("Repository:" + loadInfo("git.remote.origin.url"));
+
 			// load all the properties from this file
 			Properties temp = new Properties();
 			temp.load(props);

@@ -1,3 +1,0 @@
-Version 1.0.2
-----------------------------------
-- Latest fixes to include release of open cursors in saveFormData
