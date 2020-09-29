@@ -3,10 +3,12 @@ package com.prtech.svarog;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.HashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog_interfaces.ISvConfiguration;
 import com.prtech.svarog_interfaces.ISvCore;
 
@@ -27,6 +29,17 @@ public class SvConfigurationImpl implements ISvConfiguration {
 		if (SvarogInstall.tableColumnExists(columnName, tableName, conn, schema)) {
 			PreparedStatement ps = null;
 			try {
+				HashMap<String, String> params = new HashMap<String, String>();
+				params.put("DB_TYPE", SvConf.getDbType().toString());
+				params.put("DB_USER", SvConf.getUserName());
+				params.put("VIEW_NAME", "V" + tableName);
+				params.put("VIEW_SCHEMA", SvConf.getDefaultSchema());
+
+				if (SvConf.getDbType().equals(SvDbType.POSTGRES)
+						&& SvarogInstall.dbObjectExists("V" + tableName, conn)) {
+					SvarogInstall.executeDbScript("drop_view.sql", params, conn);
+				}
+
 				ps = conn.prepareStatement(sqlDrop);
 				ps.execute();
 				errorMsg = "Successfully dropped column:" + columnName + " from table: " + tableName;
