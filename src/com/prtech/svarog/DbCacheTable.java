@@ -569,7 +569,7 @@ public class DbCacheTable {
 	void removeObjectSupport(DbDataObject dbo) {
 		if (dbo != null) {
 			synchronized (objParentIdCache) {
-				String parentListId = dbo.getParent_id().toString() + CURRENT_TIME;
+				String parentListId = dbo.getParentId().toString() + CURRENT_TIME;
 				objParentIdCache.invalidate(parentListId);
 
 			}
