@@ -916,7 +916,8 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Root method to save data to the underlying table.
+	 * Root method to save data to the underlying table. This method will
+	 * generate the INSERT query and bind the appropriate parameters as values.
 	 * 
 	 * @param arrayToSave
 	 *            Array of objects to save
@@ -931,55 +932,20 @@ public class SvWriter extends SvCore {
 
 	void saveTableData(DbDataArray arrayToSave, DbDataObject dbt, HashMap<Long, Object[]> oldRepoObjs, Boolean isUpdate)
 			throws SvException {
+		// get the table columns (object fields) to generate the insert
 		DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 
 		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true);
 		if (log4j.isDebugEnabled())
 			log4j.debug("Executing SQL:" + sql);
 
-		PreparedStatement ps = null;
-		try {
-			ps = this.dbGetConn().prepareStatement(sql);
-			int objIndex = 0;
+		try (SvLob lob = new SvLob(this.dbGetConn()); PreparedStatement ps = this.dbGetConn().prepareStatement(sql)) {
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
-				int pCount = 1;
+
 				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObjectId()) : null;
-				// if (oldPkid == 0)
-				ps.setBigDecimal(pCount, new BigDecimal(objToSave.getPkid()));
-				String fName = "";
-				pCount++;
-				for (DbDataObject dbf : objectFields.getItems()) {
-					fName = (String) dbf.getVal("FIELD_NAME");
-					if (fName.equals("PKID"))
-						continue;
-					Object value = objToSave.getVal(fName);
-
-					if (log4j.isDebugEnabled()) {
-						log4j.debug("Bind variable " + pCount + ", field:" + fName + ", value:" + value);
-					}
-					// validate the field data and if exception happens re-throw
-					try {
-						validateFieldData(dbf, value, false);
-					} catch (SvException ex) {
-						ex.setUserData(objToSave);
-						throw (ex);
-					}
-					bindInsertQueryVars(ps, dbf, pCount, value);
-
-					pCount++;
-
-				}
-
-				if (isUpdate) {
-					ps.setBigDecimal(pCount, new BigDecimal((Long) oldRepoData[4]));
-					if (log4j.isDebugEnabled()) {
-						log4j.debug("Bind variable " + pCount + ", field: OLD_PKID, value:" + oldRepoData[4]);
-					}
-
-				}
-
-				ps.addBatch();
-				objIndex++;
+				// always bind the PKID at position one
+				ps.setBigDecimal(1, new BigDecimal(objToSave.getPkid()));
+				bindColumnValues(objToSave, isUpdate, objectFields, oldRepoData, ps, lob);
 			}
 			int[] insertedRows = ps.executeBatch();
 			if (arrayToSave.getItems().size() != insertedRows.length)
@@ -993,9 +959,65 @@ public class SvWriter extends SvCore {
 				throw ((SvException) e);
 			else
 				throw (new SvException("system.error.general_err", instanceUser, arrayToSave, dbt, e));
-		} finally {
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
+	}
+
+	/**
+	 * Method to bind the object field values to the parameters of the prepared
+	 * statement
+	 * 
+	 * @param objToSave
+	 *            The DbDataObject object which is subject of inserting into the
+	 *            Database
+	 * @param isUpdate
+	 *            Is this a new object or we are updating and existing one
+	 * @param objectFields
+	 *            The list of columns/fields of the object
+	 * @param oldRepoData
+	 *            The repo data from the previous object version
+	 * @param ps
+	 *            The PreparedStatement used for this insert
+	 * @param lob
+	 *            The SvLob instance used for binding BLOBs/CLOBs
+	 * @throws SvException
+	 *             Underlying SvException
+	 * @throws SQLException
+	 *             Any SQLException thrown by the JDBC driver
+	 * @throws Exception
+	 *             Any other generic exception including SvException
+	 */
+	private void bindColumnValues(DbDataObject objToSave, Boolean isUpdate, DbDataArray objectFields,
+			Object[] oldRepoData, PreparedStatement ps, SvLob lob) throws SQLException, SvException {
+		String fName = "";
+		int pCount = 2;
+		for (DbDataObject dbf : objectFields.getItems()) {
+			fName = (String) dbf.getVal("FIELD_NAME");
+			if (fName.equals("PKID"))
+				continue;
+
+			Object value = objToSave.getVal(fName);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Bind variable " + pCount + ", field:" + fName + ", value:" + value);
+
+			// validate the field data and if exception happens re-throw
+			try {
+				validateFieldData(dbf, value, false);
+			} catch (SvException ex) {
+				ex.setUserData(objToSave);
+				throw (ex);
+			}
+			bindInsertQueryVars(ps, dbf, pCount, value, lob);
+			pCount++;
+		}
+
+		if (isUpdate) {
+			ps.setBigDecimal(pCount, new BigDecimal((Long) oldRepoData[4]));
+			if (log4j.isDebugEnabled()) {
+				log4j.debug("Bind variable " + pCount + ", field: OLD_PKID, value:" + oldRepoData[4]);
+			}
+
+		}
+		ps.addBatch();
 	}
 
 	/**
@@ -1532,9 +1554,9 @@ public class SvWriter extends SvCore {
 
 		PreparedStatement ps = null;
 		PreparedStatement psInvalidate = null;
-		SvReader svr = null;
-		try {
-			svr = new SvReader(this);
+
+		try (SvLob lob = new SvLob(this.dbGetConn()); SvReader svr = new SvReader(this)) {
+
 			svr.instanceUser = svCONST.systemUser;
 
 			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
@@ -1558,7 +1580,7 @@ public class SvWriter extends SvCore {
 					continue;
 				Object value = objToSave.getVal(fName);
 				validateFieldData(dbf, value, false);
-				bindInsertQueryVars(ps, dbf, pCount, value);
+				bindInsertQueryVars(ps, dbf, pCount, value, lob);
 
 				pCount++;
 			}
@@ -1604,7 +1626,6 @@ public class SvWriter extends SvCore {
 		} finally {
 			closeResource((AutoCloseable) ps, instanceUser);
 			closeResource((AutoCloseable) psInvalidate, instanceUser);
-			svr.release();
 		}
 
 	}

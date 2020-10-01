@@ -238,7 +238,7 @@ public class SvarogInstall {
 				errStatus = 0;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			log4j.info("DbConnection.getDBConnection() raised an exception");
+			log4j.info("Can't connect to target database. Check svarog.properties configuration.");
 			log4j.debug("Connection exception:", e);
 
 		} finally {
@@ -2568,12 +2568,19 @@ public class SvarogInstall {
 		if (!oldDbo.getStatus().equals(newDbo.getStatus()))
 			return true;
 
+		if(dboFields.getItemByIdx("PKID", oldDbo.getObjectType())==null)
+			dboFields.rebuildIndex(Sv.FIELD_NAME);
 		// if(oldDbo.getValues().size()!=newDbo.getValues().size())
 		// return true;
 		Boolean cmpVal = false;
 		for (Entry<SvCharId, Object> ent : oldDbo.getValuesMap().entrySet()) {
 			if (dboFields.getItemByIdx(ent.getKey().toString(), oldDbo.getObjectType()) == null)
 				continue;
+			// never upgrade because of changes in metadata or extended params
+			if (ent.getKey().equals(SvCharId.toSvCharId(Sv.GUI_METADATA))
+					|| ent.getKey().equals(SvCharId.toSvCharId(Sv.EXTENDED_PARAMS)))
+				continue;
+
 			Object oldVal = ent.getValue();
 			Object newVal = newDbo.getVal(ent.getKey());
 			if (oldVal == null && newVal == null)
@@ -2593,6 +2600,11 @@ public class SvarogInstall {
 
 		for (Entry<SvCharId, Object> ent : newDbo.getValuesMap().entrySet()) {
 			if (dboFields.getItemByIdx(ent.getKey().toString(), oldDbo.getObjectType()) == null)
+				continue;
+			// never upgrade because of changes in metadata or extended params
+			// never upgrade because of changes in metadata or extended params
+			if (ent.getKey().equals(SvCharId.toSvCharId(Sv.GUI_METADATA))
+					|| ent.getKey().equals(SvCharId.toSvCharId(Sv.EXTENDED_PARAMS)))
 				continue;
 
 			Object oldVal = oldDbo.getVal(ent.getKey());
@@ -3736,15 +3748,11 @@ public class SvarogInstall {
 		Long existingPkid = 0L;
 		Long existingOID = 0L;
 
-		SvWriter dbu = null;
-		SvReader svr = null;
-		try {
+		try (SvWriter dbu = new SvWriter(); SvReader svr = new SvReader(dbu)) {
 			// init the table configs
 
-			dbu = new SvWriter();
 			dbu.isInternal = true;
 			dbu.dbSetAutoCommit(false);
-			svr = new SvReader(dbu);
 
 			DbQueryObject query = new DbQueryObject(SvCore.repoDbt, SvCore.repoDbtFields,
 					SvCore.getDbt(svCONST.OBJECT_TYPE_TABLE), SvCore.getFields(svCONST.OBJECT_TYPE_TABLE), null, null,
@@ -3797,11 +3805,6 @@ public class SvarogInstall {
 
 			}
 			dbu.dbCommit();
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (dbu != null)
-				dbu.release();
 		}
 		if (parentNotFound)
 			log4j.info(

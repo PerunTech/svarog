@@ -12,7 +12,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.0.6.4</version>
+	<version>3.1.0</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -260,7 +260,7 @@
 		<dependency>
 			<groupId>svarog</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>3.0.6.4</version>
+			<version>[3.1.0,)</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -280,7 +280,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>18.0</version>
+			<version>24.1.1-jre</version>
 		</dependency>
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
