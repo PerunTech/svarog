@@ -34,36 +34,46 @@ public class SvPerunInstance {
 	int sortOrder;
 	IPerunPlugin plugin;
 
-	SvPerunInstance(IPerunPlugin plugin, DbDataObject dboPlugin) {
-		if (plugin == null || dboPlugin == null)
-			throw new NullPointerException("Plugin can't be null");
-		this.status = dboPlugin.getStatus();
+	
+	JsonObject setMenuJson(DbDataObject dboPlugin, String confFieldName)
+	{
 		Gson g = new Gson();
-		if (dboPlugin.getVal("MENU_CONF") != null) {
-			if (dboPlugin.getVal("MENU_CONF") instanceof JsonObject)
-				this.mainMenu = (JsonObject) dboPlugin.getVal("MENU_CONF");
-			else if (dboPlugin.getVal("MENU_CONF") instanceof String) {
-				String menuStr = (String) dboPlugin.getVal("MENU_CONF");
-				this.mainMenu = g.fromJson(menuStr, JsonObject.class);
-			} else
-				log4j.error("Can't parse menu config");
-		} else
-			this.mainMenu = plugin.getMenu((JsonObject) null, null);
-
-		if (dboPlugin.getVal("CONTEXT_MENU_CONF") != null) {
-			if (dboPlugin.getVal("CONTEXT_MENU_CONF") instanceof JsonObject)
-				this.contextMenu = (JsonObject) dboPlugin.getVal("CONTEXT_MENU_CONF");
-			else if (dboPlugin.getVal("CONTEXT_MENU_CONF") instanceof String) {
-				String menuStr = (String) dboPlugin.getVal("CONTEXT_MENU_CONF");
+		JsonObject menu = null;
+		if (dboPlugin.getVal(confFieldName) != null) {
+			if (dboPlugin.getVal(confFieldName) instanceof JsonObject)
+				menu = (JsonObject) dboPlugin.getVal(confFieldName);
+			else if (dboPlugin.getVal(confFieldName) instanceof String) {
+				String menuStr = (String) dboPlugin.getVal(confFieldName);
 				try {
-					this.contextMenu = g.fromJson(menuStr, JsonObject.class);
+					menu = g.fromJson(menuStr, JsonObject.class);
 				} catch (Exception e) {
 					log4j.error("Can't parse context menu config:" + menuStr, e);
 				}
 			} else
 				log4j.error("Can't parse context menu config");
 		} else
-			this.contextMenu = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
+		{
+			if(confFieldName.equals("MENU_CONF"))
+				menu = plugin.getMenu((JsonObject) null, null);
+			else
+				menu = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
+		}
+		return menu;
+	}
+	
+	/**
+	 * Constructor to set a 
+	 * @param plugin
+	 * @param dboPlugin
+	 */
+	SvPerunInstance(IPerunPlugin plugin, DbDataObject dboPlugin) {
+		if (plugin == null || dboPlugin == null)
+			throw new NullPointerException("Plugin can't be null");
+		this.status = dboPlugin.getStatus();
+		this.plugin = plugin;
+		
+		this.mainMenu = setMenuJson(dboPlugin, "MENU_CONF");
+		this.contextMenu = setMenuJson(dboPlugin, "CONTEXT_MENU_CONF");
 
 		this.permissionCode = (String) (dboPlugin.getVal("PERMISSION_CODE") != null
 				? dboPlugin.getVal("PERMISSION_CODE")
@@ -74,7 +84,7 @@ public class SvPerunInstance {
 				: plugin.getIconPath());
 		this.jsPath = (String) (dboPlugin.getVal("JAVASCRIPT_PATH") != null ? dboPlugin.getVal("JAVASCRIPT_PATH")
 				: plugin.getJsPluginUrl());
-		this.sortOrder = (int) (dboPlugin.getVal("SORT_ORDER") != null ? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
+		this.sortOrder = (dboPlugin.getVal("SORT_ORDER") != null ? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
 				: plugin.getSortOrder());
 		this.plugin = plugin;
 

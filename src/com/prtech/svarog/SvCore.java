@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -85,7 +87,7 @@ import com.vividsolutions.jts.io.WKBWriter;
  * POJOs.
  * 
  */
-public abstract class SvCore implements ISvCore {
+public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/////////////////////////////////////////////////////////////
 	// SvCore static variables and methods
 	/////////////////////////////////////////////////////////////
@@ -1103,44 +1105,134 @@ public abstract class SvCore implements ISvCore {
 	 * 
 	 * @param fields
 	 *            The fields array to be preprocessed
+	 * @throws SvException
 	 */
-	private static void prepareFields(DbDataArray fields) {
+	private static void prepareFields(DbDataArray fields) throws SvException {
 		for (DbDataObject dbo : fields.getItems()) {
 			Gson gs = new Gson();
-			if (dbo.getVal("gui_metadata") != null) {
+			if (dbo.getVal(Sv.GUI_METADATA) != null) {
 				try {
-					JsonObject jo = gs.fromJson((String) dbo.getVal("gui_metadata"), JsonObject.class);
-					dbo.setVal("gui_metadata", jo);
+					JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.GUI_METADATA), JsonObject.class);
+					dbo.setVal(Sv.GUI_METADATA, jo);
 					dbo.setIsDirty(false);
 				} catch (Exception e) {
 					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata");
 				}
 			}
-			if (dbo.getVal("EXTENDED_PARAMS") != null) {
-				try {
-					JsonObject jo = gs.fromJson((String) dbo.getVal("EXTENDED_PARAMS"), JsonObject.class);
-					for (Entry<String, JsonElement> je : jo.entrySet()) {
-						JsonElement jel = je.getValue();
-						if (jel.isJsonPrimitive()) {
-							if (jel.getAsJsonPrimitive().isBoolean())
-								dbo.setVal(je.getKey(), jel.getAsBoolean());
-							if (jel.getAsJsonPrimitive().isString())
-								dbo.setVal(je.getKey(), jel.getAsString());
-							if (jel.getAsJsonPrimitive().isNumber()) {
-								dbo.setVal(je.getKey(), jel.getAsNumber());
-							}
-						} else if (jel.isJsonArray() || jel.isJsonObject())
-							dbo.setVal(je.getKey(), jel.getAsJsonObject());
 
-					}
-					dbo.setIsDirty(false);
-
-				} catch (Exception e) {
-					log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
-				}
-			}
+			if (dbo.getVal(Sv.EXTENDED_PARAMS) != null)
+				prepareExtOpts(dbo);
+			// finally link the ext params and gui metadata to the parent meta
+			linkToParentDbt(dbo);
 
 		}
+	}
+
+	/**
+	 * Method to prepare the extended params field for each Field Descriptor
+	 * 
+	 * @param dbo
+	 *            The field Descriptor
+	 */
+	private static void prepareExtOpts(DbDataObject dbo) {
+		Gson gs = new Gson();
+		{
+			try {
+				JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.EXTENDED_PARAMS), JsonObject.class);
+				for (Entry<String, JsonElement> je : jo.entrySet())
+					dbo.setVal(je.getKey(), getJsonValue(je));
+				dbo.setIsDirty(false);
+
+			} catch (Exception e) {
+				log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
+			}
+		}
+	}
+
+	/**
+	 * Method to translate json element into primitive
+	 * 
+	 * @param je
+	 *            The JSON element
+	 * @return The resulting object, primitive or json object.
+	 */
+	private static Object getJsonValue(Entry<String, JsonElement> je) {
+		Object returnValue = null;
+		JsonElement jel = je.getValue();
+		if (jel.isJsonPrimitive()) {
+			if (jel.getAsJsonPrimitive().isBoolean())
+				returnValue = jel.getAsBoolean();
+			if (jel.getAsJsonPrimitive().isString())
+				returnValue = jel.getAsString();
+			if (jel.getAsJsonPrimitive().isNumber()) {
+				returnValue = jel.getAsNumber();
+			}
+		} else if (jel.isJsonArray() || jel.isJsonObject())
+			returnValue = jel.getAsJsonObject();
+		return returnValue;
+	}
+
+	/**
+	 * Method to link the meta data from the field descriptor to the parent
+	 * table
+	 * 
+	 * @param dbo
+	 *            The field descriptor
+	 * @throws SvException
+	 *             Any underlying exception that might be thrown
+	 */
+	private static void linkToParentDbt(DbDataObject dbo) throws SvException {
+		DbDataObject dbt = null;
+		try {
+			dbt = SvCore.getDbt(dbo.getParentId());
+		} catch (SvException ex) {
+			if (ex.getLabelCode().equals("system.error.no_dbt_found"))
+				return;
+		}
+		assert (dbt != null);
+
+		JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
+		if (meta == null) {
+
+			try (SvReader svr = new SvReader()) {
+				DboUnderground.revertReadOnly(dbt, svr);
+				meta = new JsonObject();
+				dbt.setVal(Sv.GUI_METADATA, meta);
+				dbt.setIsDirty(false);
+				DboFactory.makeDboReadOnly(dbt);
+			}
+		}
+
+		JsonElement j = meta.get(Sv.FIELDS);
+		if (j == null) {
+			j = new JsonObject();
+			meta.add(Sv.FIELDS, j);
+		}
+
+		JsonObject jo = j.getAsJsonObject();
+		if (dbo.getVal(Sv.GUI_METADATA) != null && !jo.has((String) dbo.getVal(Sv.FIELD_NAME)))
+			jo.add((String) dbo.getVal(Sv.FIELD_NAME), (JsonElement) dbo.getVal(Sv.GUI_METADATA));
+
+		JsonObject params = (JsonObject) dbt.getVal(Sv.EXTENDED_PARAMS);
+		if (params == null) {
+			try (SvReader svr = new SvReader()) {
+				DboUnderground.revertReadOnly(dbt, svr);
+				params = new JsonObject();
+				dbt.setVal(Sv.EXTENDED_PARAMS, params);
+				dbt.setIsDirty(false);
+				DboFactory.makeDboReadOnly(dbt);
+			}
+		}
+		JsonElement jx = params.get(Sv.FIELDS);
+		if (jx == null) {
+			jx = new JsonObject();
+			params.add(Sv.FIELDS, jx);
+		}
+
+		JsonObject jox = jx.getAsJsonObject();
+		if (dbo.getVal(Sv.EXTENDED_PARAMS) != null && !jox.has((String) dbo.getVal(Sv.FIELD_NAME)))
+			jox.add((String) dbo.getVal(Sv.FIELD_NAME), (JsonElement) dbo.getVal(Sv.EXTENDED_PARAMS));
+
 	}
 
 	/**
@@ -1231,6 +1323,19 @@ public abstract class SvCore implements ISvCore {
 		}
 
 		// verify minimal configuration exists
+		validateSvarogConfig();
+	}
+
+	/**
+	 * Method to validate the currently loaded svarog configuration contains the
+	 * base tables.
+	 * 
+	 * @throws SvException
+	 *             In case of bad config exception
+	 *             "system.error.misconfigured_dbt" is thrown
+	 */
+	public static void validateSvarogConfig() throws SvException {
+
 		DbDataArray coreObjects = new DbDataArray();
 		DbDataArray coreCodes = new DbDataArray();
 
@@ -1241,10 +1346,9 @@ public abstract class SvCore implements ISvCore {
 				String key = ((String) baseType.getVal("schema")).toUpperCase() + "."
 						+ ((String) baseType.getVal("table_name")).toUpperCase();
 				if (!dbtMap.containsKey(key))
-					throw (new Exception("Misconfigured core tables. Svarog can not be initialised. Missing " + key));
+					throw (new SvException("system.error.misconfigured_dbt", baseType));
 			}
 		}
-
 	}
 
 	/**
@@ -1400,28 +1504,30 @@ public abstract class SvCore implements ISvCore {
 						getFields(svCONST.OBJECT_TYPE_FORM_TYPE), null, null, null);
 				DbDataArray formTypes = svc.getObjects(query, null, null);
 
+				// before purging the cache check that we at least have loaded
+				// the config from database
+				if (objectTypes == null || fieldTypes == null || linkTypes == null)
+					throw (new SvException("system.error.misconfigured_dbt", svCONST.systemUser));
+
 				// Purge the initial config from the cache
 				DbCache.clean();
 
 				// initialise the system objects from the Database configuration
 				initSysObjects(objectTypes, fieldTypes, linkTypes);
 
-				if (linkTypes != null) {
-					for (DbDataObject dbo : linkTypes.getItems()) {
-						DboFactory.makeDboReadOnly(dbo);
-						String type = (String) dbo.getVal("link_type");
-						String uqVals = type + "." + dbo.getVal("link_obj_type_1").toString() + "."
-								+ dbo.getVal("link_obj_type_2").toString();
-						DbCache.addObject(dbo, uqVals, true);
-						if (type != null && type.equals("POA"))
-							poaDbLinkTypes.addDataItem(dbo);
-					}
+				for (DbDataObject dbo : linkTypes.getItems()) {
+					DboFactory.makeDboReadOnly(dbo);
+					String type = (String) dbo.getVal("link_type");
+					String uqVals = type + "." + dbo.getVal("link_obj_type_1").toString() + "."
+							+ dbo.getVal("link_obj_type_2").toString();
+					DbCache.addObject(dbo, uqVals, true);
+					if (type != null && type.equals("POA"))
+						poaDbLinkTypes.addDataItem(dbo);
 				}
-				if (formTypes != null) {
-					for (DbDataObject dbo : formTypes.getItems()) {
-						DboFactory.makeDboReadOnly(dbo);
-						DbCache.addObject(dbo, null, true);
-					}
+
+				for (DbDataObject dbo : formTypes.getItems()) {
+					DboFactory.makeDboReadOnly(dbo);
+					DbCache.addObject(dbo, null, true);
 				}
 				// init the default DbLink type
 				DbQueryExpression.setDblt(DbCache.getObject(svCONST.OBJECT_TYPE_LINK, svCONST.OBJECT_TYPE_TABLE));
@@ -1565,13 +1671,8 @@ public abstract class SvCore implements ISvCore {
 		DbDataObject dbu = null;
 		// if the last refresh + the interval is in the past, send a refresh in
 		// the cluster
-		SvSecurity svs = null;
-		try {
-			svs = new SvSecurity();
+		try (SvSecurity svs = new SvSecurity()) {
 			dbu = svs.getSid((Long) svToken.getVal("user_object_id"), svCONST.OBJECT_TYPE_USER);
-		} finally {
-			if (svs != null)
-				svs.release();
 		}
 
 		if (dbu == null)
@@ -1615,12 +1716,11 @@ public abstract class SvCore implements ISvCore {
 	 *             Re-throws any underlying exception
 	 */
 	static DbDataArray getUserGroups(DbDataObject user, boolean returnOnlyDefault, SvCore svc) throws SvException {
-		SvReader svr = null;
 		DbDataArray groups = null;
-		try {
+		try (SvReader svr = new SvReader(svc)) {
 			String userGroupLinkType = "USER_DEFAULT_GROUP";
 			DbDataObject dbLink = getLinkType(userGroupLinkType, svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
-			svr = new SvReader(svc);
+			;
 			svr.isInternal = true;
 			groups = svr.getObjectsByLinkedId(user.getObjectId(), dbLink, null, 0, 0);
 			if (!returnOnlyDefault) {
@@ -1633,9 +1733,6 @@ public abstract class SvCore implements ISvCore {
 					groups = otherGroups;
 				}
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 
 		return groups;
@@ -1787,6 +1884,16 @@ public abstract class SvCore implements ISvCore {
 	}
 
 	/**
+	 * Overriden method of the Autocloseable interface to allow Svarog to be
+	 * used in try-with-resources
+	 */
+	@Override
+	public void close() {
+		release();
+
+	}
+
+	/**
 	 * Wrapper method for better legibility same as release(true);
 	 */
 	public void hardRelease() {
@@ -1837,14 +1944,9 @@ public abstract class SvCore implements ISvCore {
 	 *             If the switch failed, an exception is thrown
 	 */
 	public void switchUser(String userName) throws SvException {
-		SvSecurity svs = null;
-		try {
-			svs = new SvSecurity(this);
+		try (SvSecurity svs = new SvSecurity(this)) {
 			DbDataObject user = svs.getUser(userName);
 			switchUser(user);
-		} finally {
-			if (svs != null)
-				svs.release();
 		}
 
 	}
@@ -2129,9 +2231,8 @@ public abstract class SvCore implements ISvCore {
 	public DbDataArray getSecurityObjects(DbDataObject sid, SvCore core, DbDataObject returnType) throws SvException {
 		DbDataArray permissions = null;
 		DbDataArray groups = null;
-		SvReader svr = null;
-		try {
-			svr = new SvReader(core);
+		try (SvReader svr = new SvReader(core)) {
+
 			if (sid.getObjectType().equals(svCONST.OBJECT_TYPE_USER))
 				groups = SvCore.getUserGroups(sid, false);
 
@@ -2199,9 +2300,6 @@ public abstract class SvCore implements ISvCore {
 				dbop.setVal("ACCESS_TYPE", acType);
 				dbop.setIsDirty(false);
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 		return permissions;
 	}
@@ -2397,17 +2495,11 @@ public abstract class SvCore implements ISvCore {
 	 *             any underlying SvException
 	 */
 	public DbDataObject getUserLocale(String userId) throws SvException {
-		SvSecurity svc = null;
 		DbDataObject localeObj = null;
-		try {
-			svc = new SvSecurity();
+		try (SvSecurity svc = new SvSecurity()) {
 			DbDataObject user = svc.getUser(userId);
 			localeObj = getUserLocale(user);
-		} finally {
-			if (svc != null)
-				svc.release();
 		}
-
 		return localeObj;
 	}
 
@@ -2422,23 +2514,15 @@ public abstract class SvCore implements ISvCore {
 	 *             Any underlying exception
 	 */
 	public void setUserLocale(String userName, String locale) throws SvException {
-		SvParameter svp = null;
-		SvSecurity svc = null;
+
 		DbDataObject localeObj = null;
-		try {
-			svc = new SvSecurity();
+		try (SvParameter svp = new SvParameter(); SvSecurity svc = new SvSecurity()) {
 			DbDataObject userObject = svc.getUser(userName);
 			localeObj = SvarogInstall.getLocaleList().getItemByIdx(locale);
-			svp = new SvParameter();
+
 			if (localeObj != null) {
 				svp.setParamImpl(userObject, "LOCALE", locale, true, true);
 			}
-		} finally {
-			if (svp != null)
-				svp.release();
-			if (svc != null)
-				svc.release();
-
 		}
 	}
 
@@ -2841,7 +2925,8 @@ public abstract class SvCore implements ISvCore {
 					hasAccess = authoriseDqoByConfigType(dqo, aclMap, accessLevel);
 				}
 			}
-
+			if (!hasAccess)
+				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt, accessLevel.toString()));
 		} else
 			hasAccess = true;
 		return hasAccess;
@@ -2849,8 +2934,11 @@ public abstract class SvCore implements ISvCore {
 
 	private boolean hasDQOTreeAccess(DbQueryObject dqo, SvAccess accessLevel) throws SvException {
 		// DbDataArray perms = getPermissions();
-		// TODO add this change asap
-		return true;
+		boolean hasAccess = authoriseDqo(dqo, SvAccess.READ);
+		for (DbQueryObject dqoChild : dqo.getChildren()) {
+			hasAccess = hasDQOTreeAccess(dqoChild, accessLevel);
+		}
+		return hasAccess;
 
 	}
 
@@ -3044,80 +3132,43 @@ public abstract class SvCore implements ISvCore {
 	 *            The position at which the object value will be bind
 	 * @param value
 	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
 	 * @throws SQLException
 	 *             Any underlying exception is re-thrown
 	 */
-	@SuppressWarnings("unchecked")
-	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value)
-			throws SQLException, Exception {
+	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value,
+			SvLob lob) throws SQLException, SvException {
+
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));
 		if (log4j.isDebugEnabled())
 			log4j.debug("For field:+" + dbf.getVal("field_name") + ", binding value "
 					+ (value != null ? value.toString() : "null") + " at position " + bindAtPosition + " as data type "
 					+ type.toString());
+
 		switch (type) {
 		case BOOLEAN:
-			if (value == null) {
-				if (SvConf.getDbType().equals(SvDbType.ORACLE))
-					ps.setNull(bindAtPosition, java.sql.Types.CHAR);
-				else
-					ps.setNull(bindAtPosition, java.sql.Types.BOOLEAN);
-			} else
-				ps.setBoolean(bindAtPosition, (Boolean) value);
+			bindBoolean(ps, bindAtPosition, value);
 			break;
 		case NUMERIC:
-			if (value == null)
-				ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
-			else {
-				Long fScale = (Long) dbf.getVal("FIELD_SCALE");
-				if (fScale != null && fScale > 0) {
-					BigDecimal bdcml;
-					if (value instanceof BigDecimal) {
-						bdcml = (BigDecimal) value;
-						if (bdcml.scale() > fScale) {
-							bdcml = bdcml.setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
-						}
-					} else {
-						double dbl = ((Number) value).doubleValue();
-						bdcml = new BigDecimal(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
-					}
-					ps.setBigDecimal(bindAtPosition, bdcml);
-				} else
-					ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
-			}
+			bindNumeric(ps, dbf, bindAtPosition, value);
 			break;
 		case DATE:
 		case TIME:
 		case TIMESTAMP:
-			if (value == null)
-				ps.setNull(bindAtPosition, java.sql.Types.TIMESTAMP);
-			else if (value.getClass().equals(DateTime.class)) {
-				ps.setTimestamp(bindAtPosition, new Timestamp(((DateTime) value).getMillis()));
-			} else {
-				DateTime dt = new DateTime(value.toString());
-				ps.setTimestamp(bindAtPosition, new Timestamp(dt.getMillis()));
-			}
+			bindDateTime(ps, bindAtPosition, value);
 			break;
 		case TEXT:
 		case NVARCHAR:
-			if (value == null)
-				ps.setString(bindAtPosition, null);
-			else {
-				Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
-				if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
-					StringBuilder bindVal = new StringBuilder();
-					for (String oVal : (ArrayList<String>) value) {
-						bindVal.append(oVal + SvConf.getMultiSelectSeparator());
-					}
-					bindVal.setLength(bindVal.length() - 1);
-					value = bindVal.toString();
-				}
-				ps.setString(bindAtPosition, value.toString());
-			}
+			bindString(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case GEOMETRY:
 			byte[] byteVal = getWKBWriter().write((Geometry) value);
-			getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+			try {
+				getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+			} catch (Exception e) {
+				throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
+			}
 			break;
 		default:
 			ps.setString(bindAtPosition, (String) value);
@@ -3125,22 +3176,165 @@ public abstract class SvCore implements ISvCore {
 		}
 	}
 
+	/**
+	 * Method for binding Booleam parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindBoolean(PreparedStatement ps, int bindAtPosition, Object value) throws SQLException {
+
+		if (value == null) {
+			if (SvConf.getDbType().equals(SvDbType.ORACLE))
+				ps.setNull(bindAtPosition, java.sql.Types.CHAR);
+			else
+				ps.setNull(bindAtPosition, java.sql.Types.BOOLEAN);
+		} else
+			ps.setBoolean(bindAtPosition, (Boolean) value);
+
+	}
+
+	/**
+	 * Method for binding Numeric parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param dbf
+	 *            The descriptor of the field
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value)
+			throws SQLException {
+		if (value == null)
+			ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
+		else {
+			Long fScale = (Long) dbf.getVal("FIELD_SCALE");
+			if (fScale != null && fScale > 0) {
+				BigDecimal bdcml;
+				if (value instanceof BigDecimal) {
+					bdcml = (BigDecimal) value;
+					if (bdcml.scale() > fScale) {
+						bdcml = bdcml.setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+					}
+				} else {
+					double dbl = ((Number) value).doubleValue();
+					bdcml = BigDecimal.valueOf(dbl).setScale(fScale.intValue(), BigDecimal.ROUND_HALF_UP);
+				}
+				ps.setBigDecimal(bindAtPosition, bdcml);
+			} else
+				ps.setBigDecimal(bindAtPosition, new BigDecimal(((Number) value).longValue()));
+		}
+	}
+
+	/**
+	 * Method for binding DateTime parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindDateTime(PreparedStatement ps, int bindAtPosition, Object value) throws SQLException {
+		if (value == null)
+			ps.setNull(bindAtPosition, java.sql.Types.TIMESTAMP);
+		else if (value.getClass().equals(DateTime.class)) {
+			ps.setTimestamp(bindAtPosition, new Timestamp(((DateTime) value).getMillis()));
+		} else {
+			DateTime dt = new DateTime(value.toString());
+			ps.setTimestamp(bindAtPosition, new Timestamp(dt.getMillis()));
+		}
+	}
+
+	/**
+	 * Method for binding string parameter to the prepare statement based on
+	 * field configuration at specified position
+	 * 
+	 * @param ps
+	 *            The used SQL prepared statement
+	 * @param dbf
+	 *            The descriptor of the field
+	 * @param bindAtPosition
+	 *            The position at which the object value will be bind
+	 * @param value
+	 *            The value which should be bind
+	 * @param lob
+	 *            Reference to the LOB management class
+	 * @param type
+	 *            The type of the value bound to the field
+	 * @throws SQLException
+	 *             Any underlying exception is re-thrown
+	 */
+	private void bindString(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
+			DbFieldType type) throws SQLException {
+		if (value == null)
+			ps.setString(bindAtPosition, null);
+		else {
+			Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
+			if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
+				StringBuilder bindVal = new StringBuilder();
+				for (String oVal : (ArrayList<String>) value) {
+					bindVal.append(oVal + SvConf.getMultiSelectSeparator());
+				}
+				bindVal.setLength(bindVal.length() - 1);
+				value = bindVal.toString();
+			}
+			if (type.equals(DbFieldType.TEXT) && !SvConf.getDbType().equals(SvDbType.POSTGRES)) {
+				ps.setCharacterStream(bindAtPosition, lob.stringReader(value.toString()));
+			} else
+				ps.setString(bindAtPosition, value.toString());
+		}
+	}
+
+	/**
+	 * Method to get the lazy initialized singleton WKB Writer class instance
+	 * 
+	 * @return WKBWriter instance
+	 */
 	private WKBWriter getWKBWriter() {
 		if (wkbWriter == null)
 			wkbWriter = new WKBWriter();
 		return wkbWriter;
 	}
 
+	/**
+	 * Method to get the lazy initialized singleton WKB Reader class instance
+	 * 
+	 * @return WKBReader instance
+	 */
 	private WKBReader getWKBReader() {
 		if (wkbReader == null)
 			wkbReader = new WKBReader(SvUtil.sdiFactory);
 		return wkbReader;
 	}
 
+	/**
+	 * Return the auto commit flag of the SvCore instance
+	 */
 	public Boolean getAutoCommit() {
 		return autoCommit;
 	}
 
+	/**
+	 * Set the auto commit flag of the SvCore instance
+	 */
 	public void setAutoCommit(Boolean autoCommit) {
 		this.autoCommit = autoCommit;
 	}

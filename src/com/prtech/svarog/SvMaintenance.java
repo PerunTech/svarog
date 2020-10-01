@@ -17,6 +17,7 @@ import java.lang.ref.Reference;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -154,26 +155,31 @@ public class SvMaintenance implements Runnable {
 	 *            Reference to a DbDataObject containing the node info
 	 * @return EMPTY string if the node should be delete, otherwise PKID
 	 */
-	static private String clusterListUpdateNode(DbDataObject node) {
+	static private DbDataArray clusterListUpdateNode(DbDataArray nodeList) {
+		DbDataArray updatedList = new DbDataArray();
+		for (DbDataObject node : nodeList.getItems()) {
+			boolean nodeRemoved = false;
+			node.setVal(SvCluster.LAST_MAINTENANCE, DateTime.now());
+			node.setVal(SvCluster.NEXT_MAINTENANCE, DateTime.now().plusSeconds(SvConf.getClusterMaintenanceInterval()));
 
-		boolean nodeRemoved = false;
-		node.setVal(SvCluster.LAST_MAINTENANCE, DateTime.now());
-		node.setVal(SvCluster.NEXT_MAINTENANCE, DateTime.now().plusSeconds(SvConf.getClusterMaintenanceInterval()));
+			if (!node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID)
+					&& !SvClusterServer.nodeHeartBeats.containsKey(node.getObjectId())) {
+				nodeRemoved = true;
+			}
 
-		if (!node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID)
-				&& !SvClusterServer.nodeHeartBeats.containsKey(node.getObjectId())) {
-			node.setVal(SvCluster.PART_TIME, DateTime.now());
-			nodeRemoved = true;
+			if (!SvCluster.isRunning().get() && node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
+				node.setVal(SvCluster.PART_TIME, DateTime.now());
+			// if the node is not removed or it is the coordinator
+			// record make sure we keep it
+			if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
+			{
+				//add the node 
+				updatedList.addDataItem(node);
+
+			}
 		}
-
-		if (!SvCluster.isRunning().get() && node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
-			node.setVal(SvCluster.PART_TIME, DateTime.now());
-		// if the node is not removed or it is the coordinator
-		// record make sure we keep it
-		if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
-			return node.getPkid().toString() + ",";
-		else
-			return "";
+		return updatedList;
+		
 	}
 
 	/**
@@ -183,28 +189,57 @@ public class SvMaintenance implements Runnable {
 	 * 
 	 * @param conn
 	 *            The JDBC connection to used for executing the query
-	 * @param oldIds
-	 *            The list of object PKIDs which we want to keep (don't delete)
+	 * @param validNodes
+	 *            The list of objects which we want to keep (don't delete)
 	 *            in string format, comma separated
+	 * @throws SQLException 
+	 * @throws SvException 
 	 * @throws Exception
 	 *             Throw any underlying exception
 	 */
-	static private void clusterListDeleteHistory(Connection conn, StringBuilder dontDeleteIDs) throws Exception {
+	static private void clusterListDeleteHistory(Connection conn, DbDataArray validNodes) throws SQLException, SvException {
 		PreparedStatement ps = null;
 
 		try {
 			StringBuilder sbr = new StringBuilder(100);
+
+			sbr = new StringBuilder(100);
+			sbr.append("DELETE FROM ");
+			sbr.append(SvConf.getDefaultSchema() + ".");
+			sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("REPO_NAME") + " WHERE ");
+			sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER) + " AND  PKID NOT IN (");
+			// append the ids which we should not delete
+			for(DbDataObject dbo: validNodes.getItems())
+				sbr.append(dbo.getPkid().toString()+",");
+			
+			sbr.setLength(sbr.length() - 1);
+			sbr.append(")");
+			conn.setAutoCommit(false);
+			ps = conn.prepareStatement(sbr.toString());
+			ps.execute();
+		} finally {
+			try {
+				SvCore.closeResource(ps, svCONST.systemUser);
+			} catch (SvException e) {
+				log4j.error("Svarog cluster maintenance failed!", e);
+			}
+		}
+
+		try {
+			StringBuilder sbr = new StringBuilder(100);
+
+			sbr = new StringBuilder(100);
 			sbr.append("DELETE FROM ");
 			sbr.append(SvConf.getDefaultSchema() + ".");
 			sbr.append(
 					(String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME") + " WHERE PKID NOT IN (");
 			// append the ids which we should not delete
-			sbr.append(dontDeleteIDs);
+			for(DbDataObject dbo: validNodes.getItems())
+				sbr.append(dbo.getPkid().toString()+",");
 			sbr.setLength(sbr.length() - 1);
 			sbr.append(")");
 			conn.setAutoCommit(false);
 			ps = conn.prepareStatement(sbr.toString());
-
 			ps.execute();
 
 		} finally {
@@ -233,17 +268,12 @@ public class SvMaintenance implements Runnable {
 					svr.isInternal = true;
 					Connection conn = svr.dbGetConn();
 
-					DbDataArray dba = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
+					DbDataArray nodeList = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
 
-					StringBuilder sbr = new StringBuilder();
 
 					DbDataArray updatedList = new DbDataArray();
-					for (DbDataObject node : dba.getItems()) {
-						// do try to get a valid coordinator
-						updatedList.addDataItem(node);
-						sbr.append(clusterListUpdateNode(node));
-					}
-					clusterListDeleteHistory(conn, sbr);
+					updatedList = clusterListUpdateNode(nodeList);
+					clusterListDeleteHistory(conn, updatedList);
 					svw = new SvWriter(svr);
 					svw.saveObject(updatedList, false);
 					svw.dbCommit();

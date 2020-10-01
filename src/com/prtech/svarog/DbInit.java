@@ -69,25 +69,15 @@ public class DbInit {
 
 	}
 
-	static final String Y2K_START_DATE = "2000-01-01T00:00:00";
-	static final String CODE_LIST_ID = "CODE_LIST_ID";
-	static final String LABEL_CODE = "LABEL_CODE";
-	static final String VERSION = "VERSION";
-	static final String SORT_ORDER = "SORT_ORDER";
-	static final String TABLE_NAME = "table_name";
-	static final String REPO_TABLE_NAME = "{REPO_TABLE_NAME}";
-	static final String MASTER_REPO_NAME = "{MASTER_REPO}";
-	static final String DEFAULT_SCHEMA = "{DEFAULT_SCHEMA}";
-	
-	static DbDataTable getPluginConf() {
+	private static DbDataTable getPluginConf() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName("{MASTER_REPO}_PERUN_PLUGIN");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_PERUN_PLUGIN");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PERUN_PLUGIN);
-		dbe.setLabel_code("master_repo.plugin_conf");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "plugin_conf");
 		dbe.setUse_cache(false);
 
 		DbDataField dbe1 = new DbDataField();
@@ -108,7 +98,7 @@ public class DbInit {
 		dbe2.setLabel_code("plugin_conf.plugin_context");
 
 		DbDataField dbe3 = new DbDataField();
-		dbe3.setDbFieldName(LABEL_CODE);
+		dbe3.setDbFieldName(Sv.LABEL_CODE);
 		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe3.setDbFieldSize(50);
 		dbe3.setIsNull(false);
@@ -140,30 +130,30 @@ public class DbInit {
 		dbf7.setDbFieldName("MENU_CONF");
 		dbf7.setDbFieldType(DbFieldType.TEXT);
 		dbf7.setIsNull(true);
-		dbf7.setLabel_code("master_repo.menu_conf");
+		dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "menu_conf");
 
 		// f3
 		DbDataField dbf8 = new DbDataField();
 		dbf8.setDbFieldName("CONTEXT_MENU_CONF");
 		dbf8.setDbFieldType(DbFieldType.TEXT);
 		dbf8.setIsNull(true);
-		dbf8.setLabel_code("master_repo.menu_conf");
+		dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "menu_conf");
 
 		DbDataField dbf9 = new DbDataField();
-		dbf9.setDbFieldName(VERSION);
+		dbf9.setDbFieldName(Sv.VERSION);
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(3);
 		dbf9.setDbFieldScale(0);
 		dbf9.setIsNull(false);
-		dbf9.setLabel_code("master_repo.version");
+		dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "version");
 
 		DbDataField dbf10 = new DbDataField();
-		dbf10.setDbFieldName(SORT_ORDER);
+		dbf10.setDbFieldName(Sv.SORT_ORDER);
 		dbf10.setDbFieldType(DbFieldType.NUMERIC);
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);
 		dbf10.setIsNull(false);
-		dbf10.setLabel_code("master_repo.sort_order");
+		dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "" + Sv.SORT_ORDER.toLowerCase());
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
@@ -180,17 +170,16 @@ public class DbInit {
 		return dbe;
 	}
 
-
 	//
 	private static DbDataTable getMasterCluster() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_cluster");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_cluster");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_CLUSTER);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.cluster");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cluster");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -201,7 +190,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -209,7 +198,7 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
-		dbf2.setLabel_code("master_repo.cluster_node_ip");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cluster_node_ip");
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
@@ -217,21 +206,21 @@ public class DbInit {
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(1000);
 		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.executor_name");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_name");
 
 		DbDataField dbf4 = new DbDataField();
 		dbf4.setDbFieldName("JOIN_TIME");
 		dbf4.setDbFieldType(DbFieldType.TIMESTAMP);
 		dbf4.setDbFieldSize(3);
 		dbf4.setIsNull(false);
-		dbf4.setLabel_code("master_repo.node_join_time");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "node_join_time");
 
 		DbDataField dbf5 = new DbDataField();
 		dbf5.setDbFieldName("PART_TIME");
 		dbf5.setDbFieldType(DbFieldType.TIMESTAMP);
 		dbf5.setDbFieldSize(3);
 		dbf5.setIsNull(false);
-		dbf5.setLabel_code("master_repo.node_part_time");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "node_part_time");
 
 		// f3
 		DbDataField dbf6 = new DbDataField();
@@ -239,14 +228,14 @@ public class DbInit {
 		dbf6.setDbFieldType(DbFieldType.TIMESTAMP);
 		dbf6.setDbFieldSize(3);
 		dbf6.setIsNull(false);
-		dbf6.setLabel_code("master_repo.node_last_maintenance");
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "node_last_maintenance");
 
 		DbDataField dbf7 = new DbDataField();
 		dbf7.setDbFieldName("NEXT_MAINTENANCE");
 		dbf7.setDbFieldType(DbFieldType.TIMESTAMP);
 		dbf7.setDbFieldSize(3);
 		dbf7.setIsNull(false);
-		dbf7.setLabel_code("master_repo.node_next_maintenance");
+		dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "node_next_maintenance");
 
 		DbDataField[] dbTableFields = new DbDataField[7];
 		dbTableFields[0] = dbf1;
@@ -265,13 +254,13 @@ public class DbInit {
 	//
 	private static DbDataTable getMasterExecutors() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_executors");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_executors");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTORS);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.executors");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executors");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -282,7 +271,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -291,7 +280,7 @@ public class DbInit {
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
-		dbf2.setLabel_code("master_repo.executor_category");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_category");
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
@@ -300,21 +289,21 @@ public class DbInit {
 		dbf3.setDbFieldSize(100);
 		dbf3.setIsUnique(true);
 		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.executor_name");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_name");
 		// f3
 		DbDataField dbf4 = new DbDataField();
 		dbf4.setDbFieldName("JAVA_TYPE");
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(100);
 		dbf4.setIsNull(false);
-		dbf4.setLabel_code("master_repo.executor_type");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_type");
 
 		DbDataField dbf5 = new DbDataField();
 		dbf5.setDbFieldName("DESCRIPTION");
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(300);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("master_repo.executor_description");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_description");
 
 		DbDataField dbf6 = new DbDataField();
 		dbf6.setDbFieldName("START_DATE");
@@ -322,7 +311,7 @@ public class DbInit {
 		dbf6.setIsUnique(true);
 		dbf6.setDbFieldSize(3);
 		dbf6.setIsNull(false);
-		dbf6.setLabel_code("master_repo.executor_start_date");
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_start_date");
 
 		DbDataField dbf7 = new DbDataField();
 		dbf7.setDbFieldName("END_DATE");
@@ -330,15 +319,15 @@ public class DbInit {
 		dbf7.setIsUnique(true);
 		dbf7.setDbFieldSize(3);
 		dbf7.setIsNull(false);
-		dbf7.setLabel_code("master_repo.executor_end_date");
+		dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_end_date");
 		// f1
 		DbDataField dbf8 = new DbDataField();
-		dbf8.setDbFieldName(VERSION);
+		dbf8.setDbFieldName(Sv.VERSION);
 		dbf8.setDbFieldType(DbFieldType.NUMERIC);
 		dbf8.setDbFieldSize(3);
 		dbf8.setDbFieldScale(0);
 		dbf8.setIsNull(false);
-		dbf8.setLabel_code("master_repo.executor_version");
+		dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_version");
 
 		DbDataField[] dbTableFields = new DbDataField[8];
 		dbTableFields[0] = dbf1;
@@ -354,18 +343,17 @@ public class DbInit {
 
 		return dbt;
 	}
-	
-	
-	// table EXECUTOR_GROUPS
-	private static DbDataTable getExecutorGroup() {
+
+	// table EXECUTOR_PACK
+	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_executor_group");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_exec_pack");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
-		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_GROUP);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.executor_group");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_pack");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -376,26 +364,74 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
-		dbf2.setLabel_code("master_repo.label_code");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
 
-		// f3
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("NOTES");
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(1000);
+		dbf4.setIsUnique(false);
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "notes");
+
+		DbDataField[] dbTableFields = new DbDataField[3];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf4;
+		dbt.setDbTableFields(dbTableFields);
+		return dbt;
+	}
+
+	// table EXECUTOR_PACK
+	private static DbDataTable getExecutorPackItems() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_EXPCK_ITEMS");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECPACK_ITEM);
+		dbt.setIsRepoTable(false);
+		dbt.setParent_id(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_pack_items");
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName("EXECUTOR_KEY");
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(200);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
+
+		// f2
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("DESCTIPTION");
+		dbf3.setDbFieldName(Sv.LABEL_CODE);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf3.setDbFieldSize(2000);
-		dbf3.setIsUnique(true);
+		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.description");
-	
+		dbf3.setIsUnique(true);
+		dbf3.setUnique_level(Sv.PARENT);
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
 
 		DbDataField[] dbTableFields = new DbDataField[3];
 		dbTableFields[0] = dbf1;
@@ -405,75 +441,16 @@ public class DbInit {
 		return dbt;
 	}
 
-	// table EXECUTOR_PACK
-	private static DbDataTable getExecutorPack() {
-		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_exec_pack");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
-		dbt.setIsSystemTable(true);
-		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
-		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.executor_pack");
-		dbt.setUse_cache(false);
-
-		// f1
-		DbDataField dbf1 = new DbDataField();
-		dbf1.setDbFieldName("PKID");
-		dbf1.setIsPrimaryKey(true);
-		dbf1.setDbFieldType(DbFieldType.NUMERIC);
-		dbf1.setDbFieldSize(18);
-		dbf1.setDbFieldScale(0);
-		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
-
-		// f2
-		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName("NAME");
-		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf2.setDbFieldSize(100);
-		dbf2.setIsNull(false);
-		dbf2.setIsUnique(true);
-		dbf2.setLabel_code("master_repo.name");
-
-		// f3
-		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName("PACK_LEVEL");
-		dbf3.setDbFieldType(DbFieldType.NUMERIC);
-		dbf3.setDbFieldSize(18);
-		dbf3.setIsUnique(true);
-		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.executor_level");
-		
-
-		// f4
-		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName("NOTES");
-		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf4.setDbFieldSize(1000);
-		dbf4.setIsUnique(true);
-		dbf4.setIsNull(false);
-		dbf4.setLabel_code("master_repo.notes");
-
-		DbDataField[] dbTableFields = new DbDataField[4];
-		dbTableFields[0] = dbf1;
-		dbTableFields[1] = dbf2;
-		dbTableFields[2] = dbf3;
-		dbTableFields[3] = dbf4;
-		dbt.setDbTableFields(dbTableFields);
-		return dbt;
-	}
-
 	// RULE ENGINE
 	private static DbDataTable getMasterNotes() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_notes");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_notes");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_NOTES);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.notes");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "notes");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -484,7 +461,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -493,15 +470,15 @@ public class DbInit {
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
-		dbf2.setUnique_level("PARENT");
-		dbf2.setLabel_code("master_repo.note_name");
+		dbf2.setUnique_level(Sv.PARENT);
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "note_name");
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
 		dbf3.setDbFieldName("NOTE_TEXT");
 		dbf3.setDbFieldType(DbFieldType.TEXT);
 		dbf3.setIsNull(true);
-		dbf3.setLabel_code("master_repo.note_text");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "note_text");
 
 		DbDataField[] dbTableFields = new DbDataField[3];
 		dbTableFields[0] = dbf1;
@@ -516,14 +493,14 @@ public class DbInit {
 	// RULE ENGINE
 	private static DbDataTable getMasterRules() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_rules");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_rules");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_RULE);
 		dbt.setIsRepoTable(false);
 		dbt.setCacheType("PERM");
-		dbt.setLabel_code("master_repo.rule");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "rule");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -534,7 +511,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -542,35 +519,35 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
-		dbf2.setLabel_code("master_repo.rule_name");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "rule_name");
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
 		dbf3.setDbFieldName("IS_STOPPABLE");
 		dbf3.setDbFieldType(DbFieldType.BOOLEAN);
 		dbf3.setIsNull(true);
-		dbf3.setLabel_code("master_repo.is_stoppable");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_stoppable");
 
 		// f4
 		DbDataField dbf4 = new DbDataField();
 		dbf4.setDbFieldName("IS_TRANSACTIONAL");
 		dbf4.setDbFieldType(DbFieldType.BOOLEAN);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("master_repo.is_transactional");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_transactional");
 
 		// f5
 		DbDataField dbf5 = new DbDataField();
 		dbf5.setDbFieldName("IS_ROLLING_BACK");
 		dbf5.setDbFieldType(DbFieldType.BOOLEAN);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("master_repo.is_rolling_back");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_rolling_back");
 
 		DbDataField dbf6 = new DbDataField();
 		dbf6.setDbFieldName("RULE_LABEL");
 		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf6.setDbFieldSize(100);
 		dbf6.setIsNull(false);
-		dbf6.setLabel_code("master_repo.rule_label");
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "rule_label");
 
 		DbDataField[] dbTableFields = new DbDataField[6];
 		dbTableFields[0] = dbf1;
@@ -588,14 +565,14 @@ public class DbInit {
 	private static DbDataTable getMasterActions() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_actions");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_actions");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_ACTION);
 		dbt.setIsRepoTable(false);
 		dbt.setCacheType("PERM");
-		dbt.setLabel_code("master_repo.action");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "action");
 		dbt.setUse_cache(false);
 
 		// f1
@@ -606,7 +583,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -614,7 +591,7 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
-		dbf2.setLabel_code("master_repo.action_name");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "action_name");
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
@@ -622,7 +599,7 @@ public class DbInit {
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(50);
 		dbf3.setIsNull(false);
-		dbf3.setLabel_code("master_repo.action_type");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "action_type");
 
 		// f4
 		DbDataField dbf4 = new DbDataField();
@@ -630,7 +607,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(50);
 		dbf4.setIsNull(false);
-		dbf4.setLabel_code("master_repo.code_type");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_type");
 
 		// f5
 		DbDataField dbf5 = new DbDataField();
@@ -638,7 +615,7 @@ public class DbInit {
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(50);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("master_repo.code_subtype");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_subtype");
 
 		// f6
 		DbDataField dbf6 = new DbDataField();
@@ -646,7 +623,7 @@ public class DbInit {
 		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf6.setDbFieldSize(50);
 		dbf6.setIsNull(false);
-		dbf6.setLabel_code("master_repo.return_type");
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "return_type");
 
 		// f7
 		DbDataField dbf7 = new DbDataField();
@@ -654,7 +631,7 @@ public class DbInit {
 		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf7.setDbFieldSize(50);
 		dbf7.setIsNull(true);
-		dbf7.setLabel_code("master_repo.class_name");
+		dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "class_name");
 
 		// f8
 		DbDataField dbf8 = new DbDataField();
@@ -662,15 +639,15 @@ public class DbInit {
 		dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf8.setDbFieldSize(50);
 		dbf8.setIsNull(true);
-		dbf8.setLabel_code("master_repo.method_name");
+		dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "method_name");
 
 		// f9
 		DbDataField dbf9 = new DbDataField();
-		dbf9.setDbFieldName(SORT_ORDER);
+		dbf9.setDbFieldName(Sv.SORT_ORDER);
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(9);
 		dbf9.setIsNull(false);
-		dbf9.setLabel_code("master_repo.sort_order");
+		dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "" + Sv.SORT_ORDER);
 
 		// f10
 		DbDataField dbf10 = new DbDataField();
@@ -678,7 +655,7 @@ public class DbInit {
 		dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf10.setDbFieldSize(100);
 		dbf10.setIsNull(false);
-		dbf10.setLabel_code("master_repo.action_label");
+		dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "action_label");
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbf1;
@@ -700,13 +677,13 @@ public class DbInit {
 	private static DbDataTable getMasterExecutions() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_executions");
-		dbt.setDbRepoName(MASTER_REPO_NAME+"_re");
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_executions");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME + "_re");
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTION);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.execution");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "execution");
 		dbt.setUse_cache(false);
 		dbt.setIsConfigTable(false);
 
@@ -718,14 +695,14 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
 		dbf2.setDbFieldName("IS_SUCCESSFUL");
 		dbf2.setDbFieldType(DbFieldType.BOOLEAN);
 		dbf2.setIsNull(true);
-		dbf2.setLabel_code("master_repo.is_successful");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_successful");
 
 		// f2
 		DbDataField dbf3 = new DbDataField();
@@ -734,7 +711,7 @@ public class DbInit {
 		dbf3.setDbFieldSize(18);
 		dbf3.setDbFieldScale(0);
 		dbf3.setIsNull(true);
-		dbf3.setLabel_code("master_repo.object_exec_on");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "object_exec_on");
 
 		// f3
 		DbDataField dbf4 = new DbDataField();
@@ -742,7 +719,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(20);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("master_repo.exec_state");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "exec_state");
 
 		DbDataField[] dbTableFields = new DbDataField[4];
 		dbTableFields[0] = dbf1;
@@ -757,13 +734,13 @@ public class DbInit {
 
 	private static DbDataTable getMasterResults() {
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_results");
-		dbt.setDbRepoName(MASTER_REPO_NAME+"_re");
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_results");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME + "_re");
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_RESULT);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.result");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "result");
 		dbt.setUse_cache(false);
 		dbt.setIsConfigTable(false);
 
@@ -775,7 +752,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -784,14 +761,14 @@ public class DbInit {
 		dbf2.setDbFieldSize(18);
 		dbf2.setDbFieldScale(0);
 		dbf2.setIsNull(false);
-		dbf2.setLabel_code("master_repo.action_id");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "action_id");
 
 		// f3
 		DbDataField dbf3 = new DbDataField();
 		dbf3.setDbFieldName("IS_SUCCESSFUL");
 		dbf3.setDbFieldType(DbFieldType.BOOLEAN);
 		dbf3.setIsNull(true);
-		dbf3.setLabel_code("master_repo.is_successful");
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_successful");
 
 		// f4
 		DbDataField dbf4 = new DbDataField();
@@ -799,7 +776,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(2000);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("master_repo.result");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "result");
 
 		// f5
 		DbDataField dbf5 = new DbDataField();
@@ -807,7 +784,7 @@ public class DbInit {
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(2000);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("master_repo.errors");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "errors");
 
 		// f6
 		DbDataField dbf6 = new DbDataField();
@@ -815,7 +792,7 @@ public class DbInit {
 		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf6.setDbFieldSize(20);
 		dbf6.setIsNull(true);
-		dbf6.setLabel_code("master_repo.exec_state");
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "exec_state");
 
 		DbDataField[] dbTableFields = new DbDataField[6];
 		dbTableFields[0] = dbf1;
@@ -833,16 +810,16 @@ public class DbInit {
 	private static DbDataTable createFormFieldType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_form_field_type");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_form_field_type");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
 		dbe.setLabel_code("FIELD_TYPE");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE);
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -856,7 +833,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName(LABEL_CODE);
+		dbe2.setDbFieldName(Sv.LABEL_CODE);
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setDbFieldSize(100);
 		dbe2.setIsNull(false);
@@ -876,10 +853,10 @@ public class DbInit {
 
 		// Column 4
 		DbDataField dbe4 = new DbDataField();
-		dbe4.setDbFieldName(CODE_LIST_ID);
+		dbe4.setDbFieldName(Sv.CODE_LIST_ID);
 		dbe4.setDbFieldType(DbFieldType.NUMERIC);
 		dbe4.setDbFieldSize(18);
-		dbe4.setLabel_code("field.code_list_id");
+		dbe4.setLabel_code("field." + Sv.CODE_LIST_ID.toLowerCase());
 
 		DbDataField dbe7 = new DbDataField();
 		dbe7.setDbFieldName("ACL_OBJECT_ID");
@@ -913,15 +890,15 @@ public class DbInit {
 		dbf12.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf12.setDbFieldSize(2000);
 		dbf12.setIsNull(true);
-		dbf12.setLabel_code("master_repo.is_visible_ui");
+		dbf12.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_VISIBLE_UI);
 
 		DbDataField dbf14 = new DbDataField();
-		dbf14.setDbFieldName(SORT_ORDER);
+		dbf14.setDbFieldName(Sv.SORT_ORDER);
 		dbf14.setDbFieldType(DbFieldType.NUMERIC);
 		dbf14.setDbFieldSize(18);
 		dbf14.setDbFieldScale(0);
 		dbf14.setIsNull(true);
-		dbf14.setLabel_code("master_repo.field_sort_order");
+		dbf14.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_" + Sv.SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[10];
 		dbTableFields[0] = dbe1;
@@ -944,9 +921,9 @@ public class DbInit {
 	private static DbDataTable createFormField() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_form_field");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_form_field");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM_FIELD);
@@ -962,7 +939,7 @@ public class DbInit {
 		dbe1.setDbFieldScale(0);
 		dbe1.setIsNull(false);
 		dbe1.setIsPrimaryKey(true);
-		dbe1.setLabel_code("master_repo.table_meta_pkid");
+		dbe1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 1N
 		DbDataField dbe1_0 = new DbDataField();
@@ -1023,17 +1000,17 @@ public class DbInit {
 	private static DbDataTable createMasterFormType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_form_type");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_form_type");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM_TYPE);
-		dbe.setLabel_code("master_repo.form_types");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "form_types");
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE);
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -1043,11 +1020,11 @@ public class DbInit {
 		dbe1.setDbFieldSize(18);
 		dbe1.setDbFieldScale(0);
 		dbe1.setIsNull(false);
-		dbe1.setLabel_code("master_repo.table_meta_pkid");
+		dbe1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName(LABEL_CODE);
+		dbe2.setDbFieldName(Sv.LABEL_CODE);
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setIsNull(false);
 		dbe2.setDbFieldScale(0);
@@ -1092,11 +1069,11 @@ public class DbInit {
 		dbe5_1.setIsNull(false);
 
 		DbDataField dbe6 = new DbDataField();
-		dbe6.setDbFieldName(SORT_ORDER);
+		dbe6.setDbFieldName(Sv.SORT_ORDER);
 		dbe6.setDbFieldType(DbFieldType.NUMERIC);
 		dbe6.setDbFieldSize(18);
 		dbe5.setIsNull(true);
-		dbe6.setLabel_code("form_type.sort_order");
+		dbe6.setLabel_code("form_type." + Sv.SORT_ORDER);
 
 		DbDataField dbe7 = new DbDataField();
 		dbe7.setDbFieldName("ACL_OBJECT_ID");
@@ -1127,7 +1104,7 @@ public class DbInit {
 		dbf11.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf11.setDbFieldSize(2000);
 		dbf11.setIsNull(true);
-		dbf11.setLabel_code("master_repo.is_visible_ui");
+		dbf11.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_VISIBLE_UI);
 
 		DbDataField dbe15 = new DbDataField();
 		dbe15.setDbFieldName("MAX_INSTANCES");
@@ -1159,16 +1136,16 @@ public class DbInit {
 	private static DbDataTable createMasterForm() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_form");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_form");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_FORM);
-		dbe.setLabel_code("master_repo.form");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "form");
 		dbe.setUse_cache(false);
 		// make sure we set the configuration table info
-		dbe.setConfigTypeName(REPO_TABLE_NAME+"_form_type");
+		dbe.setConfigTypeName(Sv.REPO_TABLE_NAME + "_form_type");
 		dbe.setConfigRelationType("FIELD");
 		dbe.setConfigRelatedTypeName("FORM_TYPE_ID");
 
@@ -1180,7 +1157,7 @@ public class DbInit {
 		dbe1.setDbFieldSize(18);
 		dbe1.setDbFieldScale(0);
 		dbe1.setIsNull(false);
-		dbe1.setLabel_code("master_repo.table_meta_pkid");
+		dbe1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 1N
 		DbDataField dbe1_1 = new DbDataField();
@@ -1239,16 +1216,16 @@ public class DbInit {
 	private static DbDataTable createJobType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_job_type");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_job_type");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB_TYPE);
-		dbe.setLabel_code("master_repo.job_type");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "job_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE);
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1258,11 +1235,11 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -1330,16 +1307,16 @@ public class DbInit {
 	private static DbDataTable createTaskType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_task_type");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_task_type");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_TASK_TYPE);
-		dbe.setLabel_code("master_repo.task_type");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "task_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE);
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1349,11 +1326,11 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1401,17 +1378,17 @@ public class DbInit {
 	private static DbDataTable createParamType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_param_type");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_param_type");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM_TYPE);
-		dbe.setLabel_code("master_repo.param_type");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "param_type");
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE);
 		dbe.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 		// Column 1
@@ -1422,17 +1399,17 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
 		dbf2.setIsUnique(true);
 		dbf2.setUnique_level("TABLE");
-		dbf2.setLabel_code("master_repo.label_code");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
@@ -1458,11 +1435,11 @@ public class DbInit {
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(2000);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("master_repo.default_value");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "default_value");
 
 		// Column 6
 		DbDataField dbf6 = new DbDataField();
-		dbf6.setDbFieldName(CODE_LIST_ID);
+		dbf6.setDbFieldName(Sv.CODE_LIST_ID);
 		dbf6.setDbFieldType(DbFieldType.NUMERIC);
 		dbf6.setDbFieldSize(18);
 		dbf6.setDbFieldScale(0);
@@ -1491,7 +1468,7 @@ public class DbInit {
 		dbf9.setDbFieldType(DbFieldType.NUMERIC);
 		dbf9.setDbFieldSize(18);
 		dbf9.setIsNull(true);
-		dbf9.setLabel_code("param_type.sort_order");
+		dbf9.setLabel_code("param_type." + Sv.SORT_ORDER);
 
 		// Column 10
 		DbDataField dbf10 = new DbDataField();
@@ -1529,13 +1506,13 @@ public class DbInit {
 	private static DbDataTable createParam() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_param");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_param");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM);
-		dbe.setLabel_code("master_repo.param");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "param");
 		// dbe.setParentId(svCONST.OBJECT_TYPE_JOB);
 		dbe.setUse_cache(false);
 
@@ -1547,7 +1524,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1572,7 +1549,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NUMERIC);
 		dbf4.setDbFieldSize(18);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("param_type.sort_order");
+		dbf4.setLabel_code("param_type." + Sv.SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[4];
 		dbTableFields[0] = dbf1;
@@ -1588,13 +1565,13 @@ public class DbInit {
 	private static DbDataTable createParamValue() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_param_value");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_param_value");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_PARAM_VALUE);
-		dbe.setLabel_code("master_repo.param_value");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "param_value");
 		// dbe.setParentId(svCONST.OBJECT_TYPE_PARAM);
 		dbe.setUse_cache(false);
 
@@ -1606,7 +1583,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1647,13 +1624,13 @@ public class DbInit {
 	private static DbDataTable createJobTask() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_job_task");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_job_task");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB_TASK);
-		dbe.setLabel_code("master_repo.job_task");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "job_task");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -1664,7 +1641,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1726,13 +1703,13 @@ public class DbInit {
 	private static DbDataTable createJob() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_job");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_job");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB);
-		dbe.setLabel_code("master_repo.job");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "job");
 		dbe.setParent_id(svCONST.OBJECT_TYPE_JOB_TASK);
 		dbe.setUse_cache(false);
 
@@ -1744,7 +1721,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1796,13 +1773,13 @@ public class DbInit {
 	private static DbDataTable createJobObject() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_job_object");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_job_object");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_JOB_OBJECT);
-		dbe.setLabel_code("master_repo.job_object");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "job_object");
 		dbe.setParent_id(svCONST.OBJECT_TYPE_JOB);
 		dbe.setUse_cache(false);
 
@@ -1814,7 +1791,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1855,13 +1832,13 @@ public class DbInit {
 	private static DbDataTable createTask() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_task");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_task");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_TASK);
-		dbe.setLabel_code("master_repo.task");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "task");
 		dbe.setParent_id(svCONST.OBJECT_TYPE_JOB_TASK);
 		dbe.setUse_cache(false);
 
@@ -1873,7 +1850,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -1934,13 +1911,13 @@ public class DbInit {
 	private static DbDataTable createTaskDetail() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_task_detail");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_task_detail");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_TASK_DETAIL);
-		dbe.setLabel_code("master_repo.task_detail");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "task_detail");
 		dbe.setParent_id(svCONST.OBJECT_TYPE_TASK);
 		dbe.setUse_cache(false);
 
@@ -1952,7 +1929,7 @@ public class DbInit {
 		dbf0.setDbFieldSize(18);
 		dbf0.setDbFieldScale(0);
 		dbf0.setIsNull(false);
-		dbf0.setLabel_code("master_repo.table_meta_pkid");
+		dbf0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1992,13 +1969,13 @@ public class DbInit {
 	private static DbDataTable createRenderEngine() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_render_engine");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_render_engine");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_RENDER_ENGINE);
-		dbe.setLabel_code("master_repo.render_engine");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "render_engine");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2009,7 +1986,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
@@ -2022,7 +1999,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -2030,7 +2007,7 @@ public class DbInit {
 
 		// Column 4
 		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName(VERSION);
+		dbf4.setDbFieldName(Sv.VERSION);
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(50);
 		dbf4.setIsNull(true);
@@ -2068,13 +2045,13 @@ public class DbInit {
 	private static DbDataTable createUIStructureType() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_ui_struct_type");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_ui_struct_type");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_UI_STRUCTURE_TYPE);
-		dbe.setLabel_code("master_repo.ui_struct_type");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "ui_struct_type");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2098,7 +2075,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -2143,7 +2120,7 @@ public class DbInit {
 		dbf8.setDbFieldType(DbFieldType.NUMERIC);
 		dbf8.setDbFieldSize(9);
 		dbf8.setIsNull(false);
-		dbf8.setLabel_code("ui_struct_type.sort_order");
+		dbf8.setLabel_code("ui_struct_type." + Sv.SORT_ORDER);
 
 		DbDataField[] dbTableFields = new DbDataField[8];
 		dbTableFields[0] = dbf1;
@@ -2163,14 +2140,14 @@ public class DbInit {
 	private static DbDataTable createUIStructureSource() {
 
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_ui_struct_source");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_ui_struct_source");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_UI_STRUCTURE_SOURCE);
 		dbe.setParent_id(svCONST.OBJECT_TYPE_UI_STRUCTURE_TYPE);
-		dbe.setLabel_code("master_repo.ui_struct_source");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "ui_struct_source");
 		dbe.setUse_cache(false);
 		dbe.setConfigColumnName("NAME");
 
@@ -2207,7 +2184,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NUMERIC);
 		dbf4.setDbFieldSize(9);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code("ui_struct_source.sort_order");
+		dbf4.setLabel_code("ui_struct_source." + Sv.SORT_ORDER);
 
 		// Column 5
 		DbDataField dbf5 = new DbDataField();
@@ -2231,13 +2208,13 @@ public class DbInit {
 	// CONTACT_DATA
 	private static DbDataTable createContactData() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_contact_data");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_contact_data");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_CONTACT_DATA);
-		dbe.setLabel_code("master_repo.contact_data");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "contact_data");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2350,13 +2327,13 @@ public class DbInit {
 	// EVENT
 	private static DbDataTable createEvent() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_event");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_event");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_EVENT);
-		dbe.setLabel_code("master_repo.event");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "event");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2424,13 +2401,13 @@ public class DbInit {
 	// NOTIFICATION
 	private static DbDataTable createNotification() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_notification");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_notification");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_NOTIFICATION);
-		dbe.setLabel_code("master_repo.notification");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "notification");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2499,13 +2476,13 @@ public class DbInit {
 	// message and conversation / tracker
 	private static DbDataTable createConversation() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_conversation");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_conversation");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_CONVERSATION);
-		dbe.setLabel_code("master_repo.conversation");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "conversation");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2645,13 +2622,13 @@ public class DbInit {
 
 	private static DbDataTable createMessage() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(REPO_TABLE_NAME+"_message");
-		dbe.setDbRepoName(MASTER_REPO_NAME);
-		dbe.setDbSchema(DEFAULT_SCHEMA);
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_message");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
 		dbe.setObjectId(svCONST.OBJECT_TYPE_MESSAGE);
-		dbe.setLabel_code("master_repo.message");
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "message");
 		dbe.setUse_cache(false);
 
 		// Column 1
@@ -2710,13 +2687,13 @@ public class DbInit {
 	private static DbDataTable getMasterLink() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_link");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_link");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LINK);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.link");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link");
 			dbt.setUse_cache(false);
 
 			// f1
@@ -2727,7 +2704,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -2737,7 +2714,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(18);
 			dbf2.setDbFieldScale(0);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.link_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -2746,7 +2723,7 @@ public class DbInit {
 			dbf3.setDbFieldSize(18);
 			dbf3.setIsNull(false);
 			dbf3.setIsUnique(true);
-			dbf3.setLabel_code("master_repo.link_object_id_1");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_object_id_1");
 
 			DbDataField dbf4 = new DbDataField();
 			dbf4.setDbFieldName("LINK_OBJ_ID_2");
@@ -2754,14 +2731,14 @@ public class DbInit {
 			dbf4.setDbFieldSize(18);
 			dbf4.setIsUnique(true);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.link_object_id_2");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_object_id_2");
 
 			DbDataField dbf2_1 = new DbDataField();
 			dbf2_1.setDbFieldName("LINK_NOTES");
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(2000);
 			dbf2_1.setIsNull(true);
-			dbf2_1.setLabel_code("master_repo.link_notes");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_notes");
 
 			dbt.setDbTableFields(new DbDataField[5]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -2776,13 +2753,13 @@ public class DbInit {
 	private static DbDataTable getMasterSequence() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_sequence");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sequence");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SEQUENCE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sequence");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sequence");
 			dbt.setUse_cache(false);
 
 			// f1
@@ -2793,7 +2770,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -2803,21 +2780,21 @@ public class DbInit {
 			dbf2.setDbFieldSize(18);
 			dbf2.setDbFieldScale(0);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.sequence_value");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sequence_value");
 
 			DbDataField dbf4 = new DbDataField();
 			dbf4.setDbFieldName("SEQUENCE_DB_NAME");
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(100);
 			dbf4.setIsNull(true);
-			dbf4.setLabel_code("master_repo.sequence_db_name");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sequence_db_name");
 
 			DbDataField dbf2_1 = new DbDataField();
 			dbf2_1.setDbFieldName("SEQUENCE_KEY");
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(60);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.sequence_key");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sequence_key");
 			dbf2_1.setIsUnique(true);
 
 			dbt.setDbTableFields(new DbDataField[4]);
@@ -2875,13 +2852,13 @@ public class DbInit {
 	private static DbDataTable getMasterLinkType() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_link_type");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_link_type");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LINK_TYPE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.link_type");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE);
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(false);
@@ -2894,7 +2871,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -2905,7 +2882,7 @@ public class DbInit {
 			dbf2.setIsUnique(true);
 			dbf2.setUnique_level("TABLE");
 			dbf2.setCode_list_user_code("LINK_TYPE");
-			dbf2.setLabel_code("master_repo.link_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE);
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
@@ -2913,7 +2890,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(200);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.link_type_description");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE_DESCRIPTION);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -2923,7 +2900,7 @@ public class DbInit {
 			dbf3.setIsNull(false);
 			dbf3.setIsUnique(true);
 			dbf3.setUnique_level("TABLE");
-			dbf3.setLabel_code("master_repo.link_object_type_1");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_object_type_1");
 
 			DbDataField dbf4 = new DbDataField();
 			dbf4.setDbFieldName("LINK_OBJ_TYPE_2");
@@ -2932,35 +2909,35 @@ public class DbInit {
 			dbf4.setIsNull(false);
 			dbf4.setIsUnique(true);
 			dbf4.setUnique_level("TABLE");
-			dbf4.setLabel_code("master_repo.link_object_type_2");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_object_type_2");
 
 			DbDataField dbf5 = new DbDataField();
 			dbf5.setDbFieldName("AS_USER_GROUP");
 			dbf5.setDbFieldType(DbFieldType.NUMERIC);
 			dbf5.setDbFieldSize(18);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.link_as_user_group");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_as_user_group");
 
 			DbDataField dbf6 = new DbDataField();
 			dbf6.setDbFieldName("DEFER_SECURITY");
 			dbf6.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf6.setDbFieldSize(18);
 			dbf6.setIsNull(true);
-			dbf6.setLabel_code("master_repo.link_defer_security");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_defer_security");
 
 			DbDataField dbf7 = new DbDataField();
 			dbf7.setDbFieldName("IS_MANDATORY");
 			dbf7.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf7.setDbFieldSize(18);
 			dbf7.setIsNull(true);
-			dbf7.setLabel_code("master_repo.link_is_mandatory");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_is_mandatory");
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("IS_REVERSE");
 			dbf8.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf8.setDbFieldSize(18);
 			dbf8.setIsNull(true);
-			dbf8.setLabel_code("master_repo.link_is_reverse");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "link_is_reverse");
 
 			dbt.setDbTableFields(new DbDataField[7]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -2978,13 +2955,13 @@ public class DbInit {
 	private static DbDataTable getMasterSecurityLog() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_security_log");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_security_log");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SECURITY_LOG);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.security_log");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "security_log");
 			dbt.setUse_cache(true);
 			dbt.setCacheSize(9999);
 			dbt.setCacheTTL(15);
@@ -2997,7 +2974,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3007,7 +2984,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(18);
 			dbf2.setDbFieldScale(0);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.user_object_id");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "user_object_id");
 
 			// f2
 			DbDataField dbf2_0 = new DbDataField();
@@ -3016,7 +2993,7 @@ public class DbInit {
 			dbf2_0.setDbFieldSize(50);
 			dbf2_0.setIsNull(false);
 			dbf2_0.setIsUnique(true);
-			dbf2_0.setLabel_code("master_repo.session_id");
+			dbf2_0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "session_id");
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
@@ -3024,7 +3001,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(100);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.activity_type");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "activity_type");
 
 			dbt.setDbTableFields(new DbDataField[4]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3039,13 +3016,13 @@ public class DbInit {
 	private static DbDataTable getMasterUsers() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_users");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_users");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_USER);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.users");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "users");
 			dbt.setUse_cache(true);
 
 			// f1
@@ -3056,7 +3033,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3065,7 +3042,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(50);
 			dbf2.setIsNull(false);
 			dbf2.setCode_list_user_code("USER_TYPE");
-			dbf2.setLabel_code("master_repo.user_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "user_type");
 			dbf2.setIsUnique(true);
 			dbf2.setUnique_constraint_name("unq_usr_type");
 			dbf2.setUnique_level("TABLE");
@@ -3078,7 +3055,7 @@ public class DbInit {
 			dbf2_0.setIsNull(true);
 			dbf2_0.setIndexName("user_uid");
 			// dbf2_0.setCode_list_user_code("USER_UID");
-			dbf2_0.setLabel_code("master_repo.user_uid");
+			dbf2_0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "user_uid");
 			dbf2_0.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 			// f2
@@ -3087,7 +3064,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(100);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.user_name");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "user_name");
 			dbf2_1.setIs_updateable(false);
 			dbf2_1.setIsUnique(true);
 			dbf2_1.setUnique_level("TABLE");
@@ -3101,7 +3078,7 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(200);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.first_name");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "first_name");
 			dbf3.setGui_metadata(getDefaultUiMeta(false, false, false, true).toString());
 
 			DbDataField dbf4 = new DbDataField();
@@ -3109,7 +3086,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(200);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.last_name");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "last_name");
 			dbf4.setGui_metadata(getDefaultUiMeta(false, false, false, true).toString());
 
 			DbDataField dbf5 = new DbDataField();
@@ -3117,7 +3094,7 @@ public class DbInit {
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(200);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.e_mail");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.E_MAIL);
 			dbf5.setGui_metadata(getDefaultUiMeta(false, false, false, true).toString());
 
 			DbDataField dbf6 = new DbDataField();
@@ -3125,7 +3102,7 @@ public class DbInit {
 			dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf6.setDbFieldSize(200);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.password_hash");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "password_hash");
 			dbf6.setIndexName("unq_usr_pass");
 			dbf6.setGui_metadata(getDefaultUiMeta(false, true, false, true).toString());
 
@@ -3134,7 +3111,7 @@ public class DbInit {
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(200);
 			dbf7.setIsNull(true);
-			dbf7.setLabel_code("master_repo.confirm_password_hash");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "confirm_password_hash");
 			dbf7.setGui_metadata(getDefaultUiMeta(false, true, false, true).toString());
 
 			DbDataField dbf8 = new DbDataField();
@@ -3142,7 +3119,7 @@ public class DbInit {
 			dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf8.setDbFieldSize(50);
 			dbf8.setIsNull(true);
-			dbf8.setLabel_code("master_repo.pin");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "pin");
 			dbf8.setGui_metadata(getDefaultUiMeta(false, false, false, true).toString());
 
 			DbDataField dbf9 = new DbDataField();
@@ -3150,7 +3127,7 @@ public class DbInit {
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(50);
 			dbf9.setIsNull(true);
-			dbf9.setLabel_code("master_repo.tax_id");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "tax_id");
 			dbf9.setGui_metadata(getDefaultUiMeta(false, false, false, true).toString());
 
 			dbt.setDbTableFields(new DbDataField[11]);
@@ -3173,13 +3150,13 @@ public class DbInit {
 	private static DbDataTable getMasterGroups() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_user_groups");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_user_groups");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_GROUP);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.user_groups");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "user_groups");
 		dbt.setUse_cache(true);
 		dbt.setIsConfigTable(true);
 		dbt.setConfigColumnName("GROUP_NAME");
@@ -3192,7 +3169,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -3201,7 +3178,7 @@ public class DbInit {
 		dbf2.setDbFieldSize(50);
 		dbf2.setIsNull(false);
 		dbf2.setCode_list_user_code("GROUP_TYPE");
-		dbf2.setLabel_code("master_repo.group_type");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "group_type");
 
 		// f2
 		DbDataField dbf4 = new DbDataField();
@@ -3210,7 +3187,7 @@ public class DbInit {
 		dbf4.setDbFieldSize(50);
 		dbf4.setIsNull(false);
 		dbf4.setCode_list_user_code("GROUP_SECURITY_TYPE");
-		dbf4.setLabel_code("master_repo.group_security_type");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "group_security_type");
 
 		// f2
 		DbDataField dbf2_0 = new DbDataField();
@@ -3219,7 +3196,7 @@ public class DbInit {
 		dbf2_0.setDbFieldSize(50);
 		dbf2_0.setIsNull(false);
 		dbf2_0.setCode_list_user_code("GROUP_UID");
-		dbf2_0.setLabel_code("master_repo.group_uid");
+		dbf2_0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "group_uid");
 
 		// f2
 		DbDataField dbf2_1 = new DbDataField();
@@ -3228,7 +3205,7 @@ public class DbInit {
 		dbf2_1.setDbFieldSize(100);
 		dbf2_1.setIsNull(false);
 		dbf2_1.setIsUnique(true);
-		dbf2_1.setLabel_code("master_repo.group_label_code");
+		dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "group_label_code");
 		dbf2_1.setIs_updateable(false);
 
 		DbDataField dbf5 = new DbDataField();
@@ -3236,7 +3213,7 @@ public class DbInit {
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(200);
 		dbf5.setIsNull(false);
-		dbf5.setLabel_code("master_repo.e_mail");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.E_MAIL);
 
 		dbt.setDbTableFields(new DbDataField[6]);
 		dbt.getDbTableFields()[0] = dbf1;
@@ -3259,13 +3236,13 @@ public class DbInit {
 	private static DbDataTable getMasterOU() {
 
 		DbDataTable dbt = new DbDataTable();
-		dbt.setDbTableName(REPO_TABLE_NAME+"_org_units");
-		dbt.setDbRepoName(MASTER_REPO_NAME);
-		dbt.setDbSchema(DEFAULT_SCHEMA);
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_org_units");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_ORG_UNITS);
 		dbt.setIsRepoTable(false);
-		dbt.setLabel_code("master_repo.organisational_units");
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "organisational_units");
 		dbt.setUse_cache(true);
 		dbt.setCacheType("PERM");
 		// dbt.setIsConfigTable(true);
@@ -3278,7 +3255,7 @@ public class DbInit {
 		dbf1.setDbFieldSize(18);
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
-		dbf1.setLabel_code("master_repo.table_meta_pkid");
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
@@ -3287,7 +3264,7 @@ public class DbInit {
 		dbf2.setDbFieldSize(50);
 		dbf2.setIsNull(false);
 		dbf2.setCode_list_user_code("ORG_UNIT_TYPE");
-		dbf2.setLabel_code("master_repo.group_type");
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "group_type");
 
 		// f2
 		DbDataField dbf4 = new DbDataField();
@@ -3295,7 +3272,7 @@ public class DbInit {
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(200);
 		dbf4.setIsNull(false);
-		dbf4.setLabel_code("master_repo.org_unit");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "org_unit");
 
 		// f2
 		DbDataField dbf2_0 = new DbDataField();
@@ -3303,7 +3280,7 @@ public class DbInit {
 		dbf2_0.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2_0.setDbFieldSize(200);
 		dbf2_0.setIsNull(true);
-		dbf2_0.setLabel_code("master_repo.org_address");
+		dbf2_0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "org_address");
 
 		// f2
 		DbDataField dbf2_1 = new DbDataField();
@@ -3311,26 +3288,26 @@ public class DbInit {
 		dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2_1.setDbFieldSize(50);
 		dbf2_1.setIsNull(true);
-		dbf2_1.setLabel_code("master_repo.phone");
+		dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "phone");
 
 		DbDataField dbf5 = new DbDataField();
 		dbf5.setDbFieldName("E_MAIL");
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(200);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("master_repo.e_mail");
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.E_MAIL);
 
 		DbDataField dbf6 = new DbDataField();
 		dbf6.setDbFieldName("PARENT_OU_ID");
 		dbf6.setDbFieldType(DbFieldType.NUMERIC);
 		dbf6.setDbFieldSize(18);
 		dbf6.setIsNull(true);
-		dbf6.setLabel_code("master_repo.parent_ou");
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "parent_ou");
 
 		DbDataField dbf7 = new DbDataField();
 		dbf7.setDbFieldName("EXTERNAL_ID");
 		dbf7.setDbFieldType(DbFieldType.NUMERIC);
-		dbf7.setLabel_code("master_repo.external_id");
+		dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "external_id");
 
 		dbt.setDbTableFields(new DbDataField[8]);
 		dbt.getDbTableFields()[0] = dbf1;
@@ -3355,13 +3332,13 @@ public class DbInit {
 	private static DbDataTable getMasterWorkflow() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_workflow");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_workflow");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_WORKFLOW);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.workflow");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "workflow");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(false);
 			dbt.setParentName("TABLES");
@@ -3376,7 +3353,7 @@ public class DbInit {
 			dbf1.setIsNull(false);
 
 			// dbf1.setSort_order(900);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3385,18 +3362,18 @@ public class DbInit {
 			dbf2.setDbFieldSize(50);
 			dbf2.setIsNull(true);
 			dbf2.setCode_list_user_code("WORKFLOW_TYPE");
-			dbf2.setLabel_code("master_repo.workflow_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "workflow_type");
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
-			dbf2_1.setDbFieldName("WORKFLOW_LABEL_CODE");
+			dbf2_1.setDbFieldName("WORKFLOW_" + Sv.LABEL_CODE);
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(100);
 			dbf2_1.setIsNull(false);
 			dbf2_1.setIsUnique(true);
 			dbf2_1.setUnique_constraint_name("uq_object_from_to_status");
-			dbf2_1.setUnique_level("PARENT");
-			dbf2_1.setLabel_code("master_repo.workflow_name");
+			dbf2_1.setUnique_level(Sv.PARENT);
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "workflow_name");
 			dbf2_1.setIs_updateable(false);
 
 			DbDataField dbf6 = new DbDataField();
@@ -3404,22 +3381,22 @@ public class DbInit {
 			dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf6.setDbFieldSize(10);
 			dbf6.setIsNull(false);
-//			dbf6.setUnique_constraint_name("uq_object_from_to_status");
-//			dbf6.setUnique_level("PARENT");
-//			dbf6.setIsUnique(true);
+			// dbf6.setUnique_constraint_name("uq_object_from_to_status");
+			// dbf6.setUnique_level(Sv.PARENT);
+			// dbf6.setIsUnique(true);
 			dbf6.setCode_list_user_code("OBJ_STATUS");
-			dbf6.setLabel_code("master_repo.from_status");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "from_status");
 
 			DbDataField dbf7 = new DbDataField();
 			dbf7.setDbFieldName("DESTINATION_STATUS");
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(10);
 			dbf7.setIsNull(false);
-//			dbf7.setIsUnique(true);
-//			dbf7.setUnique_level("PARENT");
-//			dbf7.setUnique_constraint_name("uq_object_from_to_status");
+			// dbf7.setIsUnique(true);
+			// dbf7.setUnique_level(Sv.PARENT);
+			// dbf7.setUnique_constraint_name("uq_object_from_to_status");
 			dbf7.setCode_list_user_code("OBJ_STATUS");
-			dbf7.setLabel_code("master_repo.object_status");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "object_status");
 			dbf7.setGui_metadata(getUiWidth(getDefaultUiMeta(true, false, false, false), 72).toString());
 
 			DbDataField dbf8 = new DbDataField();
@@ -3428,7 +3405,7 @@ public class DbInit {
 			dbf8.setDbFieldSize(18);
 			dbf8.setDbFieldScale(0);
 			dbf8.setIsNull(true);
-			dbf8.setLabel_code("master_repo.checkin_rule");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "checkin_rule");
 
 			DbDataField dbf9 = new DbDataField();
 			dbf9.setDbFieldName("CHECKOUT_RULE");
@@ -3436,22 +3413,21 @@ public class DbInit {
 			dbf9.setDbFieldSize(18);
 			dbf9.setDbFieldScale(0);
 			dbf9.setIsNull(true);
-			dbf9.setLabel_code("master_repo.checkout_rule");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "checkout_rule");
 
 			DbDataField dbf10 = new DbDataField();
 			dbf10.setDbFieldName("IS_DEFAULT_WF_ROUTE");
 			dbf10.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf10.setIsNull(true);
-			dbf10.setLabel_code("master_repo.is_default_route");
+			dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_default_route");
 
 			DbDataField dbf12 = new DbDataField();
 			dbf12.setDbFieldName("PERMISSION_CODE");
 			dbf12.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf12.setDbFieldSize(150);
 			dbf12.setIsNull(true);
-			dbf12.setLabel_code("master_repo.permission_code");
-			
-			
+			dbf12.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "permission_code");
+
 			dbt.setDbTableFields(new DbDataField[9]);
 			dbt.getDbTableFields()[0] = dbf1;
 			dbt.getDbTableFields()[1] = dbf2;
@@ -3469,14 +3445,14 @@ public class DbInit {
 	private static DbDataTable getMasterACL() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_acl");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_acl");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_ACL);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.acl");
-			dbt.setConfigColumnName(LABEL_CODE);
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl");
+			dbt.setConfigColumnName(Sv.LABEL_CODE);
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 
@@ -3488,7 +3464,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2_0 = new DbDataField();
@@ -3496,7 +3472,7 @@ public class DbInit {
 			dbf2_0.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_0.setDbFieldSize(50);
 			dbf2_0.setIsNull(true);
-			dbf2_0.setLabel_code("master_repo.acl_external_id");
+			dbf2_0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl_external_id");
 
 			DbDataField dbf3 = new DbDataField();
 			dbf3.setDbFieldName("ACL_CODE");
@@ -3506,14 +3482,14 @@ public class DbInit {
 			// dbf3.setUnique_level("TABLE");
 			// dbf3.setIs_updateable(false);
 			dbf3.setIsNull(true);
-			dbf3.setLabel_code("master_repo.access_code");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "access_code");
 
 			DbDataField dbf5 = new DbDataField();
 			dbf5.setDbFieldName("ACCESS_TYPE");
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(50);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.access_level_id");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "access_level_id");
 			dbf5.setCode_list_user_code("ACCESS_CONTROL_LEVEL");
 			dbf5.setIsUnique(true);
 			dbf5.setUnique_constraint_name("TYPE_OID_CFG_ID");
@@ -3527,7 +3503,7 @@ public class DbInit {
 			dbf6.setIsUnique(true);
 			dbf6.setUnique_constraint_name("TYPE_OID_CFG_ID");
 
-			dbf6.setLabel_code("master_repo.acl_object_id");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.ACL_OBJECT_ID);
 
 			DbDataField dbf7 = new DbDataField();
 			dbf7.setDbFieldName("ACL_OBJECT_TYPE");
@@ -3538,7 +3514,7 @@ public class DbInit {
 			dbf7.setIsUnique(true);
 			dbf7.setUnique_constraint_name("TYPE_OID_CFG_ID");
 
-			dbf7.setLabel_code("master_repo.acl_object_type");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.ACL_OBJECT_TYPE);
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("ACL_CONFIG_UNQ");
@@ -3548,16 +3524,16 @@ public class DbInit {
 			dbf8.setIsUnique(true);
 			dbf8.setUnique_constraint_name("TYPE_OID_CFG_ID");
 
-			dbf8.setLabel_code("master_repo.acl_config_unq_id");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl_config_unq_id");
 
 			DbDataField dbf9 = new DbDataField();
-			dbf9.setDbFieldName(LABEL_CODE);
+			dbf9.setDbFieldName(Sv.LABEL_CODE);
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(100);
 			dbf9.setIsNull(false);
 			dbf9.setIndexName("FORMFIELD_LABEL_IDX");
 			dbf9.setIsUnique(true);
-			dbf9.setLabel_code("master_repo.acl_label");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl_label");
 
 			dbt.setDbTableFields(new DbDataField[8]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3575,13 +3551,13 @@ public class DbInit {
 	private static DbDataTable getMasterSIDACLs() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_sid_acl");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sid_acl");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SID_ACL);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sid_acl");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sid_acl");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(false);
 
@@ -3593,7 +3569,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3602,7 +3578,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(18);
 			dbf2.setIsNull(false);
 			dbf2.setIsUnique(true);
-			dbf2.setLabel_code("master_repo.sid_oid");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sid_oid");
 
 			DbDataField dbf3 = new DbDataField();
 			dbf3.setDbFieldName("SID_TYPE_ID");
@@ -3610,7 +3586,7 @@ public class DbInit {
 			dbf3.setDbFieldSize(18);
 			dbf3.setIsNull(false);
 			dbf3.setIsUnique(true);
-			dbf3.setLabel_code("master_repo.sid_type_id");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sid_type_id");
 
 			// f2
 			DbDataField dbf4 = new DbDataField();
@@ -3619,7 +3595,7 @@ public class DbInit {
 			dbf4.setDbFieldSize(18);
 			dbf4.setIsNull(false);
 			dbf4.setIsUnique(true);
-			dbf4.setLabel_code("master_repo.acl_id");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl_id");
 
 			dbt.setDbTableFields(new DbDataField[4]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3633,13 +3609,13 @@ public class DbInit {
 	private static DbDataTable getMasterFiles() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_files");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_files");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_FILE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.files");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "files");
 			dbt.setUse_cache(false);
 
 			// f1
@@ -3650,7 +3626,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3658,7 +3634,7 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(50);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.file_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_type");
 			dbf2.setCode_list_user_code("FILE_TYPES");
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
@@ -3666,9 +3642,9 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(200);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.file_name");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_name");
 			dbf2_1.setIsUnique(false);
-			dbf2_1.setUnique_level("PARENT");
+			dbf2_1.setUnique_level(Sv.PARENT);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -3676,42 +3652,42 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NUMERIC);
 			dbf3.setDbFieldSize(9);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.file_size");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_size");
 
 			DbDataField dbf4 = new DbDataField();
 			dbf4.setDbFieldName("FILE_DATE");
 			dbf4.setDbFieldType(DbFieldType.TIMESTAMP);
 			dbf4.setDbFieldSize(3);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.file_date");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_date");
 
 			DbDataField dbf5 = new DbDataField();
 			dbf5.setDbFieldName("FILE_NOTES");
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(2000);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.file_notes");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_notes");
 
 			DbDataField dbf6 = new DbDataField();
 			dbf6.setDbFieldName("FILE_ID");
 			dbf6.setDbFieldType(DbFieldType.NUMERIC);
 			dbf6.setDbFieldSize(18);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.physical_file_id");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "physical_file_id");
 
 			DbDataField dbf7 = new DbDataField();
 			dbf7.setDbFieldName("FILE_STORE_ID");
 			dbf7.setDbFieldType(DbFieldType.NUMERIC);
 			dbf7.setDbFieldSize(18);
 			dbf7.setIsNull(true);
-			dbf7.setLabel_code("master_repo.file_store_id");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_store_id");
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("CONTENT_TYPE");
 			dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf8.setDbFieldSize(100);
 			dbf8.setIsNull(false);
-			dbf8.setLabel_code("master_repo.file_content_type");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "file_content_type");
 
 			dbt.setDbTableFields(new DbDataField[8]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3730,13 +3706,13 @@ public class DbInit {
 	private static DbDataTable getMasterCodes() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_codes");
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_codes");
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_CODE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.codes");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "codes");
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(false);
@@ -3749,7 +3725,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3757,31 +3733,31 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(3);
 			dbf2.setIsNull(true);
-			dbf2.setLabel_code("master_repo.code_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_type");
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
 			dbf2_1.setDbFieldName("CODE_VALUE");
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(50);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.code_value");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_value");
 			dbf2_1.setIsUnique(true);
-			dbf2_1.setUnique_level("PARENT");
+			dbf2_1.setUnique_level(Sv.PARENT);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName(LABEL_CODE);
+			dbf3.setDbFieldName(Sv.LABEL_CODE);
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.label_id");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "label_id");
 
 			DbDataField dbf4 = new DbDataField();
-			dbf4.setDbFieldName(SORT_ORDER);
+			dbf4.setDbFieldName(Sv.SORT_ORDER);
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(9);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.sort_order");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "" + Sv.SORT_ORDER);
 
 			// f2
 			DbDataField dbf5 = new DbDataField();
@@ -3789,7 +3765,7 @@ public class DbInit {
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(50);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.parent_code_value");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "parent_code_value");
 
 			dbt.setDbTableFields(new DbDataField[6]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3806,14 +3782,14 @@ public class DbInit {
 	private static DbDataTable getLocales() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_locales");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_locales");
 
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LOCALE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.locales");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "locales");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 			dbt.setConfigColumnName("LOCALE_ID");
@@ -3826,7 +3802,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3834,7 +3810,7 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.locale_language");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "locale_language");
 
 			DbDataField dbf2_1 = new DbDataField();
 			dbf2_1.setDbFieldName("LOCALE_ID");
@@ -3843,7 +3819,7 @@ public class DbInit {
 			dbf2_1.setIsNull(false);
 			dbf2_1.setIsUnique(true);
 
-			dbf2_1.setLabel_code("master_repo.locale_id");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LOCALE_ID);
 			// f3
 
 			DbDataField dbf3 = new DbDataField();
@@ -3851,7 +3827,7 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.locale_country");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "locale_country");
 
 			dbt.setDbTableFields(new DbDataField[4]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3866,14 +3842,14 @@ public class DbInit {
 	private static DbDataTable getLabels() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_labels");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_labels");
 
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LABEL);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.labels");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "labels");
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(false);
@@ -3887,16 +3863,16 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
-			dbf2.setDbFieldName(LABEL_CODE);
+			dbf2.setDbFieldName(Sv.LABEL_CODE);
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
 			dbf2.setIsUnique(true);
-			dbf2.setLabel_code("master_repo.label_code");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
 			dbf2.setUnique_level("TABLE");
 
 			DbDataField dbf2_1 = new DbDataField();
@@ -3905,7 +3881,7 @@ public class DbInit {
 			dbf2_1.setDbFieldSize(10);
 			dbf2_1.setIsNull(false);
 			dbf2_1.setIsUnique(true);
-			dbf2_1.setLabel_code("master_repo.localed_id");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "localed_id");
 			dbf2_1.setUnique_level("TABLE");
 			// f3
 
@@ -3914,13 +3890,13 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(200);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.label_text");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_TEXT);
 
 			DbDataField dbf4 = new DbDataField();
 			dbf4.setDbFieldName("LABEL_DESCR");
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(2000);
-			dbf4.setLabel_code("master_repo.label_desc");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "label_desc");
 
 			dbt.setDbTableFields(new DbDataField[5]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -3935,14 +3911,14 @@ public class DbInit {
 	private static DbDataTable getMasterFields() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME+"_fields");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_fields");
 
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_FIELD);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.fields");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "fields");
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(true);
@@ -3955,7 +3931,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -3963,9 +3939,9 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(25);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.field_name");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_name");
 			dbf2.setIsUnique(true);
-			dbf2.setUnique_level("PARENT");
+			dbf2.setUnique_level(Sv.PARENT);
 			;
 
 			DbDataField dbf2_1 = new DbDataField();
@@ -3973,7 +3949,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(50);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code("master_repo.field_type");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_type");
 			dbf2_1.setCode_list_user_code("FIELD_TYPES");
 
 			// f3
@@ -3984,7 +3960,7 @@ public class DbInit {
 			dbf3.setDbFieldSize(18);
 			dbf3.setDbFieldScale(0);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.field_size");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_size");
 
 			// f4
 
@@ -3994,7 +3970,7 @@ public class DbInit {
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(0);
 			dbf4.setIsNull(true);
-			dbf4.setLabel_code("master_repo.field_scale");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_scale");
 
 			// f5
 			DbDataField dbf5 = new DbDataField();
@@ -4002,35 +3978,35 @@ public class DbInit {
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(50);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.sequence_name");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sequence_name");
 
 			// f6
 			DbDataField dbf6 = new DbDataField();
 			dbf6.setDbFieldName("IS_NULL");
 			dbf6.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.field_isnull");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_isnull");
 
 			// f7
 			DbDataField dbf7 = new DbDataField();
 			dbf7.setDbFieldName("IS_UNIQUE");
 			dbf7.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf7.setIsNull(false);
-			dbf7.setLabel_code("master_repo.field_isunique");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_isunique");
 
 			DbDataField dbf7_1 = new DbDataField();
 			dbf7_1.setDbFieldName("UNQ_CONSTRAINT_NAME");
 			dbf7_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7_1.setDbFieldSize(50);
 			dbf7_1.setIsNull(true);
-			dbf7_1.setLabel_code("master_repo.unq_constraint");
+			dbf7_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unq_constraint");
 
 			DbDataField dbf7_2 = new DbDataField();
 			dbf7_2.setDbFieldName("UNQ_LEVEL");
 			dbf7_2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7_2.setDbFieldSize(50);
 			dbf7_2.setIsNull(true);
-			dbf7_2.setLabel_code("master_repo.unq_level");
+			dbf7_2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unq_level");
 			dbf7_2.setCode_list_user_code("UNQ_LEVEL");
 
 			// f8
@@ -4038,7 +4014,7 @@ public class DbInit {
 			dbf8.setDbFieldName("IS_PRIMARY_KEY");
 			dbf8.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf8.setIsNull(false);
-			dbf8.setLabel_code("master_repo.field_ispk");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_ispk");
 
 			// f9
 			DbDataField dbf9 = new DbDataField();
@@ -4046,73 +4022,73 @@ public class DbInit {
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(50);
 			dbf9.setIsNull(true);
-			dbf9.setLabel_code("master_repo.unq_constraint");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unq_constraint");
 
 			// f9
 
 			DbDataField dbf10 = new DbDataField();
-			dbf10.setDbFieldName(LABEL_CODE);
+			dbf10.setDbFieldName(Sv.LABEL_CODE);
 			dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf10.setDbFieldSize(100);
 			dbf10.setIsNull(false);
-			dbf10.setLabel_code("master_repo.label_code");
+			dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
 
 			DbDataField dbf11 = new DbDataField();
-			dbf11.setDbFieldName(CODE_LIST_ID);
+			dbf11.setDbFieldName(Sv.CODE_LIST_ID);
 			dbf11.setDbFieldType(DbFieldType.NUMERIC);
 			dbf11.setDbFieldSize(18);
 			dbf11.setDbFieldScale(0);
 			dbf11.setIsNull(true);
-			dbf11.setLabel_code("master_repo.code_list_id");
+			dbf11.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CODE_LIST_ID.toLowerCase());
 
 			DbDataField dbf12 = new DbDataField();
 			dbf12.setDbFieldName("GUI_METADATA");
 			dbf12.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf12.setDbFieldSize(2000);
 			dbf12.setIsNull(true);
-			dbf12.setLabel_code("master_repo.is_visible_ui");
+			dbf12.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_VISIBLE_UI);
 
 			// f8
 			DbDataField dbf13 = new DbDataField();
 			dbf13.setDbFieldName("IS_UPDATEABLE");
 			dbf13.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf13.setIsNull(true);
-			dbf13.setLabel_code("master_repo.field_is_updateable");
+			dbf13.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_is_updateable");
 
 			DbDataField dbf14 = new DbDataField();
-			dbf14.setDbFieldName(SORT_ORDER);
+			dbf14.setDbFieldName(Sv.SORT_ORDER);
 			dbf14.setDbFieldType(DbFieldType.NUMERIC);
 			dbf14.setDbFieldSize(18);
 			dbf14.setDbFieldScale(0);
 			dbf14.setIsNull(true);
-			dbf14.setLabel_code("master_repo.field_sort_order");
+			dbf14.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_" + Sv.SORT_ORDER);
 
 			DbDataField dbf15 = new DbDataField();
 			dbf15.setDbFieldName("CODE_LIST_MNEMONIC");
 			dbf15.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf15.setDbFieldSize(50);
 			dbf15.setIsNull(true);
-			dbf15.setLabel_code("master_repo.code_list_mnemonic");
+			dbf15.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_list_mnemonic");
 
 			DbDataField dbf16 = new DbDataField();
 			dbf16.setDbFieldName("REFERENTIAL_TABLE");
 			dbf16.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf16.setDbFieldSize(50);
 			dbf16.setIsNull(true);
-			dbf16.setLabel_code("master_repo.referential_table");
+			dbf16.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "referential_table");
 
 			DbDataField dbf17 = new DbDataField();
 			dbf17.setDbFieldName("REFERENTIAL_FIELD");
 			dbf17.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf17.setDbFieldSize(50);
 			dbf17.setIsNull(true);
-			dbf17.setLabel_code("master_repo.referential_field");
+			dbf17.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "referential_field");
 
 			DbDataField dbf18 = new DbDataField();
-			dbf18.setDbFieldName("EXTENDED_PARAMS");
+			dbf18.setDbFieldName(Sv.EXTENDED_PARAMS);
 			dbf18.setDbFieldType(DbFieldType.TEXT);
 			dbf18.setIsNull(true);
-			dbf18.setLabel_code("master_repo.ext_params");
+			dbf18.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.EXTENDED_PARAMS.toLowerCase());
 
 			dbt.setDbTableFields(new DbDataField[21]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4145,18 +4121,18 @@ public class DbInit {
 	private static DbDataTable getMasterTable() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_tables");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_tables");
 
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_TABLE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.tables");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "tables");
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(true);
-			dbt.setConfigColumnName("TABLE_NAME");
+			dbt.setConfigColumnName(Sv.TABLE_NAME);
 
 			// f1
 			DbDataField dbf1 = new DbDataField();
@@ -4166,7 +4142,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4174,17 +4150,17 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(50);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.repo_name");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "repo_name");
 
 			// f3
 
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName("TABLE_NAME");
+			dbf3.setDbFieldName(Sv.TABLE_NAME);
 			dbf3.setIsUnique(true);
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(25);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.table_name");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "table_name");
 			dbf3.setUnique_level("TABLE");
 
 			// f4
@@ -4194,7 +4170,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(50);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.table_schema");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "table_schema");
 			dbf4.setUnique_level("TABLE");
 
 			// f5
@@ -4202,35 +4178,35 @@ public class DbInit {
 			dbf5.setDbFieldName("SYSTEM_TABLE");
 			dbf5.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.system_table");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "system_table");
 
 			// f5
 			DbDataField dbf6 = new DbDataField();
 			dbf6.setDbFieldName("REPO_TABLE");
 			dbf6.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.repo_table");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "repo_table");
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName(LABEL_CODE);
+			dbf7.setDbFieldName(Sv.LABEL_CODE);
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(100);
 			dbf7.setIsNull(false);
-			dbf7.setLabel_code("master_repo.label_code");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LABEL_CODE_LC);
 
 			// f5
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("USE_CACHE");
 			dbf8.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf8.setIsNull(true);
-			dbf8.setLabel_code("master_repo.use_cache");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "use_cache");
 
 			DbDataField dbf9 = new DbDataField();
 			dbf9.setDbFieldName("CACHE_TYPE");
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setIsNull(false);
 			dbf9.setDbFieldSize(10);
-			dbf9.setLabel_code("master_repo.cache_type");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CACHE_TYPE);
 			dbf9.setCode_list_user_code("CACHE_TYPE");
 
 			DbDataField dbf10 = new DbDataField();
@@ -4238,41 +4214,41 @@ public class DbInit {
 			dbf10.setDbFieldType(DbFieldType.NUMERIC);
 			dbf10.setIsNull(true);
 			dbf10.setDbFieldSize(18);
-			dbf10.setLabel_code("master_repo.cache_size");
+			dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cache_size");
 
 			DbDataField dbf11 = new DbDataField();
 			dbf11.setDbFieldName("CACHE_EXPIRY");
 			dbf11.setDbFieldType(DbFieldType.NUMERIC);
 			dbf11.setIsNull(true);
 			dbf11.setDbFieldSize(18);
-			dbf11.setLabel_code("master_repo.cache_expiry");
+			dbf11.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cache_expiry");
 
 			DbDataField dbf12 = new DbDataField();
 			dbf12.setDbFieldName("IS_CONFIG_TABLE");
 			dbf12.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf12.setIsNull(false);
-			dbf12.setLabel_code("master_repo.is_config_table");
+			dbf12.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "is_config_table");
 
 			DbDataField dbf13 = new DbDataField();
 			dbf13.setDbFieldName("CONFIG_UNQ_ID");
 			dbf13.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf13.setIsNull(true);
 			dbf13.setDbFieldSize(50);
-			dbf13.setLabel_code("master_repo.config_table_uq_column");
+			dbf13.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "config_table_uq_column");
 
 			DbDataField dbf14 = new DbDataField();
 			dbf14.setDbFieldName("CONFIG_TYPE_ID");
 			dbf14.setDbFieldType(DbFieldType.NUMERIC);
 			dbf14.setIsNull(true);
 			dbf14.setDbFieldSize(18);
-			dbf14.setLabel_code("master_repo.config_type_id");
+			dbf14.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "config_type_id");
 
 			DbDataField dbf15 = new DbDataField();
 			dbf15.setDbFieldName("CONFIG_RELATION_TYPE");
 			dbf15.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf15.setIsNull(true);
 			dbf15.setDbFieldSize(50);
-			dbf15.setLabel_code("master_repo.config_relation_type");
+			dbf15.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "config_relation_type");
 			dbf15.setCode_list_user_code("CONFIG_RELATION_TYPE");
 
 			DbDataField dbf16 = new DbDataField();
@@ -4280,9 +4256,21 @@ public class DbInit {
 			dbf16.setDbFieldType(DbFieldType.NUMERIC);
 			dbf16.setIsNull(true);
 			dbf16.setDbFieldSize(18);
-			dbf16.setLabel_code("master_repo.config_relation_id");
+			dbf16.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "config_relation_id");
 
-			dbt.setDbTableFields(new DbDataField[16]);
+			DbDataField dbf17 = new DbDataField();
+			dbf17.setDbFieldName(Sv.GUI_METADATA);
+			dbf17.setDbFieldType(DbFieldType.TEXT);
+			dbf17.setIsNull(true);
+			dbf17.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GUI_METADATA.toLowerCase());
+
+			DbDataField dbf18 = new DbDataField();
+			dbf18.setDbFieldName(Sv.EXTENDED_PARAMS);
+			dbf18.setDbFieldType(DbFieldType.TEXT);
+			dbf18.setIsNull(true);
+			dbf18.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.EXTENDED_PARAMS.toLowerCase());
+
+			dbt.setDbTableFields(new DbDataField[18]);
 			dbt.getDbTableFields()[0] = dbf1;
 			dbt.getDbTableFields()[1] = dbf2;
 			dbt.getDbTableFields()[2] = dbf3;
@@ -4299,6 +4287,8 @@ public class DbInit {
 			dbt.getDbTableFields()[13] = dbf14;
 			dbt.getDbTableFields()[14] = dbf15;
 			dbt.getDbTableFields()[15] = dbf16;
+			dbt.getDbTableFields()[16] = dbf17;
+			dbt.getDbTableFields()[17] = dbf18;
 			return dbt;
 		}
 	}
@@ -4306,14 +4296,14 @@ public class DbInit {
 	private static DbDataTable getMasterSDIUnits() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_units");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_units");
 
-			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_UNITS);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sdi_units");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_units");
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(false);
@@ -4327,7 +4317,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4335,7 +4325,7 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.unit_name");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_name");
 			dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f2
@@ -4344,7 +4334,7 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(true);
-			dbf3.setLabel_code("master_repo.unit_id");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_id");
 
 			// f4
 			DbDataField dbf4 = new DbDataField();
@@ -4352,7 +4342,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(2);
-			dbf4.setLabel_code("master_repo.unit_area");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_area");
 
 			// f5
 			DbDataField dbf5 = new DbDataField();
@@ -4361,7 +4351,7 @@ public class DbInit {
 			dbf5.setDbFieldSize(18);
 			dbf5.setDbFieldScale(2);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.unit_perimeter");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_perimeter");
 
 			// f5
 			DbDataField dbf6 = new DbDataField();
@@ -4369,18 +4359,18 @@ public class DbInit {
 			dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf6.setDbFieldSize(50);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.bounds_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.BOUNDS_CLASS.toLowerCase());
 			dbf6.setCode_list_user_code("SDI_UNIT_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(true);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code("master_repo.centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4389,21 +4379,21 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code("master_repo.geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
 
 			DbDataField dbf9 = new DbDataField();
 			dbf9.setDbFieldName("EXTERNAL_UNIT_ID");
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(100);
 			dbf9.setIsNull(true);
-			dbf9.setLabel_code("master_repo.external_unit_id");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "external_unit_id");
 
 			DbDataField dbf10 = new DbDataField();
 			dbf10.setDbFieldName("UNIT_LABEL");
 			dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf10.setDbFieldSize(100);
 			dbf10.setIsNull(true);
-			dbf10.setLabel_code("master_repo.unit_label");
+			dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_label");
 			dbf10.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			dbt.setDbTableFields(new DbDataField[10]);
@@ -4425,14 +4415,14 @@ public class DbInit {
 	private static DbDataTable getMasterSDIUse() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_use");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_use");
 
-			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_USE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sdi_use");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_use");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(false);
 			dbt.setParentName("SDI_COVER");
@@ -4445,7 +4435,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f4
 			DbDataField dbf4 = new DbDataField();
@@ -4454,7 +4444,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(2);
-			dbf4.setLabel_code("master_repo.cover_area");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cover_area");
 
 			DbDataField dbf4_1 = new DbDataField();
 			dbf4_1.setDbFieldName("AREA_HA");
@@ -4462,7 +4452,7 @@ public class DbInit {
 			dbf4_1.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4_1.setDbFieldSize(18);
 			dbf4_1.setDbFieldScale(2);
-			dbf4_1.setLabel_code("master_repo.bounds_area_ha");
+			dbf4_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.BOUNDS_AREA_HA);
 			dbf4_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f5
@@ -4472,7 +4462,7 @@ public class DbInit {
 			dbf5.setDbFieldSize(18);
 			dbf5.setDbFieldScale(2);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.cover_perimeter");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cover_perimeter");
 
 			// f5
 			DbDataField dbf6 = new DbDataField();
@@ -4481,7 +4471,7 @@ public class DbInit {
 			dbf5.setDbFieldSize(9);
 			dbf5.setDbFieldScale(0);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.use_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "use_class");
 			dbf6.setCode_list_user_code("SDI_USE_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
@@ -4492,7 +4482,7 @@ public class DbInit {
 			dbf6_1.setDbFieldSize(9);
 			dbf6_1.setDbFieldScale(0);
 			dbf6_1.setIsNull(false);
-			dbf6_1.setLabel_code("master_repo.use_class_2nd");
+			dbf6_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "use_class_2nd");
 			dbf6_1.setCode_list_user_code("SDI_USE_CLASS");
 			dbf6_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
@@ -4503,18 +4493,18 @@ public class DbInit {
 			dbf6_2.setDbFieldSize(9);
 			dbf6_2.setDbFieldScale(0);
 			dbf6_2.setIsNull(false);
-			dbf6_2.setLabel_code("master_repo.use_class_3rd");
+			dbf6_2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "use_class_3rd");
 			dbf6_2.setCode_list_user_code("SDI_USE_CLASS");
 			dbf6_2.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(true);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code("master_repo.centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4523,7 +4513,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code("master_repo.geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
 
 			dbt.setDbTableFields(new DbDataField[9]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4543,14 +4533,14 @@ public class DbInit {
 	private static DbDataTable getMasterSDICover() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_cover");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_cover");
 
-			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_COVER);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sdi_cover");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_cover");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(false);
 			dbt.setParentName("SDI_BOUNDS");
@@ -4563,7 +4553,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f4
 			DbDataField dbf4 = new DbDataField();
@@ -4572,7 +4562,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(2);
-			dbf4.setLabel_code("master_repo.cover_area");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cover_area");
 
 			DbDataField dbf4_1 = new DbDataField();
 			dbf4_1.setDbFieldName("AREA_HA");
@@ -4580,7 +4570,7 @@ public class DbInit {
 			dbf4_1.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4_1.setDbFieldSize(18);
 			dbf4_1.setDbFieldScale(2);
-			dbf4_1.setLabel_code("master_repo.bounds_area_ha");
+			dbf4_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.BOUNDS_AREA_HA);
 			dbf4_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f5
@@ -4590,7 +4580,7 @@ public class DbInit {
 			dbf5.setDbFieldSize(18);
 			dbf5.setDbFieldScale(2);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.cover_perimeter");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cover_perimeter");
 
 			// f5
 			DbDataField dbf6 = new DbDataField();
@@ -4599,18 +4589,18 @@ public class DbInit {
 			dbf5.setDbFieldSize(9);
 			dbf5.setDbFieldScale(0);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.bounds_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.BOUNDS_CLASS.toLowerCase());
 			dbf6.setCode_list_user_code("SDI_COVER_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(true);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code("master_repo.centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4619,7 +4609,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code("master_repo.geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
 
 			dbt.setDbTableFields(new DbDataField[7]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4637,14 +4627,14 @@ public class DbInit {
 	private static DbDataTable getMasterSDIBounds() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_bounds");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_bounds");
 
-			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_BOUNDS);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sdi_bounds");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_bounds");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(false);
 			dbt.setParentName("SDI_UNITS");
@@ -4657,7 +4647,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
@@ -4665,7 +4655,7 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.bounds_name");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "bounds_name");
 			dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f2
@@ -4674,7 +4664,7 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(true);
-			dbf3.setLabel_code("master_repo.bounds_id");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "bounds_id");
 
 			// f4
 			DbDataField dbf4 = new DbDataField();
@@ -4683,7 +4673,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(2);
-			dbf4.setLabel_code("master_repo.bounds_area");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "bounds_area");
 
 			// f4
 			DbDataField dbf4_1 = new DbDataField();
@@ -4692,7 +4682,7 @@ public class DbInit {
 			dbf4_1.setDbFieldType(DbFieldType.NUMERIC);
 			dbf4_1.setDbFieldSize(18);
 			dbf4_1.setDbFieldScale(2);
-			dbf4_1.setLabel_code("master_repo.bounds_area_ha");
+			dbf4_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.BOUNDS_AREA_HA);
 			dbf4_1.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			// f5
@@ -4702,27 +4692,27 @@ public class DbInit {
 			dbf5.setDbFieldSize(18);
 			dbf5.setDbFieldScale(2);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.bounds_perimeter");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "bounds_perimeter");
 
 			// f5
 			DbDataField dbf6 = new DbDataField();
-			dbf6.setDbFieldName("BOUNDS_CLASS");
+			dbf6.setDbFieldName(Sv.BOUNDS_CLASS);
 			dbf6.setDbFieldType(DbFieldType.NUMERIC);
 			dbf6.setDbFieldSize(9);
 			dbf6.setDbFieldScale(0);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.bounds_class");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.BOUNDS_CLASS.toLowerCase());
 			dbf6.setCode_list_user_code("SDI_BOUNDS_CLASS");
 			dbf6.setGui_metadata(getDefaultSDIMetadata().toString());
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName("CENTROID");
+			dbf7.setDbFieldName(Sv.CENTROID);
 			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
 			dbf7.setIsNull(false);
 			dbf7.setGeometryType("POINT");
 			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code("master_repo.centroid");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
 
 			DbDataField dbf8 = new DbDataField();
 			dbf8.setDbFieldName("GEOM");
@@ -4731,7 +4721,7 @@ public class DbInit {
 			dbf8.setGeometryType("MULTIPOLYGON");
 			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
 			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code("master_repo.geometry");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
 
 			DbDataField dbf9 = new DbDataField();
 			dbf9.setDbFieldName("COVER_CLASS");
@@ -4739,7 +4729,7 @@ public class DbInit {
 			dbf9.setDbFieldSize(9);
 			dbf9.setDbFieldScale(0);
 			dbf9.setIsNull(true);
-			dbf9.setLabel_code("master_repo.cover_class");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "cover_class");
 			dbf9.setCode_list_user_code("SDI_COVER_CLASS");
 			dbf9.setGui_metadata(getDefaultSDIMetadata().toString());
 
@@ -4762,14 +4752,14 @@ public class DbInit {
 	private static DbDataTable getMasterSDIDescriptor() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_descriptor");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_descriptor");
 
-			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_DESCRIPTOR);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sdi_descriptor");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_descriptor");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 			dbt.setConfigColumnName("SDI_TYPE");
@@ -4782,7 +4772,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2 SDI_TYPE
 			DbDataField dbf2 = new DbDataField();
@@ -4792,7 +4782,7 @@ public class DbInit {
 			dbf2.setDbFieldScale(0);
 			dbf2.setIsUnique(true);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.sdi_desc_type");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_type");
 
 			// f2_1 SDI_SUB_TYPE
 			DbDataField dbf2_1 = new DbDataField();
@@ -4800,7 +4790,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(20);
 			dbf2_1.setIsNull(true);
-			dbf2_1.setLabel_code("master_repo.sdi_desc_sub_type");
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_sub_type");
 
 			// f3 PARENT_TYPE
 			DbDataField dbf3 = new DbDataField();
@@ -4809,7 +4799,7 @@ public class DbInit {
 			dbf3.setDbFieldSize(18);
 			dbf3.setDbFieldScale(0);
 			dbf3.setIsNull(true);
-			dbf3.setLabel_code("master_repo.sdi_desc_parent_type");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_parent_type");
 
 			// 3_1 CHILDREN_TYPE?
 
@@ -4819,7 +4809,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(200);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.sdi_desc_path");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_path");
 
 			// f5 STYLE_CLASS
 			DbDataField dbf5 = new DbDataField();
@@ -4827,7 +4817,7 @@ public class DbInit {
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(20);
 			dbf5.setIsNull(true);
-			dbf5.setLabel_code("master_repo.sdi_desc_style_class");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_style_class");
 
 			// f6 STYLE (Style object, should at least contain weight, fill,
 			// fill_color, opacity, fill_opacity as JSON string)
@@ -4836,7 +4826,7 @@ public class DbInit {
 			dbf6.setDbFieldType(DbFieldType.TEXT);
 			// dbf6.setDbFieldSize(5000); // can we expand this to 20000 ?
 			dbf6.setIsNull(true);
-			dbf6.setLabel_code("master_repo.sdi_desc_style");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_style");
 
 			// f7 RENDER_PARAMS (Render object, should at least contain
 			// render_min and render_max as JSON string)
@@ -4845,7 +4835,7 @@ public class DbInit {
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(500);
 			dbf7.setIsNull(true); // setIsNull(false) perhaps?
-			dbf7.setLabel_code("master_repo.sdi_desc_render_params");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_render_params");
 
 			// f8 LABEL_PARAMS (label configuration object => show_label,
 			// permanent, className, label_min, label_max as base options)
@@ -4854,7 +4844,7 @@ public class DbInit {
 			dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf8.setDbFieldSize(500);
 			dbf8.setIsNull(true);
-			dbf8.setLabel_code("master_repo.sdi_desc_label_params");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_label_params");
 
 			// f9 DATA_PARAMS (which columns should be attached to geom object
 			// returned in service as metadata)
@@ -4863,14 +4853,14 @@ public class DbInit {
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(500);
 			dbf9.setIsNull(true);
-			dbf9.setLabel_code("master_repo.sdi_desc_data_params");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_desc_data_params");
 
 			// f10 CAN_SNAP
 			DbDataField dbf10 = new DbDataField();
 			dbf10.setDbFieldName("CAN_SNAP");
 			dbf10.setDbFieldType(DbFieldType.BOOLEAN);
 			dbf10.setIsNull(true);
-			dbf10.setLabel_code("master_repo.can_snap");
+			dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "can_snap");
 
 			dbt.setDbTableFields(new DbDataField[11]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4892,14 +4882,14 @@ public class DbInit {
 	private static DbDataTable getMasterSDIService() {
 		{
 			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(REPO_TABLE_NAME + "_sdi_service");
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_service");
 
-			dbt.setDbRepoName(REPO_TABLE_NAME+"_sdi");
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_SERVICE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code("master_repo.sdi_service");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service");
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 			dbt.setConfigColumnName("NAME");
@@ -4912,7 +4902,7 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setLabel_code("master_repo.table_meta_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
 			// f2 SERVICE_NAME
 			DbDataField dbf2 = new DbDataField();
@@ -4921,7 +4911,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsUnique(true);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.sdi_service_name");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_name");
 			dbf2.setCode_list_user_code("SDI_SERVICE_NAME");
 
 			// f3 PATH (URL)
@@ -4930,7 +4920,7 @@ public class DbInit {
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(200);
 			dbf3.setIsNull(false);
-			dbf3.setLabel_code("master_repo.sdi_service_path");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_path");
 
 			// f4 SERVICE_TYPE
 			DbDataField dbf4 = new DbDataField();
@@ -4938,7 +4928,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(20);
 			dbf4.setIsNull(false);
-			dbf4.setLabel_code("master_repo.sdi_service_type");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_type");
 
 			// f5 DATA_REF (LAYER NAME OR OTHER REF)
 			DbDataField dbf5 = new DbDataField();
@@ -4946,7 +4936,7 @@ public class DbInit {
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(100);
 			dbf5.setIsNull(false);
-			dbf5.setLabel_code("master_repo.sdi_service_data_ref");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_data_ref");
 
 			// f6 AUTHORISATION
 			DbDataField dbf6 = new DbDataField();
@@ -4954,7 +4944,7 @@ public class DbInit {
 			dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf6.setDbFieldSize(200);
 			dbf6.setIsNull(true);
-			dbf6.setLabel_code("master_repo.sdi_service_autorisation");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_autorisation");
 
 			// f7 DATA_PARAMS
 			DbDataField dbf7 = new DbDataField();
@@ -4962,7 +4952,7 @@ public class DbInit {
 			dbf7.setDbFieldType(DbFieldType.TEXT);
 			// dbf7.setDbFieldSize(2000);
 			dbf7.setIsNull(true);
-			dbf7.setLabel_code("master_repo.sdi_service_data_params");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_data_params");
 
 			// f8 RENDER_PARAMS
 			DbDataField dbf8 = new DbDataField();
@@ -4970,7 +4960,7 @@ public class DbInit {
 			dbf8.setDbFieldType(DbFieldType.TEXT);
 			// dbf8.setDbFieldSize(2000);
 			dbf8.setIsNull(true);
-			dbf8.setLabel_code("master_repo.sdi_service_render_params");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_render_params");
 
 			dbt.setDbTableFields(new DbDataField[8]);
 			dbt.getDbTableFields()[0] = dbf1;
@@ -4990,13 +4980,13 @@ public class DbInit {
 		{
 			DbDataTable dbt = new DbDataTable();
 			dbt.setDbTableName(repoTableName);
-			dbt.setDbRepoName(MASTER_REPO_NAME);
-			dbt.setDbSchema(DEFAULT_SCHEMA);
+			dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 			dbt.setIsSystemTable(true);
 			dbt.setIsRepoTable(true);
 			if (repoObjectId != null)
 				dbt.setObjectId(repoObjectId);
-			dbt.setLabel_code("master_repo.repo_object");
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "repo_object");
 			dbt.setIsConfigTable(false);
 			dbt.setUse_cache(true);
 
@@ -5008,8 +4998,8 @@ public class DbInit {
 			dbf1.setDbFieldSize(18);
 			dbf1.setDbFieldScale(0);
 			dbf1.setIsNull(false);
-			dbf1.setDbSequenceName(REPO_TABLE_NAME+"_pkid");
-			dbf1.setLabel_code("master_repo.table_pkid");
+			dbf1.setDbSequenceName(Sv.REPO_TABLE_NAME + "_pkid");
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "table_pkid");
 			dbf1.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 			// f1.5
@@ -5020,7 +5010,7 @@ public class DbInit {
 			dbf9.setDbFieldScale(0);
 			dbf9.setIsNull(false);
 			dbf9.setIndexName("meta_pkid_idx");
-			dbf9.setLabel_code("master_repo.table_meta_pkid");
+			dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 			dbf9.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 			// f4
@@ -5031,8 +5021,8 @@ public class DbInit {
 			dbf4.setDbFieldSize(18);
 			dbf4.setDbFieldScale(0);
 			dbf4.setIsNull(false);
-			dbf4.setDbSequenceName(REPO_TABLE_NAME+"_oid");
-			dbf4.setLabel_code("master_repo.object_id");
+			dbf4.setDbSequenceName(Sv.REPO_TABLE_NAME + "_oid");
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "object_id");
 			dbf4.setGui_metadata(getUiWidth(getDefaultUiMeta(true, true, false, false), 60).toString());
 
 			// f2
@@ -5041,7 +5031,7 @@ public class DbInit {
 			dbf2.setDbFieldType(DbFieldType.TIMESTAMP);
 			dbf2.setDbFieldSize(3);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code("master_repo.insert_date");
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "insert_date");
 			dbf2.setGui_metadata(getUiWidth(getDefaultUiMeta(true, true, false, false), 110).toString());
 
 			// f3
@@ -5052,7 +5042,7 @@ public class DbInit {
 			dbf3.setDbFieldSize(3);
 			dbf3.setIsNull(false);
 			dbf3.setIndexName("parent_id_dt_delete");
-			dbf3.setLabel_code("master_repo.delete_date");
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "delete_date");
 			dbf3.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 			DbDataField dbf5 = new DbDataField();
@@ -5061,7 +5051,7 @@ public class DbInit {
 			dbf5.setDbFieldSize(18);
 			dbf5.setDbFieldScale(0);
 			dbf5.setIndexName("parent_id_dt_delete");
-			dbf5.setLabel_code("master_repo.parent_id");
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "parent_id");
 			dbf5.setGui_metadata(getDefaultUiMeta(true, true, true, false).toString());
 
 			// dbf5.setIsNull(false);
@@ -5072,7 +5062,7 @@ public class DbInit {
 			dbf6.setDbFieldSize(18);
 			dbf6.setDbFieldScale(0);
 			dbf6.setIsNull(false);
-			dbf6.setLabel_code("master_repo.object_type");
+			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "object_type");
 			dbf6.setGui_metadata(getDefaultUiMeta(true, true, true, false).toString());
 
 			DbDataField dbf8 = new DbDataField();
@@ -5080,7 +5070,7 @@ public class DbInit {
 			dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf8.setDbFieldSize(10);
 			dbf8.setIsNull(false);
-			dbf8.setLabel_code("master_repo.object_status");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "object_status");
 			dbf8.setCode_list_user_code("OBJ_STATUS");
 			dbf8.setGui_metadata(
 					"{'editoptions':{'readonly':true},'width':72,'react':{'filterable':true,'width':120,'visible':true,'resizable':true,'editable':false,'uischema':{'ui:readonly':true}}}");
@@ -5090,7 +5080,7 @@ public class DbInit {
 			dbf10.setDbFieldType(DbFieldType.NUMERIC);
 			dbf10.setDbFieldSize(18);
 			dbf10.setIsNull(false);
-			dbf10.setLabel_code("master_repo.created_by_user");
+			dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "created_by_user");
 			dbf10.setGui_metadata(getUiWidth(getDefaultUiMeta(true, true, false, false), 60).toString());
 
 			dbt.setDbTableFields(new DbDataField[9]);
@@ -5110,15 +5100,15 @@ public class DbInit {
 	}
 
 	private static DbDataTable getSDIMasterRepoObject() {
-		return getRepoDescriptor(REPO_TABLE_NAME+"_sdi", null);
+		return getRepoDescriptor(Sv.REPO_TABLE_NAME + "_sdi", null);
 	}
 
 	private static DbDataTable getMasterRepoObject() {
-		return getRepoDescriptor(REPO_TABLE_NAME, svCONST.OBJECT_TYPE_REPO);
+		return getRepoDescriptor(Sv.REPO_TABLE_NAME, svCONST.OBJECT_TYPE_REPO);
 	}
 
 	private static DbDataTable getRuleEngineMasterRepoObject() {
-		return getRepoDescriptor(REPO_TABLE_NAME+"_re", null);
+		return getRepoDescriptor(Sv.REPO_TABLE_NAME + "_re", null);
 	}
 
 	/**
@@ -5293,14 +5283,13 @@ public class DbInit {
 
 		dbtt = getMasterCluster();
 		dbtList.add(addSortOrder(dbtt));
-		
-		
+
 		dbtt = getPluginConf();
 		dbtList.add(addSortOrder(dbtt));
 
-		dbtt = getExecutorGroup();
-		dbtList.add(addSortOrder(dbtt));
 		dbtt = getExecutorPack();
+		dbtList.add(addSortOrder(dbtt));
+		dbtt = getExecutorPackItems();
 		dbtList.add(addSortOrder(dbtt));
 
 		// Add SDI structure
@@ -5392,12 +5381,12 @@ public class DbInit {
 
 			String retval = saveMasterJson(
 					SvConf.getConfPath() + SvarogInstall.masterDbtPath
-							+ dbt.getDbTableName().replace(REPO_TABLE_NAME, "master").toLowerCase() + "_repo.json",
+							+ dbt.getDbTableName().replace(Sv.REPO_TABLE_NAME, "master").toLowerCase() + "_repo.json",
 					dbt, false);
 
 			if (!retval.equals("")) {
 				fullRetval += fullRetval + "; " + SvConf.getConfPath() + SvarogInstall.masterDbtPath
-						+ dbt.getDbTableName().replace(REPO_TABLE_NAME, "master") + "_repo.json";
+						+ dbt.getDbTableName().replace(Sv.REPO_TABLE_NAME, "master") + "_repo.json";
 			}
 
 		}
@@ -5481,10 +5470,10 @@ public class DbInit {
 
 						DbDataObject dbo = new DbDataObject();
 						dbo.setStatus(svCONST.STATUS_VALID);
-						dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+						dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 						dbo.setDtDelete(SvConf.MAX_DATE);
-						dbo.setVal(LABEL_CODE, (String) pair.getKey());
-						dbo.setVal("label_text", (String) pair.getValue());
+						dbo.setVal(Sv.LABEL_CODE, (String) pair.getKey());
+						dbo.setVal(Sv.LABEL_TEXT, (String) pair.getValue());
 						dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
 						try {
@@ -5492,7 +5481,7 @@ public class DbInit {
 						} catch (Exception e) {
 						}
 						;
-						dbo.setVal("locale_id", locale);
+						dbo.setVal(Sv.LOCALE_ID, locale);
 						mLabels.put((String) pair.getKey(), dbo);
 
 					}
@@ -5532,8 +5521,8 @@ public class DbInit {
 				aclStr = IOUtils.toString(istr);
 			}
 			if (aclStr != null) {
-				aclStr = aclStr.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
-				aclStr = aclStr.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+				aclStr = aclStr.replace(Sv.MASTER_REPO_NAME, SvConf.getMasterRepo());
+				aclStr = aclStr.replace(Sv.DEFAULT_SCHEMA, SvConf.getDefaultSchema());
 				json = gson.fromJson(aclStr, JsonElement.class);
 			} else
 				log4j.debug("Warning, no ACLs found in:" + jarPath + ", path:" + filePath);
@@ -5556,13 +5545,13 @@ public class DbInit {
 	public static DbDataObject createAclFromDbt(DbDataObject dbt, SvAccess accessLevel) {
 		DbDataObject dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", accessLevel.toString());
-		dbo.setVal("acl_object_id", (String) dbt.getVal("TABLE_NAME"));
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, (String) dbt.getVal(Sv.TABLE_NAME));
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", null);
-		dbo.setVal(LABEL_CODE, (String) dbt.getVal("TABLE_NAME") + "." + accessLevel.toString());
+		dbo.setVal(Sv.LABEL_CODE, (String) dbt.getVal(Sv.TABLE_NAME) + "." + accessLevel.toString());
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		return dbo;
 
@@ -5571,37 +5560,37 @@ public class DbInit {
 	public static void prepareSystemACLs(DbDataArray acls) {
 		DbDataObject dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
-		dbo.setVal("acl_object_id", 0L);
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.SUDO_ACL);
-		dbo.setVal(LABEL_CODE, svCONST.SUDO_ACL);
+		dbo.setVal(Sv.LABEL_CODE, svCONST.SUDO_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
-		dbo.setVal("acl_object_id", 0L);
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.INSECURE_SQL_ACL);
-		dbo.setVal(LABEL_CODE, svCONST.INSECURE_SQL_ACL);
+		dbo.setVal(Sv.LABEL_CODE, svCONST.INSECURE_SQL_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
 		dbo = new DbDataObject();
 		dbo.setStatus(svCONST.STATUS_VALID);
-		dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+		dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 		dbo.setDtDelete(SvConf.MAX_DATE);
 		dbo.setVal("ACCESS_TYPE", SvAccess.EXECUTE);
-		dbo.setVal("acl_object_id", 0L);
-		dbo.setVal("acl_object_type", "TABLES");
+		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
+		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.NULL_GEOMETRY_ACL);
-		dbo.setVal(LABEL_CODE, svCONST.NULL_GEOMETRY_ACL);
+		dbo.setVal(Sv.LABEL_CODE, svCONST.NULL_GEOMETRY_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5708,18 +5697,18 @@ public class DbInit {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
 								dbo.setStatus(svCONST.STATUS_VALID);
-								dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+								dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
 										? aclItem.get("ACCESS_TYPE").getAsString() : null);
-								dbo.setVal("acl_object_id", aclItem.get("acl_object_id") != null
-										? aclItem.get("acl_object_id").getAsString() : null);
-								dbo.setVal("acl_object_type", aclItem.get("acl_object_type") != null
-										? aclItem.get("acl_object_type").getAsString() : null);
+								dbo.setVal(Sv.ACL_OBJECT_ID, aclItem.get(Sv.ACL_OBJECT_ID) != null
+										? aclItem.get(Sv.ACL_OBJECT_ID).getAsString() : null);
+								dbo.setVal(Sv.ACL_OBJECT_TYPE, aclItem.get(Sv.ACL_OBJECT_TYPE) != null
+										? aclItem.get(Sv.ACL_OBJECT_TYPE).getAsString() : null);
 								dbo.setVal("acl_config_unq", aclItem.get("acl_config_unq") != null
 										? aclItem.get("acl_config_unq").getAsString() : null);
-								dbo.setVal(LABEL_CODE, aclItem.get(LABEL_CODE.toLowerCase()) != null
-										? aclItem.get(LABEL_CODE.toLowerCase()).getAsString() : null);
+								dbo.setVal(Sv.LABEL_CODE, aclItem.get(Sv.LABEL_CODE.toLowerCase()) != null
+										? aclItem.get(Sv.LABEL_CODE.toLowerCase()).getAsString() : null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
 							}
@@ -5740,7 +5729,7 @@ public class DbInit {
 								JsonObject aclItem = arr.get(i).getAsJsonObject();
 								DbDataObject dbo = new DbDataObject();
 								dbo.setStatus(svCONST.STATUS_VALID);
-								dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+								dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
 								dbo.setVal("sid_object_id", aclItem.get("sid_object_id") != null
 										? aclItem.get("sid_object_id").getAsString() : null);
@@ -5839,10 +5828,10 @@ public class DbInit {
 
 				DbDataObject dbo = new DbDataObject();
 				dbo.setStatus(svCONST.STATUS_VALID);
-				dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+				dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 				dbo.setDtDelete(SvConf.MAX_DATE);
-				dbo.setVal(LABEL_CODE, key);
-				dbo.setVal("label_text", rb.getProperty(key));
+				dbo.setVal(Sv.LABEL_CODE, key);
+				dbo.setVal(Sv.LABEL_TEXT, rb.getProperty(key));
 				dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
 				try {
@@ -5850,7 +5839,7 @@ public class DbInit {
 				} catch (Exception e) {
 				}
 				;
-				dbo.setVal("locale_id", localeId);
+				dbo.setVal(Sv.LOCALE_ID, localeId);
 				mLabels.put(key, dbo);
 
 			}
@@ -5880,7 +5869,7 @@ public class DbInit {
 			for (DbDataObject entry : locales.getItems()) {
 				try {
 
-					loadInternalLabels((String) entry.getVal("locale_id"), mLabels);
+					loadInternalLabels((String) entry.getVal(Sv.LOCALE_ID), mLabels);
 					// load labers from the custom folder
 					File customFolder = new File("custom/");
 					if (customFolder != null) {
@@ -5890,7 +5879,7 @@ public class DbInit {
 								log4j.debug("Trying to load labels from: " + customJars[i].getAbsolutePath());
 								if (customJars[i].getName().endsWith(".jar"))
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
-											(String) entry.getVal("locale_id"));
+											(String) entry.getVal(Sv.LOCALE_ID));
 							}
 						}
 					}
@@ -5902,7 +5891,7 @@ public class DbInit {
 							for (int i = 0; i < customJars.length; i++) {
 								if (customJars[i].getName().endsWith(".jar")) {
 									loadLabelsFromCustom(customJars[i].getAbsolutePath(), mLabels,
-											(String) entry.getVal("locale_id"));
+											(String) entry.getVal(Sv.LOCALE_ID));
 								}
 							}
 						}
@@ -5916,10 +5905,10 @@ public class DbInit {
 					arr.setItems(new ArrayList<DbDataObject>(mLabels.values()));
 					String strRetval = "";
 					strRetval = saveMasterJson(SvConf.getConfPath() + SvarogInstall.masterRecordsPath
-							+ SvarogInstall.labelsFilePrefix + entry.getVal("locale_id") + ".json", arr, true);
+							+ SvarogInstall.labelsFilePrefix + entry.getVal(Sv.LOCALE_ID) + ".json", arr, true);
 					if (!strRetval.equals("")) {
 						testRetval += testRetval + strRetval + " json/records/20. master_labels_"
-								+ entry.getVal("locale_id") + ".json; ";
+								+ entry.getVal(Sv.LOCALE_ID) + ".json; ";
 					}
 				}
 				arr.getItems().clear();
@@ -5959,9 +5948,9 @@ public class DbInit {
 		svObjectId = prepareCodes(svObjectId, retStr) + 1;
 		String json;
 		json = retStr[0];// IOUtils.toString(fis, "UTF-8");
-		json = json.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
-		json = json.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
-		json = json.replace(REPO_TABLE_NAME, SvConf.getMasterRepo());
+		json = json.replace(Sv.MASTER_REPO_NAME, SvConf.getMasterRepo());
+		json = json.replace(Sv.DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+		json = json.replace(Sv.REPO_TABLE_NAME, SvConf.getMasterRepo());
 		Gson gson = new Gson();
 		JsonObject jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 		defaultCodes.fromJson(jobj);
@@ -5996,14 +5985,14 @@ public class DbInit {
 
 			dbo.setObjectId(dbt.getObjectId());
 			dbo.setStatus(svCONST.STATUS_VALID);
-			dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+			dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 			dbo.setDtDelete(SvConf.MAX_DATE);
 			dbo.setVal("system_table", dbt.getIsSystemTable());
 			dbo.setVal("repo_table", dbt.getIsRepoTable());
-			dbo.setVal(TABLE_NAME, dbt.getDbTableName().toUpperCase());
+			dbo.setVal(Sv.TABLE_NAME, dbt.getDbTableName().toUpperCase());
 			dbo.setVal("schema", dbt.getDbSchema());
 			dbo.setVal("repo_name", dbt.getDbRepoName().toUpperCase());
-			dbo.setVal(LABEL_CODE, dbt.getLabel_code());
+			dbo.setVal(Sv.LABEL_CODE, dbt.getLabel_code());
 			dbo.setVal("use_cache", true);
 			dbo.setVal("is_config_table", dbt.getIsConfigTable());
 			dbo.setVal("config_unq_id", dbt.getConfigColumnName());
@@ -6022,11 +6011,11 @@ public class DbInit {
 			dbo.setVal("parent_name", dbt.getParentName());
 
 			if (dbt.getCacheType() == null || !dbt.getCacheType().equals("PERM")) {
-				dbo.setVal("cache_type", dbt.getCacheType() == null ? "LRU_TTL" : dbt.getCacheType());
+				dbo.setVal(Sv.CACHE_TYPE, dbt.getCacheType() == null ? "LRU_TTL" : dbt.getCacheType());
 				dbo.setVal("cache_size", dbt.getCacheSize() == 0 ? 5000 : dbt.getCacheSize());
 				dbo.setVal("cache_expiry", dbt.getCacheTTL() == 0 ? 30 : dbt.getCacheTTL());
 			} else
-				dbo.setVal("cache_type", dbt.getCacheType());
+				dbo.setVal(Sv.CACHE_TYPE, dbt.getCacheType());
 
 			dbarrOut.getItems().add(dbo);
 
@@ -6040,7 +6029,7 @@ public class DbInit {
 				// unique constraint
 				if (dbf.getDbFieldName().equalsIgnoreCase(dbt.getConfigColumnName())) {
 					if (!dbf.getIsUnique()
-							|| !(dbf.getUnique_level().equals("TABLE") || dbf.getUnique_level().equals("PARENT"))) {
+							|| !(dbf.getUnique_level().equals("TABLE") || dbf.getUnique_level().equals(Sv.PARENT))) {
 						errMsg.append("Table:" + dbt.getDbTableName() + ",Field:" + dbf.getDbFieldName()
 								+ " is set as config field but not unique or unique level is other than TABLE/PARENT");
 						return svObjectId;
@@ -6054,7 +6043,7 @@ public class DbInit {
 				dbo.setObjectId(svObjectId);
 				svObjectId++;
 				dbo.setStatus(svCONST.STATUS_VALID);
-				dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+				dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 				dbo.setDtDelete(SvConf.MAX_DATE);
 
 				dbo.setVal("field_name", dbf.getDbFieldName());
@@ -6069,7 +6058,7 @@ public class DbInit {
 				dbo.setVal("unq_constraint_name", dbf.getUnique_constraint_name());
 				dbo.setVal("is_primary_key", dbf.getIsPrimaryKey());
 				dbo.setVal("index_name", dbf.getIndexName());
-				dbo.setVal(LABEL_CODE, dbf.getLabel_code());
+				dbo.setVal(Sv.LABEL_CODE, dbf.getLabel_code());
 				dbo.setVal("parent_name", dbt.getDbTableName());
 
 				if (dbf.getDbFieldName().toUpperCase().equals("PKID"))
@@ -6079,12 +6068,12 @@ public class DbInit {
 
 				for (DbDataObject dbl : defaultCodes.getItems()) {
 					if (dbl.getVal("CODE_VALUE").equals(dbf.getCode_user_code()))
-						dbo.setVal(CODE_LIST_ID, dbl.getObjectId());
+						dbo.setVal(Sv.CODE_LIST_ID, dbl.getObjectId());
 
 				}
 				dbo.setVal("code_list_mnemonic", dbf.getCode_user_code());
 				dbo.setVal("is_updateable", dbf.getIs_updateable());
-				dbo.setVal("sort_order", dbf.getSort_order());
+				dbo.setVal(Sv.SORT_ORDER, dbf.getSort_order());
 
 				dbarrOut.getItems().add(dbo);
 
@@ -6102,32 +6091,32 @@ public class DbInit {
 	 * @param defaultObjests
 	 *            The array with default sys objects
 	 */
-	
+
 	public static void initCoreRecords(DbDataArray defaultCodes, DbDataArray defaultObjests) {
 		Long svObjectId = svCONST.MAX_SYS_OBJECT_ID;
 		StringBuilder errMsg = new StringBuilder();
 		dbTables2DbDataArray(getMasterRoot(), defaultObjests, defaultCodes, svObjectId, errMsg);
 
 		String json = defaultObjests.toJson().toString();
-		json = json.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
-		json = json.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
-		json = json.replace(REPO_TABLE_NAME, SvConf.getMasterRepo());
+		json = json.replace(Sv.MASTER_REPO_NAME, SvConf.getMasterRepo());
+		json = json.replace(Sv.DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+		json = json.replace(Sv.REPO_TABLE_NAME, SvConf.getMasterRepo());
 		Gson gson = new Gson();
 		JsonObject jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 		defaultObjests.fromJson(jobj);
 
 		for (DbDataObject dbo : defaultObjests.getItems()) {
 			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_TABLE)) {
-				dbo.setVal("TABLE_NAME", ((String) dbo.getVal("TABLE_NAME")).toUpperCase());
+				dbo.setVal(Sv.TABLE_NAME, ((String) dbo.getVal(Sv.TABLE_NAME)).toUpperCase());
 				dbo.setVal("SCHEMA", ((String) dbo.getVal("SCHEMA")).toUpperCase());
 			}
 			dbo.setIsDirty(false);
 		}
 		if (defaultCodes.getItems().size() > 0) {
 			json = defaultCodes.toJson().toString();
-			json = json.replace(MASTER_REPO_NAME, SvConf.getMasterRepo());
-			json = json.replace(DEFAULT_SCHEMA, SvConf.getDefaultSchema());
-			json = json.replace(REPO_TABLE_NAME, SvConf.getMasterRepo());
+			json = json.replace(Sv.MASTER_REPO_NAME, SvConf.getMasterRepo());
+			json = json.replace(Sv.DEFAULT_SCHEMA, SvConf.getDefaultSchema());
+			json = json.replace(Sv.REPO_TABLE_NAME, SvConf.getMasterRepo());
 			jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 			defaultCodes.fromJson(jobj);
 			for (DbDataObject dbo : defaultCodes.getItems())
@@ -6164,7 +6153,7 @@ public class DbInit {
 		dblFormParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFormParent.setStatus(svCONST.STATUS_VALID);
 		dblFormParent.setVal("LINK_TYPE", "FORM_TYPE_PARENT");
-		dblFormParent.setVal("link_type_description",
+		dblFormParent.setVal(Sv.LINK_TYPE_DESCRIPTION,
 				"Link from form type to svarog object types, to signify which objects can have a form attached");
 		dblFormParent.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_FORM_TYPE);
 		dblFormParent.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_TABLE);
@@ -6173,7 +6162,7 @@ public class DbInit {
 		DbDataObject dblFFieldParent = new DbDataObject();
 		dblFFieldParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFFieldParent.setStatus(svCONST.STATUS_VALID);
-		dblFFieldParent.setVal("link_type_description",
+		dblFFieldParent.setVal(Sv.LINK_TYPE_DESCRIPTION,
 				"Link between form field and form type to signify which fields should be shown on a form");
 		dblFFieldParent.setVal("LINK_TYPE", "FORM_FIELD_LINK");
 		dblFFieldParent.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_FORM_TYPE);
@@ -6416,9 +6405,9 @@ public class DbInit {
 							for (DbDataObject dbl : defaultCodes.getItems()) {
 
 								if (dboCustom.getObjectType().equals(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE)) {
-									String codeVal = (String) dboCustom.getVal(CODE_LIST_ID);
+									String codeVal = (String) dboCustom.getVal(Sv.CODE_LIST_ID);
 									if (dbl.getVal("CODE_VALUE").equals(codeVal))
-										dboCustom.setVal(CODE_LIST_ID, dbl.getObjectId());
+										dboCustom.setVal(Sv.CODE_LIST_ID, dbl.getObjectId());
 								}
 
 							}
@@ -6517,7 +6506,7 @@ public class DbInit {
 			dbo.setObjectType(svCONST.OBJECT_TYPE_CODE);
 
 			dbo.setParentId(parent_id);
-			dbo.setDtInsert(new DateTime(Y2K_START_DATE));
+			dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 			dbo.setDtDelete(SvConf.MAX_DATE);
 			JsonObject inObj = obj.get(i).getAsJsonObject();
 
@@ -6529,8 +6518,8 @@ public class DbInit {
 				dbo.setObjectId(svCONST.CODES_FILE_TYPES);
 
 			dbo.setVal("code_value", inObj.get("user_code").getAsString());
-			dbo.setVal(LABEL_CODE, inObj.get("label_code").getAsString());
-			dbo.setVal("sort_order", sort);
+			dbo.setVal(Sv.LABEL_CODE, inObj.get(Sv.LABEL_CODE_LC).getAsString());
+			dbo.setVal(Sv.SORT_ORDER, sort);
 
 			dbo.setVal("PARENT_CODE_VALUE", parentCodeValue != null ? parentCodeValue.getAsString() : null);
 
@@ -6636,8 +6625,8 @@ public class DbInit {
 			Boolean deferSecurity, SvWriter svw) throws SvException {
 		DbDataObject dboLinkType = new DbDataObject();
 		dboLinkType.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dboLinkType.setVal("link_type", linkType);
-		dboLinkType.setVal("link_type_description", linkDesc);
+		dboLinkType.setVal(Sv.LINK_TYPE, linkType);
+		dboLinkType.setVal(Sv.LINK_TYPE_DESCRIPTION, linkDesc);
 		dboLinkType.setVal("link_obj_type_1", objectTypeId1);
 		dboLinkType.setVal("link_obj_type_2", objectTypeId2);
 		dboLinkType.setVal("defer_security", deferSecurity);
@@ -6721,8 +6710,6 @@ public class DbInit {
 				startingObjId = items.get(items.size() - 1).getObjectId();
 			arr.setItems(items);
 
-			// System.out.println("labels/"+entry.getValues().get("locale_id")+"Labels");
-			;
 			JsonObject obj = ((Jsonable) arr).toJson();
 			String jsonCodes = gson.toJson(obj);
 			// save the array to disk
