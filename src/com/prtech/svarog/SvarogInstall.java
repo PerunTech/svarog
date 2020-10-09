@@ -2568,7 +2568,7 @@ public class SvarogInstall {
 		if (!oldDbo.getStatus().equals(newDbo.getStatus()))
 			return true;
 
-		if(dboFields.getItemByIdx("PKID", oldDbo.getObjectType())==null)
+		if (dboFields.getItemByIdx("PKID", oldDbo.getObjectType()) == null)
 			dboFields.rebuildIndex(Sv.FIELD_NAME);
 		// if(oldDbo.getValues().size()!=newDbo.getValues().size())
 		// return true;
@@ -3909,10 +3909,11 @@ public class SvarogInstall {
 				dbu.saveObject(dboUpgrade, false);
 				if (dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_FIELD)
 						|| dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_TABLE)
-						|| dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_REPO))
-				{
-					dbu.dbCommit();
-					SvCore.initSvCore(true);
+						|| dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_REPO)) {
+					if (SvarogInstall.isSvarogInstalled()) {
+						dbu.dbCommit();
+						SvCore.initSvCore(true);
+					}
 				}
 				if (log4j.isDebugEnabled())
 					log4j.debug("Successful upgrade of object: " + dboUpgrade.toJson());
