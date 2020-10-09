@@ -4,7 +4,12 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DboFactory;
+import com.prtech.svarog_common.DboUnderground;
 
 public class SvCoreTest {
 
@@ -18,6 +23,34 @@ public class SvCoreTest {
 			e.printStackTrace();
 			fail("Exception was thrown");
 		}
+	}
+	
+	@Test
+	public void guiMetaTest() 
+	{
+		String badJson ="{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"idtable\":PUBLIC_CALL,\"idgetfield\":{COLNAME}}}";
+		try(SvReader svr = new SvReader())
+		{
+			DbDataArray fields = SvCore.getFields(svCONST.OBJECT_TYPE_SID_ACL);
+			DbDataObject dbo = fields.get(0);
+			DbDataObject dbt = SvCore.getDbt(dbo.getParentId());
+			DboUnderground.revertReadOnly(dbo, svr);
+			dbo.setVal("GUI_METADATA", badJson);
+			dbo.setIsDirty(false);
+			DboFactory.makeDboReadOnly(dbo);
+
+			JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
+			JsonElement j = meta.get(Sv.FIELDS);
+			if (j != null) {
+				meta.remove(Sv.FIELDS);
+			}
+			
+			SvCore.prepareFields(fields);
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
 }
