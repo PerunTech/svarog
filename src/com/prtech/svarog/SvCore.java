@@ -1107,23 +1107,26 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *            The fields array to be preprocessed
 	 * @throws SvException
 	 */
-	private static void prepareFields(DbDataArray fields) throws SvException {
+	static void prepareFields(DbDataArray fields) throws SvException {
+		Gson gs = new Gson();
+
 		for (DbDataObject dbo : fields.getItems()) {
 			try {
-				Gson gs = new Gson();
 				if (dbo.getVal(Sv.GUI_METADATA) != null) {
 					JsonObject jo = gs.fromJson((String) dbo.getVal(Sv.GUI_METADATA), JsonObject.class);
 					dbo.setVal(Sv.GUI_METADATA, jo);
 					dbo.setIsDirty(false);
 				}
+
 				if (dbo.getVal(Sv.EXTENDED_PARAMS) != null)
 					prepareExtOpts(dbo);
 				// finally link the ext params and gui metadata to the parent
 				// meta
 				linkToParentDbt(dbo);
 			} catch (Exception e) {
-				log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata", e);
+				log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata",e);
 			}
+
 		}
 	}
 
