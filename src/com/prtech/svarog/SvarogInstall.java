@@ -3907,13 +3907,12 @@ public class SvarogInstall {
 			}
 			if (updateRequired) {
 				dbu.saveObject(dboUpgrade, false);
-				if (dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_FIELD)
+				if ((dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_FIELD)
 						|| dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_TABLE)
-						|| dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_REPO)) {
-					if (SvarogInstall.isSvarogInstalled()) {
-						dbu.dbCommit();
-						SvCore.initSvCore(true);
-					}
+						|| dboUpgrade.getParentId().equals(svCONST.OBJECT_TYPE_REPO))
+						&& SvarogInstall.isSvarogInstalled()) {
+					dbu.dbCommit();
+					SvCore.initSvCore(true);
 				}
 				if (log4j.isDebugEnabled())
 					log4j.debug("Successful upgrade of object: " + dboUpgrade.toJson());
