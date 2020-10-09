@@ -1368,7 +1368,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
 	 * 
 	 * @param forceInit
-	 *            flag to allow the user to force Svarog to read the core config
+	 *            flag to allow the user to force Svarog to re-read the core config
 	 *            from the database, if Svarog is already initialised
 	 * @throws SvException
 	 *             Re-throw underlying exceptions
