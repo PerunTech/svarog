@@ -3218,7 +3218,6 @@ public class DbInit {
 		dbf2_0.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2_0.setDbFieldSize(50);
 		dbf2_0.setIsNull(false);
-		dbf2_0.setCode_list_user_code("GROUP_UID");
 		dbf2_0.setLabel_code("master_repo.group_uid");
 
 		// f2
