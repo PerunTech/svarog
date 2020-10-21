@@ -2532,7 +2532,7 @@ public class DbInit {
 		dbf3.setDbFieldName("MODULE_NAME");
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(70);
-		dbf3.setCode_list_user_code("MODULES");
+		dbf3.setCode_list_user_code("CONVERSATION_MODULES");
 		dbf3.setIsNull(true);
 		dbf3.setLabel_code("conversation.module_name");
 
