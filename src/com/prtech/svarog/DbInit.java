@@ -4921,7 +4921,7 @@ public class DbInit {
 			dbf2.setIsUnique(true);
 			dbf2.setIsNull(false);
 			dbf2.setLabel_code("master_repo.sdi_service_name");
-			dbf2.setCode_list_user_code("SDI_SERVICE_NAME");
+			
 
 			// f3 PATH (URL)
 			DbDataField dbf3 = new DbDataField();
@@ -4938,6 +4938,7 @@ public class DbInit {
 			dbf4.setDbFieldSize(20);
 			dbf4.setIsNull(false);
 			dbf4.setLabel_code("master_repo.sdi_service_type");
+			dbf4.setCode_list_user_code("SDI_SERVICE_TYPE");
 
 			// f5 DATA_REF (LAYER NAME OR OTHER REF)
 			DbDataField dbf5 = new DbDataField();
