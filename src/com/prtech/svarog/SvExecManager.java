@@ -17,6 +17,7 @@ package com.prtech.svarog;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -138,6 +139,7 @@ public class SvExecManager extends SvCore {
 			this.status = status;
 		}
 	}
+
 
 	/**
 	 * Global member which we can use for unit testing also! In JUnit just set
@@ -398,6 +400,28 @@ public class SvExecManager extends SvCore {
 		return executor;
 	}
 
+	DbDataObject getExecutorDbo(String name, String category, Long version) throws SvException {
+		DbDataObject execDbo = null;
+		try (SvReader svr = new SvReader()) {
+			// switch to service user in order to be able to manage permissions
+			DbSearchExpression search = new DbSearchExpression();
+			search.addDbSearchItem(new DbSearchCriterion("NAME", DbCompareOperand.EQUAL, name));
+			search.addDbSearchItem(new DbSearchCriterion("CATEGORY", DbCompareOperand.EQUAL, category));
+			if (version != null)
+				search.addDbSearchItem(new DbSearchCriterion(Sv.VERSION, DbCompareOperand.EQUAL, version));
+
+			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), search, null, null);
+			DbDataArray objects = svr.getObjects(dqo, 0, 0);
+			if (objects.size() > 0) {
+				// make sure we reverse the sort to get the highest version
+				ArrayList<DbDataObject> sort = objects.getSortedItems(Sv.VERSION);
+				Collections.reverse(sort);
+				execDbo = objects.get(0);
+			}
+		}
+		return execDbo;
+	}
+
 	/**
 	 * Method which initialises the executor metadata from the database. This
 	 * part is important to support the changing of the start and end date by
@@ -411,39 +435,29 @@ public class SvExecManager extends SvCore {
 	SvExecInstance initExecInstance(SvExecInstance exeInstance) {
 		ISvExecutor executor = exeInstance.getExecutor();
 
-		SvReader svr = null;
 		SvWriter svw = null;
 		SvSecurity svs = null;
 		try {
-			svr = new SvReader();
-			// switch to service user in order to be able to manage permissions
-			DbSearchExpression search = new DbSearchExpression();
-			search.addDbSearchItem(new DbSearchCriterion("NAME", DbCompareOperand.EQUAL, executor.getName()));
-			search.addDbSearchItem(new DbSearchCriterion("CATEGORY", DbCompareOperand.EQUAL, executor.getCategory()));
-			search.addDbSearchItem(new DbSearchCriterion("VERSION", DbCompareOperand.EQUAL, executor.versionUID()));
 
-			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), search, null, null);
-			DbDataArray objects = svr.getObjects(dqo, 0, 0);
-			// switch to service user in order to be able to manage permissions
-			svr.switchUser(svCONST.serviceUser);
-			svw = new SvWriter(svr);
+			DbDataObject dbo = getExecutorDbo(executor.getName(), executor.getCategory(), executor.versionUID());
+			svw = new SvWriter();
+			svw.switchUser(svCONST.serviceUser);
 			svs = new SvSecurity(svw);
 			svw.setAutoCommit(false);
 
-			if (objects.size() > 0) {
-				DbDataObject dbo = objects.get(0);
+			if (dbo != null) {
 				exeInstance.setStartDate((DateTime) dbo.getVal("START_DATE"));
 				exeInstance.setEndDate((DateTime) dbo.getVal("END_DATE"));
 				exeInstance.setStatus(dbo.getStatus());
 			} else {
-				DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTORS);
+				dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTORS);
 				dbo.setVal("CATEGORY", executor.getCategory());
 				dbo.setVal("NAME", executor.getName());
 				dbo.setVal("JAVA_TYPE", executor.getReturningType().getClass().getCanonicalName());
 				dbo.setVal("DESCRIPTION", executor.getDescription());
 				dbo.setVal("START_DATE", executor.getStartDate());
 				dbo.setVal("END_DATE", executor.getEndDate());
-				dbo.setVal("VERSION", executor.versionUID());
+				dbo.setVal(Sv.VERSION, executor.versionUID());
 				svw.saveObject(dbo);
 				String executorKey = getKey(executor);
 				DbDataArray perms = svs.getPermissions(executorKey);
@@ -456,8 +470,6 @@ public class SvExecManager extends SvCore {
 			log4j.error("Error loading executor data from db. Executor:'" + getKey(executor) + "', version:"
 					+ executor.versionUID(), e);
 		} finally {
-			if (svr != null)
-				svr.release();
 			if (svw != null)
 				svw.release();
 			if (svs != null)
@@ -821,4 +833,143 @@ public class SvExecManager extends SvCore {
 		return result;
 
 	}
+
+	/**
+	 * Method to create a ROOT package of executors identified via the
+	 * labelCode. Root packs are usually inherited by child packs.
+	 * 
+	 * @param labelCode
+	 *            unique identifier of the executor package
+	 * @param notes
+	 *            Free text comment
+	 * @return DbDataObject containing the executor pack descriptor
+	 * @throws SvException
+	 *             Standard SvException is raised is the pack can not be saved
+	 *             to the database or the label code already exists.
+	 */
+	public DbDataObject createExecutorPack(String labelCode, String notes) throws SvException {
+		return createExecutorPack(labelCode, notes, 0L);
+	}
+
+	/**
+	 * Method to create a package of executors identified via the labelCode. If
+	 * the parent Id is null or 0, the pack is considered to be the root pack.
+	 * Root packs are usually inherited by child packs.
+	 * 
+	 * @param labelCode
+	 *            unique identifier of the executor package
+	 * @param notes
+	 *            Free text comment
+	 * @param parentPackId
+	 *            The object id of the parent pack from which this pack should
+	 *            inherit available executors
+	 * @return DbDataObject containing the executor pack descriptor
+	 * @throws SvException
+	 *             Standard SvException is raised is the pack can not be saved
+	 *             to the database or the label code already exists.
+	 */
+	public DbDataObject createExecutorPack(String labelCode, String notes, Long parentPackId) throws SvException {
+		DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
+		dbo.setVal(Sv.LABEL_CODE, labelCode);
+		dbo.setVal("NOTES", labelCode);
+		dbo.setParentId(parentPackId);
+		try (SvWriter svw = new SvWriter(this)) {
+			svw.saveObject(dbo);
+		}
+		return dbo;
+	}
+
+	/**
+	 * Method to create an executor pack item
+	 * 
+	 * @param execPack
+	 *            The parent executor pack under which the item will be created
+	 * @param labelCode
+	 *            The unique identifier of the item
+	 * @param executor
+	 *            The reference executor to be associated with the label code
+	 * 
+	 * @return DbDataObject containing the item descriptor
+	 * @throws SvException
+	 *             Standard SvException is raised is the pack can not be saved
+	 *             to the database or the label code already exists.
+	 */
+	public DbDataObject createExecutorPackItem(DbDataObject execPack, String labelCode, ISvExecutor executor)
+			throws SvException {
+		return createExecutorPackItem(execPack, labelCode, executor.getCategory(), executor.getName());
+	}
+
+	/**
+	 * Method to create an executor pack item
+	 * 
+	 * @param execPack
+	 *            The parent executor pack under which the item will be created
+	 * @param labelCode
+	 *            The unique identifier of the item
+	 * @param exeCategory
+	 *            The executor category
+	 * @param exeName
+	 *            The executor name
+	 * @return DbDataObject containing the item descriptor
+	 * @throws SvException
+	 *             Standard SvException is raised is the pack can not be saved
+	 *             to the database or the label code already exists.
+	 */
+	public DbDataObject createExecutorPackItem(DbDataObject execPack, String labelCode, String exeCategory,
+			String exeName) throws SvException {
+		if (execPack.getObjectId() > 0L) {
+			DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECPACK_ITEM);
+			dbo.setVal(Sv.EXECUTOR_KEY, SvExecManager.getKey(exeCategory, exeName));
+			dbo.setVal(Sv.LABEL_CODE, labelCode);
+			dbo.setParentId(execPack.getObjectId());
+			try (SvWriter svw = new SvWriter(this)) {
+				svw.saveObject(dbo);
+			}
+			return dbo;
+		}
+		return execPack;
+	}
+
+	/**
+	 * Method to fetch all executor items configured under the specified
+	 * executor pack. Method shall traverse recursively the parent tree of the
+	 * pack in order get all inherited items up to the root pack
+	 * 
+	 * @param execPack
+	 *            The executor pack items to return
+	 * @param executorRefDate
+	 *            The executor reference date
+	 * @return A map containing the pack item label code and the corresponding
+	 *         ISvExecutor instance
+	 * @throws SvException
+	 *             Standard SvException is raised if the SvReader raises any.
+	 */
+	public Map<String, ISvExecutor> getExecutorPackItems(DbDataObject execPack, DateTime executorRefDate)
+			throws SvException {
+		Map<String, ISvExecutor> items = null;
+		if (execPack.getObjectId() > 0L) {
+			try (SvReader svr = new SvReader(this)) {
+
+				DbDataObject parentPack = null;
+				if (!execPack.getParentId().equals(0L)) {
+					parentPack = svr.getObjectById(execPack.getParentId(), execPack.getObjectType(), null);
+				}
+				if (parentPack != null)
+					items = getExecutorPackItems(parentPack, executorRefDate);
+				else {
+					items = new HashMap<String, ISvExecutor>();
+				}
+				DbDataArray dba = svr.getObjectsByParentId(execPack.getObjectId(), svCONST.OBJECT_TYPE_EXECPACK_ITEM,
+						null);
+				for (DbDataObject dbo : dba.getItems()) {
+					ISvExecutor sve = this.getExecutor((String) dbo.getVal(Sv.EXECUTOR_KEY), executorRefDate);
+					items.put((String) dbo.getVal(Sv.LABEL_CODE), sve);
+				}
+
+			}
+
+		}
+		return items;
+	}
+
 }
