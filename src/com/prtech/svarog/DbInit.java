@@ -2509,7 +2509,7 @@ public class DbInit {
 		dbf3.setDbFieldName("MODULE_NAME");
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(70);
-		dbf3.setCode_list_user_code("MODULES");
+		dbf3.setCode_list_user_code("CONVERSATION_MODULES");
 		dbf3.setIsNull(true);
 		dbf3.setLabel_code("conversation.module_name");
 
@@ -3195,7 +3195,6 @@ public class DbInit {
 		dbf2_0.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2_0.setDbFieldSize(50);
 		dbf2_0.setIsNull(false);
-		dbf2_0.setCode_list_user_code("GROUP_UID");
 		dbf2_0.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "group_uid");
 
 		// f2
@@ -4912,7 +4911,6 @@ public class DbInit {
 			dbf2.setIsUnique(true);
 			dbf2.setIsNull(false);
 			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_name");
-			dbf2.setCode_list_user_code("SDI_SERVICE_NAME");
 
 			// f3 PATH (URL)
 			DbDataField dbf3 = new DbDataField();
@@ -4928,6 +4926,7 @@ public class DbInit {
 			dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf4.setDbFieldSize(20);
 			dbf4.setIsNull(false);
+			dbf4.setCode_list_user_code("SDI_SERVICE_TYPE");
 			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_service_type");
 
 			// f5 DATA_REF (LAYER NAME OR OTHER REF)
