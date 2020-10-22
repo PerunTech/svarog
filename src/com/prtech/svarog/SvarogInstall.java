@@ -3865,7 +3865,7 @@ public class SvarogInstall {
 			} else
 				log4j.info("Install of new field:" + dboUpgrade.getVal("FIELD_NAME"));
 
-			if (dboUpgrade.getVal("CODE_LIST_MNEMONIC") != null && dboUpgrade.getVal("CODE_LIST_ID") != null) {
+			if (dboUpgrade.getVal("CODE_LIST_MNEMONIC") != null) {
 				// sync ids of the code lists in the db
 				DbSearchCriterion critCodeVal = new DbSearchCriterion("CODE_VALUE", DbCompareOperand.EQUAL,
 						dboUpgrade.getVal("CODE_LIST_MNEMONIC"));

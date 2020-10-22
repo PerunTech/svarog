@@ -1124,7 +1124,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				// meta
 				linkToParentDbt(dbo);
 			} catch (Exception e) {
-				log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON gui metadata",e);
+				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata",e);
 			}
 
 		}
@@ -1146,7 +1146,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				dbo.setIsDirty(false);
 
 			} catch (Exception e) {
-				log4j.warn("Field :" + dbo.getVal("field_name") + " has non-JSON, EXTENDED_PARAMS value");
+				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON, EXTENDED_PARAMS value");
 			}
 		}
 	}
@@ -3144,7 +3144,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));
 		if (log4j.isDebugEnabled())
-			log4j.debug("For field:+" + dbf.getVal("field_name") + ", binding value "
+			log4j.debug("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
 					+ (value != null ? value.toString() : "null") + " at position " + bindAtPosition + " as data type "
 					+ type.toString());
 
