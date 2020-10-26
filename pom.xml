@@ -95,8 +95,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.5.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<manifestEntries>
 						<Implementation-Build>${buildNumber}</Implementation-Build>
 					</manifestEntries>
@@ -263,6 +263,12 @@
 			<version>[3.1.0,3.2.0)</version>
 		</dependency>
 		<dependency>
+			<groupId>svarog-jts-io</groupId>
+			<artifactId>svarog-jts-io</artifactId>
+			<version>[1.14.0,)</version>
+		</dependency>
+		
+		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 			<version>2.4</version>
@@ -282,16 +288,12 @@
 			<artifactId>guava</artifactId>
 			<version>24.1.1-jre</version>
 		</dependency>
-		<dependency>
-			<groupId>svarog-jts-io</groupId>
-			<artifactId>svarog-jts-io</artifactId>
-			<version>[1.14.0,)</version>
-		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/junit/junit -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
+			<version>4.13.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -299,30 +301,6 @@
 			<artifactId>org.apache.felix.main</artifactId>
 			<version>6.0.3</version>
 		</dependency>
-		<dependency>
-			<groupId>javax.ws.rs</groupId>
-			<artifactId>jsr311-api</artifactId>
-			<version>1.1.1</version>
-			<scope>provided</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-server -->
-		<dependency>
-			<groupId>org.glassfish.jersey.core</groupId>
-			<artifactId>jersey-server</artifactId>
-			<version>2.29</version>
-		</dependency>
-		<dependency>
-			<groupId>org.easybatch</groupId>
-			<artifactId>easybatch-core</artifactId>
-			<version>5.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.glassfish.jersey.media</groupId>
-			<artifactId>jersey-media-multipart</artifactId>
-			<version>2.29</version>
-			<scope>provided</scope>
-		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/commons-dbcp/commons-dbcp -->
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
 		<dependency>
@@ -336,16 +314,10 @@
 			<artifactId>commons-pool2</artifactId>
 			<version>2.4.3</version>
 		</dependency>
-
 		<dependency>
 			<groupId>com.github.os72</groupId>
 			<artifactId>protobuf-dynamic</artifactId>
 			<version>1.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.sonarsource.scanner.maven</groupId>
-			<artifactId>sonar-maven-plugin</artifactId>
-			<version>3.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.zeromq</groupId>

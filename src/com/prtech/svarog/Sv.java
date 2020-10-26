@@ -1,5 +1,7 @@
 package com.prtech.svarog;
 
+import com.prtech.svarog_common.SvCharId;
+
 /**
  * Class holding the constants
  * 
@@ -29,7 +31,7 @@ public class Sv {
 	public static final String FIELD_NAME = "FIELD_NAME";
 	public static final String FIELDS = "FIELDS";
 	public static final String DOT = ".";
-	
+
 	public static final String TABLE_META_PKID = "table_meta_pkid";
 	public static final String LABEL_CODE_LC = "label_code";
 	public static final String IS_VISIBLE_UI = "is_visible_ui";
@@ -45,7 +47,13 @@ public class Sv {
 	public static final String CENTROID = "CENTROID";
 	public static final String GEOMETRY = "GEOMETRY";
 	public static final String BOUNDS_AREA_HA = "bounds_area_ha";
-	
-	
+	public static final String EMPTY_STRING = "";
+	public static final String VALUE = "VALUE";
+	public static final String NVARCHAR = "NVARCHAR";
+	public static final String DATA_TYPE = "DATA_TYPE";
+	public static final String PARAM_TYPE_ID = "PARAM_TYPE_ID";
+	public static final String PARAM_ORDER = "PARAM_ORDER";
+	public static final String TEXT_AREA = "TEXT_AREA";
+	public static final String INPUT_TYPE = "INPUT_TYPE";
 
 }
