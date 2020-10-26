@@ -320,7 +320,7 @@ public class SvRelationCache {
 				lhsObjectId = (Long) dbo.getVal("link_obj_id_2");
 			if (pSearch.getOperand().equals(DbCompareOperand.DBLINK_REVERSE))
 				lhsObjectId = (Long) dbo.getVal("link_obj_id_1");
-			if (lhsObjectId.equals(pSearch.getCompareValue()))
+			if (lhsObjectId != null && lhsObjectId.equals(pSearch.getCompareValue()))
 				isMatch = true;
 		}
 		return isMatch;

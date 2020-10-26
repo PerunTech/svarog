@@ -374,8 +374,6 @@ public class DbQueryObject extends DbQuery {
 	 */
 	StringBuilder getFieldList(String repoPrefix, String tblPrefix, Boolean includeGeometries) {
 		StringBuilder retval = null;
-		if (repoPrefix == null || repoPrefix.equals(""))
-			repoPrefix = tblPrefix;
 		String finalPrefix = (sqlTablePrefix != null) ? sqlTablePrefix : tblPrefix;
 
 		if (repo != null && dbt != null) {

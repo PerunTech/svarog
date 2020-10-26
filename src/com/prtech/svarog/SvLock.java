@@ -16,7 +16,6 @@ package com.prtech.svarog;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,7 +28,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.prtech.svarog.SvCluster.DistributedLock;
-import com.prtech.svarog_common.DbDataObject;
 
 /***
  * Class for managing locks over long running svarog operations. Redis
