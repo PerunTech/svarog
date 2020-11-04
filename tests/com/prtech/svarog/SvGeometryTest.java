@@ -61,6 +61,37 @@ public class SvGeometryTest {
 	}
 
 	
+	
+	@Test
+	public void testSDILayerLoad() {
+		if(!SvConf.isSdiEnabled())
+			return;
+
+		SvGeometry svg=null;
+		try {
+			svg= new SvGeometry();
+			
+			Envelope env=new Envelope(7499070.2242,4542102.0632,7501509.7277,4543436.8737);
+			List<Geometry> g = SvGeometry.getTileGeometries(env);
+			Long tileTypeId =SvCore.getTypeIdByName("PHYSICAL_BLOCK");
+			
+			SvSDITile tile=svg.createTile(tileTypeId, g.get(0).getUserData().toString(), null);
+			List<Geometry> geoms = tile.getInternalGeometries();
+			
+			System.out.println("Tile envelope from bbox:"+env.toString());
+			System.out.println("Area of envelope:"+env.getArea()/10000+"Ha");
+			System.out.println("Tile geoms:"+geoms.size());
+			if(env.getArea()<1)
+				fail("BBOX test failed. Envelope are is less than 1 sqm");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail("BBOX test failed");
+		}
+
+	}
+
+	
 	@Test
 	public void testBboxParsing() {
 		if(!SvConf.isSdiEnabled())

@@ -141,7 +141,7 @@ public class SvConf {
 	/**
 	 * Property holding the system spatial SRID
 	 */
-	private static Integer sdiSrid = null;
+	private static String sdiSrid = null;
 
 	/**
 	 * Property holding the default Spatial Precision
@@ -758,18 +758,23 @@ public class SvConf {
 	 * 
 	 * @return
 	 */
-	public static int getSDISrid() {
+	public static String getSDISrid() {
 		if (sdiSrid == null) {
 			try {
 				String srid = config.getProperty("sys.gis.default_srid").trim();
-				if (srid != null && !srid.isEmpty())
-					sdiSrid = Integer.parseInt(srid);
+				if (srid != null && !srid.isEmpty() && !srid.equals("NULL"))
+					sdiSrid = Integer.toString(Integer.parseInt(srid));
+				
+				if(srid.equals("NULL"))
+				{	log4j.warn("SRID is set to NULL");
+					sdiSrid = "NULL";
+				}
 			} catch (Exception ex) {
 				log4j.warn("Exception parsing SRID", ex);
 			}
 			if (sdiSrid == null) {
 				log4j.warn("Can't get SRID from config (parameter:sys.gis.default_srid). Defaulting to 0");
-				sdiSrid = new Integer(0);
+				sdiSrid = "0";
 			}
 		}
 		return sdiSrid;

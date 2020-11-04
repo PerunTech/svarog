@@ -46,7 +46,7 @@ import com.vividsolutions.jts.geom.PrecisionModel;
 public class SvUtil {
 
 	public static PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
-	public static GeometryFactory sdiFactory = new GeometryFactory(sdiPrecision, SvConf.getSDISrid());
+	public static GeometryFactory sdiFactory = initFactory();
 
 	public enum sizeof {
 		;
@@ -76,6 +76,14 @@ public class SvUtil {
 			System.out.print("Error generating MD5. " + ex.getMessage() + "\n");
 		}
 		return "";
+	}
+
+	private static GeometryFactory initFactory() {
+		int srid = 0;
+		if (!SvConf.getSDISrid().equals("NULL"))
+			srid = Integer.parseInt(SvConf.getSDISrid());
+		GeometryFactory factory = new GeometryFactory(sdiPrecision, srid);
+		return factory;
 	}
 
 	/**
