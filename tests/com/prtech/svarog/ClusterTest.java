@@ -657,10 +657,24 @@ public class ClusterTest {
 		System.out.print("Test ClusterLogoffTest");
 		try {
 
+			
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
+			//this test fails often so lets ensure that the cluster is shutdown properly from the previous tests before doing anything else
+			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
+			SvCluster.shutdown();
+			// if shut down in progress, wait to finish.
+			while (tsTimeout.isAfterNow() && SvCluster.getIsActive().get()) {
+				try {
+					synchronized (SvCluster.isRunning()) {
+						SvCluster.isRunning().wait(SvConf.getHeartBeatInterval());
+					}
+				} catch (InterruptedException e) {
+					tsTimeout = DateTime.now();
+					Thread.currentThread().interrupt();
+
+				}
+			}
 			SvCore.initSvCore();
-			SvClusterClient.shutdown(false);
-			SvClusterNotifierClient.shutdown();
 			SvClusterNotifierProxy.processNotification = true;
 			SvCluster.autoStartClient = false;
 			SvCluster.initCluster();
@@ -677,11 +691,9 @@ public class ClusterTest {
 			// sleep to let the heartbeat start
 			Thread.sleep(500);
 
-			// validate a random token and see if the validation fails
-			DbDataObject token = null;
-
 			// get a new token from the roles test
 			String newToken = SvarogRolesTest.getUserToken(false);
+
 			// get the Dbo representation
 			DbDataObject localToken = DbCache.getObject(newToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
 

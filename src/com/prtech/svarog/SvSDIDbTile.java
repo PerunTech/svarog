@@ -48,9 +48,13 @@ public class SvSDIDbTile extends SvSDITile {
 		this.extSearch = (DbSearch) tileParams.get("DB_SEARCH");
 	}
 
+	/**
+	 * Overriden method which loads geometries from the database by using the
+	 * tile envelope
+	 */
 	@Override
 	ArrayList<Geometry> loadGeometries() throws SvException {
-		ArrayList<Geometry> l = new ArrayList<Geometry>();
+		ArrayList<Geometry> geometries = new ArrayList<Geometry>();
 		DbSearch dbs = new DbSearchCriterion(SvGeometry.getGeometryFieldName(tileTypeId), DbCompareOperand.BBOX,
 				tileEnvelope);
 		if (extSearch != null) {
@@ -59,28 +63,20 @@ public class SvSDIDbTile extends SvSDITile {
 			dbe.addDbSearchItem(extSearch);
 			dbs = dbe;
 		}
-
-		WKBReader wkr = new WKBReader();
 		Geometry geom = null;
-		Point centroid = null;
+		try (SvReader svr = new SvReader()) {
 
-		SvReader svr = null;
-
-		try {
-			svr = new SvReader();
 			svr.includeGeometries = true;
 			DbDataArray arr = svr.getObjects(dbs, tileTypeId, null, 0, 0);
+			if(log4j.isDebugEnabled())
+				log4j.debug("Loaded "+arr.size()+" geometries for tile type:"+tileTypeId+", with search:"+dbs.toSimpleJson().toString());
 			for (DbDataObject dbo : arr.getItems()) {
 				geom = SvGeometry.getGeometry(dbo);
 				geom.setUserData(dbo);
-				l.add(geom);
+				geometries.add(geom);
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
-		// TODO Auto-generated method stub
-		return l;
+		return geometries;
 	}
 
 }
