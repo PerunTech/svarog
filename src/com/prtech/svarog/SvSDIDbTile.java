@@ -25,8 +25,6 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.io.WKBReader;
 
 /**
  * The SvSDIDbTile allows loading of standard svarog objects represented by
@@ -54,7 +52,7 @@ public class SvSDIDbTile extends SvSDITile {
 	 */
 	@Override
 	ArrayList<Geometry> loadGeometries() throws SvException {
-		ArrayList<Geometry> geometries = new ArrayList<Geometry>();
+		ArrayList<Geometry> geometries = new ArrayList<>();
 		DbSearch dbs = new DbSearchCriterion(SvGeometry.getGeometryFieldName(tileTypeId), DbCompareOperand.BBOX,
 				tileEnvelope);
 		if (extSearch != null) {
