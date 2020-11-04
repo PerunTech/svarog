@@ -80,10 +80,9 @@ public class SvUtil {
 
 	private static GeometryFactory initFactory() {
 		int srid = 0;
-		if (!SvConf.getSDISrid().equals("NULL"))
+		if (!SvConf.getSDISrid().equals(Sv.SQL_NULL))
 			srid = Integer.parseInt(SvConf.getSDISrid());
-		GeometryFactory factory = new GeometryFactory(sdiPrecision, srid);
-		return factory;
+		return new GeometryFactory(sdiPrecision, srid);
 	}
 
 	/**

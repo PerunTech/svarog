@@ -762,12 +762,12 @@ public class SvConf {
 		if (sdiSrid == null) {
 			try {
 				String srid = config.getProperty("sys.gis.default_srid").trim();
-				if (srid != null && !srid.isEmpty() && !srid.equals("NULL"))
+				if (srid != null && !srid.isEmpty() && !srid.equals(Sv.SQL_NULL))
 					sdiSrid = Integer.toString(Integer.parseInt(srid));
 				
-				if(srid.equals("NULL"))
+				if(srid != null && srid.equals(Sv.SQL_NULL))
 				{	log4j.warn("SRID is set to NULL");
-					sdiSrid = "NULL";
+					sdiSrid = srid;
 				}
 			} catch (Exception ex) {
 				log4j.warn("Exception parsing SRID", ex);
