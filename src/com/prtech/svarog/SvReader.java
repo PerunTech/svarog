@@ -1116,9 +1116,9 @@ public class SvReader extends SvCore {
 			throws SvException {
 		DbDataObject result = null;
 
-		if (tableObj == null || srchValue == null || tableObj.getObject_id() == 0) {
+		if (tableObj == null || srchValue == null || tableObj.getObjectId() == 0) {
 			log4j.error("Method SvReader.getObjectByUnqConfId can't find object with id:'" + srchValue
-					+ "' for tableName: " + tableObj.getVal("TABLE_NAME"));
+					+ "' for tableName: " + (tableObj != null ? tableObj.getVal("TABLE_NAME") : Sv.EMPTY_STRING));
 			return result;
 		}
 		// get name of the field which is unique key for the tableObj
@@ -1131,7 +1131,7 @@ public class SvReader extends SvCore {
 		// get the srchValue for the found unqFieldName in the found tableObj
 		DbSearchCriterion cr1 = new DbSearchCriterion(unqFieldName, dbc, srchValue);
 		DbSearchExpression expr1 = new DbSearchExpression().addDbSearchItem(cr1);
-		DbDataArray results = getObjects(expr1, tableObj.getObject_id(), null, 0, 0);
+		DbDataArray results = getObjects(expr1, tableObj.getObjectId(), null, 0, 0);
 
 		if (results.getItems().size() > 0) {
 			result = results.getItems().get(0);

@@ -48,10 +48,18 @@ public class SvUtil {
 	public static PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
 	public static GeometryFactory sdiFactory = initFactory();
 
+	/**
+	 * Public enum to provide information of Java Basic Datatypes in Bytes
+	 * 
+	 * @author ristepejov
+	 *
+	 */
 	public enum sizeof {
 		;
-
-		public static final int BYTE = Byte.SIZE / Byte.SIZE;
+		/**
+		 * Well the size of BYTE in bytes is always 1
+		 */
+		public static final int BYTE = 1;
 		public static final int INT = Integer.SIZE / Byte.SIZE;
 		public static final int LONG = Long.SIZE / Byte.SIZE;
 		public static final int FLOAT = Float.SIZE / Byte.SIZE;
@@ -348,11 +356,12 @@ public class SvUtil {
 	public static String getCallerClassName(Class<?> thisClass) {
 		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
 		String threadClassName = java.lang.Thread.class.getName();
+		String svUtilClassName = SvUtil.class.getName();
 		String thisClassName = thisClass.getName();
 		String callerClass = null;
 		for (StackTraceElement strace : traces) {
 			String currClass = strace.getClassName();
-			if (currClass.equals(threadClassName) || currClass.equals(SvUtil.class.getName())
+			if (currClass.equals(threadClassName) || currClass.equals(svUtilClassName)
 					|| currClass.equals(thisClassName))
 				continue;
 			callerClass = currClass;

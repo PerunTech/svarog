@@ -358,7 +358,7 @@ public class DbQueryExpression extends DbQuery {
 				tblList.append(currentDqo.getTblJoin(currentRepoPrefix, currentTblPrefix,
 						currentDqo.joinToNext == null ? "" : currentDqo.joinToNext.toString()));
 
-			if (!joinCritFromPrev.equals("")) {
+			if (!joinCritFromPrev.toString().equals("")) {
 				if (hasCustomFromPrev) {
 					tblList.append(joinCritFromPrev + " ");
 					hasCustomFromPrev = false;
@@ -380,7 +380,7 @@ public class DbQueryExpression extends DbQuery {
 			} else
 				nextDqo = null;
 
-			if (currentDqo.linkToNextType != null
+			if (nextDqo != null && currentDqo.linkToNextType != null
 					&& (currentDqo.linkToNextType.equals(LinkType.DBLINK)
 							|| currentDqo.linkToNextType.equals(LinkType.DBLINK_REVERSE))
 					&& currentDqo.linkToNext != null && dblt != null) {
