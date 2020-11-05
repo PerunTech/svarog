@@ -6059,6 +6059,9 @@ public class DbInit {
 				dbo.setVal("index_name", dbf.getIndexName());
 				dbo.setVal(Sv.LABEL_CODE, dbf.getLabel_code());
 				dbo.setVal("parent_name", dbt.getDbTableName());
+				dbo.setVal("referential_table", dbf.getReferentialTable());
+				dbo.setVal("referential_field", dbf.getRefereftialField());
+
 
 				if (dbf.getDbFieldName().toUpperCase().equals("PKID"))
 					dbo.setVal("gui_metadata", getDefaultUiMeta(true, true, true, false).toString());
