@@ -23,12 +23,7 @@ import org.apache.felix.framework.Felix;
 import org.apache.felix.framework.util.FelixConstants;
 import org.apache.felix.framework.util.Util;
 import org.apache.felix.main.AutoProcessor;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.ConfigurationSource;
-import org.apache.logging.log4j.core.config.Configurator;
-import org.joda.time.DateTime;
-import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
@@ -94,7 +89,7 @@ public class SvarogDaemon {
 	 * Local field to keep reference to the internal hearbeat client
 	 */
 	static Thread internalClient = null;
-	private static boolean hasCluster;
+
 
 	/**
 	 * <p>
@@ -183,6 +178,7 @@ public class SvarogDaemon {
 	 * @throws Exception
 	 *             If an error occurs.
 	 **/
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws Exception {
 
 		// if svarog is initialised just exit
@@ -214,11 +210,6 @@ public class SvarogDaemon {
 
 		// Read configuration properties.
 		final Map<String, Object> configProps = SvarogDaemon.loadConfigProperties();
-		// If no configuration properties were found, then create
-		// an empty properties object.
-		if (configProps == null) {
-			System.err.println("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");
-		}
 
 		// Copy framework properties from the system properties.
 		SvarogDaemon.copySystemProperties(configProps);
@@ -239,7 +230,7 @@ public class SvarogDaemon {
 
 			// Use the framework bundle context to register a service tracker
 			// in order to track Svarog Executors coming and going in the system
-			svcTracker = new ServiceTracker(osgiFramework.getBundleContext(),
+			svcTracker = new ServiceTracker<Object, Object>(osgiFramework.getBundleContext(),
 					osgiFramework.getBundleContext().createFilter(serviceFilter),
 					new SvServiceTracker());
 			svcTracker.open();
@@ -269,7 +260,6 @@ public class SvarogDaemon {
 				// cleanup.
 				try {
 					shutdown = false;
-					event = null;
 					long timeout = SvMaintenance.performMaintenance();
 					event = osgiFramework.waitForStop(timeout);
 
@@ -305,7 +295,7 @@ public class SvarogDaemon {
 	 * @throws Exception
 	 *             if any errors occur.
 	 **/
-	private static FrameworkFactory getFrameworkFactory() throws Exception {
+	static FrameworkFactory getFrameworkFactory() throws Exception {
 		URL url = SvarogDaemon.class.getClassLoader()
 				.getResource("META-INF/services/org.osgi.framework.launch.FrameworkFactory");
 		if (url != null) {
@@ -375,7 +365,7 @@ public class SvarogDaemon {
 			}
 
 			try {
-				propURL = new File(confDir, SYSTEM_PROPERTIES_FILE_VALUE).toURL();
+				propURL = new File(confDir, SYSTEM_PROPERTIES_FILE_VALUE).toURI().toURL();
 			} catch (MalformedURLException ex) {
 				System.err.print("Main: " + ex);
 				return;
@@ -404,7 +394,7 @@ public class SvarogDaemon {
 		}
 
 		// Perform variable substitution on specified properties.
-		for (Enumeration e = props.propertyNames(); e.hasMoreElements();) {
+		for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
 			String name = (String) e.nextElement();
 			System.setProperty(name, Util.substVars(props.getProperty(name), name, null, null));
 		}
@@ -436,7 +426,7 @@ public class SvarogDaemon {
 		// Perform variable substitution for system properties and
 		// convert to dictionary.
 		Map<String, Object> map = new HashMap<String, Object>();
-		for (Enumeration e = props.propertyNames(); e.hasMoreElements();) {
+		for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
 			String name = (String) e.nextElement();
 			map.put(name, Util.substVars(props.getProperty(name), name, null, props));
 		}
@@ -444,8 +434,8 @@ public class SvarogDaemon {
 		return map;
 	}
 
-	public static void copySystemProperties(Map configProps) {
-		for (Enumeration e = System.getProperties().propertyNames(); e.hasMoreElements();) {
+	public static void copySystemProperties(Map<String, Object> configProps) {
+		for (Enumeration<?> e = System.getProperties().propertyNames(); e.hasMoreElements();) {
 			String key = (String) e.nextElement();
 			if (key.startsWith("felix.") || key.startsWith("org.osgi.framework.")) {
 				configProps.put(key, System.getProperty(key));
