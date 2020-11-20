@@ -347,7 +347,7 @@ public class SvParameter extends SvCore {
 			try (SvReader svr = new SvReader(this)) {
 
 				DbSearchExpression dbSearch = new DbSearchExpression();
-				DbSearchCriterion dbcrit = new DbSearchCriterion(Sv.LABEL_CODE, DbCompareOperand.EQUAL, labelCode);
+				DbSearchCriterion dbcrit = new DbSearchCriterion(Sv.LABEL_CODE.toString(), DbCompareOperand.EQUAL, labelCode);
 				dbSearch.addDbSearchItem(dbcrit);
 
 				DbDataArray dbarr = svr.getObjects(dbSearch, svCONST.OBJECT_TYPE_PARAM_TYPE, new DateTime(), 0, 0);
