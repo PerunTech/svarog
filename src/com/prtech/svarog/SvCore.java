@@ -132,8 +132,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Translates a numeric status code into a Set of SvAccess enums
 	 * 
-	 * @param accessValue
-	 *            bit shifted representation of the access flags
+	 * @param accessValue bit shifted representation of the access flags
 	 * 
 	 * @return EnumSet representing a svarog access level status
 	 */
@@ -151,8 +150,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Translates a set of SvAccess enums into a numeric access code
 	 * 
-	 * @param flags
-	 *            Set of access flags
+	 * @param flags Set of access flags
 	 * 
 	 * @return numeric representation of the access level code
 	 */
@@ -198,9 +196,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	static Boolean isCfgInDb = false;
 
 	/**
-	 * Minimum time between two session refresh notifications are published in
-	 * the cluster The purpose is to prevent throttling of the refresh
-	 * notification in the cluster.
+	 * Minimum time between two session refresh notifications are published in the
+	 * cluster The purpose is to prevent throttling of the refresh notification in
+	 * the cluster.
 	 */
 	static long sessionDebounceInterval = 5000;
 
@@ -209,10 +207,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	protected static DbDataArray poaDbLinkTypes = new DbDataArray();
 	/**
-	 * List of currently configured geometry types in Svarog. If and Object Type
-	 * Id is in this list SvWriter will throw an exception when saveObject is
-	 * attempted on such Object Type. The Object Type Ids in this list must be
-	 * handled by SvGeometry.saveObject and compatible methods.
+	 * List of currently configured geometry types in Svarog. If and Object Type Id
+	 * is in this list SvWriter will throw an exception when saveObject is attempted
+	 * on such Object Type. The Object Type Ids in this list must be handled by
+	 * SvGeometry.saveObject and compatible methods.
 	 */
 	private static ArrayList<Long> geometryTypes = new ArrayList<Long>();
 	/**
@@ -280,8 +278,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	// SvCore instance (non-static) variables and methods
 	/////////////////////////////////////////////////////////////
 	/**
-	 * A weak reference to self. We need this for getting tracked JDBC
-	 * connections
+	 * A weak reference to self. We need this for getting tracked JDBC connections
 	 */
 	protected final SoftReference<SvCore> weakThis = new SoftReference<SvCore>(this, svcQueue);
 	/**
@@ -310,8 +307,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	private HashMap<String, DbDataObject> permissionKeys = null;
 
 	/**
-	 * The user object under which objects saved by this instance will be
-	 * registered
+	 * The user object under which objects saved by this instance will be registered
 	 */
 	protected DbDataObject saveAsUser = null;
 
@@ -332,20 +328,20 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	Boolean isLongRunning = false;
 	/**
 	 * Timestamp which registers the SvCore construction time. It is used to
-	 * identify rogue cores which are created but not released. Based on the
-	 * time of inactivity
+	 * identify rogue cores which are created but not released. Based on the time of
+	 * inactivity
 	 */
 	long coreCreation = DateTime.now().getMillis();
 	/**
-	 * Timestamp which registers the SvCore last activity. It is used in
-	 * combination with the coreCreation time to identify inactive cores, which
-	 * are still lurking around.
+	 * Timestamp which registers the SvCore last activity. It is used in combination
+	 * with the coreCreation time to identify inactive cores, which are still
+	 * lurking around.
 	 */
 	long coreLastActivity = coreCreation;
 	/**
-	 * Timestamp which registers the SvCore last activity. It is used in
-	 * combination with the coreCreation time to identify inactive cores, which
-	 * are still lurking around.
+	 * Timestamp which registers the SvCore last activity. It is used in combination
+	 * with the coreCreation time to identify inactive cores, which are still
+	 * lurking around.
 	 */
 	String coreTraceInfo = null;
 	/**
@@ -353,8 +349,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	String coreSessionId = null;
 	/**
-	 * Variable to identify if geometries should be returned by the getObjects
-	 * base method validations
+	 * Variable to identify if geometries should be returned by the getObjects base
+	 * method validations
 	 */
 	Boolean includeGeometries = false;
 	/**
@@ -380,16 +376,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	protected Boolean autoCommit = true;
 
 	/**
-	 * Method to set the information about the line number, method and class
-	 * where the instance was created. This is usefull when looking for
-	 * connection leaks.
+	 * Method to set the information about the line number, method and class where
+	 * the instance was created. This is usefull when looking for connection leaks.
 	 */
 	private void setDebugInfo() {
 		StackTraceElement[] traces = Thread.currentThread().getStackTrace();
 		StackTraceElement singleTrace = traces[0];
 		for (StackTraceElement strace : traces) {
-			if (strace.getMethodName().equals("<init>") || strace.getMethodName().equals("getStackTrace")
-					|| strace.getMethodName().equals("setDebugInfo"))
+			if (strace.getMethodName().equals(Sv.INIT) || strace.getMethodName().equals(Sv.STACK_TRACE)
+					|| strace.getMethodName().equals(Sv.DEBUG_INFO))
 				continue;
 			else {
 				singleTrace = strace;
@@ -397,24 +392,22 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			}
 		}
 
-		this.coreTraceInfo = "File:" + singleTrace.getFileName() + "; Class:" + singleTrace.getClassName() + "; Method:"
-				+ singleTrace.getMethodName() + "; Line number:" + singleTrace.getLineNumber();
+		this.coreTraceInfo = Sv.FILE + Sv.COLON + singleTrace.getFileName() + Sv.SEMICOLON + Sv.CLASS + Sv.COLON
+				+ singleTrace.getClassName() + Sv.SEMICOLON + Sv.METHOD + Sv.COLON + singleTrace.getMethodName()
+				+ Sv.SEMICOLON + Sv.LINE + Sv.COLON + singleTrace.getLineNumber();
 	}
 
 	/**
-	 * Default SvCore constructor which is usually used internally in the
-	 * package.
+	 * Default SvCore constructor which is usually used internally in the package.
 	 * 
-	 * @param srcCore
-	 *            The parent SvCore instance
-	 * @param instanceUser
-	 *            The user descriptor as which the instance should execute
-	 * @throws SvException
-	 *             If the new SvCore instance uses SvSecurity instance as parent
-	 *             an exception is thrown. SvSecurity runs as SYSTEM user, so
-	 *             creating new instances from SvSecurity will result in running
-	 *             as system user without authentication. Another type of
-	 *             exception is thrown if the system wasn't properly intialised
+	 * @param srcCore      The parent SvCore instance
+	 * @param instanceUser The user descriptor as which the instance should execute
+	 * @throws SvException If the new SvCore instance uses SvSecurity instance as
+	 *                     parent an exception is thrown. SvSecurity runs as SYSTEM
+	 *                     user, so creating new instances from SvSecurity will
+	 *                     result in running as system user without authentication.
+	 *                     Another type of exception is thrown if the system wasn't
+	 *                     properly intialised
 	 */
 	protected SvCore(DbDataObject instanceUser, SvCore srcCore) throws SvException {
 		if (isDebugEnabled)
@@ -450,11 +443,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Constructor based on existing SvCore instance
 	 * 
-	 * @param srcCore
-	 *            The source SvCore instance based on which this instance should
-	 *            get the JDBC connection
-	 * @throws SvException
-	 *             Throws exception if the srcCore parameter is null
+	 * @param srcCore The source SvCore instance based on which this instance should
+	 *                get the JDBC connection
+	 * @throws SvException Throws exception if the srcCore parameter is null
 	 */
 	protected SvCore(SvCore srcCore) throws SvException {
 		this((DbDataObject) null, srcCore);
@@ -466,13 +457,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Constructor creating SvCore based on user session and existing SvCore
 	 * instance which will be used for sharing the JDBC connection.
 	 * 
-	 * @param session_id
-	 *            The token used to identify the Svarog session
-	 * @param srcCore
-	 *            The source/parent SvCore instance which should be used for
-	 *            connection sharing
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param session_id The token used to identify the Svarog session
+	 * @param srcCore    The source/parent SvCore instance which should be used for
+	 *                   connection sharing
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public SvCore(String session_id, SvCore srcCore) throws SvException {
 		this(getUserBySession(session_id), srcCore);
@@ -483,10 +471,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Constructor creating SvCore based on user session.
 	 * 
-	 * @param session_id
-	 *            The token used to identify the Svarog session
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param session_id The token used to identify the Svarog session
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public SvCore(String session_id) throws SvException {
 		this(getUserBySession(session_id), null);
@@ -502,14 +488,14 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * The CodeList object is used for decoding, so we want to avoid creating
-	 * many instances of it, for each decoder.
+	 * The CodeList object is used for decoding, so we want to avoid creating many
+	 * instances of it, for each decoder.
 	 */
 	private CodeList instanceCodeList;
 
 	/**
-	 * Method to return the current CodeList object instance used for this
-	 * SvCore object
+	 * Method to return the current CodeList object instance used for this SvCore
+	 * object
 	 * 
 	 * @return Object instance of CodeList
 	 */
@@ -527,8 +513,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method returning the constraints for the specified object type
 	 * 
-	 * @param objecType
-	 *            The id of the object type for which we need the constraints
+	 * @param objecType The id of the object type for which we need the constraints
 	 * @return the SvObjectConstraints instance
 	 */
 	static SvObjectConstraints getObjectConstraints(Long objecType) {
@@ -572,9 +557,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to register an OnSave callback
 	 * 
-	 * @param callback
-	 *            Reference to a class implementing the {@link ISvOnSave}
-	 *            interface
+	 * @param callback Reference to a class implementing the {@link ISvOnSave}
+	 *                 interface
 	 */
 	static synchronized void registerOnSaveCallback(ISvOnSave callback) {
 		CopyOnWriteArrayList<ISvOnSave> global = onSaveCallbacks.get(0L);
@@ -588,12 +572,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to register an OnSave callback for specific object type
 	 * 
-	 * @param callback
-	 *            Reference to a class implementing the {@link ISvOnSave}
-	 *            interface
-	 * @param type
-	 *            The id of the object type for which we want the call back to
-	 *            be executed
+	 * @param callback Reference to a class implementing the {@link ISvOnSave}
+	 *                 interface
+	 * @param type     The id of the object type for which we want the call back to
+	 *                 be executed
 	 */
 	public synchronized static void registerOnSaveCallback(ISvOnSave callback, Long type) {
 		CopyOnWriteArrayList<ISvOnSave> local = onSaveCallbacks.get(type);
@@ -607,9 +589,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to unregister an OnSave callback
 	 * 
-	 * @param callback
-	 *            Reference to a class implementing the {@link ISvOnSave}
-	 *            interface
+	 * @param callback Reference to a class implementing the {@link ISvOnSave}
+	 *                 interface
 	 */
 	public static void unregisterOnSaveCallback(ISvOnSave callback) {
 		CopyOnWriteArrayList<ISvOnSave> global = onSaveCallbacks.get(0L);
@@ -624,11 +605,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to unregister an OnSave callback
 	 * 
-	 * @param callback
-	 *            Reference to a class implementing the {@link ISvOnSave}
-	 *            interface
-	 * @param type
-	 *            Id of the type of object for which the callback was registered
+	 * @param callback Reference to a class implementing the {@link ISvOnSave}
+	 *                 interface
+	 * @param type     Id of the type of object for which the callback was
+	 *                 registered
 	 */
 	public synchronized static void unregisterOnSaveCallback(ISvOnSave callback, Long type) {
 		CopyOnWriteArrayList<ISvOnSave> local = onSaveCallbacks.get(type);
@@ -662,9 +642,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method returning the Repo Object Type descriptor aka DBT This will return
-	 * the default repo. You should use the repo according to your specific
-	 * object type
+	 * Method returning the Repo Object Type descriptor aka DBT This will return the
+	 * default repo. You should use the repo according to your specific object type
 	 * 
 	 * @return DbDataObject describing the repo object type
 	 */
@@ -676,8 +655,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to verify if a specific object id is infact an Object Descriptor
 	 * 
-	 * @param objectId
-	 *            The Id to verify
+	 * @param objectId The Id to verify
 	 * @return True if the object id is identifier for a DBT
 	 */
 	public static boolean isDbt(Long objectId) {
@@ -687,40 +665,36 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to return the repo descriptor for a given object type
 	 * 
-	 * @param objectTypeId
-	 *            The id of the object type
+	 * @param objectTypeId The id of the object type
 	 * @return The repo object type descriptor
 	 */
 	public static DbDataObject getRepoDbt(Long objectTypeId) {
 		DbDataObject dbt = DbCache.getObject(objectTypeId, svCONST.OBJECT_TYPE_TABLE);
-		String repoName = (String) dbt.getVal("repo_name");
+		String repoName = (String) dbt.getVal(Sv.REPO_NAME);
 		return repoDbtMap.get(repoName);
 
 	}
 
 	/**
-	 * Method returning the default RepoFields. These should be constant accross
-	 * all repo objects in the system
+	 * Method returning the default RepoFields. These should be constant accross all
+	 * repo objects in the system
 	 * 
-	 * @return A {@link DbDataArray} reference holding all field descriptors for
-	 *         the REPO object
+	 * @return A {@link DbDataArray} reference holding all field descriptors for the
+	 *         REPO object
 	 */
 	public static DbDataArray getRepoDbtFields() {
 		return repoDbtFields;
 	}
 
 	/**
-	 * Method for getting an Object Descriptor for a certain type. To get the
-	 * fields for a specific Dbt see @getFields; To get the base repo
-	 * see @getRepoDbt
+	 * Method for getting an Object Descriptor for a certain type. To get the fields
+	 * for a specific Dbt see @getFields; To get the base repo see @getRepoDbt
 	 * 
-	 * @param objectTypeId
-	 *            The Id of the type
+	 * @param objectTypeId The Id of the type
 	 * @return DbDataObject describing the object table storage
-	 * @throws SvException
-	 *             Exception with label "system.error.no_dbt_found" is raised if
-	 *             no object descriptor can be found for the DbDataObject
-	 *             instance
+	 * @throws SvException Exception with label "system.error.no_dbt_found" is
+	 *                     raised if no object descriptor can be found for the
+	 *                     DbDataObject instance
 	 */
 	public static DbDataObject getDbt(Long objectTypeId) throws SvException {
 		DbDataObject dbt = null;
@@ -735,13 +709,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method that returns the DbDataObject for the reference type of the object
 	 * 
-	 * @param dbo
-	 *            The object for which the reference type will be returned
+	 * @param dbo The object for which the reference type will be returned
 	 * @return The @DbDataObject describing the reference type
-	 * @throws SvException
-	 *             Exception with label "system.error.no_dbt_found" is raised if
-	 *             no object descriptor can be found for the DbDataObject
-	 *             instance
+	 * @throws SvException Exception with label "system.error.no_dbt_found" is
+	 *                     raised if no object descriptor can be found for the
+	 *                     DbDataObject instance
 	 */
 	public static DbDataObject getDbt(DbDataObject dbo) throws SvException {
 		DbDataObject dbt = null;
@@ -758,10 +730,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to get a list of fields defined for a specific Object Descriptor
 	 * Typically object descriptors are fetched with getDbt() methods
 	 * 
-	 * @param objectTypeId
-	 *            The id of the type
-	 * @return Array of Objects, each representing a metadata field in the
-	 *         object
+	 * @param objectTypeId The id of the type
+	 * @return Array of Objects, each representing a metadata field in the object
 	 */
 	public static DbDataArray getFields(Long objectTypeId) {
 		DbDataArray fields = null;
@@ -773,13 +743,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to get a list of fields defined for a specific Object Descriptor
 	 * Typically object descriptors are fetched with getDbt() methods
 	 * 
-	 * @param tableName
-	 *            The name of the table in the Svarog System
+	 * @param tableName The name of the table in the Svarog System
 	 * 
-	 * @param fieldName
-	 *            The name of the field in the table
-	 * @return Array of Objects, each representing a metadata field in the
-	 *         object
+	 * @param fieldName The name of the field in the table
+	 * @return Array of Objects, each representing a metadata field in the object
 	 */
 	public static DbDataObject getFieldByName(String tableName, String fieldName) {
 		// get the unique field id from svarog_tables
@@ -789,7 +756,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		fields = DbCache.getObjectsByParentId(tableObj.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 		if (fields != null)
 			for (DbDataObject dbf : fields.getItems()) {
-				if (dbf.getVal("FIELD_NAME").equals(fieldName)) {
+				if (dbf.getVal(Sv.FIELD_NAME).equals(fieldName)) {
 					retField = dbf;
 					break;
 				}
@@ -800,8 +767,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to get a link type descriptor in DbDataObject format
 	 * 
-	 * @param linkTypeId
-	 *            The id of the type
+	 * @param linkTypeId The id of the type
 	 * @return A link type descriptor object
 	 */
 	public static DbDataObject getLinkType(Long linkTypeId) {
@@ -813,42 +779,34 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to get a link type descriptor in DbDataObject format
 	 * 
-	 * @param linkType
-	 *            The link code
-	 * @param objectTypeId1
-	 *            The object id of the first object type
-	 * @param objectTypeId2
-	 *            The object id of the second object type
+	 * @param linkType      The link code
+	 * @param objectTypeId1 The object id of the first object type
+	 * @param objectTypeId2 The object id of the second object type
 	 * @return A link type descriptor object
 	 */
 	public static DbDataObject getLinkType(String linkType, Long objectTypeId1, Long objectTypeId2) {
-		String uqVals = linkType + "." + objectTypeId1.toString() + "." + objectTypeId2.toString();
+		String uqVals = linkType + Sv.DOT + objectTypeId1.toString() + Sv.DOT + objectTypeId2.toString();
 		return DbCache.getObject(uqVals, svCONST.OBJECT_TYPE_LINK_TYPE);
 	}
 
 	/**
 	 * Method to get a link type descriptor in DbDataObject format
 	 * 
-	 * @param linkType
-	 *            The link code
-	 * @param dbt1
-	 *            The descriptor of the first object type
-	 * @param dbt2
-	 *            The descriptor of the first object type
+	 * @param linkType The link code
+	 * @param dbt1     The descriptor of the first object type
+	 * @param dbt2     The descriptor of the first object type
 	 * @return A link type descriptor object
 	 */
 	public static DbDataObject getLinkType(String linkType, DbDataObject dbt1, DbDataObject dbt2) {
-		String uqVals = linkType + "." + dbt1.getObjectId().toString() + "." + dbt2.getObjectId().toString();
+		String uqVals = linkType + Sv.DOT + dbt1.getObjectId().toString() + Sv.DOT + dbt2.getObjectId().toString();
 		return DbCache.getObject(uqVals, svCONST.OBJECT_TYPE_LINK_TYPE);
 	}
 
 	/**
 	 * Method to verify if Object Type Id contains GEOMETRY objects.
 	 * 
-	 * @param objectTypeId
-	 *            The id of the type
-	 * @return True if the object type descriptor has at least one GEOMETRY
-	 *         field
+	 * @param objectTypeId The id of the type
+	 * @return True if the object type descriptor has at least one GEOMETRY field
 	 */
 	public static boolean hasGeometries(Long objectTypeId) {
 		return geometryTypes.contains(objectTypeId);
@@ -857,8 +815,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to get a form type descriptor in DbDataObject format
 	 * 
-	 * @param formTypeId
-	 *            The id of the type
+	 * @param formTypeId The id of the type
 	 * @return A form type descriptor object
 	 */
 	public static DbDataObject getFormType(Long formTypeId) {
@@ -871,15 +828,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * A method to return the type Id of an object according to the object name.
 	 * This method doesn't work for system objects, which are prefixed with repo
 	 * name. If you can't get an id by using this method you should look at
-	 * {@link svCONST} and you will probably find a constant referencing the
-	 * object you need.
+	 * {@link svCONST} and you will probably find a constant referencing the object
+	 * you need.
 	 * 
-	 * @param objectName
-	 *            The name of the object type (table name)
+	 * @param objectName The name of the object type (table name)
 	 * @return A object type descriptor
-	 * @throws SvException
-	 *             If the object type identified by name ObjectName is not found
-	 *             "system.error.no_dbt_found" exception is thrown
+	 * @throws SvException If the object type identified by name ObjectName is not
+	 *                     found "system.error.no_dbt_found" exception is thrown
 	 */
 	public static Long getTypeIdByName(String objectName) throws SvException {
 		return getTypeIdByName(objectName, null);
@@ -888,14 +843,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to return the typeId from a objectName code
 	 * 
-	 * @param objectName
-	 *            The physical table name of the object
-	 * @param objectSchema
-	 *            The schema in which the table resides
+	 * @param objectName   The physical table name of the object
+	 * @param objectSchema The schema in which the table resides
 	 * @return Object Id of the object type descriptor
-	 * @throws SvException
-	 *             If the object type identified by name ObjectName is not found
-	 *             "system.error.no_dbt_found" exception is thrown
+	 * @throws SvException If the object type identified by name ObjectName is not
+	 *                     found "system.error.no_dbt_found" exception is thrown
 	 */
 	public static Long getTypeIdByName(String objectName, String objectSchema) throws SvException {
 		DbDataObject objType = null;
@@ -910,11 +862,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * A method to return the type descriptor of an object according to the
-	 * object name.
+	 * A method to return the type descriptor of an object according to the object
+	 * name.
 	 * 
-	 * @param objectName
-	 *            Name of the object type (table name)
+	 * @param objectName Name of the object type (table name)
 	 * @return A DbDataObject descriptor of the DBT
 	 */
 	public static DbDataObject getDbtByName(String objectName) {
@@ -924,10 +875,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to return the type descriptor from a objectName code
 	 * 
-	 * @param objectName
-	 *            The physical table name of the object
-	 * @param objectSchema
-	 *            The schema in which the table resides
+	 * @param objectName   The physical table name of the object
+	 * @param objectSchema The schema in which the table resides
 	 * @return An instance of object type descriptor
 	 */
 	public static DbDataObject getDbtByName(String objectName, String objectSchema) {
@@ -935,20 +884,19 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			return null;
 		String objName = objectName.toUpperCase();
 		objectSchema = (objectSchema != null ? objectSchema : SvConf.getDefaultSchema());
-		DbDataObject objType = dbtMap.get(objectSchema + "." + objName);
+		DbDataObject objType = dbtMap.get(objectSchema + Sv.DOT + objName);
 		if (objType == null) {
-			objName = objectSchema + "." + SvConf.getMasterRepo() + "_" + objName;
+			objName = objectSchema + Sv.DOT + SvConf.getMasterRepo() + "_" + objName;
 			objType = dbtMap.get(objName);
 		}
 		return objType;
 	}
 
 	/**
-	 * Method to check if the master repo table exists as a basic data table in
-	 * the DB
+	 * Method to check if the master repo table exists as a basic data table in the
+	 * DB
 	 * 
-	 * @param conn
-	 *            The JDBC connection to be used for executing the query
+	 * @param conn The JDBC connection to be used for executing the query
 	 * @return True if the table exists
 	 */
 	private static boolean masterRepoExistsInDb(Connection conn) {
@@ -982,17 +930,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 	/**
 	 * Method that initializes the system from JSON config files. This method is
-	 * first one that gets invoked when svarog is started. The method loads all
-	 * json configuration records from: 1./json/records/40. master_records.json
+	 * first one that gets invoked when svarog is started. The method loads all json
+	 * configuration records from: 1./json/records/40. master_records.json
 	 * 2./json/records/30. master_codes.json
 	 * 
 	 * After the loading of the base JSON configuration files without exception,
 	 * svarog is properly loaded and running.
 	 * 
-	 * @param coreObjects
-	 *            reference to the core objects array
-	 * @param coreCodes
-	 *            reference to the core codes array
+	 * @param coreObjects reference to the core objects array
+	 * @param coreCodes   reference to the core codes array
 	 * @return True if the system has been initialised properly.
 	 */
 	private static synchronized Boolean initSvCoreLocal(DbDataArray coreObjects, DbDataArray coreCodes) {
@@ -1016,8 +962,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			sysObjects.fromJson(jobj);
 			for (DbDataObject dbo : sysObjects.getItems()) {
 				if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_TABLE)) {
-					dbo.setVal("TABLE_NAME", ((String) dbo.getVal("TABLE_NAME")).toUpperCase());
-					dbo.setVal("SCHEMA", ((String) dbo.getVal("SCHEMA")).toUpperCase());
+					dbo.setVal(Sv.TABLE_NAME, ((String) dbo.getVal(Sv.TABLE_NAME)).toUpperCase());
+					dbo.setVal(Sv.SCHEMA, ((String) dbo.getVal(Sv.SCHEMA)).toUpperCase());
 				}
 				dbo.setIsDirty(false);
 				coreObjects.addDataItem(dbo);
@@ -1079,13 +1025,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 	/**
 	 * Performs basic initialisation of svarog by using the DbInit classes. This
-	 * version doesn't use the json config files so it can run without config
-	 * folder
+	 * version doesn't use the json config files so it can run without config folder
 	 * 
-	 * @param coreObjects
-	 *            reference to the core objects array
-	 * @param coreCodes
-	 *            reference to the core codes array
+	 * @param coreObjects reference to the core objects array
+	 * @param coreCodes   reference to the core codes array
 	 * @return True if the system has been initialised properly.
 	 */
 	private static synchronized Boolean initSvCoreNoCfg(DbDataArray coreObjects, DbDataArray coreCodes) {
@@ -1103,8 +1046,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to pre-process the field descriptors in the system
 	 * 
-	 * @param fields
-	 *            The fields array to be preprocessed
+	 * @param fields The fields array to be preprocessed
 	 * @throws SvException
 	 */
 	static void prepareFields(DbDataArray fields) throws SvException {
@@ -1124,7 +1066,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				// meta
 				linkToParentDbt(dbo);
 			} catch (Exception e) {
-				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata",e);
+				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata", e);
 			}
 
 		}
@@ -1133,8 +1075,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to prepare the extended params field for each Field Descriptor
 	 * 
-	 * @param dbo
-	 *            The field Descriptor
+	 * @param dbo The field Descriptor
 	 */
 	private static void prepareExtOpts(DbDataObject dbo) {
 		Gson gs = new Gson();
@@ -1154,8 +1095,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to translate json element into primitive
 	 * 
-	 * @param je
-	 *            The JSON element
+	 * @param je The JSON element
 	 * @return The resulting object, primitive or json object.
 	 */
 	private static Object getJsonValue(Entry<String, JsonElement> je) {
@@ -1175,13 +1115,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to link the meta data from the field descriptor to the parent
-	 * table
+	 * Method to link the meta data from the field descriptor to the parent table
 	 * 
-	 * @param dbo
-	 *            The field descriptor
-	 * @throws SvException
-	 *             Any underlying exception that might be thrown
+	 * @param dbo The field descriptor
+	 * @throws SvException Any underlying exception that might be thrown
 	 */
 	private static void linkToParentDbt(DbDataObject dbo) throws SvException {
 		DbDataObject dbt = null;
@@ -1240,21 +1177,18 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to pre-process the field descriptors in the system
 	 * 
-	 * @param tables
-	 *            DbDataArray of all configured tables in Svarog
+	 * @param tables DbDataArray of all configured tables in Svarog
 	 * 
-	 * @param fields
-	 *            The fields array assigned to the tables objects
+	 * @param fields The fields array assigned to the tables objects
 	 * 
-	 * @param links
-	 *            Array of links types configured in Svarog
+	 * @param links  Array of links types configured in Svarog
 	 */
 	private static void prepareTables(DbDataArray tables, DbDataArray fields, DbDataArray links) {
 		boolean found = false;
 		for (DbDataObject dbt : tables.getItems()) {
 			found = false;
-			if (dbt.getVal("config_type_id") != null) {
-				Object cfgTypeId = dbt.getVal("config_type_id");
+			if (dbt.getVal(Sv.CONFIG_TYPE_ID) != null) {
+				Object cfgTypeId = dbt.getVal(Sv.CONFIG_TYPE_ID);
 
 				if (!(cfgTypeId instanceof Long))
 					continue;
@@ -1263,8 +1197,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					if (searchDbt.getObjectId().equals(cfgTypeId)) {
 						dbt.setVal("config_type", searchDbt);
 						DbDataArray searchList = null;
-						searchList = dbt.getVal("config_relation_type").equals("FIELD") ? fields : searchList;
-						searchList = dbt.getVal("config_relation_type").equals("LINK") ? fields : searchList;
+						searchList = dbt.getVal("config_relation_type").equals(Sv.FIELD) ? fields : searchList;
+						searchList = dbt.getVal("config_relation_type").equals(Sv.LINK) ? fields : searchList;
 						if (searchList != null && dbt.getVal("config_relation_id") != null) {
 							for (DbDataObject searchField : searchList.getItems()) {
 								if (searchField.getObjectId().equals(dbt.getVal("config_relation_id"))) {
@@ -1290,13 +1224,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to initialise the system objects from the 3 core arrays, object,
 	 * fields and link types
 	 * 
-	 * @param objectTypes
-	 *            The list of object types with appropriate configuration and
-	 *            table names
-	 * @param fieldTypes
-	 *            The list of field types in the system
-	 * @param linkTypes
-	 *            The available link t
+	 * @param objectTypes The list of object types with appropriate configuration
+	 *                    and table names
+	 * @param fieldTypes  The list of field types in the system
+	 * @param linkTypes   The available link t
 	 * @throws Exception
 	 */
 	private static void initSysObjects(DbDataArray objectTypes, DbDataArray fieldTypes, DbDataArray linkTypes)
@@ -1308,17 +1239,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			prepareTables(objectTypes, fieldTypes, linkTypes);
 			for (DbDataObject dbo : objectTypes.getItems()) {
 				DboFactory.makeDboReadOnly(dbo);
-				String key = ((String) dbo.getVal("schema")).toUpperCase() + "."
-						+ ((String) dbo.getVal("table_name")).toUpperCase();
+				String key = ((String) dbo.getVal(Sv.SCHEMA)).toUpperCase() + Sv.DOT
+						+ ((String) dbo.getVal(Sv.TABLE_NAME)).toUpperCase();
 				DbCache.addObject(dbo, key, true);
 				dbtMap.put(key, dbo);
-				if ((Boolean) dbo.getVal("repo_table"))
-					repoDbtMap.put((String) dbo.getVal("table_name"), dbo);
+				if ((Boolean) dbo.getVal(Sv.REPO_TABLE))
+					repoDbtMap.put((String) dbo.getVal(Sv.TABLE_NAME), dbo);
 			}
 			prepareFields(fieldTypes);
 			for (DbDataObject dbo : fieldTypes.getItems()) {
 				DboFactory.makeDboReadOnly(dbo);
-				if (dbo.getVal("FIELD_TYPE").equals("GEOMETRY") && !geometryTypes.contains(dbo.getParentId()))
+				if (dbo.getVal(Sv.FIELD_TYPE).equals(Sv.GEOMETRY) && !geometryTypes.contains(dbo.getParentId()))
 					geometryTypes.add(dbo.getParentId());
 				DbCache.addObject(dbo, null, true);
 			}
@@ -1332,9 +1263,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to validate the currently loaded svarog configuration contains the
 	 * base tables.
 	 * 
-	 * @throws SvException
-	 *             In case of bad config exception
-	 *             "system.error.misconfigured_dbt" is thrown
+	 * @throws SvException In case of bad config exception
+	 *                     "system.error.misconfigured_dbt" is thrown
 	 */
 	public static void validateSvarogConfig() throws SvException {
 
@@ -1345,8 +1275,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		for (DbDataObject baseType : coreObjects.getItems()) {
 			if (baseType.getObjectType().equals(svCONST.OBJECT_TYPE_TABLE)) {
-				String key = ((String) baseType.getVal("schema")).toUpperCase() + "."
-						+ ((String) baseType.getVal("table_name")).toUpperCase();
+				String key = ((String) baseType.getVal(Sv.SCHEMA)).toUpperCase() + Sv.DOT
+						+ ((String) baseType.getVal(Sv.TABLE_NAME)).toUpperCase();
 				if (!dbtMap.containsKey(key))
 					throw (new SvException("system.error.misconfigured_dbt", baseType));
 			}
@@ -1357,8 +1287,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
 	 * 
 	 * @return True if the system has been initialised properly.
-	 * @throws SvException
-	 *             Re-throw underlying exceptions
+	 * @throws SvException Re-throw underlying exceptions
 	 */
 	public static boolean initSvCore() throws SvException {
 		return initSvCoreImpl(false);
@@ -1367,11 +1296,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Default SvCore initialisation. It doesn't use JSON configuration.
 	 * 
-	 * @param forceInit
-	 *            flag to allow the user to force Svarog to re-read the core config
-	 *            from the database, if Svarog is already initialised
-	 * @throws SvException
-	 *             Re-throw underlying exceptions
+	 * @param forceInit flag to allow the user to force Svarog to re-read the core
+	 *                  config from the database, if Svarog is already initialised
+	 * @throws SvException Re-throw underlying exceptions
 	 */
 	public static void initSvCore(boolean forceInit) throws SvException {
 		if (forceInit)
@@ -1380,12 +1307,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to execute list of shut down executors loaded from
-	 * svarog.properties.
+	 * Method to execute list of shut down executors loaded from svarog.properties.
 	 * 
-	 * @param shutDownExec
-	 *            List of key of svarog executors. Semicolon is the list
-	 *            separator
+	 * @param shutDownExec List of key of svarog executors. Semicolon is the list
+	 *                     separator
 	 */
 	private static void execSvarogShutDownHooks(String shutDownExec) {
 		SvExecManager sve = null;
@@ -1446,10 +1371,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * files for temporary initialisation, then loads the configuration from the
 	 * database.
 	 * 
-	 * @param useJsonCfg
-	 *            flag to note if the system should be initialized from JSON (
-	 *            {@link #initSvCoreLocal(DbDataArray,DbDataArray)} or from
-	 *            DbInit {@link #initSvCoreNoCfg(DbDataArray,DbDataArray)}
+	 * @param useJsonCfg flag to note if the system should be initialized from JSON
+	 *                   ( {@link #initSvCoreLocal(DbDataArray,DbDataArray)} or from
+	 *                   DbInit {@link #initSvCoreNoCfg(DbDataArray,DbDataArray)}
 	 * @return True if the system has been initialised properly.
 	 */
 	static synchronized Boolean initSvCoreImpl(Boolean useJsonCfg) {
@@ -1519,11 +1443,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 				for (DbDataObject dbo : linkTypes.getItems()) {
 					DboFactory.makeDboReadOnly(dbo);
-					String type = (String) dbo.getVal("link_type");
-					String uqVals = type + "." + dbo.getVal("link_obj_type_1").toString() + "."
-							+ dbo.getVal("link_obj_type_2").toString();
+					String type = (String) dbo.getVal(Sv.LINK_TYPE);
+					String uqVals = type + "." + dbo.getVal(Sv.LINK_OBJ_TYPE_1).toString() + "."
+							+ dbo.getVal(Sv.LINK_OBJ_TYPE_2).toString();
 					DbCache.addObject(dbo, uqVals, true);
-					if (type != null && type.equals("POA"))
+					if (type != null && type.equals(Sv.POA))
 						poaDbLinkTypes.addDataItem(dbo);
 				}
 
@@ -1541,7 +1465,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 						if (constr.getConstraints().size() > 0)
 							uniqueConstraints.put(currentDbt.getObjectId(), constr);
 					} catch (SvException ex) {
-						log4j.warn("Constraints disabled on object: " + (String) currentDbt.getVal("TABLE_NAME"));
+						log4j.warn("Constraints disabled on object: " + (String) currentDbt.getVal(Sv.TABLE_NAME));
 						log4j.warn(ex.getFormattedMessage());
 					}
 				}
@@ -1593,32 +1517,28 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Get the list of fields per object type limited to the ones existing in
-	 * the DB only. This method would return different list of fields only
-	 * during upgrade
+	 * Get the list of fields per object type limited to the ones existing in the DB
+	 * only. This method would return different list of fields only during upgrade
 	 * 
-	 * @param conn
-	 *            The JDBC connection which should be used for fetching list of
-	 *            fields in the table
-	 * @param objectTypeId
-	 *            The ID of the object descriptor
+	 * @param conn         The JDBC connection which should be used for fetching
+	 *                     list of fields in the table
+	 * @param objectTypeId The ID of the object descriptor
 	 * @return DbDataArray containing the list of fields
-	 * @throws SvException
-	 *             Throws underlying exception from {@link #getDbt(Long)}
+	 * @throws SvException Throws underlying exception from {@link #getDbt(Long)}
 	 */
 	public static DbDataArray getDbFields(Connection conn, Long objectTypeId) throws SvException {
 		DbDataArray cachedFields = getFields(objectTypeId);
 		DbDataArray finalFields = new DbDataArray();
 		DbDataObject dbt = getDbt(objectTypeId);
 		LinkedHashMap<String, DbDataField> dbFields = SvarogInstall.getFieldListFromDb(conn,
-				"V" + (String) dbt.getVal("TABLE_NAME"), (String) dbt.getVal("SCHEMA"));
+				Sv.V + (String) dbt.getVal(Sv.TABLE_NAME), (String) dbt.getVal(Sv.SCHEMA));
 		@SuppressWarnings("unchecked")
 		ArrayList<DbDataObject> lstFields = (ArrayList<DbDataObject>) cachedFields.getItems().clone();
 
 		Iterator<DbDataObject> it = lstFields.iterator();
 		while (it.hasNext()) {
 			DbDataObject fld = it.next();
-			String fieldName = (String) fld.getVal("FIELD_NAME");
+			String fieldName = (String) fld.getVal(Sv.FIELD_NAME);
 			if (!dbFields.containsKey(fieldName))
 				it.remove();
 		}
@@ -1627,15 +1547,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to return a DbDataObject containing user data according to a
-	 * svarog session
+	 * Method to return a DbDataObject containing user data according to a svarog
+	 * session
 	 * 
-	 * @param session_id
-	 *            The session id for which we want to get the user
+	 * @param session_id The session id for which we want to get the user
 	 * @return A DbDataObject describing the logged on user associated with the
 	 *         session
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public static DbDataObject getUserBySession(String session_id) throws SvException {
 		DbDataObject svToken = DbCache.getObject(session_id, svCONST.OBJECT_TYPE_SECURITY_LOG);
@@ -1644,11 +1562,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			// management with the coordinator
 			if (svToken != null) {
 				// we found a local session, and send refresh to coordinator
-				if (((DateTime) svToken.getVal("last_refresh")).withDurationAdded(sessionDebounceInterval, 1)
+				if (((DateTime) svToken.getVal(Sv.LAST_REFRESH)).withDurationAdded(sessionDebounceInterval, 1)
 						.isBeforeNow()) {
 					if (SvClusterClient.refreshToken(session_id)) {
 						DboUnderground.revertReadOnly(svToken, new SvReader());
-						svToken.setVal("last_refresh", DateTime.now());
+						svToken.setVal(Sv.LAST_REFRESH, DateTime.now());
 						svToken.setIsDirty(false);
 						DboFactory.makeDboReadOnly(svToken);
 						DbCache.addObject(svToken, session_id);
@@ -1658,7 +1576,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			{
 				svToken = SvClusterClient.getToken(session_id);
 				if (svToken != null) {
-					svToken.setVal("last_refresh", DateTime.now());
+					svToken.setVal(Sv.LAST_REFRESH, DateTime.now());
 					svToken.setIsDirty(false);
 					DboFactory.makeDboReadOnly(svToken);
 					DbCache.addObject(svToken, session_id);
@@ -1685,13 +1603,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to return all user groups associated with a specific user.
 	 * 
-	 * @param user
-	 *            The user object for which we want to get the groups
-	 * @param returnOnlyDefault
-	 *            Flag if we want to get the default user group or all groups
+	 * @param user              The user object for which we want to get the groups
+	 * @param returnOnlyDefault Flag if we want to get the default user group or all
+	 *                          groups
 	 * @return The DbDataArray containing all linked groups.
-	 * @throws SvException
-	 *             Re-throws any underlying exception
+	 * @throws SvException Re-throws any underlying exception
 	 */
 	static DbDataArray getUserGroups(DbDataObject user, boolean returnOnlyDefault) throws SvException {
 		SvReader svr = null;
@@ -1707,26 +1623,23 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to return all user groups associated with a specific user.
 	 * 
-	 * @param user
-	 *            The user object for which we want to get the groups
-	 * @param returnOnlyDefault
-	 *            Flag if we want to get the default user group or all groups
-	 * @param svc
-	 *            The core instance to be used for executing the query
+	 * @param user              The user object for which we want to get the groups
+	 * @param returnOnlyDefault Flag if we want to get the default user group or all
+	 *                          groups
+	 * @param svc               The core instance to be used for executing the query
 	 * @return The DbDataArray containing all linked groups.
-	 * @throws SvException
-	 *             Re-throws any underlying exception
+	 * @throws SvException Re-throws any underlying exception
 	 */
 	static DbDataArray getUserGroups(DbDataObject user, boolean returnOnlyDefault, SvCore svc) throws SvException {
 		DbDataArray groups = null;
 		try (SvReader svr = new SvReader(svc)) {
-			String userGroupLinkType = "USER_DEFAULT_GROUP";
+			String userGroupLinkType = Sv.USER_DEFAULT_GROUP;
 			DbDataObject dbLink = getLinkType(userGroupLinkType, svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
-			;
+
 			svr.isInternal = true;
 			groups = svr.getObjectsByLinkedId(user.getObjectId(), dbLink, null, 0, 0);
 			if (!returnOnlyDefault) {
-				userGroupLinkType = "USER_GROUP";
+				userGroupLinkType = Sv.USER_GROUP;
 				dbLink = getLinkType(userGroupLinkType, svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
 				if (dbLink != null) {
 					DbDataArray otherGroups = svr.getObjectsByLinkedId(user.getObjectId(), dbLink, null, 0, 0);
@@ -1741,15 +1654,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to close a JDBC resource, while wrapping the exception in
-	 * SvException
+	 * Method to close a JDBC resource, while wrapping the exception in SvException
 	 * 
-	 * @param ps
-	 *            The resource to be closed
-	 * @param instanceUser
-	 *            If there is instance user linked to the resource
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param ps           The resource to be closed
+	 * @param instanceUser If there is instance user linked to the resource
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public static void closeResource(AutoCloseable ps, DbDataObject instanceUser) throws SvException {
 		try {
@@ -1761,13 +1670,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to open a database connection and associate it with the current
-	 * SvCore instance This method explicitly opens a connection to the DB. You
-	 * should let svarog decide if it needs a connection at all or everything is
-	 * cached.
+	 * Method to open a database connection and associate it with the current SvCore
+	 * instance This method explicitly opens a connection to the DB. You should let
+	 * svarog decide if it needs a connection at all or everything is cached.
 	 * 
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 * @return JDBC Connection object
 	 */
 	public Connection dbGetConn() throws SvException {
@@ -1778,13 +1685,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Wrapper method for Connection.setAutoCommit(autoCommit). The wrapper is
 	 * needed to get the tracked JDBC connection associated with this specific
-	 * instance. If the connection is shared between multiple SvCore instances
-	 * it will of course affect those
+	 * instance. If the connection is shared between multiple SvCore instances it
+	 * will of course affect those
 	 * 
-	 * @param autoCommit
-	 *            Boolean flag to enable/disable auto commit
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param autoCommit Boolean flag to enable/disable auto commit
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public void dbSetAutoCommit(Boolean autoCommit) throws SvException {
 		try {
@@ -1801,8 +1706,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * connection is shared between multiple SvCore instances it will of course
 	 * affect those instances too.
 	 * 
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public void dbCommit() throws SvException {
 		try {
@@ -1815,13 +1719,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Wrapper method for Connection.rollback(). The wrapper is needed to get
-	 * the tracked JDBC connection associated with this specific instance. If
-	 * the connection is shared between multiple SvCore instances it will of
-	 * course affect those instances too.
+	 * Wrapper method for Connection.rollback(). The wrapper is needed to get the
+	 * tracked JDBC connection associated with this specific instance. If the
+	 * connection is shared between multiple SvCore instances it will of course
+	 * affect those instances too.
 	 * 
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public void dbRollback() throws SvException {
 		try {
@@ -1834,60 +1737,57 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to close a database connection associated with this SvCore
-	 * instance. If the connection is shared between multiple SvCore instances,
-	 * this method will not perform a real JDBC close on the connection, but
-	 * rather decrease the usage count. Invoking DbClose on the last active
-	 * SvCore instance will perform the actual closing of the connection. Before
-	 * closing the connection, a rollback will be performed by default. If there
-	 * was no {@link #dbCommit()} executed before and the connection was in
-	 * AutoCommit=false mode, all data will be lost.
+	 * Method to close a database connection associated with this SvCore instance.
+	 * If the connection is shared between multiple SvCore instances, this method
+	 * will not perform a real JDBC close on the connection, but rather decrease the
+	 * usage count. Invoking DbClose on the last active SvCore instance will perform
+	 * the actual closing of the connection. Before closing the connection, a
+	 * rollback will be performed by default. If there was no {@link #dbCommit()}
+	 * executed before and the connection was in AutoCommit=false mode, all data
+	 * will be lost.
 	 * 
-	 * @param isManual
-	 *            Flag to note if the release was done manually, or from an
-	 *            enqueued soft reference
+	 * @param isManual Flag to note if the release was done manually, or from an
+	 *                 enqueued soft reference
 	 */
 	void dbReleaseConn(Boolean isManual) {
 		dbReleaseConn(isManual, false);
 	}
 
 	/**
-	 * Method to close a database connection associated with this SvCore
-	 * instance. If the connection is shared between multiple SvCore instances,
-	 * this method will not perform a real JDBC close on the connection, but
-	 * rather decrease the usage count. Invoking DbClose on the last active
-	 * SvCore instance will perform the actual closing of the connection. Before
-	 * closing the connection, a rollback will be performed by default. If there
-	 * was no {@link #dbCommit()} executed before and the connection was in
-	 * AutoCommit=false mode, all data will be lost.
+	 * Method to close a database connection associated with this SvCore instance.
+	 * If the connection is shared between multiple SvCore instances, this method
+	 * will not perform a real JDBC close on the connection, but rather decrease the
+	 * usage count. Invoking DbClose on the last active SvCore instance will perform
+	 * the actual closing of the connection. Before closing the connection, a
+	 * rollback will be performed by default. If there was no {@link #dbCommit()}
+	 * executed before and the connection was in AutoCommit=false mode, all data
+	 * will be lost.
 	 * 
-	 * @param isManual
-	 *            Flag to note if the release was done manually, or from an
-	 *            enqueued soft reference
-	 * @param hardRelease
-	 *            enables releasing all connections up in the SvCore chain
+	 * @param isManual    Flag to note if the release was done manually, or from an
+	 *                    enqueued soft reference
+	 * @param hardRelease enables releasing all connections up in the SvCore chain
 	 */
 	private void dbReleaseConn(Boolean isManual, Boolean hardRelease) {
 		SvConnTracker.releaseTrackedConnection(weakThis, isManual, hardRelease);
 	}
 
 	/**
-	 * Method to close a database connection associated with this SvCore
-	 * instance. If the connection is shared between multiple SvCore instances,
-	 * this method will not perform a real JDBC close on the connection, but
-	 * rather decrease the usage count. Invoking DbClose on the last active
-	 * SvCore instance will perform the actual closing of the connection. Before
-	 * closing the connection, a rollback will be performed by default. If there
-	 * was no {@link #dbCommit()} executed before and the connection was in
-	 * AutoCommit=false mode, all data will be lost.
+	 * Method to close a database connection associated with this SvCore instance.
+	 * If the connection is shared between multiple SvCore instances, this method
+	 * will not perform a real JDBC close on the connection, but rather decrease the
+	 * usage count. Invoking DbClose on the last active SvCore instance will perform
+	 * the actual closing of the connection. Before closing the connection, a
+	 * rollback will be performed by default. If there was no {@link #dbCommit()}
+	 * executed before and the connection was in AutoCommit=false mode, all data
+	 * will be lost.
 	 */
 	public void release() {
 		release(false);
 	}
 
 	/**
-	 * Overriden method of the Autocloseable interface to allow Svarog to be
-	 * used in try-with-resources
+	 * Overriden method of the Autocloseable interface to allow Svarog to be used in
+	 * try-with-resources
 	 */
 	@Override
 	public void close() {
@@ -1903,17 +1803,16 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to close a database connection associated with this SvCore
-	 * instance. If the connection is shared between multiple SvCore instances,
-	 * this method will not perform a real JDBC close on the connection, but
-	 * rather decrease the usage count. Invoking DbClose on the last active
-	 * SvCore instance will perform the actual closing of the connection. Before
-	 * closing the connection, a rollback will be performed by default. If there
-	 * was no {@link #dbCommit()} executed before and the connection was in
-	 * AutoCommit=false mode, all data will be lost.
+	 * Method to close a database connection associated with this SvCore instance.
+	 * If the connection is shared between multiple SvCore instances, this method
+	 * will not perform a real JDBC close on the connection, but rather decrease the
+	 * usage count. Invoking DbClose on the last active SvCore instance will perform
+	 * the actual closing of the connection. Before closing the connection, a
+	 * rollback will be performed by default. If there was no {@link #dbCommit()}
+	 * executed before and the connection was in AutoCommit=false mode, all data
+	 * will be lost.
 	 * 
-	 * @param hardRelease
-	 *            enables releasing all connections up in the SvCore chain
+	 * @param hardRelease enables releasing all connections up in the SvCore chain
 	 */
 	public void release(Boolean hardRelease) {
 		if (SvConnTracker.hasTrackedConnection(weakThis))
@@ -1936,14 +1835,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to switch the current user under which the SvCore instance runs.
-	 * In order to switch the user you must have SYSTEM.SUDO acl in your ACL
-	 * list. To return the instance to the previous user, use resetUser
+	 * Method to switch the current user under which the SvCore instance runs. In
+	 * order to switch the user you must have SYSTEM.SUDO acl in your ACL list. To
+	 * return the instance to the previous user, use resetUser
 	 * 
-	 * @param userName
-	 *            The user name of the user
-	 * @throws SvException
-	 *             If the switch failed, an exception is thrown
+	 * @param userName The user name of the user
+	 * @throws SvException If the switch failed, an exception is thrown
 	 */
 	public void switchUser(String userName) throws SvException {
 		try (SvSecurity svs = new SvSecurity(this)) {
@@ -1954,14 +1851,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to switch the current user under which the SvCore instance runs.
-	 * In order to switch the user you must have SYSTEM.SUDO acl in your ACL
-	 * list. To return the instance to the previous user, use resetUser
+	 * Method to switch the current user under which the SvCore instance runs. In
+	 * order to switch the user you must have SYSTEM.SUDO acl in your ACL list. To
+	 * return the instance to the previous user, use resetUser
 	 * 
-	 * @param user
-	 *            The object descriptor of the user we want to switch to
-	 * @throws SvException
-	 *             If the switch failed, an exception is thrown
+	 * @param user The object descriptor of the user we want to switch to
+	 * @throws SvException If the switch failed, an exception is thrown
 	 */
 	public void switchUser(DbDataObject user) throws SvException {
 		DbDataObject currentUser = null;
@@ -1992,12 +1887,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to reset the SvCore instance back to the previous user under which
-	 * it was running before {@link #switchUser(String)} was executed. In the
-	 * linux world, this would equal to sudo su then exit.
+	 * Method to reset the SvCore instance back to the previous user under which it
+	 * was running before {@link #switchUser(String)} was executed. In the linux
+	 * world, this would equal to sudo su then exit.
 	 * 
-	 * @throws SvException
-	 *             If there was no previous user, to reset to throw exception
+	 * @throws SvException If there was no previous user, to reset to throw
+	 *                     exception
 	 */
 	public void resetUser() throws SvException {
 		if (previousUser != null) {
@@ -2009,12 +1904,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to return the UserGroup configured as default associated with the
-	 * user under which this SvCore instance is running.
+	 * Method to return the UserGroup configured as default associated with the user
+	 * under which this SvCore instance is running.
 	 * 
 	 * @return DbDataObject containing the UserGroup
-	 * @throws SvException
-	 *             Re-throws any underlying exception
+	 * @throws SvException Re-throws any underlying exception
 	 */
 	public DbDataObject getDefaultUserGroup() throws SvException {
 		if (instanceUserDefaultGroup == null && instanceUser.getObjectId() != svCONST.OBJECT_USER_SYSTEM) {
@@ -2029,25 +1923,22 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to return all user groups associated with a specific user.
 	 * 
-	 * @param user
-	 *            The user object for which we want to get the groups
-	 * @param returnOnlyDefault
-	 *            Flag if we want to get the default user group or all groups
+	 * @param user              The user object for which we want to get the groups
+	 * @param returnOnlyDefault Flag if we want to get the default user group or all
+	 *                          groups
 	 * @return The DbDataArray containing all linked groups.
-	 * @throws SvException
-	 *             re-throw underlying exception
+	 * @throws SvException re-throw underlying exception
 	 */
 	public DbDataArray getAllUserGroups(DbDataObject user, boolean returnOnlyDefault) throws SvException {
 		return SvCore.getUserGroups(user, returnOnlyDefault, this);
 	}
 
 	/**
-	 * Method to return all user groups associated with current user associated
-	 * with the instance
+	 * Method to return all user groups associated with current user associated with
+	 * the instance
 	 * 
 	 * @return The DbDataArray containing all linked groups.
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public DbDataArray getUserGroups() throws SvException {
 		return SvCore.getUserGroups(this.instanceUser, false);
@@ -2055,15 +1946,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 	/**
 	 * Method for checking if the current user has power of attorney over the
-	 * dataset he is fetching. If the user group security type is Power of
-	 * Attorney (POA) then the query is modified to contain the empowerment
+	 * dataset he is fetching. If the user group security type is Power of Attorney
+	 * (POA) then the query is modified to contain the empowerment
 	 * 
-	 * @param query
-	 *            The original query to be executed subject of modification
-	 * @return The new DbQuery object which is based on the original query
-	 *         including the POA empowerment
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param query The original query to be executed subject of modification
+	 * @return The new DbQuery object which is based on the original query including
+	 *         the POA empowerment
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	private DbQuery addEmpoweredCriteria(DbQuery query) throws SvException {
 		// if we are running the query internally from the svarog package itself
@@ -2072,17 +1961,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			return query;
 		DbDataObject dboUG = getDefaultUserGroup();
 		DbQuery retVal = query;
-		if (dboUG != null && ((String) dboUG.getVal("GROUP_SECURITY_TYPE")).equals("POA")) {
+		if (dboUG != null && ((String) dboUG.getVal(Sv.GROUP_SECURITY_TYPE)).equals(Sv.POA)) {
 			if (query instanceof DbQueryObject) {
 				DbDataObject dbt = ((DbQueryObject) query).getDbt();
 				Long objectType = dbt.getObjectId();
 				for (DbDataObject dbc : poaDbLinkTypes.getItems()) {
-					if (((Long) dbc.getVal("link_obj_type_1")).equals(svCONST.OBJECT_TYPE_USER)
-							&& objectType.equals((Long) dbc.getVal("link_obj_type_2"))) {
+					if (((Long) dbc.getVal(Sv.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
+							&& objectType.equals((Long) dbc.getVal(Sv.LINK_OBJ_TYPE_2))) {
 						DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
 						DbQueryExpression dqe = new DbQueryExpression();
 						DbQueryObject dqo = new DbQueryObject(usersDbt,
-								new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, instanceUser.getObjectId()),
+								new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, instanceUser.getObjectId()),
 								DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
 						dqe.addItem(dqo);
 						dqe.addItem((DbQueryObject) query);
@@ -2101,29 +1990,25 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			if (obj != null && obj.getClass().equals(DateTime.class))
 				obj = new Timestamp(((DateTime) obj).getMillis());
 			if (log4j.isDebugEnabled())
-				log4j.debug(
-						"Bind Variable:" + paramIdx.toString() + ", value:" + (obj != null ? obj.toString() : "NULL"));
+				log4j.debug("Bind Variable:" + paramIdx.toString() + ", value:"
+						+ (obj != null ? obj.toString() : Sv.SQL_NULL));
 			ps.setObject(paramIdx, obj);
 			paramIdx++;
 		}
 	}
 
 	/**
-	 * A method that creates PreparedStatement and returns a ResultSet object
-	 * for the specific search
+	 * A method that creates PreparedStatement and returns a ResultSet object for
+	 * the specific search
 	 * 
-	 * @param query
-	 *            The DbQuery object from which the SQL shall be generated and a
-	 *            prepared statement created
-	 * @param conn
-	 *            DB Connection which should be used
-	 * @param rowLimit
-	 *            The maximum number of rows/objects to be returned by the query
-	 * @param offset
-	 *            The offset from which query will start returning objects.
+	 * @param query    The DbQuery object from which the SQL shall be generated and
+	 *                 a prepared statement created
+	 * @param conn     DB Connection which should be used
+	 * @param rowLimit The maximum number of rows/objects to be returned by the
+	 *                 query
+	 * @param offset   The offset from which query will start returning objects.
 	 * @return A ResultSet containing the results from the DB
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	private PreparedStatement getDbPreparedStatement(DbQuery query, Connection conn, Integer rowLimit, Integer offset)
 			throws SvException {
@@ -2131,16 +2016,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		try {
 			StringBuilder sqlQry = query.getSQLExpression(false, includeGeometries);
 			if (rowLimit != null && offset != null && (rowLimit > 0 || offset > 0)) {
-				String sRowLimit = SvConf.getSqlkw().getString("LIMIT_OFFSET").replace("{OFFSET}", offset.toString())
-						.replace("{LIMIT}", rowLimit.toString());
-				int orderPos = sqlQry.indexOf("ORDER BY");
+				String sRowLimit = SvConf.getSqlkw().getString(Sv.LIMIT_OFFSET).replace(Sv.bracketOFFSET, offset.toString())
+						.replace(Sv.bracketLIMIT, rowLimit.toString());
+				int orderPos = sqlQry.indexOf(Sv.ORDER_BY);
 				if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
 					if (orderPos > 0)
-						sqlQry.insert(orderPos, " AND " + sRowLimit + " ");
+						sqlQry.insert(orderPos,
+								Sv.SPACE + Sv.AND + Sv.SPACE + sRowLimit + Sv.SPACE + Sv.AND + Sv.SPACE);
 					else
-						sqlQry.append(" AND " + sRowLimit);
+						sqlQry.append(Sv.SPACE + Sv.AND + Sv.SPACE + sRowLimit);
 				} else
-					sqlQry.append(" " + sRowLimit);
+					sqlQry.append(Sv.SPACE + sRowLimit);
 			}
 			if (log4j.isDebugEnabled())
 				log4j.debug("Executing SQL: " + sqlQry);
@@ -2155,11 +2041,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to check if the current user has assigned the permission/ACL
-	 * uniquely identified by permissionKey
+	 * Method to check if the current user has assigned the permission/ACL uniquely
+	 * identified by permissionKey
 	 * 
-	 * @param permissionKey
-	 *            The unique ID of the permission
+	 * @param permissionKey The unique ID of the permission
 	 * @return True if the user has the permission granted
 	 */
 	public boolean hasPermission(String permissionKey) {
@@ -2186,8 +2071,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to generate an ACL key from an ACL object type
 	 * 
-	 * @param dboAcl
-	 *            DbDataObject instance of ACL type
+	 * @param dboAcl DbDataObject instance of ACL type
 	 * @return SvAclKey object generated from the dbo
 	 */
 	private SvAclKey getAclKey(DbDataObject dboAcl) {
@@ -2198,8 +2082,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to return a map all access control list (ACL) objects by key based
-	 * on the label_code of the ACL.
+	 * Method to return a map all access control list (ACL) objects by key based on
+	 * the label_code of the ACL.
 	 * 
 	 * @return Key/Value map of ACLs mapped by LABEL_CODE
 	 */
@@ -2208,7 +2092,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			permissionKeys = new HashMap<String, DbDataObject>();
 			for (HashMap<String, DbDataObject> pMap : getPermissions().values())
 				for (DbDataObject dboAcl : pMap.values())
-					permissionKeys.put((String) dboAcl.getVal("LABEL_CODE"), dboAcl);
+					permissionKeys.put((String) dboAcl.getVal(Sv.LABEL_CODE), dboAcl);
 		}
 		return permissionKeys;
 	}
@@ -2216,19 +2100,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to fetch all ACL or SID_ACL objects or linked to a specific SID
 	 * 
-	 * @param sid
-	 *            The Security identifier for which we want to get the ACLs
-	 *            (User or User Group)
-	 * @param core
-	 *            The SvCore instance which should guarantee that we have
-	 *            privilege to read the permissions of the sid
-	 * @param returnType
-	 *            DbDataObject descriptor of the type to be returned. The return
-	 *            types can be of type ACL or SID_ACL.
-	 * @return A DbDataArray instance holding all permissions linked to the
-	 *         specific SID
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param sid        The Security identifier for which we want to get the ACLs
+	 *                   (User or User Group)
+	 * @param core       The SvCore instance which should guarantee that we have
+	 *                   privilege to read the permissions of the sid
+	 * @param returnType DbDataObject descriptor of the type to be returned. The
+	 *                   return types can be of type ACL or SID_ACL.
+	 * @return A DbDataArray instance holding all permissions linked to the specific
+	 *         SID
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public DbDataArray getSecurityObjects(DbDataObject sid, SvCore core, DbDataObject returnType) throws SvException {
 		DbDataArray permissions = null;
@@ -2244,9 +2124,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			// START creation of the search expressions
 			// create the SID search expression
 			DbSearchExpression dbxSid = new DbSearchExpression()
-					.addDbSearchItem(new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, sid.getObjectId()))
-					.addDbSearchItem(new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, sid.getObjectType()));
-			dbxSid.setNextCritOperand("OR");
+					.addDbSearchItem(new DbSearchCriterion(Sv.SID_OBJECT_ID, DbCompareOperand.EQUAL, sid.getObjectId()))
+					.addDbSearchItem(new DbSearchCriterion(Sv.SID_TYPE_ID, DbCompareOperand.EQUAL, sid.getObjectType()));
+			dbxSid.setNextCritOperand(Sv.OR);
 
 			DbSearchExpression dbx = new DbSearchExpression().addDbSearchItem(dbxSid);
 
@@ -2255,13 +2135,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				// create the groups search expression
 				DbSearchExpression dbxGroupsList = new DbSearchExpression();
 				for (DbDataObject group : groups.getItems()) {
-					dbxGroupsList.addDbSearchItem(new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL,
+					dbxGroupsList.addDbSearchItem(new DbSearchCriterion(Sv.SID_OBJECT_ID, DbCompareOperand.EQUAL,
 							group.getObjectId(), DbLogicOperand.OR));
 				}
 
 				DbSearchExpression dbxGroups = new DbSearchExpression()
 						.addDbSearchItem(
-								new DbSearchCriterion("SID_TYPE_ID", DbCompareOperand.EQUAL, svCONST.OBJECT_TYPE_GROUP))
+								new DbSearchCriterion(Sv.SID_TYPE_ID, DbCompareOperand.EQUAL, svCONST.OBJECT_TYPE_GROUP))
 						.addDbSearchItem(dbxGroupsList);
 
 				dbx.addDbSearchItem(dbxGroups);
@@ -2281,11 +2161,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					dqoSID.setIsReturnType(true);
 					dqoSID.addChild(dqoAcl);
 					dqoAcl.setLinkToNextType(LinkType.DENORMALIZED_REVERSE);
-					dqoSID.setDenormalizedFieldName("ACL_OBJECT_ID");
+					dqoSID.setDenormalizedFieldName(Sv.ACL_OBJECT_ID);
 					dqe = new DbQueryExpression(dqoSID);
 				} else {
 					dqoSID.setLinkToNextType(LinkType.DENORMALIZED);
-					dqoSID.setDenormalizedFieldName("ACL_OBJECT_ID");
+					dqoSID.setDenormalizedFieldName(Sv.ACL_OBJECT_ID);
 					dqoAcl.setIsReturnType(true);
 					dqoAcl.addChild(dqoSID);
 					dqe = new DbQueryExpression(dqoAcl);
@@ -2295,11 +2175,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			permissions = svr.getObjects(dqe, null, null);
 			for (DbDataObject dbop : permissions.getItems()) {
 				SvAccess acType = SvAccess.NONE;
-				String act = (String) dbop.getVal("ACCESS_TYPE");
+				String act = (String) dbop.getVal(Sv.ACCESS_TYPE);
 				if (act != null)
 					acType = SvAccess.valueOf(act);
 
-				dbop.setVal("ACCESS_TYPE", acType);
+				dbop.setVal(Sv.ACCESS_TYPE, acType);
 				dbop.setIsDirty(false);
 			}
 		}
@@ -2309,29 +2189,25 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to fetch all ACL objects linked to a specific SID
 	 * 
-	 * @param sid
-	 *            The Security identifier for which we want to get the ACLs
-	 *            (User or User Group)
-	 * @param core
-	 *            The SvCore instance which should guarantee that we have
-	 *            privilege to read the permissions of the sid
-	 * @return A DbDataArray instance holding all permissions linked to the
-	 *         specific SID
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param sid  The Security identifier for which we want to get the ACLs (User
+	 *             or User Group)
+	 * @param core The SvCore instance which should guarantee that we have privilege
+	 *             to read the permissions of the sid
+	 * @return A DbDataArray instance holding all permissions linked to the specific
+	 *         SID
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public DbDataArray getPermissions(DbDataObject sid, SvCore core) throws SvException {
 		return getSecurityObjects(sid, core, SvCore.getDbt(svCONST.OBJECT_TYPE_ACL));
 	}
 
 	/**
-	 * Method to get a {@link DbDataArray} holding all permissions (ACLs) for
-	 * the current user
+	 * Method to get a {@link DbDataArray} holding all permissions (ACLs) for the
+	 * current user
 	 * 
-	 * @return Reference to the {@link DbDataArray} holding the permissions.
-	 *         Null if the user is system
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @return Reference to the {@link DbDataArray} holding the permissions. Null if
+	 *         the user is system
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	@SuppressWarnings("unchecked")
 	public HashMap<SvAclKey, HashMap<String, DbDataObject>> getPermissions() throws SvException {
@@ -2348,20 +2224,19 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to get a {@link DbDataArray} holding all permissions (ACLs) for
-	 * the current user
+	 * Method to get a {@link DbDataArray} holding all permissions (ACLs) for the
+	 * current user
 	 * 
-	 * @return Reference to the {@link DbDataArray} holding the permissions.
-	 *         Null if the user is system
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @return Reference to the {@link DbDataArray} holding the permissions. Null if
+	 *         the user is system
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	HashMap<SvAclKey, HashMap<String, DbDataObject>> getPermissionsImpl() throws SvException {
 		// system and service users have no permissions, they are gods
 		if (isSystem() || isService())
 			return null;
 
-		String lockKey = (String) instanceUser.getVal("USER_NAME") + "-ACL";
+		String lockKey = (String) instanceUser.getVal(Sv.USER_NAME) + "-ACL";
 		ReentrantLock lock = null;
 		SvReader svr = null;
 		// if the lazy loaded instance permissions is null, then load
@@ -2395,18 +2270,18 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 							SvAclKey key = getAclKey(dboAcl);
 							HashMap<String, DbDataObject> pMap = instancePermissions.get(key);
 							if (pMap != null) {
-								DbDataObject dbo = pMap.get((String) dboAcl.getVal("acl_config_unq"));
+								DbDataObject dbo = pMap.get((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ));
 								if (dbo == null) {
-									pMap.put((String) dboAcl.getVal("acl_config_unq"), dboAcl);
-								} else if (((SvAccess) dbo.getVal("ACCESS_TYPE"))
-										.compareTo((SvAccess) dboAcl.getVal("ACCESS_TYPE")) < 0) {
-									pMap.put((String) dboAcl.getVal("acl_config_unq"), dboAcl);
+									pMap.put((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ), dboAcl);
+								} else if (((SvAccess) dbo.getVal(Sv.ACCESS_TYPE))
+										.compareTo((SvAccess) dboAcl.getVal(Sv.ACCESS_TYPE)) < 0) {
+									pMap.put((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ), dboAcl);
 								}
 							} else {
 								pMap = new HashMap<String, DbDataObject>();
 								// make sure the ACL is read-only so we
 								DboFactory.makeDboReadOnly(dboAcl);
-								pMap.put((String) dboAcl.getVal("acl_config_unq"), dboAcl);
+								pMap.put((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ), dboAcl);
 								instancePermissions.put(key, pMap);
 							}
 						}
@@ -2427,11 +2302,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method returning the locale object for a specific svarog session
 	 * 
-	 * @param sessionToken
-	 *            the svarog session from which we will get the user object
+	 * @param sessionToken the svarog session from which we will get the user object
 	 * @return the locale object descriptor attached to the user object
-	 * @throws SvException
-	 *             any underlying SvException
+	 * @throws SvException any underlying SvException
 	 */
 	public DbDataObject getSessionLocale(String sessionToken) throws SvException {
 		DbDataObject user = getUserBySession(sessionToken);
@@ -2441,11 +2314,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method returning the locale object for a specific user
 	 * 
-	 * @param userObject
-	 *            the user description for which we want to get the locale
+	 * @param userObject the user description for which we want to get the locale
 	 * @return the locale object descriptor attached to the user object
-	 * @throws SvException
-	 *             any underlying SvException
+	 * @throws SvException any underlying SvException
 	 */
 	public String getUserLocaleId(DbDataObject userObject) throws SvException {
 		SvParameter svp = null;
@@ -2453,16 +2324,16 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		if (userObject != null) {
 			try {
 
-				if (userObject.getVal("LOCALE") == null) {
+				if (userObject.getVal(Sv.LOCALE) == null) {
 					svp = new SvParameter();
-					locale = svp.getParamString(userObject, "LOCALE");
+					locale = svp.getParamString(userObject, Sv.LOCALE);
 					if (locale == null)
 						locale = SvConf.getDefaultLocale();
 
-					userObject.setVal("LOCALE", locale);
+					userObject.setVal(Sv.LOCALE, locale);
 					userObject.setIsDirty(false);
 				} else
-					locale = (String) userObject.getVal("LOCALE");
+					locale = (String) userObject.getVal(Sv.LOCALE);
 
 			} finally {
 				if (svp != null)
@@ -2475,11 +2346,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method returning the locale object for a specific user
 	 * 
-	 * @param userObject
-	 *            the user description for which we want to get the locale
+	 * @param userObject the user description for which we want to get the locale
 	 * @return the locale object descriptor attached to the user object
-	 * @throws SvException
-	 *             any underlying SvException
+	 * @throws SvException any underlying SvException
 	 */
 	public DbDataObject getUserLocale(DbDataObject userObject) throws SvException {
 		DbDataObject localeObj = null;
@@ -2490,11 +2359,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method returning the locale object for a specific user
 	 * 
-	 * @param userId
-	 *            the user name of the user for which we want to get the locale
+	 * @param userId the user name of the user for which we want to get the locale
 	 * @return the locale object descriptor attached to the user object
-	 * @throws SvException
-	 *             any underlying SvException
+	 * @throws SvException any underlying SvException
 	 */
 	public DbDataObject getUserLocale(String userId) throws SvException {
 		DbDataObject localeObj = null;
@@ -2508,12 +2375,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to set a locale to a specific User in the system
 	 * 
-	 * @param userName
-	 *            The user name of the of the user
-	 * @param locale
-	 *            The local which exists in the list of system locales
-	 * @throws SvException
-	 *             Any underlying exception
+	 * @param userName The user name of the of the user
+	 * @param locale   The local which exists in the list of system locales
+	 * @throws SvException Any underlying exception
 	 */
 	public void setUserLocale(String userName, String locale) throws SvException {
 
@@ -2523,7 +2387,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			localeObj = SvarogInstall.getLocaleList().getItemByIdx(locale);
 
 			if (localeObj != null) {
-				svp.setParamImpl(userObject, "LOCALE", locale, true, true);
+				svp.setParamImpl(userObject, Sv.LOCALE, locale, true, true);
 			}
 		}
 	}
@@ -2532,10 +2396,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to create empty DbDataObject with fields map according to the type
 	 * descriptor
 	 * 
-	 * @param dbt
-	 *            The type descriptor of the object
-	 * @return A DbDataObject instance configured according to the type
-	 *         descriptor
+	 * @param dbt The type descriptor of the object
+	 * @return A DbDataObject instance configured according to the type descriptor
 	 */
 	public DbDataObject createDboByType(DbDataObject dbt) {
 		DbDataObject dbo = null;
@@ -2545,12 +2407,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			emptyMap = new LinkedHashMap<SvCharId, Object>(dbfs.size(), 1);
 			LinkedHashMap<SvCharId, Object> keyMap = new LinkedHashMap<SvCharId, Object>(dbfs.size(), 1);
 
-			for (DbDataObject dbf : dbfs.getSortedItems("SORT_ORDER")) {
-				emptyMap.put(new SvCharId((String) dbf.getVal("FIELD_NAME")), null);
-				if (!"PKID".equals((String) dbf.getVal("FIELD_NAME")))
-					keyMap.put(new SvCharId((String) dbf.getVal("FIELD_NAME")), dbf);
+			for (DbDataObject dbf : dbfs.getSortedItems(Sv.SORT_ORDER)) {
+				emptyMap.put(new SvCharId((String) dbf.getVal(Sv.FIELD_NAME)), null);
+				if (!Sv.PKID.equals((String) dbf.getVal(Sv.FIELD_NAME)))
+					keyMap.put(new SvCharId((String) dbf.getVal(Sv.FIELD_NAME)), dbf);
 				else
-					keyMap.put(new SvCharId((String) dbf.getVal("FIELD_NAME")), null);
+					keyMap.put(new SvCharId((String) dbf.getVal(Sv.FIELD_NAME)), null);
 			}
 			dbtKeyMap.put(dbt.getObjectId(), keyMap);
 			emptyKeyMap.put(dbt.getObjectId(), emptyMap);
@@ -2564,13 +2426,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		// deserialize multi
 		if (dbf != null) {
-			if (dbf.getVal("SV_MULTISELECT") != null && (Boolean) dbf.getVal("SV_MULTISELECT")) {
+			if (dbf.getVal(Sv.SV_MULTISELECT) != null && (Boolean) dbf.getVal(Sv.SV_MULTISELECT)) {
 				String[] multivals = ((String) fieldVal).split(SvConf.getMultiSelectSeparator());
 				fieldVal = new ArrayList<String>(Arrays.asList(multivals));
 				dbo.setVal(fieldName, fieldVal);
 			}
-			if (dbf.getVal("SV_ISLABEL") != null && (Boolean) dbf.getVal("SV_ISLABEL")
-					&& dbf.getVal("SV_LOADLABEL") != null && (Boolean) dbf.getVal("SV_LOADLABEL")) {
+			if (dbf.getVal(Sv.SV_ISLABEL) != null && (Boolean) dbf.getVal(Sv.SV_ISLABEL)
+					&& dbf.getVal(Sv.SV_LOADLABEL) != null && (Boolean) dbf.getVal(Sv.SV_LOADLABEL)) {
 
 				fieldVal = I18n.getText(getUserLocaleId(instanceUser), (String) fieldVal);
 				dbo.setVal(fieldName, fieldVal);
@@ -2583,22 +2445,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * A method for converting a row from the resultset into a DbDataObject
 	 * 
-	 * @param rs
-	 *            A ResultSet object which contains the data
-	 * @param tblPrefix
-	 *            String prefix of the metadata fields. MUST BE UPPERCASED!!!
-	 * @param query
-	 *            the Svarog DbQuery object which was used for execution
-	 * @param rsmt
-	 *            The metadata of the resultset
+	 * @param rs        A ResultSet object which contains the data
+	 * @param tblPrefix String prefix of the metadata fields. MUST BE UPPERCASED!!!
+	 * @param query     the Svarog DbQuery object which was used for execution
+	 * @param rsmt      The metadata of the resultset
 	 * 
 	 * @return DbDataObject containing the data.
-	 * @throws SQLException
-	 *             Underlying exceptions from the JDBC structures
-	 * @throws ParseException
-	 *             Exception from conversion of datatypes between DB/Java
-	 * @throws SvException
-	 *             Re-throws any underlying exception
+	 * @throws SQLException   Underlying exceptions from the JDBC structures
+	 * @throws ParseException Exception from conversion of datatypes between DB/Java
+	 * @throws SvException    Re-throws any underlying exception
 	 */
 	private DbDataObject getObjectFromRecord(ResultSet rs, String tblPrefix, DbQuery query, ResultSetMetaData rsmt)
 			throws SQLException, ParseException, SvException {
@@ -2628,7 +2483,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				if (svCONST.repoFieldNames.indexOf(fieldName) < 0) {
 					SvCharId fieldId = new SvCharId(fieldName);
 					DbDataObject dbf = (DbDataObject) fields.get(fieldId);
-					fieldType = (dbf != null ? (String) dbf.getVal("FIELD_TYPE") : null);
+					fieldType = (dbf != null ? (String) dbf.getVal(Sv.FIELD_TYPE) : null);
 					Object fieldVal = getObjectFromCol(rs, fieldType, colIndex, rsmt);
 					object.setVal(fieldId, fieldVal);
 					if (fieldVal instanceof Geometry) {
@@ -2657,16 +2512,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to populate basic object data from a resultset
 	 * 
-	 * @param object
-	 *            The DbDataObject instance which will be initialised from the
-	 *            resultset
-	 * @param rs
-	 *            The JDBC resultset which will be used for initialising the
-	 *            object metadata
-	 * @param colPrefix
-	 *            The column prefix used in the query
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @param object    The DbDataObject instance which will be initialised from the
+	 *                  resultset
+	 * @param rs        The JDBC resultset which will be used for initialising the
+	 *                  object metadata
+	 * @param colPrefix The column prefix used in the query
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	private void setObjectRepoData(DbDataObject object, ResultSet rs, String colPrefix) throws SQLException {
 		object.setPkid(rs.getLong(colPrefix + "_PKID"));
@@ -2680,22 +2531,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Fetch a value from a resultset col into a Java Object, thus maintaining
-	 * basic svarog types
+	 * Fetch a value from a resultset col into a Java Object, thus maintaining basic
+	 * svarog types
 	 * 
-	 * @param rs
-	 *            The JDBC result set reference from which the data should be
-	 *            fetched
-	 * @param fieldType
-	 *            The type of the field
-	 * @param colIndex
-	 *            The index of the field in the resultset
+	 * @param rs        The JDBC result set reference from which the data should be
+	 *                  fetched
+	 * @param fieldType The type of the field
+	 * @param colIndex  The index of the field in the resultset
 	 * @return A java object of the specific type (string, number, geometry,
 	 *         boolean)
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
-	 * @throws ParseException
-	 *             Any underlying exception is re-thrown
+	 * @throws SQLException   Any underlying exception is re-thrown
+	 * @throws ParseException Any underlying exception is re-thrown
 	 */
 
 	private Object getObjectFromCol(ResultSet rs, String fieldType, int colIndex, ResultSetMetaData rsmt)
@@ -2705,10 +2551,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		if (fieldType != null) {
 			switch (fieldType) {
-			case "TEXT":
+			case Sv.TEXT:
 				obj = rs.getString(colIndex);
 				break;
-			case "GEOMETRY":
+			case Sv.GEOMETRY:
 				if (includeGeometries) {
 					byte[] geom = getDbHandler().getGeometry(rs, colIndex);
 					if (geom != null) {
@@ -2716,13 +2562,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					}
 				}
 				break;
-			case "BOOLEAN":
+			case Sv.BOOLEAN:
 				// if the db type is oracle of course deal with booleans.
 				// now you might wonder why false is 0 and true is 1
 				if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
 					obj = rs.getObject(colIndex);
 					if (obj != null)
-						obj = new Boolean(((String) obj).equals("0") ? false : true);
+						obj = new Boolean(((String) obj).equals(Sv.ZERO) ? false : true);
 				}
 			}
 		}
@@ -2746,20 +2592,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * To be removed in Svarog v2.0. This is deprecated version of the root
-	 * getter method. This method is responsible for rendering the DbQuery
-	 * object to a plain SQL and then running the statement against the DB to
-	 * get the record set. The record set is then translated into a DbDataArray
-	 * object, containing the resulting data.
+	 * To be removed in Svarog v2.0. This is deprecated version of the root getter
+	 * method. This method is responsible for rendering the DbQuery object to a
+	 * plain SQL and then running the statement against the DB to get the record
+	 * set. The record set is then translated into a DbDataArray object, containing
+	 * the resulting data.
 	 * 
-	 * @param query
-	 *            {@link DbQueryObject} to be executed against the underlying DB
-	 * @param errorCode
-	 *            standard svCONST error code
-	 * @param rowLimit
-	 *            maximum number of objects to be returned
-	 * @param offset
-	 *            offset from which the objects should be returned
+	 * @param query     {@link DbQueryObject} to be executed against the underlying
+	 *                  DB
+	 * @param errorCode standard svCONST error code
+	 * @param rowLimit  maximum number of objects to be returned
+	 * @param offset    offset from which the objects should be returned
 	 * @return A {@link DbDataArray} object containing all returned data in
 	 *         DbDataObject format
 	 */
@@ -2780,14 +2623,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Method to check if the current SvCore instance has access rights over a
 	 * specific object type descriptor.
 	 * 
-	 * @param dbt
-	 *            The object type descriptor
+	 * @param dbt         The object type descriptor
 	 * @param
-	 * @param accessLevel
-	 *            The required access level
+	 * @param accessLevel The required access level
 	 * @return True if the instance has the required permissions
-	 * @throws SvException
-	 *             Throw any underlying exception
+	 * @throws SvException Throw any underlying exception
 	 */
 	protected boolean hasDbtAccess(DbDataObject dbt, String unqConfigId, SvAccess accessLevel) throws SvException {
 		boolean hasAccess = false;
@@ -2797,7 +2637,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			if (aclMap != null) {
 				DbDataObject acl = aclMap.get(unqConfigId);
 				if (acl != null) {
-					SvAccess accessType = (SvAccess) acl.getVal("ACCESS_TYPE");
+					SvAccess accessType = (SvAccess) acl.getVal(Sv.ACCESS_TYPE);
 					hasAccess = accessType.getAccessLevelValue() >= accessLevel.getAccessLevelValue();
 				}
 			}
@@ -2811,16 +2651,16 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		boolean hasAccess = false;
 		// create expression to hold the config criteria
 		DbSearchExpression innerDbx = new DbSearchExpression();
-		innerDbx.setNextCritOperand("AND");
+		innerDbx.setNextCritOperand(Sv.AND);
 		// get the config field name to filter by
-		String cfgFieldName = (String) dqo.getDbt().getVal("config_unq_id");
+		String cfgFieldName = (String) dqo.getDbt().getVal(Sv.CONFIG_UNQ_ID);
 
 		for (Entry<String, DbDataObject> permItem : aclMap.entrySet()) {
 			// if the key of the permission is null, than its the global table
 			// key, so we ignore it
 			if (permItem.getKey() != null && permItem.getValue() != null) {
 				DbDataObject acl = permItem.getValue();
-				SvAccess accessType = (SvAccess) acl.getVal("ACCESS_TYPE");
+				SvAccess accessType = (SvAccess) acl.getVal(Sv.ACCESS_TYPE);
 				if (accessType.getAccessLevelValue() >= accessLevel.getAccessLevelValue()) {
 					hasAccess = true;
 					try {
@@ -2852,23 +2692,23 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		// create expression to hold the config criteria
 		DbSearchExpression innerDbx = new DbSearchExpression();
-		innerDbx.setNextCritOperand("AND");
+		innerDbx.setNextCritOperand(Sv.AND);
 
 		DbSearchExpression subCfgDbx = new DbSearchExpression();
-		subCfgDbx.setNextCritOperand("AND");
+		subCfgDbx.setNextCritOperand(Sv.AND);
 
 		// get the config field name to filter by
-		DbDataObject cfgDbt = (DbDataObject) dbt.getVal("config_type");
-		DbDataObject cfgObject = (DbDataObject) dbt.getVal("config_relation");
+		DbDataObject cfgDbt = (DbDataObject) dbt.getVal(Sv.CONFIG_TYPE);
+		DbDataObject cfgObject = (DbDataObject) dbt.getVal(Sv.CONFIG_RELATION);
 
 		// the cfg column from the configuration type table
-		String cfgFieldName = (String) cfgDbt.getVal("config_unq_id");
+		String cfgFieldName = (String) cfgDbt.getVal(Sv.CONFIG_UNQ_ID);
 		for (Entry<String, DbDataObject> permItem : aclMap.entrySet()) {
 			// if the key of the permission is null, than its the global table
 			// key, so we ignore it
 			if (permItem.getKey() != null && permItem.getValue() != null) {
 				DbDataObject acl = permItem.getValue();
-				SvAccess accessType = (SvAccess) acl.getVal("ACCESS_TYPE");
+				SvAccess accessType = (SvAccess) acl.getVal(Sv.ACCESS_TYPE);
 				if (accessType.getAccessLevelValue() >= accessLevel.getAccessLevelValue()) {
 					hasAccess = true;
 					try {
@@ -2879,10 +2719,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				}
 			}
 		}
-		if (dbt.getVal("config_relation_type").equals("FIELD")) {
+		if (dbt.getVal(Sv.CONFIG_RELATION_TYPE).equals(Sv.FIELD)) {
 			DbQueryObject subDqo = new DbQueryObject(cfgDbt, subCfgDbx, null, null);
-			subDqo.setCustomFieldsList(new ArrayList<String>(Arrays.asList("OBJECT_ID")));
-			DbSearchCriterion finalCrit = new DbSearchCriterion((String) cfgObject.getVal("FIELD_NAME"),
+			subDqo.setCustomFieldsList(new ArrayList<String>(Arrays.asList(Sv.OBJECT_ID)));
+			DbSearchCriterion finalCrit = new DbSearchCriterion((String) cfgObject.getVal(Sv.FIELD_NAME),
 					DbCompareOperand.IN_SUBQUERY);
 			finalCrit.setInSubQuery(subDqo);
 			innerDbx.addDbSearchItem(finalCrit);
@@ -2913,17 +2753,17 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				// check for full table access via null key
 				DbDataObject acl = aclMap.get(null);
 				if (acl != null) {
-					SvAccess accessType = (SvAccess) acl.getVal("ACCESS_TYPE");
+					SvAccess accessType = (SvAccess) acl.getVal(Sv.ACCESS_TYPE);
 					hasAccess = accessType.getAccessLevelValue() >= accessLevel.getAccessLevelValue();
 				}
 				// if the full table access was not authorised, try to
 				// authorise
 				// based on config id. only if its a config table of course.
-				if (!hasAccess && (boolean) dqo.getDbt().getVal("is_config_table")) {
+				if (!hasAccess && (boolean) dqo.getDbt().getVal(Sv.IS_CONFIG_TABLE)) {
 					hasAccess = authoriseDqoByConfig(dqo, aclMap, accessLevel);
 				}
 				// Authorising implementation tables based on related config
-				if (!hasAccess && dqo.getDbt().getVal("CONFIG_TYPE_ID") != null) {
+				if (!hasAccess && dqo.getDbt().getVal(Sv.CONFIG_TYPE_ID) != null) {
 					hasAccess = authoriseDqoByConfigType(dqo, aclMap, accessLevel);
 				}
 			}
@@ -2989,24 +2829,22 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * This is the root getter method. This method is responsible for rendering
-	 * the DbQuery object to a plain SQL and then running the statement against
-	 * the DB to get the record set. The record set is then translated into a
-	 * DbDataArray object, containing the resulting data.
+	 * This is the root getter method. This method is responsible for rendering the
+	 * DbQuery object to a plain SQL and then running the statement against the DB
+	 * to get the record set. The record set is then translated into a DbDataArray
+	 * object, containing the resulting data.
 	 * 
-	 * @param query
-	 *            {@link DbQueryObject} to be executed against the underlying DB
-	 * @param rowLimit
-	 *            maximum number of objects to be returned
-	 * @param offset
-	 *            offset from which the objects should be returned
+	 * @param query    {@link DbQueryObject} to be executed against the underlying
+	 *                 DB
+	 * @param rowLimit maximum number of objects to be returned
+	 * @param offset   offset from which the objects should be returned
 	 * @return A {@link DbDataArray} object containing all returned data in
 	 *         DbDataObject format
-	 * @throws SvException
-	 *             All underlying JDBC exceptions are wrapped in SvException,
-	 *             which contains more information about the query which is
-	 *             executed. Also a parse exception can be thrown in case of
-	 *             fetching a Geometry whose WKT format is bad.
+	 * @throws SvException All underlying JDBC exceptions are wrapped in
+	 *                     SvException, which contains more information about the
+	 *                     query which is executed. Also a parse exception can be
+	 *                     thrown in case of fetching a Geometry whose WKT format is
+	 *                     bad.
 	 */
 	DbDataArray getObjects(DbQuery query, Integer rowLimit, Integer offset) throws SvException {
 		// Check for read access to all query objects in the DbQuery
@@ -3024,7 +2862,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			// System.out.println("Before exec "+new DateTime().toString());
 			rs = ps.executeQuery();
 			// System.out.println("After exec "+new DateTime().toString());
-			String tblPrefix = "TBL";
+			String tblPrefix = Sv.TBL;
 			if ((fullQuery instanceof DbQueryExpression) && ((DbQueryExpression) fullQuery).getIsReverseExpression()) {
 				if (fullQuery.getReturnTypes().size() == 1) {
 					tblPrefix = ((DbQueryExpression) fullQuery).getRootQueryObject().getSqlTablePrefix();
@@ -3077,17 +2915,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method to get the object type for a certain object ID.
 	 * 
-	 * @param objectId
-	 *            The object Id for which we need the type
-	 * @param schemaName
-	 *            The schema in which the repo is stored
-	 * @param repoName
-	 *            The repo in which the object is stored
-	 * @param conn
-	 *            Connection to be used for the query
+	 * @param objectId   The object Id for which we need the type
+	 * @param schemaName The schema in which the repo is stored
+	 * @param repoName   The repo in which the object is stored
+	 * @param conn       Connection to be used for the query
 	 * @return The type id
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	@SuppressWarnings("unused")
 	@Deprecated
@@ -3126,26 +2959,20 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Method for binding object to prepared statement variables
 	 * 
-	 * @param ps
-	 *            The used SQL prepared statement
-	 * @param dbf
-	 *            The descriptor of the field
-	 * @param bindAtPosition
-	 *            The position at which the object value will be bind
-	 * @param value
-	 *            The value which should be bind
-	 * @param lob
-	 *            Reference to the LOB management class
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @param ps             The used SQL prepared statement
+	 * @param dbf            The descriptor of the field
+	 * @param bindAtPosition The position at which the object value will be bind
+	 * @param value          The value which should be bind
+	 * @param lob            Reference to the LOB management class
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	protected void bindInsertQueryVars(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value,
 			SvLob lob) throws SQLException, SvException {
 
-		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal("field_type"));
+		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal(Sv.FIELD_TYPE));
 		if (log4j.isDebugEnabled())
 			log4j.debug("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
-					+ (value != null ? value.toString() : "null") + " at position " + bindAtPosition + " as data type "
+					+ (value != null ? value.toString() : Sv.SQL_NULL) + " at position " + bindAtPosition + " as data type "
 					+ type.toString());
 
 		switch (type) {
@@ -3179,17 +3006,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method for binding Booleam parameter to the prepare statement based on
-	 * field configuration at specified position
+	 * Method for binding Booleam parameter to the prepare statement based on field
+	 * configuration at specified position
 	 * 
-	 * @param ps
-	 *            The used SQL prepared statement
-	 * @param bindAtPosition
-	 *            The position at which the object value will be bind
-	 * @param value
-	 *            The value which should be bind
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @param ps             The used SQL prepared statement
+	 * @param bindAtPosition The position at which the object value will be bind
+	 * @param value          The value which should be bind
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	private void bindBoolean(PreparedStatement ps, int bindAtPosition, Object value) throws SQLException {
 
@@ -3204,26 +3027,21 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method for binding Numeric parameter to the prepare statement based on
-	 * field configuration at specified position
+	 * Method for binding Numeric parameter to the prepare statement based on field
+	 * configuration at specified position
 	 * 
-	 * @param ps
-	 *            The used SQL prepared statement
-	 * @param dbf
-	 *            The descriptor of the field
-	 * @param bindAtPosition
-	 *            The position at which the object value will be bind
-	 * @param value
-	 *            The value which should be bind
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @param ps             The used SQL prepared statement
+	 * @param dbf            The descriptor of the field
+	 * @param bindAtPosition The position at which the object value will be bind
+	 * @param value          The value which should be bind
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	private void bindNumeric(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value)
 			throws SQLException {
 		if (value == null)
 			ps.setNull(bindAtPosition, java.sql.Types.NUMERIC);
 		else {
-			Long fScale = (Long) dbf.getVal("FIELD_SCALE");
+			Long fScale = (Long) dbf.getVal(Sv.FIELD_SCALE);
 			if (fScale != null && fScale > 0) {
 				BigDecimal bdcml;
 				if (value instanceof BigDecimal) {
@@ -3242,17 +3060,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method for binding DateTime parameter to the prepare statement based on
-	 * field configuration at specified position
+	 * Method for binding DateTime parameter to the prepare statement based on field
+	 * configuration at specified position
 	 * 
-	 * @param ps
-	 *            The used SQL prepared statement
-	 * @param bindAtPosition
-	 *            The position at which the object value will be bind
-	 * @param value
-	 *            The value which should be bind
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @param ps             The used SQL prepared statement
+	 * @param bindAtPosition The position at which the object value will be bind
+	 * @param value          The value which should be bind
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	private void bindDateTime(PreparedStatement ps, int bindAtPosition, Object value) throws SQLException {
 		if (value == null)
@@ -3266,30 +3080,23 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method for binding string parameter to the prepare statement based on
-	 * field configuration at specified position
+	 * Method for binding string parameter to the prepare statement based on field
+	 * configuration at specified position
 	 * 
-	 * @param ps
-	 *            The used SQL prepared statement
-	 * @param dbf
-	 *            The descriptor of the field
-	 * @param bindAtPosition
-	 *            The position at which the object value will be bind
-	 * @param value
-	 *            The value which should be bind
-	 * @param lob
-	 *            Reference to the LOB management class
-	 * @param type
-	 *            The type of the value bound to the field
-	 * @throws SQLException
-	 *             Any underlying exception is re-thrown
+	 * @param ps             The used SQL prepared statement
+	 * @param dbf            The descriptor of the field
+	 * @param bindAtPosition The position at which the object value will be bind
+	 * @param value          The value which should be bind
+	 * @param lob            Reference to the LOB management class
+	 * @param type           The type of the value bound to the field
+	 * @throws SQLException Any underlying exception is re-thrown
 	 */
 	private void bindString(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
 			DbFieldType type) throws SQLException {
 		if (value == null)
 			ps.setString(bindAtPosition, null);
 		else {
-			Boolean sv_multi = (Boolean) dbf.getVal("sv_multiselect");
+			Boolean sv_multi = (Boolean) dbf.getVal(Sv.SV_MULTISELECT);
 			if (value instanceof ArrayList<?> && sv_multi != null && sv_multi) {
 				StringBuilder bindVal = new StringBuilder();
 				for (String oVal : (ArrayList<String>) value) {
