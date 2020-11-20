@@ -179,7 +179,7 @@ public class SvarogInstall {
 				if (validateCommandLine(line)) {
 					if (line.hasOption("j"))
 						returnStatus = generateJsonCfg();
-					else if (line.hasOption("g"))
+					else if (line.hasOption("gd"))
 						returnStatus = generateGrid();
 					else if (line.hasOption("i")) {
 						returnStatus = validateInstall();
@@ -968,7 +968,7 @@ public class SvarogInstall {
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
-		opt = new Option("g", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
+		opt = new Option("gd", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
