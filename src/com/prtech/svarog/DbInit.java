@@ -98,7 +98,7 @@ public class DbInit {
 		dbe2.setLabel_code("plugin_conf.plugin_context");
 
 		DbDataField dbe3 = new DbDataField();
-		dbe3.setDbFieldName(Sv.LABEL_CODE);
+		dbe3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe3.setDbFieldSize(50);
 		dbe3.setIsNull(false);
@@ -368,7 +368,7 @@ public class DbInit {
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -425,7 +425,7 @@ public class DbInit {
 
 		// f2
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(Sv.LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(false);
@@ -819,7 +819,7 @@ public class DbInit {
 		dbe.setLabel_code("FIELD_TYPE");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -833,7 +833,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName(Sv.LABEL_CODE);
+		dbe2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setDbFieldSize(100);
 		dbe2.setIsNull(false);
@@ -1010,7 +1010,7 @@ public class DbInit {
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -1024,7 +1024,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName(Sv.LABEL_CODE);
+		dbe2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setIsNull(false);
 		dbe2.setDbFieldScale(0);
@@ -1225,7 +1225,7 @@ public class DbInit {
 		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "job_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1239,7 +1239,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -1316,7 +1316,7 @@ public class DbInit {
 		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "task_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1330,7 +1330,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1388,7 +1388,7 @@ public class DbInit {
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 		dbe.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 		// Column 1
@@ -1403,7 +1403,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1999,7 +1999,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(Sv.LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -2075,7 +2075,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(Sv.LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -3365,7 +3365,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
-			dbf2_1.setDbFieldName("WORKFLOW_" + Sv.LABEL_CODE);
+			dbf2_1.setDbFieldName("WORKFLOW_" + Sv.LABEL_CODE.toString());
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(100);
 			dbf2_1.setIsNull(false);
@@ -3451,7 +3451,7 @@ public class DbInit {
 			dbt.setObjectId(svCONST.OBJECT_TYPE_ACL);
 			dbt.setIsRepoTable(false);
 			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl");
-			dbt.setConfigColumnName(Sv.LABEL_CODE);
+			dbt.setConfigColumnName(Sv.LABEL_CODE.toString());
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 
@@ -3526,7 +3526,7 @@ public class DbInit {
 			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl_config_unq_id");
 
 			DbDataField dbf9 = new DbDataField();
-			dbf9.setDbFieldName(Sv.LABEL_CODE);
+			dbf9.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(100);
 			dbf9.setIsNull(false);
@@ -3745,7 +3745,7 @@ public class DbInit {
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName(Sv.LABEL_CODE);
+			dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(false);
@@ -3866,7 +3866,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
-			dbf2.setDbFieldName(Sv.LABEL_CODE);
+			dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
@@ -4026,7 +4026,7 @@ public class DbInit {
 			// f9
 
 			DbDataField dbf10 = new DbDataField();
-			dbf10.setDbFieldName(Sv.LABEL_CODE);
+			dbf10.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf10.setDbFieldSize(100);
 			dbf10.setIsNull(false);
@@ -4131,7 +4131,7 @@ public class DbInit {
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(true);
-			dbt.setConfigColumnName(Sv.TABLE_NAME);
+			dbt.setConfigColumnName(Sv.TABLE_NAME.toString());
 
 			// f1
 			DbDataField dbf1 = new DbDataField();
@@ -4154,7 +4154,7 @@ public class DbInit {
 			// f3
 
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName(Sv.TABLE_NAME);
+			dbf3.setDbFieldName(Sv.TABLE_NAME.toString());
 			dbf3.setIsUnique(true);
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(25);
@@ -4187,7 +4187,7 @@ public class DbInit {
 			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "repo_table");
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName(Sv.LABEL_CODE);
+			dbf7.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(100);
 			dbf7.setIsNull(false);
@@ -5465,7 +5465,7 @@ public class DbInit {
 						dbo.setStatus(svCONST.STATUS_VALID);
 						dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 						dbo.setDtDelete(SvConf.MAX_DATE);
-						dbo.setVal(Sv.LABEL_CODE, (String) pair.getKey());
+						dbo.setVal(Sv.LABEL_CODE.toString(), (String) pair.getKey());
 						dbo.setVal(Sv.LABEL_TEXT, (String) pair.getValue());
 						dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
@@ -5542,7 +5542,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, (String) dbt.getVal(Sv.TABLE_NAME));
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", null);
-		dbo.setVal(Sv.LABEL_CODE, (String) dbt.getVal(Sv.TABLE_NAME) + "." + accessLevel.toString());
+		dbo.setVal(Sv.LABEL_CODE.toString(), (String) dbt.getVal(Sv.TABLE_NAME) + "." + accessLevel.toString());
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		return dbo;
 
@@ -5557,7 +5557,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.SUDO_ACL);
-		dbo.setVal(Sv.LABEL_CODE, svCONST.SUDO_ACL);
+		dbo.setVal(Sv.LABEL_CODE.toString(), svCONST.SUDO_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5569,7 +5569,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.INSECURE_SQL_ACL);
-		dbo.setVal(Sv.LABEL_CODE, svCONST.INSECURE_SQL_ACL);
+		dbo.setVal(Sv.LABEL_CODE.toString(), svCONST.INSECURE_SQL_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5581,7 +5581,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.NULL_GEOMETRY_ACL);
-		dbo.setVal(Sv.LABEL_CODE, svCONST.NULL_GEOMETRY_ACL);
+		dbo.setVal(Sv.LABEL_CODE.toString(), svCONST.NULL_GEOMETRY_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5706,8 +5706,8 @@ public class DbInit {
 												? aclItem.get("acl_config_unq").getAsString()
 												: null);
 								dbo.setVal(Sv.LABEL_CODE,
-										aclItem.get(Sv.LABEL_CODE.toLowerCase()) != null
-												? aclItem.get(Sv.LABEL_CODE.toLowerCase()).getAsString()
+										aclItem.get(Sv.LABEL_CODE.toString().toLowerCase()) != null
+												? aclItem.get(Sv.LABEL_CODE.toString().toLowerCase()).getAsString()
 												: null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
@@ -5731,19 +5731,19 @@ public class DbInit {
 								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
-								dbo.setVal("sid_object_id",
-										aclItem.get("sid_object_id") != null
-												? aclItem.get("sid_object_id").getAsString()
+								dbo.setVal(Sv.SID_OBJECT_ID,
+										aclItem.get(Sv.SID_OBJECT_ID) != null
+												? aclItem.get(Sv.SID_OBJECT_ID).getAsString()
 												: null);
-								if (aclItem.get("status") != null)
-									dbo.setStatus(aclItem.get("status").getAsString());
+								if (aclItem.get(Sv.STATUS) != null)
+									dbo.setStatus(aclItem.get(Sv.STATUS).getAsString());
 
-								dbo.setVal("acl_label_code",
-										aclItem.get("acl_label_code") != null
-												? aclItem.get("acl_label_code").getAsString()
+								dbo.setVal(Sv.ACL_LABEL_CODE,
+										aclItem.get(Sv.ACL_LABEL_CODE) != null
+												? aclItem.get(Sv.ACL_LABEL_CODE).getAsString()
 												: null);
-								dbo.setVal("group_name",
-										aclItem.get("group_name") != null ? aclItem.get("group_name").getAsString()
+								dbo.setVal(Sv.GROUP_NAME,
+										aclItem.get(Sv.GROUP_NAME) != null ? aclItem.get(Sv.GROUP_NAME).getAsString()
 												: null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_SID_ACL);
 								arrAclSid.addDataItem(dbo);
