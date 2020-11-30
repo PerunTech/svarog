@@ -2016,8 +2016,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		try {
 			StringBuilder sqlQry = query.getSQLExpression(false, includeGeometries);
 			if (rowLimit != null && offset != null && (rowLimit > 0 || offset > 0)) {
-				String sRowLimit = SvConf.getSqlkw().getString(Sv.LIMIT_OFFSET).replace(Sv.bracketOFFSET, offset.toString())
-						.replace(Sv.bracketLIMIT, rowLimit.toString());
+				String sRowLimit = SvConf.getSqlkw().getString(Sv.LIMIT_OFFSET).replace(Sv.OFFSET, offset.toString())
+						.replace(Sv.LIMIT, rowLimit.toString());
 				int orderPos = sqlQry.indexOf(Sv.ORDER_BY);
 				if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
 					if (orderPos > 0)

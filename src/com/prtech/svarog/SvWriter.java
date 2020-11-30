@@ -62,24 +62,22 @@ public class SvWriter extends SvCore {
 	static final Logger log4j = SvConf.getLogger(SvWriter.class);
 
 	/**
-	 * Constructor to create a SvWriter object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvWriter object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException
-	 *             Pass through of underlying exceptions
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvWriter(String session_id) throws SvException {
 		super(session_id);
 	}
 
 	/**
-	 * Constructor to create a SvWriter object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvWriter object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException
-	 *             Pass through of underlying exceptions
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvWriter(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -106,13 +104,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Internal writer instance to get connection for performing constraints
-	 * checks out of the standard transaction
+	 * Internal writer instance to get connection for performing constraints checks
+	 * out of the standard transaction
 	 */
 	SvReader internalReader = null;
 	/**
-	 * Variable to hold the old transaction level of the connection] so we can
-	 * reset it before releasing it
+	 * Variable to hold the old transaction level of the connection] so we can reset
+	 * it before releasing it
 	 */
 	int oldTrxIsolation = 0;
 
@@ -143,8 +141,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method used to validate forms before saving.
 	 * 
-	 * @param dbo
-	 *            Data object containing the form
+	 * @param dbo Data object containing the form
 	 * @throws SvException
 	 */
 	void canSaveForm(DbDataObject dbo) throws SvException {
@@ -189,10 +186,8 @@ public class SvWriter extends SvCore {
 	 * Method which checks if the object identified by object_id and pkid can be
 	 * written to the DataTable defined by parameter dbt
 	 * 
-	 * @param dbt
-	 *            The object type descriptor
-	 * @param dbo
-	 *            The data object subject of update
+	 * @param dbt         The object type descriptor
+	 * @param dbo         The data object subject of update
 	 * @param repoObjects
 	 * @throws SvException
 	 */
@@ -281,8 +276,8 @@ public class SvWriter extends SvCore {
 												+ "_pkid")
 								+ ","
 								+ SvConf.getSqlkw().getString("SEQ_NEXTVAL").replace("{SEQUENCE_NAME}",
-										(String) repoDbt.getVal("SCHEMA") + "." + (String) repoDbt.getVal("TABLE_NAME")
-												+ "_oid")
+										(String) repoDbt.getVal("SCHEMA")
+												+ "." + (String) repoDbt.getVal("TABLE_NAME") + "_oid")
 								+ ", ?, ?, ?, ?,"
 								+ SvConf.getSqlkw().getString("SEQ_CURRVAL").replace("{SEQUENCE_NAME}",
 										(String) repoDbt.getVal("SCHEMA") + "." + (String) repoDbt.getVal("TABLE_NAME")
@@ -327,12 +322,9 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to cache the prebuilt queries
 	 * 
-	 * @param dbt
-	 *            The type of object for which we want to built a query
-	 * @param objectFields
-	 *            The list of fields which we plan to insert
-	 * @param oldPKID
-	 *            The old PKID of the object in case of update
+	 * @param dbt          The type of object for which we want to built a query
+	 * @param objectFields The list of fields which we plan to insert
+	 * @param oldPKID      The old PKID of the object in case of update
 	 * @return
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
@@ -393,13 +385,10 @@ public class SvWriter extends SvCore {
 	 * Method that performs basic checks on object before its being saved in the
 	 * repo
 	 * 
-	 * @param dbo
-	 *            The object to be saved
-	 * @param isFirstOld
-	 *            If it is batch we need to ensure that all objects either new
-	 *            or updates.
-	 * @param skipPreSaveChecks
-	 *            If pre-save checks should be skipped.
+	 * @param dbo               The object to be saved
+	 * @param isFirstOld        If it is batch we need to ensure that all objects
+	 *                          either new or updates.
+	 * @param skipPreSaveChecks If pre-save checks should be skipped.
 	 * @throws SvException
 	 */
 	void checkRepoData(DbDataObject dbo, Boolean isUpdate, Boolean skipPreSaveChecks) throws SvException {
@@ -427,38 +416,37 @@ public class SvWriter extends SvCore {
 	 * 
 	 * @return
 	 * @throws SvException
-	 * @throws SQLServerException
-	 *             SQLServerDataTable prepRepoDataTable() throws
-	 *             SQLServerException { if
-	 *             (SvConf.getDbType().equals(SvDbType.MSSQL)) {
-	 *             SQLServerDataTable repoTypeDT = new SQLServerDataTable();
-	 *             repoTypeDT.addColumnMetadata("PKID", java.sql.Types.NUMERIC);
-	 *             repoTypeDT.addColumnMetadata("META_PKID",
-	 *             java.sql.Types.NUMERIC);
-	 *             repoTypeDT.addColumnMetadata("OBJECT_ID",
-	 *             java.sql.Types.NUMERIC);
-	 *             repoTypeDT.addColumnMetadata("DT_INSERT",
-	 *             java.sql.Types.TIMESTAMP);
-	 *             repoTypeDT.addColumnMetadata("DT_DELETE",
-	 *             java.sql.Types.TIMESTAMP);
-	 *             repoTypeDT.addColumnMetadata("PARENT_ID",
-	 *             java.sql.Types.NUMERIC);
-	 *             repoTypeDT.addColumnMetadata("OBJECT_TYPE",
-	 *             java.sql.Types.NUMERIC);
-	 *             repoTypeDT.addColumnMetadata("STATUS",
-	 *             java.sql.Types.NVARCHAR);
-	 *             repoTypeDT.addColumnMetadata("USER_ID",
-	 *             java.sql.Types.NUMERIC); return repoTypeDT; } else return
-	 *             null; }
+	 * @throws SQLServerException SQLServerDataTable prepRepoDataTable() throws
+	 *                            SQLServerException { if
+	 *                            (SvConf.getDbType().equals(SvDbType.MSSQL)) {
+	 *                            SQLServerDataTable repoTypeDT = new
+	 *                            SQLServerDataTable();
+	 *                            repoTypeDT.addColumnMetadata("PKID",
+	 *                            java.sql.Types.NUMERIC);
+	 *                            repoTypeDT.addColumnMetadata("META_PKID",
+	 *                            java.sql.Types.NUMERIC);
+	 *                            repoTypeDT.addColumnMetadata("OBJECT_ID",
+	 *                            java.sql.Types.NUMERIC);
+	 *                            repoTypeDT.addColumnMetadata("DT_INSERT",
+	 *                            java.sql.Types.TIMESTAMP);
+	 *                            repoTypeDT.addColumnMetadata("DT_DELETE",
+	 *                            java.sql.Types.TIMESTAMP);
+	 *                            repoTypeDT.addColumnMetadata("PARENT_ID",
+	 *                            java.sql.Types.NUMERIC);
+	 *                            repoTypeDT.addColumnMetadata("OBJECT_TYPE",
+	 *                            java.sql.Types.NUMERIC);
+	 *                            repoTypeDT.addColumnMetadata("STATUS",
+	 *                            java.sql.Types.NVARCHAR);
+	 *                            repoTypeDT.addColumnMetadata("USER_ID",
+	 *                            java.sql.Types.NUMERIC); return repoTypeDT; } else
+	 *                            return null; }
 	 */
 
 	/**
 	 * Method to execute on save call backs on the object subject of saving
 	 * 
-	 * @param dbo
-	 *            the reference to the object
-	 * @throws SvException
-	 *             any exception that is thrown by the callbacks
+	 * @param dbo the reference to the object
+	 * @throws SvException any exception that is thrown by the callbacks
 	 */
 	private void executeOnSaveCallbacks(DbDataObject dbo) throws SvException {
 		CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
@@ -477,15 +465,13 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to save the base repo data for the object.
 	 * 
-	 * @param dbt
-	 *            The object type descriptor
-	 * @param dba
-	 *            The array of objects to be saved
-	 * @param withMetaUpdate
-	 *            If there is pending meta data update, the meta sequence should
-	 *            be increased. If not no change to the meta_pkid will happen
-	 * @param skipPreSaveChecks
-	 *            In certain situations, the pre-save checks need to be skipped.
+	 * @param dbt               The object type descriptor
+	 * @param dba               The array of objects to be saved
+	 * @param withMetaUpdate    If there is pending meta data update, the meta
+	 *                          sequence should be increased. If not no change to
+	 *                          the meta_pkid will happen
+	 * @param skipPreSaveChecks In certain situations, the pre-save checks need to
+	 *                          be skipped.
 	 * @param oldRepoObjs
 	 * @throws SvException
 	 */
@@ -597,13 +583,10 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method to generate the sql statement for update of the delete repo
-	 * objects
+	 * Method to generate the sql statement for update of the delete repo objects
 	 * 
-	 * @param schema
-	 *            The Schema name
-	 * @param repoName
-	 *            The name of the repo table
+	 * @param schema   The Schema name
+	 * @param repoName The name of the repo table
 	 * @return String containing valid SQL statement
 	 */
 	private String getUpdateRepoSql(String schema, String repoName) {
@@ -611,17 +594,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method to set the generated keys to the appropriate Object in the
-	 * DbDataArray which is batched
+	 * Method to set the generated keys to the appropriate Object in the DbDataArray
+	 * which is batched
 	 * 
-	 * @param dba
-	 *            The batched DbDataArray
-	 * @param pkid
-	 *            The versioning id of the object
-	 * @param objectId
-	 *            The object id of the object
-	 * @param objectIndex
-	 *            The index of the object in the batched array
+	 * @param dba         The batched DbDataArray
+	 * @param pkid        The versioning id of the object
+	 * @param objectId    The object id of the object
+	 * @param objectIndex The index of the object in the batched array
 	 */
 	void setKeys(DbDataArray dba, Long pkid, Long objectId, int objectIndex) {
 		dba.getItems().get(objectIndex).setObjectId(objectId);
@@ -655,15 +634,12 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for saving base object repository data.
 	 * 
-	 * @param dbt
-	 *            Descriptor of the object type
-	 * @param dbo
-	 *            The object to be saved
-	 * @param withMetaUpdate
-	 *            Should the object metadata be also updated or the update is
-	 *            repo only
-	 * @param conn
-	 *            SQL Connection to be used for execution of the SQL statements.
+	 * @param dbt            Descriptor of the object type
+	 * @param dbo            The object to be saved
+	 * @param withMetaUpdate Should the object metadata be also updated or the
+	 *                       update is repo only
+	 * @param conn           SQL Connection to be used for execution of the SQL
+	 *                       statements.
 	 * @throws SQLException
 	 * @throws Exception
 	 */
@@ -754,8 +730,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method that returns the default status for an Object Type
 	 * 
-	 * @param dbt
-	 *            References to the object configuration
+	 * @param dbt References to the object configuration
 	 * @return
 	 */
 	public static String getDefaultStatus(DbDataObject dbt) {
@@ -809,10 +784,8 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method executing core pre-save checks
 	 * 
-	 * @param dbt
-	 *            The Object Type descriptor
-	 * @param dbo
-	 *            The data object subject of writing to the DB
+	 * @param dbt The Object Type descriptor
+	 * @param dbo The data object subject of writing to the DB
 	 * @return Array objects containing the old repo data
 	 * @throws SvException
 	 */
@@ -845,11 +818,9 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for cleaning up the cache for a specific DbDataObject
 	 * 
-	 * @param objectId
-	 *            The object id of the DbDataObject for which the cache should
-	 *            purged
-	 * @param objectTypeId
-	 *            The object type id of the DbDataObject
+	 * @param objectId     The object id of the DbDataObject for which the cache
+	 *                     should purged
+	 * @param objectTypeId The object type id of the DbDataObject
 	 * @throws SvException
 	 */
 	static void cacheCleanup(Long objectId, Long objectTypeId) throws SvException {
@@ -861,8 +832,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for cleaning up the cache for a specific DbDataObject
 	 * 
-	 * @param dbo
-	 *            The DbDataObject for which the cache should purged
+	 * @param dbo The DbDataObject for which the cache should purged
 	 * @throws SvException
 	 */
 	static void cacheCleanup(DbDataObject dbo) throws SvException {
@@ -886,6 +856,8 @@ public class SvWriter extends SvCore {
 			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK)) {
 				removeLinkCache(dbo);
 			}
+			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_SYS_PARAMS))
+				SvParameter.paramsCache.invalidate(dbo.getVal(Sv.PARAM_NAME));
 
 		}
 
@@ -894,10 +866,8 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to execute all registered After Save callbacks in Svarog.
 	 * 
-	 * @param dbo
-	 *            The object which was saved
-	 * @throws SvException
-	 *             If any exception was raised by the callbacks, throw it
+	 * @param dbo The object which was saved
+	 * @throws SvException If any exception was raised by the callbacks, throw it
 	 */
 	void executeAfterSaveCallbacks(DbDataObject dbo) throws SvException {
 		CopyOnWriteArrayList<ISvOnSave> globalCallback = onSaveCallbacks.get(0L);
@@ -916,17 +886,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Root method to save data to the underlying table. This method will
-	 * generate the INSERT query and bind the appropriate parameters as values.
+	 * Root method to save data to the underlying table. This method will generate
+	 * the INSERT query and bind the appropriate parameters as values.
 	 * 
-	 * @param arrayToSave
-	 *            Array of objects to save
-	 * @param dbt
-	 *            The table descriptor
-	 * @param oldRepoObjs
-	 *            In case we are updating records, the old repo objects
-	 * @param isUpdate
-	 *            If this is update or new objects
+	 * @param arrayToSave Array of objects to save
+	 * @param dbt         The table descriptor
+	 * @param oldRepoObjs In case we are updating records, the old repo objects
+	 * @param isUpdate    If this is update or new objects
 	 * @throws SvException
 	 */
 
@@ -966,25 +932,16 @@ public class SvWriter extends SvCore {
 	 * Method to bind the object field values to the parameters of the prepared
 	 * statement
 	 * 
-	 * @param objToSave
-	 *            The DbDataObject object which is subject of inserting into the
-	 *            Database
-	 * @param isUpdate
-	 *            Is this a new object or we are updating and existing one
-	 * @param objectFields
-	 *            The list of columns/fields of the object
-	 * @param oldRepoData
-	 *            The repo data from the previous object version
-	 * @param ps
-	 *            The PreparedStatement used for this insert
-	 * @param lob
-	 *            The SvLob instance used for binding BLOBs/CLOBs
-	 * @throws SvException
-	 *             Underlying SvException
-	 * @throws SQLException
-	 *             Any SQLException thrown by the JDBC driver
-	 * @throws Exception
-	 *             Any other generic exception including SvException
+	 * @param objToSave    The DbDataObject object which is subject of inserting
+	 *                     into the Database
+	 * @param isUpdate     Is this a new object or we are updating and existing one
+	 * @param objectFields The list of columns/fields of the object
+	 * @param oldRepoData  The repo data from the previous object version
+	 * @param ps           The PreparedStatement used for this insert
+	 * @param lob          The SvLob instance used for binding BLOBs/CLOBs
+	 * @throws SvException  Underlying SvException
+	 * @throws SQLException Any SQLException thrown by the JDBC driver
+	 * @throws Exception    Any other generic exception including SvException
 	 */
 	private void bindColumnValues(DbDataObject objToSave, Boolean isUpdate, DbDataArray objectFields,
 			Object[] oldRepoData, PreparedStatement ps, SvLob lob) throws SQLException, SvException {
@@ -1023,12 +980,10 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to check if a Svarog field has the sv_multiselect flag
 	 * 
-	 * @param dbf
-	 *            The Svarog Field descriptor reference which should be checked
+	 * @param dbf The Svarog Field descriptor reference which should be checked
 	 * @return True if the field has the multi select flag on
-	 * @throws SvException
-	 *             if an exception is raised, its wrapped into SvException and
-	 *             re-thrown
+	 * @throws SvException if an exception is raised, its wrapped into SvException
+	 *                     and re-thrown
 	 */
 	Boolean isDbfMultiSelect(DbDataObject dbf) throws SvException {
 		Boolean isMulti = (Boolean) dbf.getVal("sv_multiselect");
@@ -1041,10 +996,8 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for validating the data for a specific field
 	 * 
-	 * @param dbf
-	 *            The descriptor of the field
-	 * @param value
-	 *            The value to which the field is set
+	 * @param dbf   The descriptor of the field
+	 * @param value The value to which the field is set
 	 * @return
 	 * @throws SvException
 	 */
@@ -1093,15 +1046,12 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * A method which checks if a field in a table is writable for the User in
-	 * the specified Status
+	 * A method which checks if a field in a table is writable for the User in the
+	 * specified Status
 	 * 
-	 * @param dbf
-	 *            The DbDataField object which should be checked
-	 * @param userName
-	 *            The User Name of the user who tries to write
-	 * @param status
-	 *            The status in which is the parent object of the field
+	 * @param dbf      The DbDataField object which should be checked
+	 * @param userName The User Name of the user who tries to write
+	 * @param status   The status in which is the parent object of the field
 	 * @return
 	 */
 	private Boolean isFieldWriteable(DbDataObject dbf, String userName, String status) {
@@ -1113,11 +1063,9 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to authorise the saving of List of objects in the database
 	 * 
-	 * @param dba
-	 *            The array of DbDataObjects which should be saved
-	 * @throws SvException
-	 *             Exception is thrown if the user is not authorised to save the
-	 *             specific object
+	 * @param dba The array of DbDataObjects which should be saved
+	 * @throws SvException Exception is thrown if the user is not authorised to save
+	 *                     the specific object
 	 */
 	void authoriseSave(DbDataArray dba) throws SvException {
 		// we are guaranteed to have at least one Object
@@ -1132,13 +1080,10 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * The base saveObject method. This method is called by other method
-	 * overloads.
+	 * The base saveObject method. This method is called by other method overloads.
 	 * 
-	 * @param dba
-	 *            The array of objects which needs to be saved.
-	 * @param skipPreSaveChecks
-	 *            Flag to enable skipping of pre-save checks
+	 * @param dba               The array of objects which needs to be saved.
+	 * @param skipPreSaveChecks Flag to enable skipping of pre-save checks
 	 * @throws Exception
 	 */
 	protected void saveObjectImpl(DbDataArray dba, Boolean skipPreSaveChecks) throws SvException {
@@ -1202,12 +1147,11 @@ public class SvWriter extends SvCore {
 
 	/**
 	 * A method that saves a JSON object to the Database. If the JSON object
-	 * contains an Array of JSON Objects, each of them will be saved in the
-	 * database using the same transaction. If saving one of the objects fails,
-	 * the whole object will be rolled back.
+	 * contains an Array of JSON Objects, each of them will be saved in the database
+	 * using the same transaction. If saving one of the objects fails, the whole
+	 * object will be rolled back.
 	 * 
-	 * @param jsonObject
-	 *            The JSON object which needs to be saved.
+	 * @param jsonObject The JSON object which needs to be saved.
 	 * @throws SvException
 	 */
 	public void saveObject(JsonObject jsonObject) throws SvException {
@@ -1228,14 +1172,12 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * A method that saves a DbDataArray object to the Database. If saving one
-	 * of the objects fails, the whole object will be rolled back. This method
-	 * contains implicit transaction handling.
+	 * A method that saves a DbDataArray object to the Database. If saving one of
+	 * the objects fails, the whole object will be rolled back. This method contains
+	 * implicit transaction handling.
 	 * 
-	 * @param dbDataArray
-	 *            The DbDataArray object which needs to be saved.
-	 * @param isBatch
-	 *            Flag to signal if the inserts in the DB should be batched
+	 * @param dbDataArray The DbDataArray object which needs to be saved.
+	 * @param isBatch     Flag to signal if the inserts in the DB should be batched
 	 * @throws SvException
 	 */
 	public void saveObject(DbDataArray dbDataArray, Boolean isBatch) throws SvException {
@@ -1245,14 +1187,11 @@ public class SvWriter extends SvCore {
 	/**
 	 * A method that saves a DbDataArray object to the Database.
 	 * 
-	 * @param dbDataArray
-	 *            The DbDataArray object which needs to be saved.
-	 * @param isBatch
-	 *            Flag to signal if the inserts in the DB should be batched
-	 * @param autoCommit
-	 *            if autocommit is true, the connection will be committed if no
-	 *            exception occurs. if exception occurs, a rollback will be
-	 *            issued
+	 * @param dbDataArray The DbDataArray object which needs to be saved.
+	 * @param isBatch     Flag to signal if the inserts in the DB should be batched
+	 * @param autoCommit  if autocommit is true, the connection will be committed if
+	 *                    no exception occurs. if exception occurs, a rollback will
+	 *                    be issued
 	 * @throws SvException
 	 */
 	public void saveObject(DbDataArray dbDataArray, Boolean isBatch, Boolean autoCommit) throws SvException {
@@ -1292,15 +1231,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * A method that saves a DbDataArray object to the Database. If saving one
-	 * of the objects fails, the whole object will be rolled back.
+	 * A method that saves a DbDataArray object to the Database. If saving one of
+	 * the objects fails, the whole object will be rolled back.
 	 * 
-	 * Note: This overload does not use JDBC batching. Performance will be
-	 * affected if the list of objects is of same type where batching is
-	 * applicable
+	 * Note: This overload does not use JDBC batching. Performance will be affected
+	 * if the list of objects is of same type where batching is applicable
 	 * 
-	 * @param dbDataArray
-	 *            The DbDataArray object which needs to be saved.
+	 * @param dbDataArray The DbDataArray object which needs to be saved.
 	 * @throws SvException
 	 */
 	public void saveObject(DbDataArray dbDataArray) throws SvException {
@@ -1310,8 +1247,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * A method that saves a DbDataObject object to the Database.
 	 * 
-	 * @param dbDataObject
-	 *            The DbDataObject object which needs to be saved.
+	 * @param dbDataObject The DbDataObject object which needs to be saved.
 	 * @throws SvException
 	 */
 	public void saveObject(DbDataObject dbDataObject) throws SvException {
@@ -1319,15 +1255,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * A method that saves a DbDataObject object to the Database, using a
-	 * explicitly specified SQLConnection.
+	 * A method that saves a DbDataObject object to the Database, using a explicitly
+	 * specified SQLConnection.
 	 * 
-	 * @param dbDataObject
-	 *            The DbDataObject which needs to be saved.
-	 * @param autoCommit
-	 *            if autocommit is true, the connection will be committed if no
-	 *            exception occurs. if exception occurs, a rollback will be
-	 *            issued
+	 * @param dbDataObject The DbDataObject which needs to be saved.
+	 * @param autoCommit   if autocommit is true, the connection will be committed
+	 *                     if no exception occurs. if exception occurs, a rollback
+	 *                     will be issued
 	 * @throws SvException
 	 */
 
@@ -1338,14 +1272,11 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for deleting an object from database. The delete method acts
-	 * depending on the deletion type of the reference type of the object which
-	 * is deleted
+	 * Method for deleting an object from database. The delete method acts depending
+	 * on the deletion type of the reference type of the object which is deleted
 	 * 
-	 * @param dbo
-	 *            The object which should be deleted
-	 * @param conn
-	 *            The database connection which is used for the operation
+	 * @param dbo  The object which should be deleted
+	 * @param conn The database connection which is used for the operation
 	 * @throws SQLException
 	 * @throws SvException
 	 */
@@ -1404,8 +1335,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * A method that saves a DbDataObject object to the Database.
 	 * 
-	 * @param dbDataObject
-	 *            The DbDataObject object which needs to be saved.
+	 * @param dbDataObject The DbDataObject object which needs to be saved.
 	 * @throws SvException
 	 */
 	public void deleteObject(DbDataObject dbDataObject, Boolean autoCommit) throws SvException {
@@ -1426,8 +1356,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * A method that saves a DbDataObject object to the Database.
 	 * 
-	 * @param dbDataObject
-	 *            The DbDataObject object which needs to be saved.
+	 * @param dbDataObject The DbDataObject object which needs to be saved.
 	 * @throws SvException
 	 */
 	public void deleteObject(DbDataObject dbDataObject) throws SvException {
@@ -1439,13 +1368,12 @@ public class SvWriter extends SvCore {
 	 * Method for mass deletion of objects according to their parent object.
 	 * 
 	 * All objects and their children which have a system object id ( see
-	 * {@link svCONST.MAX_SYS_OBJECT_ID}) can not be deleted nor affected by
-	 * this method.
+	 * {@link svCONST.MAX_SYS_OBJECT_ID}) can not be deleted nor affected by this
+	 * method.
 	 * 
-	 * @param parentDbo
-	 *            The parent object for which we want to delete the children
-	 * @param childrenObjectType
-	 *            The object type ID of the children
+	 * @param parentDbo          The parent object for which we want to delete the
+	 *                           children
+	 * @param childrenObjectType The object type ID of the children
 	 * @throws SQLException
 	 */
 	protected void deleteObjectsByParentImpl(DbDataObject parentDbo, Long childrenObjectType) throws SvException {
@@ -1489,15 +1417,12 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for deleting a list childred by parent with option to auto commit
-	 * or not
+	 * Method for deleting a list childred by parent with option to auto commit or
+	 * not
 	 * 
-	 * @param parentDbo
-	 *            Reference to the parent object
-	 * @param childrenObjectType
-	 *            ID of the children object type
-	 * @param autoCommit
-	 *            Flag to auto commit/rollback or not
+	 * @param parentDbo          Reference to the parent object
+	 * @param childrenObjectType ID of the children object type
+	 * @param autoCommit         Flag to auto commit/rollback or not
 	 * @throws SvException
 	 */
 	public void deleteObjectsByParent(DbDataObject parentDbo, Long childrenObjectType, Boolean autoCommit)
@@ -1516,13 +1441,11 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for deleting a list childred by parent. Deletion will be committed
-	 * to the db if successful.
+	 * Method for deleting a list childred by parent. Deletion will be committed to
+	 * the db if successful.
 	 * 
-	 * @param parentDbo
-	 *            Reference to the parent object
-	 * @param childrenObjectType
-	 *            ID of the children object type
+	 * @param parentDbo          Reference to the parent object
+	 * @param childrenObjectType ID of the children object type
 	 * @throws SvException
 	 */
 	public void deleteObjectsByParent(DbDataObject parentDbo, Long childrenObjectType) throws SvException {
@@ -1532,19 +1455,13 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for saving form specific data
 	 * 
-	 * @param objToSave
-	 *            The object we are saving
-	 * @param conn
-	 *            SQL Connection that is used
-	 * @param dbt
-	 *            Descriptor of the table to which we are saving data
-	 * @param oldPkid
-	 *            If this is an update, this value needs to be set to the PKID
-	 *            which we are updating
-	 * @param newPkid
-	 *            The new PKID of the object after the update
-	 * @param status
-	 *            The new status of the object
+	 * @param objToSave The object we are saving
+	 * @param conn      SQL Connection that is used
+	 * @param dbt       Descriptor of the table to which we are saving data
+	 * @param oldPkid   If this is an update, this value needs to be set to the PKID
+	 *                  which we are updating
+	 * @param newPkid   The new PKID of the object after the update
+	 * @param status    The new status of the object
 	 * @return Standard Svarog svCONST error codes
 	 * @throws Exception
 	 * @throws SQLException
@@ -1633,17 +1550,12 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to save the form fields of the object to save in the database
 	 * 
-	 * @param objToSave
-	 *            The object whose fields should be saved
-	 * @param formDbt
-	 *            The form descriptor
-	 * @param oldPkid
-	 *            The old version id (PKID) of the object
-	 * @param dt_insert
-	 *            The timestamp of the insert
-	 * @param svr
-	 *            SvReader instance to used for fetching the linked field
-	 *            objects
+	 * @param objToSave The object whose fields should be saved
+	 * @param formDbt   The form descriptor
+	 * @param oldPkid   The old version id (PKID) of the object
+	 * @param dt_insert The timestamp of the insert
+	 * @param svr       SvReader instance to used for fetching the linked field
+	 *                  objects
 	 * @throws SvException
 	 */
 	void saveFormFields(DbDataObject objToSave, DbDataObject formDbt, Long oldPkid, DateTime dt_insert,
@@ -1825,8 +1737,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method to cleanup the linked objects cache based on link object.
 	 * 
-	 * @param linkDbo
-	 *            The link object
+	 * @param linkDbo The link object
 	 */
 	static void removeLinkCache(DbDataObject linkDbo) {
 		DbDataObject dbl = getLinkType((Long) linkDbo.getVal("LINK_TYPE_ID"));
@@ -1839,13 +1750,10 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method clone the link objects from source to cloned child objects
 	 * 
-	 * @param objectId
-	 *            The object id of the source object subject to cloning
-	 * @param childObjectType
-	 *            The type of the children subject to cloning
-	 * @param oldNewOIDPairs
-	 *            The old/new ID pairs mapping the source to cloned child
-	 *            objects
+	 * @param objectId        The object id of the source object subject to cloning
+	 * @param childObjectType The type of the children subject to cloning
+	 * @param oldNewOIDPairs  The old/new ID pairs mapping the source to cloned
+	 *                        child objects
 	 * @throws SvException
 	 */
 	void cloneLinkObjects(Long objectId, Long childObjectType, HashMap<Long, Long> oldNewOIDPairs) throws SvException {
@@ -1924,17 +1832,14 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method that clones the child objects of the old parent under the newly
-	 * cloned object
+	 * Method that clones the child objects of the old parent under the newly cloned
+	 * object
 	 * 
-	 * @param dbo
-	 *            The newly cloned object
-	 * @param oldOID
-	 *            The object ID of the original object, from which we want to
-	 *            clone the child objects
-	 * @param cloneChildrenLinks
-	 *            Flag to enable/disable cloning of the links between the child
-	 *            object and other objects
+	 * @param dbo                The newly cloned object
+	 * @param oldOID             The object ID of the original object, from which we
+	 *                           want to clone the child objects
+	 * @param cloneChildrenLinks Flag to enable/disable cloning of the links between
+	 *                           the child object and other objects
 	 * @throws SvException
 	 */
 	void cloneChildren(DbDataObject dbo, Long oldOID, Boolean cloneChildrenLinks) throws SvException {
@@ -1979,13 +1884,10 @@ public class SvWriter extends SvCore {
 	/**
 	 * Method for cloning a DbDataObject into new instance.
 	 * 
-	 * @param dbo
-	 *            The object to be cloned
-	 * @param cloneChildren
-	 *            Flag to enable/disable cloning of child objects
-	 * @param cloneChildrenLinks
-	 *            Flag to enable/disable cloning of children links to other
-	 *            objects
+	 * @param dbo                The object to be cloned
+	 * @param cloneChildren      Flag to enable/disable cloning of child objects
+	 * @param cloneChildrenLinks Flag to enable/disable cloning of children links to
+	 *                           other objects
 	 * @return The cloned DbDataObject
 	 * @throws SvException
 	 */
@@ -2017,16 +1919,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for cloning a DbDataObject into new instance. If there is no
-	 * exception the change is committed, otherwise rolled back.
+	 * Method for cloning a DbDataObject into new instance. If there is no exception
+	 * the change is committed, otherwise rolled back.
 	 * 
-	 * @param dbo
-	 *            The object to be cloned
-	 * @param cloneChildren
-	 *            Flag to enable/disable cloning of child objects
-	 * @param cloneChildrenLinks
-	 *            Flag to enable/disable cloning of children links to other
-	 *            objects
+	 * @param dbo                The object to be cloned
+	 * @param cloneChildren      Flag to enable/disable cloning of child objects
+	 * @param cloneChildrenLinks Flag to enable/disable cloning of children links to
+	 *                           other objects
 	 * @return The cloned DbDataObject
 	 * @throws SvException
 	 */
@@ -2036,16 +1935,13 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for cloning a DbDataObject into new instance, with option to
-	 * control the transaction
+	 * Method for cloning a DbDataObject into new instance, with option to control
+	 * the transaction
 	 * 
-	 * @param dbo
-	 *            The object to be cloned
-	 * @param cloneChildren
-	 *            Flag to enable/disable cloning of child objects
-	 * @param cloneChildrenLinks
-	 *            Flag to enable/disable cloning of children links to other
-	 *            objects
+	 * @param dbo                The object to be cloned
+	 * @param cloneChildren      Flag to enable/disable cloning of child objects
+	 * @param cloneChildrenLinks Flag to enable/disable cloning of children links to
+	 *                           other objects
 	 * @return The cloned DbDataObject
 	 * @throws SvException
 	 */

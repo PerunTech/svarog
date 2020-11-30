@@ -99,8 +99,8 @@ public class Sv {
 	public static final String AND = "AND";
 	public static final String ORDER_BY = "ORDER BY";
 	public static final String LIMIT_OFFSET = "LIMIT_OFFSET";
-	public static final String bracketOFFSET = "{OFFSET}";
-	public static final String bracketLIMIT= "{LIMIT}";
+	public static final String OFFSET = "{OFFSET}";
+	public static final String LIMIT= "{LIMIT}";
 	public static final String OR = "OR";
 	public static final SvCharId USER_NAME = new SvCharId("USER_NAME");
 	public static final SvCharId ACL_CONFIG_UNQ = new SvCharId("acl_config_unq");
@@ -116,5 +116,11 @@ public class Sv {
 	public static final SvCharId CONFIG_TYPE = new SvCharId("CONFIG_TYPE");
 	public static final SvCharId IS_CONFIG_TABLE = new SvCharId("is_config_table");
 	public static final String TBL = "TBL";
+	public static final String PARAM_NAME = "PARAM_NAME";
+	public static final String PARAM_VALUE = "PARAM_VALUE";
+	public static final long DEFAULT_CACHE_SIZE = 5000;
+	public static final long DEFAULT_CACHE_TTL = 10;
+	public static final String SYS_PARAMS = "SYS_PARAMS";
+	public static final String USCORE = "_";
 
 }
