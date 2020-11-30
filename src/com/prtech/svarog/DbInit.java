@@ -344,6 +344,56 @@ public class DbInit {
 		return dbt;
 	}
 
+	// table SYS_PARAMS
+	private static DbDataTable getSysParams() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + Sv.USCORE + Sv.SYS_PARAMS);
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_SYS_PARAMS);
+		dbt.setIsRepoTable(false);
+		dbt.setIsConfigTable(true);
+		dbt.setConfigColumnName(Sv.PARAM_NAME);
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.SYS_PARAMS.toLowerCase());
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName(Sv.PKID);
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName(Sv.PARAM_NAME);
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(100);
+		dbf2.setIsNull(false);
+		dbf2.setIsUnique(true);
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_NAME.toLowerCase());
+
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName(Sv.PARAM_VALUE);
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(1000);
+		dbf4.setIsUnique(false);
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_VALUE.toLowerCase());
+
+		DbDataField[] dbTableFields = new DbDataField[3];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf4;
+		dbt.setDbTableFields(dbTableFields);
+		return dbt;
+	}
+
 	// table EXECUTOR_PACK
 	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
@@ -5287,6 +5337,9 @@ public class DbInit {
 		dbtt = getExecutorPack();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = getExecutorPackItems();
+		dbtList.add(addSortOrder(dbtt));
+
+		dbtt = getSysParams();
 		dbtList.add(addSortOrder(dbtt));
 
 		// Add SDI structure
