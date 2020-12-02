@@ -359,15 +359,17 @@ public class SvParametersTest {
 	@Test
 	public void testSysParams() throws SvException {
 		try (SvParameter svp = new SvParameter()) {
-			String paramName="TEST_PARAM";
-			String paramValue="TEST_PARAM_VALUE";
-			String val = svp.getSysParam(paramName+DateTime.now().toString());
-			if(val!=null)
+			String paramName = "TEST_PARAM";
+			String paramValue = "TEST_PARAM_VALUE";
+			String val = svp.getSysParam(paramName + DateTime.now().toString());
+			if (val != null)
 				fail("Non existent param shall return null");
-			
+
 			svp.setSysParam(paramName, paramValue);
 			String retVal = svp.getSysParam(paramName);
-			
+			if (!retVal.equals(paramValue))
+				fail("Value returned is not the same");
+
 		}
 	}
 }
