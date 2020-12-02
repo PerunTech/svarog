@@ -179,7 +179,7 @@ public class SvarogInstall {
 				if (validateCommandLine(line)) {
 					if (line.hasOption("j"))
 						returnStatus = generateJsonCfg();
-					else if (line.hasOption("g"))
+					else if (line.hasOption("gd"))
 						returnStatus = generateGrid();
 					else if (line.hasOption("i")) {
 						returnStatus = validateInstall();
@@ -331,7 +331,7 @@ public class SvarogInstall {
 			String passwordConfirm;
 			System.out.println("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
-			if (!passwordConfirm.equals(password)) {
+			if (!password.equals(passwordConfirm)) {
 				System.out.println("Passwords dont' match!");
 				return -3;
 			}
@@ -341,14 +341,14 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject user = svs.getUser(userName);
 
 			if (line.hasOption("p"))
 				password = SvUtil.getMD5(password).toUpperCase();
 
-			svs.createUser(userName, password, (String) user.getVal("first_name"), (String) user.getVal("last_name"),
+			svs.createUser(userName, password, (String) user.getVal(Sv.FIRST_NAME), (String) user.getVal("last_name"),
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
 			System.out.println("Password updated for user " + userName);
@@ -413,7 +413,7 @@ public class SvarogInstall {
 			String passwordConfirm;
 			System.out.println("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
-			if (!passwordConfirm.equals(password)) {
+			if (!password.equals(passwordConfirm)) {
 				System.out.println("Passwords dont' match!");
 				return -3;
 			}
@@ -423,7 +423,7 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			if (line.hasOption("p"))
 				password = SvUtil.getMD5(password).toUpperCase();
@@ -478,7 +478,7 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject groupDbo = null;
 			try {
@@ -537,12 +537,12 @@ public class SvarogInstall {
 		try {
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject groupDbo = null;
 			groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
 			DbDataArray acls = svw.getPermissions(groupDbo, svw);
-			groupDbo.setVal("ACLS", acls);
+			groupDbo.setVal(Sv.ACLS, acls);
 			SvUtil.saveStringToFile(exportFile, groupDbo.toJson().toString());
 			returnStatus = 0;
 			System.out.println("Successfully exported " + group + " config to " + exportFile);
@@ -591,16 +591,16 @@ public class SvarogInstall {
 			svw.saveObject(newAcls);
 
 			DbDataArray aclSids = svr.getSecurityObjects(dboGroup, svr, SvCore.getDbt(svCONST.OBJECT_TYPE_SID_ACL));
-			aclSids.rebuildIndex("ACL_OBJECT_ID", true);
+			aclSids.rebuildIndex(Sv.ACL_OBJECT_ID, true);
 
 			DbDataArray newAclSids = new DbDataArray();
 			for (DbDataObject acl : aclList.getItems()) {
 				DbDataObject aclSid = aclSids.getItemByIdx(acl.getObjectId().toString());
 				if (aclSid == null) {
 					aclSid = new DbDataObject(svCONST.OBJECT_TYPE_SID_ACL);
-					aclSid.setVal("SID_OBJECT_ID", dboGroup.getObjectId());
-					aclSid.setVal("SID_TYPE_ID", dboGroup.getObjectType());
-					aclSid.setVal("ACL_OBJECT_ID", acl.getObjectId());
+					aclSid.setVal(Sv.SID_OBJECT_ID, dboGroup.getObjectId());
+					aclSid.setVal(Sv.SID_TYPE_ID, dboGroup.getObjectType());
+					aclSid.setVal(Sv.ACL_OBJECT_ID, acl.getObjectId());
 					newAclSids.addDataItem(aclSid);
 				}
 			}
@@ -629,12 +629,12 @@ public class SvarogInstall {
 			DbDataObject dbo = new DbDataObject();
 			DbDataObject groupDbo = null;
 			dbo.fromJson(jObj);
-			DbDataArray acls = (DbDataArray) dbo.getVal("ACLS");
-			group = (String) dbo.getVal("GROUP_NAME");
+			DbDataArray acls = (DbDataArray) dbo.getVal(Sv.ACLS);
+			group = (String) dbo.getVal(Sv.GROUP_NAME);
 			System.out.println("Importing group " + group + " config from " + importFile);
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svw.setAutoCommit(false);
 			svs = new SvSecurity(svw);
 			try {
@@ -699,7 +699,7 @@ public class SvarogInstall {
 		try {
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject userDbo = svs.getUser(user);
 			DbDataArray defaultGroup = svw.getAllUserGroups(userDbo, true);
@@ -754,7 +754,7 @@ public class SvarogInstall {
 		try {
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject userDbo = svs.getUser(user);
 			DbDataObject groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
@@ -805,7 +805,7 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svr = new SvReader();
-			svr.switchUser("ADMIN");
+			svr.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svr);
 			svs.setAutoCommit(false);
 			DbDataArray permissions = svs.getPermissions(permissionMask);
@@ -968,7 +968,7 @@ public class SvarogInstall {
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
-		opt = new Option("g", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
+		opt = new Option("gd", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
@@ -1894,7 +1894,8 @@ public class SvarogInstall {
 		try {
 			ArrayList<DbDataTable> dbTables = readTablesFromConf();
 			conn = SvConf.getDBConnection();
-			log4j.info("Svarog core " + operation + " started. Total objects to " + operation + ":" + dbTables.size());
+			log4j.info("Svarog core " + operation + " started. Total objects to " + operation + ":"
+					+ (dbTables != null ? dbTables.size() : 0));
 			int upgradedObjects = 0;
 			// first create all repo tables
 			for (DbDataTable dbt : dbTables) {
@@ -2467,7 +2468,8 @@ public class SvarogInstall {
 			String script = SvConf.getDbHandler().getSQLScript(scriptName);
 			String[] items = null;
 			items = script.split(SvConf.getDbHandler().getDbScriptDelimiter());
-			if (returnsResultSet && (resultSet.length < items.length || prepStatement.length < items.length)) {
+			if (returnsResultSet && resultSet != null
+					&& (resultSet.length < items.length || prepStatement.length < items.length)) {
 				log4j.info("Can't execute " + Integer.toString(items.length)
 						+ " statements and store in result set array with length "
 						+ Integer.toString(resultSet.length));
@@ -2569,7 +2571,7 @@ public class SvarogInstall {
 			return true;
 
 		if (dboFields.getItemByIdx("PKID", oldDbo.getObjectType()) == null)
-			dboFields.rebuildIndex(Sv.FIELD_NAME);
+			dboFields.rebuildIndex(Sv.FIELD_NAME.toString());
 		// if(oldDbo.getValues().size()!=newDbo.getValues().size())
 		// return true;
 		Boolean cmpVal = false;
@@ -2714,6 +2716,110 @@ public class SvarogInstall {
 	}
 
 	/**
+	 * Method for upgrading Link configurations
+	 * 
+	 * @param upgradeFile
+	 *            The file to be used for the upgrade
+	 * @param allNonProcessed
+	 *            List of all non processed objects to which we add whatever
+	 *            object we didn't process
+	 * @throws SvException
+	 *             Any underlying exception
+	 */
+	static void upgradeLinkCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
+		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
+		DbDataArray dbLinksUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_LINK_TYPE, true);
+		if (dbLinksUpgrade != null && dbLinksUpgrade.size() > 0) {
+			log4j.info("Processing link type " + operation + ": " + upgradeFile + ". Total number of objects:"
+					+ dbLinksUpgrade.size());
+			upgradeLinkTypes(dbLinksUpgrade);
+		}
+	}
+
+	/**
+	 * Method for upgrading Object configurations
+	 * 
+	 * @param upgradeFile
+	 *            The file to be used for the upgrade
+	 * @param allNonProcessed
+	 *            List of all non processed objects to which we add whatever
+	 *            object we didn't process
+	 * @throws SvException
+	 *             Any underlying exception
+	 */
+	static void upgradeObjectCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
+		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
+
+		int upgradeSize = allObjects.size();
+		log4j.info("Processing base table upgrades: " + upgradeFile + ". :" + upgradeSize);
+
+		DbDataArray dbFieldsUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_FIELD, true);
+		DbDataArray dbTablesUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_TABLE, true);
+		upgradeObjectCfg(dbTablesUpgrade, dbFieldsUpgrade);
+
+		log4j.info("Finished " + operation + " using records file: " + upgradeFile
+				+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
+		if (allObjects.size() > 0) {
+			allNonProcessed.getItems().addAll(allObjects.getItems());
+			log4j.debug("Non-processed objects: " + allObjects.toSimpleJson().toString());
+		}
+
+	}
+
+	/**
+	 * Method for upgrading ACL configurations
+	 * 
+	 * @param upgradeFile
+	 *            The file to be used for the upgrade
+	 * @param allNonProcessed
+	 *            List of all non processed objects to which we add whatever
+	 *            object we didn't process
+	 * @throws SvException
+	 *             Any underlying exception
+	 */
+	static void upgradeAclCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
+		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
+		int upgradeSize = allObjects.size();
+		log4j.info("Processing base table upgrades: " + upgradeFile + ". Total number of objects:" + upgradeSize);
+
+		DbDataArray dbACLUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_ACL, true);
+		upgradeAcl(dbACLUpgrade);
+
+		log4j.info("Finished " + operation + " using records file: " + upgradeFile
+				+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
+
+		if (allObjects.size() > 0)
+			log4j.info("Non-processed objects: " + allObjects.toSimpleJson().toString());
+
+	}
+
+	/**
+	 * Method for upgrading SID to ACL configurations
+	 * 
+	 * @param upgradeFile
+	 *            The file to be used for the upgrade
+	 * @param allNonProcessed
+	 *            List of all non processed objects to which we add whatever
+	 *            object we didn't process
+	 * @throws SvException
+	 *             Any underlying exception
+	 */
+	static void upgradeSidAclCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
+		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
+		int upgradeSize = allObjects.size();
+		log4j.info("Processing base table upgrades: " + upgradeFile + ". Total number of objects:" + upgradeSize);
+
+		DbDataArray dbACLUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_SID_ACL, true);
+		upgradeSidAcl(dbACLUpgrade);
+
+		log4j.info("Finished " + operation + " using records file: " + upgradeFile
+				+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
+
+		if (allObjects.size() > 0)
+			log4j.info("Non-processed objects: " + allObjects.toSimpleJson().toString());
+	}
+
+	/**
 	 * Wrapper method which encapsulated the separate types of upgrades
 	 * 
 	 * 
@@ -2763,35 +2869,14 @@ public class SvarogInstall {
 					if (isSvarogInstalled())
 						SvCore.initSvCore(true);
 					String upgradeFile = confPath + confFiles[i].getName();
-					DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
-					int upgradeSize = allObjects.size();
-					log4j.info("Processing base table upgrades: " + upgradeFile + ". Total number of objects:"
-							+ upgradeSize);
-
-					DbDataArray dbFieldsUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_FIELD, true);
-					DbDataArray dbTablesUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_TABLE, true);
-					upgradeObjectCfg(dbTablesUpgrade, dbFieldsUpgrade);
-
-					log4j.info("Finished " + operation + " using records file: " + upgradeFile
-							+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
-					if (allObjects.size() > 0) {
-						allNonProcessed.getItems().addAll(allObjects.getItems());
-						log4j.debug("Non-processed objects: " + allObjects.toSimpleJson().toString());
-					}
-
+					upgradeObjectCfg(upgradeFile, allNonProcessed);
 				}
 			}
 			executeConfiguration(ISvConfiguration.UpdateType.LINKTYPES);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("4")) {
 					String upgradeFile = confPath + confFiles[i].getName();
-					DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
-					DbDataArray dbLinksUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_LINK_TYPE, true);
-					if (dbLinksUpgrade != null && dbLinksUpgrade.size() > 0) {
-						log4j.info("Processing link type " + operation + ": " + upgradeFile
-								+ ". Total number of objects:" + dbLinksUpgrade.size());
-						upgradeLinkTypes(dbLinksUpgrade);
-					}
+					upgradeLinkCfg(upgradeFile, allNonProcessed);
 				}
 			}
 
@@ -2799,22 +2884,8 @@ public class SvarogInstall {
 			executeConfiguration(ISvConfiguration.UpdateType.ACL);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("90")) {
-
 					String upgradeFile = confPath + confFiles[i].getName();
-					DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
-					int upgradeSize = allObjects.size();
-					log4j.info("Processing base table upgrades: " + upgradeFile + ". Total number of objects:"
-							+ upgradeSize);
-
-					DbDataArray dbACLUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_ACL, true);
-					upgradeAcl(dbACLUpgrade);
-
-					log4j.info("Finished " + operation + " using records file: " + upgradeFile
-							+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
-
-					if (allObjects.size() > 0)
-						log4j.info("Non-processed objects: " + allObjects.toSimpleJson().toString());
-
+					upgradeAclCfg(upgradeFile, allNonProcessed);
 				}
 			}
 			if (!isSvarogInstalled()) {
@@ -2825,22 +2896,8 @@ public class SvarogInstall {
 			executeConfiguration(ISvConfiguration.UpdateType.SIDACL);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("91")) {
-
 					String upgradeFile = confPath + confFiles[i].getName();
-					DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
-					int upgradeSize = allObjects.size();
-					log4j.info("Processing base table upgrades: " + upgradeFile + ". Total number of objects:"
-							+ upgradeSize);
-
-					DbDataArray dbACLUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_SID_ACL, true);
-					upgradeSidAcl(dbACLUpgrade);
-
-					log4j.info("Finished " + operation + " using records file: " + upgradeFile
-							+ ". Total number of upgraded objects:" + (upgradeSize - allObjects.size()));
-
-					if (allObjects.size() > 0)
-						log4j.info("Non-processed objects: " + allObjects.toSimpleJson().toString());
-
+					upgradeSidAclCfg(upgradeFile, allNonProcessed);
 				}
 			}
 
@@ -3237,8 +3294,6 @@ public class SvarogInstall {
 			if (parentId != null && parentId.equals(newParentId)) {
 
 				Boolean updateRequired = true;
-				Long existingPkid = 0L;
-				Long existingOID = 0L;
 				DbDataObject existingCode = null;
 				if (oldParentId != null)
 					existingCode = oldCodes.getItemByIdx((String) codeToUpgrade.getVal("CODE_VALUE"), oldParentId);
@@ -3249,8 +3304,8 @@ public class SvarogInstall {
 				updateRequired = true;
 				isExisting = true;
 				if (existingCode != null) {
-					existingPkid = existingCode.getPkid();
-					existingOID = existingCode.getObjectId();
+					Long existingPkid = existingCode.getPkid();
+					Long existingOID = existingCode.getObjectId();
 					updateRequired = shouldUpgradeConfig(existingCode, codeToUpgrade, dboFields, true);
 					if (updateRequired) {
 						codeToUpgrade.setPkid(existingPkid);
@@ -3500,7 +3555,8 @@ public class SvarogInstall {
 				retArr.fromJson(jobj);
 			}
 		} catch (Exception e) {
-			throw (new SvException("system.error.upgrade_no_records_conf", svCONST.systemUser, null, filePath, e));
+			log4j.error("Exception reading config records from: " + filePath, e);
+			retArr = null;
 		} finally {
 			if (fis != null)
 				try {
@@ -3510,7 +3566,10 @@ public class SvarogInstall {
 				}
 
 		}
-		return retArr;
+		if (retArr == null)
+			throw (new SvException("system.error.upgrade_no_records_conf", svCONST.systemUser, null, filePath));
+		else
+			return retArr;
 
 	}
 
@@ -3575,8 +3634,6 @@ public class SvarogInstall {
 			return;
 
 		Boolean updateRequired = true;
-		Long existingPkid = 0L;
-		Long existingOID = 0L;
 
 		derefenceDependency(svw, dbtUpgrade, dbTablesUpgrade, dbTables, tableFields, dbFieldsUpgrade, dbFields,
 				listOfUpgraded, true, "PARENT_NAME");
@@ -3593,8 +3650,8 @@ public class SvarogInstall {
 		updateRequired = true;
 
 		if (dbtOld != null) {
-			existingPkid = dbtOld.getPkid();
-			existingOID = dbtOld.getObjectId();
+			Long existingPkid = dbtOld.getPkid();
+			Long existingOID = dbtOld.getObjectId();
 			updateRequired = shouldUpgradeConfig(dbtOld, dbtUpgrade, tableFields);
 			dbtUpgrade.setPkid(existingPkid);
 			dbtUpgrade.setObjectId(existingOID);
@@ -3921,16 +3978,14 @@ public class SvarogInstall {
 	}
 
 	static void upgradeSidAcl(DbDataArray dbAclSidUpgrade) throws SvException {
-		SvWriter dbu = null;
-		SvReader svr = null;
-		DbDataArray aclSidsToSave = new DbDataArray();
-		try {
-			// init the table configs
 
-			dbu = new SvWriter();
+		DbDataArray aclSidsToSave = new DbDataArray();
+		try (SvWriter dbu = new SvWriter(); SvReader svr = new SvReader(dbu)) {
+			// init the table configs
 			dbu.isInternal = true;
-			dbu.dbSetAutoCommit(false);
-			svr = new SvReader(dbu);
+			dbu.setAutoCommit(false);
+			svr.isInternal = true;
+			svr.setAutoCommit(false);
 
 			DbQueryObject query = new DbQueryObject(SvCore.repoDbt, SvCore.repoDbtFields,
 					SvCore.getDbt(svCONST.OBJECT_TYPE_SID_ACL), SvCore.getFields(svCONST.OBJECT_TYPE_SID_ACL), null,
@@ -3938,35 +3993,35 @@ public class SvarogInstall {
 
 			DbDataArray oldSidACLs = dbu.getObjects(query, 0, 0);
 			DbDataArray sidAclFields = SvCore.getFields(svCONST.OBJECT_TYPE_SID_ACL);
-			sidAclFields.rebuildIndex("FIELD_NAME");
+			sidAclFields.rebuildIndex(Sv.FIELD_NAME.toString());
 			Iterator<DbDataObject> iteratorAclUpgrade = dbAclSidUpgrade.getItems().iterator();
 			while (iteratorAclUpgrade.hasNext()) {
 				DbDataObject acl = iteratorAclUpgrade.next();
 				boolean shouldIgnore = true;
 				DbDataObject dbt = null;
-				if (acl.getVal("sid_type_id") != null) {
-					if (acl.getVal("sid_type_id") instanceof String) {
-						String strTypeId = (String) acl.getVal("sid_object_id");
+				if (acl.getVal(Sv.SID_TYPE_ID) != null) {
+					if (acl.getVal(Sv.SID_TYPE_ID) instanceof String) {
+						String strTypeId = (String) acl.getVal(Sv.SID_OBJECT_ID);
 						dbt = SvCore.getDbtByName(strTypeId);
 					}
 				} else
 					dbt = SvCore.getDbt(svCONST.OBJECT_TYPE_GROUP);
 
-				acl.setVal("sid_type_id", dbt.getObjectId());
-				if (acl.getVal("sid_object_id") instanceof String) {
+				acl.setVal(Sv.SID_TYPE_ID, dbt != null ? dbt.getObjectId() : dbt);
+				if (acl.getVal(Sv.SID_OBJECT_ID) instanceof String) {
 					DbDataObject dbf = null;
-					dbf = svr.getObjectByUnqConfId((String) acl.getVal("sid_object_id"), dbt);
+					dbf = svr.getObjectByUnqConfId((String) acl.getVal(Sv.SID_OBJECT_ID), dbt);
 					if (dbf != null) {
-						acl.setVal("sid_object_id", dbf.getObjectId());
+						acl.setVal(Sv.SID_OBJECT_ID, dbf.getObjectId());
 						shouldIgnore = false;
 					}
 				}
-				if (acl.getVal("ACL_LABEL_CODE") instanceof String) {
+				if (acl.getVal(Sv.ACL_LABEL_CODE) instanceof String) {
 					DbDataObject dbf = null;
-					dbf = svr.getObjectByUnqConfId((String) acl.getVal("ACL_LABEL_CODE"),
+					dbf = svr.getObjectByUnqConfId((String) acl.getVal(Sv.ACL_LABEL_CODE),
 							SvCore.getDbt(svCONST.OBJECT_TYPE_ACL));
 					if (dbf != null) {
-						acl.setVal("acl_object_id", dbf.getObjectId());
+						acl.setVal(Sv.ACL_OBJECT_ID, dbf.getObjectId());
 						shouldIgnore = false;
 					}
 				}
@@ -3978,9 +4033,9 @@ public class SvarogInstall {
 				} else {
 					boolean shouldUpgrade = true;
 					for (DbDataObject sidAcl : oldSidACLs.getItems()) {
-						if (sidAcl.getVal("sid_object_id").equals(acl.getVal("sid_object_id"))
-								&& sidAcl.getVal("acl_object_id").equals(acl.getVal("acl_object_id"))
-								&& sidAcl.getVal("sid_type_id").equals(acl.getVal("sid_type_id"))) {
+						if (sidAcl.getVal(Sv.SID_OBJECT_ID).equals(acl.getVal(Sv.SID_OBJECT_ID))
+								&& sidAcl.getVal(Sv.ACL_OBJECT_ID).equals(acl.getVal(Sv.ACL_OBJECT_ID))
+								&& sidAcl.getVal(Sv.SID_TYPE_ID).equals(acl.getVal(Sv.SID_TYPE_ID))) {
 							if (shouldUpgradeConfig(sidAcl, acl, sidAclFields)) {
 								acl.setObjectId(sidAcl.getObjectId());
 								acl.setPkid(sidAcl.getPkid());
@@ -3995,11 +4050,6 @@ public class SvarogInstall {
 
 			dbu.saveObject(aclSidsToSave);
 			dbu.dbCommit();
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (dbu != null)
-				dbu.release();
 		}
 	}
 
@@ -4013,16 +4063,12 @@ public class SvarogInstall {
 	 *             Forward any raised exception
 	 */
 	static void upgradeAcl(DbDataArray dbAclUpgrade) throws SvException {
-
-		SvWriter dbu = null;
-		SvReader svr = null;
-		try {
+		try (SvWriter dbu = new SvWriter(); SvReader svr = new SvReader(dbu)) {
 			// init the table configs
-
-			dbu = new SvWriter();
 			dbu.isInternal = true;
-			dbu.dbSetAutoCommit(false);
-			svr = new SvReader(dbu);
+			dbu.setAutoCommit(false);
+			svr.isInternal = true;
+			svr.setAutoCommit(false);
 
 			DbDataArray aclsToSave = new DbDataArray();
 
@@ -4043,20 +4089,20 @@ public class SvarogInstall {
 				if (acl.getVal("acl_object_type") instanceof String) {
 					String strTypeId = (String) acl.getVal("acl_object_type");
 					Long dbtId = SvCore.getTypeIdByName(strTypeId);
-					if (dbtId.equals(0)) {
+					if (dbtId.equals(0L)) {
 						shouldIgnore = true;
 					} else {
 						acl.setVal("acl_object_type", dbtId);
-						if (acl.getVal("acl_object_id") instanceof String) {
+						if (acl.getVal(Sv.ACL_OBJECT_ID) instanceof String) {
 							DbDataObject dbf = null;
 							if (dbtId.equals(svCONST.OBJECT_TYPE_FIELD))
-								dbf = SvCore.getFieldByName(strTypeId, (String) acl.getVal("acl_object_id"));
+								dbf = SvCore.getFieldByName(strTypeId, (String) acl.getVal(Sv.ACL_OBJECT_ID));
 							else
-								dbf = svr.getObjectByUnqConfId((String) acl.getVal("acl_object_id"), strTypeId);
+								dbf = svr.getObjectByUnqConfId((String) acl.getVal(Sv.ACL_OBJECT_ID), strTypeId);
 							if (dbf == null) {
 								shouldIgnore = true;
 							} else
-								acl.setVal("acl_object_id", dbf.getObjectId());
+								acl.setVal(Sv.ACL_OBJECT_ID, dbf.getObjectId());
 						}
 
 					}
@@ -4086,11 +4132,6 @@ public class SvarogInstall {
 			// aclsToSave = dbAclUpgrade;
 			dbu.saveObject(aclsToSave);
 			dbu.dbCommit();
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (dbu != null)
-				dbu.release();
 		}
 
 	}
@@ -4288,17 +4329,15 @@ public class SvarogInstall {
 
 	static void registerFormFieldType(DbDataObject fieldTypeDbo, DbDataObject parentForm, SvCore parentCore)
 			throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		SvLink svl = null;
+
 		DbDataObject dboFieldType = null;
 		boolean linkExists = false;
 		String fieldLabelCode = (String) fieldTypeDbo.getVal("LABEL_CODE");
-		try {
-			svr = new SvReader(parentCore);
-			svw = new SvWriter(svr);
+		try (SvReader svr = new SvReader(parentCore); SvWriter svw = new SvWriter(svr); SvLink svl = new SvLink(svr)) {
+
 			svw.setAutoCommit(false);
-			svl = new SvLink(svr);
+			svr.setAutoCommit(false);
+			svl.setAutoCommit(false);
 
 			DbDataObject linkType = SvCore.getLinkType("FORM_FIELD_LINK", svCONST.OBJECT_TYPE_FORM_TYPE,
 					svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
@@ -4328,22 +4367,16 @@ public class SvarogInstall {
 						svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
 				svl.linkObjects(parentForm.getObjectId(), dboFieldType.getObjectId(), dbl.getObjectId(), "");
 			}
-		} finally {
-			svl.release();
-			svw.release();
-			svr.release();
-		}
+		} 
 
 	}
 
 	static DbDataObject registerLinkType(String linkType, Long objType1, Long objType2, String linkDescription)
 			throws SvException {
 		DbDataObject dblink = null;
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
-			svr = new SvReader();
-			svw = new SvWriter(svw);
+		try (SvWriter svw = new SvWriter()){
+			
+			
 			dblink = SvCore.getLinkType(linkType, objType1, objType2);
 			if (dblink == null) {
 				dblink = new DbDataObject();
@@ -4356,12 +4389,7 @@ public class SvarogInstall {
 				// we must re-init the core to catch the link type change
 				SvCore.initSvCore(true);
 			}
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
-		}
+		} 
 		return dblink;
 	}
 

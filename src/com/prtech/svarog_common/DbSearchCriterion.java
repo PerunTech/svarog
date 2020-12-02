@@ -295,7 +295,7 @@ public class DbSearchCriterion extends DbSearch {
 		else
 			fullFieldName = tmpTPrefix + fullFieldName;
 
-		if (tmpOperand.equals(DbCompareOperand.ILIKE)) {
+		if (tmpOperand == DbCompareOperand.ILIKE) {
 			fullFieldName = "upper(" + fullFieldName + ")";
 			tmpOperand = DbCompareOperand.LIKE;
 		}
@@ -319,7 +319,7 @@ public class DbSearchCriterion extends DbSearch {
 			break;
 		case BBOX:
 			ISvDatabaseIO gio = SvConf.getDbHandler();
-			retval = "("+ gio.getBBoxSQL(fullFieldName) + ")";
+			retval = "(" + gio.getBBoxSQL(fullFieldName) + ")";
 			break;
 		case DBLINK:
 		case DBLINK_REVERSE:
