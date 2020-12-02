@@ -98,7 +98,7 @@ public class DbInit {
 		dbe2.setLabel_code("plugin_conf.plugin_context");
 
 		DbDataField dbe3 = new DbDataField();
-		dbe3.setDbFieldName(Sv.LABEL_CODE);
+		dbe3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe3.setDbFieldSize(50);
 		dbe3.setIsNull(false);
@@ -344,6 +344,56 @@ public class DbInit {
 		return dbt;
 	}
 
+	// table SYS_PARAMS
+	private static DbDataTable getSysParams() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + Sv.USCORE + Sv.SYS_PARAMS);
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_SYS_PARAMS);
+		dbt.setIsRepoTable(false);
+		dbt.setIsConfigTable(true);
+		dbt.setConfigColumnName(Sv.PARAM_NAME);
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.SYS_PARAMS.toLowerCase());
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName(Sv.PKID);
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName(Sv.PARAM_NAME);
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(100);
+		dbf2.setIsNull(false);
+		dbf2.setIsUnique(true);
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_NAME.toLowerCase());
+
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName(Sv.PARAM_VALUE);
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(1000);
+		dbf4.setIsUnique(false);
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_VALUE.toLowerCase());
+
+		DbDataField[] dbTableFields = new DbDataField[3];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf4;
+		dbt.setDbTableFields(dbTableFields);
+		return dbt;
+	}
+
 	// table EXECUTOR_PACK
 	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
@@ -368,7 +418,7 @@ public class DbInit {
 
 		// f2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -425,7 +475,7 @@ public class DbInit {
 
 		// f2
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(Sv.LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(false);
@@ -819,7 +869,7 @@ public class DbInit {
 		dbe.setLabel_code("FIELD_TYPE");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -833,7 +883,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName(Sv.LABEL_CODE);
+		dbe2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setDbFieldSize(100);
 		dbe2.setIsNull(false);
@@ -1010,7 +1060,7 @@ public class DbInit {
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1N
 		DbDataField dbe1 = new DbDataField();
@@ -1024,7 +1074,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbe2 = new DbDataField();
-		dbe2.setDbFieldName(Sv.LABEL_CODE);
+		dbe2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe2.setIsNull(false);
 		dbe2.setDbFieldScale(0);
@@ -1225,7 +1275,7 @@ public class DbInit {
 		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "job_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1239,7 +1289,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
@@ -1316,7 +1366,7 @@ public class DbInit {
 		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "task_type");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 
 		// Column 1
 		DbDataField dbf1 = new DbDataField();
@@ -1330,7 +1380,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1388,7 +1438,7 @@ public class DbInit {
 		dbe.setUse_cache(true);
 		dbe.setCacheType("PERM");
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(Sv.LABEL_CODE);
+		dbe.setConfigColumnName(Sv.LABEL_CODE.toString());
 		dbe.setGui_metadata(getDefaultUiMeta(true, true, false, false).toString());
 
 		// Column 1
@@ -1403,7 +1453,7 @@ public class DbInit {
 
 		// Column 2
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(Sv.LABEL_CODE);
+		dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(200);
 		dbf2.setIsNull(false);
@@ -1999,7 +2049,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(Sv.LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -2075,7 +2125,7 @@ public class DbInit {
 
 		// Column 3
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(Sv.LABEL_CODE);
+		dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(200);
 		dbf3.setIsNull(true);
@@ -3365,7 +3415,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
-			dbf2_1.setDbFieldName("WORKFLOW_" + Sv.LABEL_CODE);
+			dbf2_1.setDbFieldName("WORKFLOW_" + Sv.LABEL_CODE.toString());
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(100);
 			dbf2_1.setIsNull(false);
@@ -3451,7 +3501,7 @@ public class DbInit {
 			dbt.setObjectId(svCONST.OBJECT_TYPE_ACL);
 			dbt.setIsRepoTable(false);
 			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl");
-			dbt.setConfigColumnName(Sv.LABEL_CODE);
+			dbt.setConfigColumnName(Sv.LABEL_CODE.toString());
 			dbt.setUse_cache(true);
 			dbt.setIsConfigTable(true);
 
@@ -3526,7 +3576,7 @@ public class DbInit {
 			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "acl_config_unq_id");
 
 			DbDataField dbf9 = new DbDataField();
-			dbf9.setDbFieldName(Sv.LABEL_CODE);
+			dbf9.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf9.setDbFieldSize(100);
 			dbf9.setIsNull(false);
@@ -3745,7 +3795,7 @@ public class DbInit {
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName(Sv.LABEL_CODE);
+			dbf3.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(100);
 			dbf3.setIsNull(false);
@@ -3866,7 +3916,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf2 = new DbDataField();
-			dbf2.setDbFieldName(Sv.LABEL_CODE);
+			dbf2.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2.setDbFieldSize(100);
 			dbf2.setIsNull(false);
@@ -4026,7 +4076,7 @@ public class DbInit {
 			// f9
 
 			DbDataField dbf10 = new DbDataField();
-			dbf10.setDbFieldName(Sv.LABEL_CODE);
+			dbf10.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf10.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf10.setDbFieldSize(100);
 			dbf10.setIsNull(false);
@@ -4131,7 +4181,7 @@ public class DbInit {
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(true);
-			dbt.setConfigColumnName(Sv.TABLE_NAME);
+			dbt.setConfigColumnName(Sv.TABLE_NAME.toString());
 
 			// f1
 			DbDataField dbf1 = new DbDataField();
@@ -4154,7 +4204,7 @@ public class DbInit {
 			// f3
 
 			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName(Sv.TABLE_NAME);
+			dbf3.setDbFieldName(Sv.TABLE_NAME.toString());
 			dbf3.setIsUnique(true);
 			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf3.setDbFieldSize(25);
@@ -4187,7 +4237,7 @@ public class DbInit {
 			dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "repo_table");
 
 			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName(Sv.LABEL_CODE);
+			dbf7.setDbFieldName(Sv.LABEL_CODE.toString());
 			dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf7.setDbFieldSize(100);
 			dbf7.setIsNull(false);
@@ -5113,8 +5163,7 @@ public class DbInit {
 	/**
 	 * Method for adding sort order to existing DbDataTables
 	 * 
-	 * @param dbtt
-	 *            A DbDataTable descriptor to which sort order should be added
+	 * @param dbtt A DbDataTable descriptor to which sort order should be added
 	 * @return A DbDataTable descriptor with sort order in the fields array
 	 */
 	private static DbDataTable addSortOrder(DbDataTable dbtt) {
@@ -5130,9 +5179,9 @@ public class DbInit {
 	}
 
 	/**
-	 * List root objects which must be separated in order to embed them as
-	 * resource in the svarorg release jar so we will not need a config folder
-	 * for deployments.
+	 * List root objects which must be separated in order to embed them as resource
+	 * in the svarorg release jar so we will not need a config folder for
+	 * deployments.
 	 * 
 	 * @return A DbDataTable descriptor array
 	 */
@@ -5161,11 +5210,10 @@ public class DbInit {
 
 	/**
 	 * Method to remove duplicate table names from a list of objects. This is
-	 * supposed to ensure smooth install in case someone tries to register
-	 * duplicate tables.
+	 * supposed to ensure smooth install in case someone tries to register duplicate
+	 * tables.
 	 * 
-	 * @param dbtList
-	 *            The arrayList of DbDataTable objects
+	 * @param dbtList The arrayList of DbDataTable objects
 	 * @return List containing object types unique by schema.table_name
 	 */
 	static ArrayList<DbDataTable> getDedupTables(ArrayList<DbDataTable> dbtList) {
@@ -5291,6 +5339,9 @@ public class DbInit {
 		dbtt = getExecutorPackItems();
 		dbtList.add(addSortOrder(dbtt));
 
+		dbtt = getSysParams();
+		dbtList.add(addSortOrder(dbtt));
+
 		// Add SDI structure
 		if (SvConf.isSdiEnabled()) {
 			dbtt = getSDIMasterRepoObject();
@@ -5328,9 +5379,8 @@ public class DbInit {
 	/**
 	 * Method to get all class instances implementing the IDbInit interface
 	 * 
-	 * @param subDir
-	 *            Directory in which the method should scan the jar files for
-	 *            IDbInit
+	 * @param subDir Directory in which the method should scan the jar files for
+	 *               IDbInit
 	 * @return List of instances found
 	 */
 	@SuppressWarnings("unchecked")
@@ -5441,12 +5491,9 @@ public class DbInit {
 	/**
 	 * Method for loading all labels from external custom Jar
 	 * 
-	 * @param jarPath
-	 *            The path to the JAR file
-	 * @param mLabels
-	 *            The map holding the list of labels
-	 * @param locale
-	 *            The local for which the labels should be loaded
+	 * @param jarPath The path to the JAR file
+	 * @param mLabels The map holding the list of labels
+	 * @param locale  The local for which the labels should be loaded
 	 */
 
 	private static void loadLabelsFromCustom(String jarPath, HashMap<String, DbDataObject> mLabels, String locale) {
@@ -5471,7 +5518,7 @@ public class DbInit {
 						dbo.setStatus(svCONST.STATUS_VALID);
 						dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 						dbo.setDtDelete(SvConf.MAX_DATE);
-						dbo.setVal(Sv.LABEL_CODE, (String) pair.getKey());
+						dbo.setVal(Sv.LABEL_CODE.toString(), (String) pair.getKey());
 						dbo.setVal(Sv.LABEL_TEXT, (String) pair.getValue());
 						dbo.setObjectType(svCONST.OBJECT_TYPE_LABEL);
 
@@ -5496,14 +5543,12 @@ public class DbInit {
 	 * Method for loading the content of external JSON file and converting it to
 	 * JsonObject
 	 * 
-	 * @param jarPath
-	 *            The path to the JAR file from which the resource should be
-	 *            loaded. If there is no jar file (jarPath==null) this method
-	 *            will try to load the Json from the local file system according
-	 *            to the filepath
-	 * @param filePath
-	 *            The path to the file which contains the JSON. If jarPath is
-	 *            used this should be relative path within the jar.
+	 * @param jarPath  The path to the JAR file from which the resource should be
+	 *                 loaded. If there is no jar file (jarPath==null) this method
+	 *                 will try to load the Json from the local file system
+	 *                 according to the filepath
+	 * @param filePath The path to the file which contains the JSON. If jarPath is
+	 *                 used this should be relative path within the jar.
 	 * @return Null if there was error loading the file, otherwise a valid
 	 *         JsonObject
 	 */
@@ -5550,7 +5595,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, (String) dbt.getVal(Sv.TABLE_NAME));
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", null);
-		dbo.setVal(Sv.LABEL_CODE, (String) dbt.getVal(Sv.TABLE_NAME) + "." + accessLevel.toString());
+		dbo.setVal(Sv.LABEL_CODE.toString(), (String) dbt.getVal(Sv.TABLE_NAME) + "." + accessLevel.toString());
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		return dbo;
 
@@ -5565,7 +5610,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.SUDO_ACL);
-		dbo.setVal(Sv.LABEL_CODE, svCONST.SUDO_ACL);
+		dbo.setVal(Sv.LABEL_CODE.toString(), svCONST.SUDO_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5577,7 +5622,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.INSECURE_SQL_ACL);
-		dbo.setVal(Sv.LABEL_CODE, svCONST.INSECURE_SQL_ACL);
+		dbo.setVal(Sv.LABEL_CODE.toString(), svCONST.INSECURE_SQL_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5589,7 +5634,7 @@ public class DbInit {
 		dbo.setVal(Sv.ACL_OBJECT_ID, 0L);
 		dbo.setVal(Sv.ACL_OBJECT_TYPE, "TABLES");
 		dbo.setVal("acl_config_unq", svCONST.NULL_GEOMETRY_ACL);
-		dbo.setVal(Sv.LABEL_CODE, svCONST.NULL_GEOMETRY_ACL);
+		dbo.setVal(Sv.LABEL_CODE.toString(), svCONST.NULL_GEOMETRY_ACL);
 		dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 		acls.addDataItem(dbo);
 
@@ -5698,16 +5743,25 @@ public class DbInit {
 								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
-								dbo.setVal("ACCESS_TYPE", aclItem.get("ACCESS_TYPE") != null
-										? aclItem.get("ACCESS_TYPE").getAsString() : null);
-								dbo.setVal(Sv.ACL_OBJECT_ID, aclItem.get(Sv.ACL_OBJECT_ID) != null
-										? aclItem.get(Sv.ACL_OBJECT_ID).getAsString() : null);
-								dbo.setVal(Sv.ACL_OBJECT_TYPE, aclItem.get(Sv.ACL_OBJECT_TYPE) != null
-										? aclItem.get(Sv.ACL_OBJECT_TYPE).getAsString() : null);
-								dbo.setVal("acl_config_unq", aclItem.get("acl_config_unq") != null
-										? aclItem.get("acl_config_unq").getAsString() : null);
-								dbo.setVal(Sv.LABEL_CODE, aclItem.get(Sv.LABEL_CODE.toLowerCase()) != null
-										? aclItem.get(Sv.LABEL_CODE.toLowerCase()).getAsString() : null);
+								dbo.setVal("ACCESS_TYPE",
+										aclItem.get("ACCESS_TYPE") != null ? aclItem.get("ACCESS_TYPE").getAsString()
+												: null);
+								dbo.setVal(Sv.ACL_OBJECT_ID,
+										aclItem.get(Sv.ACL_OBJECT_ID) != null
+												? aclItem.get(Sv.ACL_OBJECT_ID).getAsString()
+												: null);
+								dbo.setVal(Sv.ACL_OBJECT_TYPE,
+										aclItem.get(Sv.ACL_OBJECT_TYPE) != null
+												? aclItem.get(Sv.ACL_OBJECT_TYPE).getAsString()
+												: null);
+								dbo.setVal("acl_config_unq",
+										aclItem.get("acl_config_unq") != null
+												? aclItem.get("acl_config_unq").getAsString()
+												: null);
+								dbo.setVal(Sv.LABEL_CODE,
+										aclItem.get(Sv.LABEL_CODE.toString().toLowerCase()) != null
+												? aclItem.get(Sv.LABEL_CODE.toString().toLowerCase()).getAsString()
+												: null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_ACL);
 								arrAcl.addDataItem(dbo);
 							}
@@ -5730,15 +5784,20 @@ public class DbInit {
 								dbo.setStatus(svCONST.STATUS_VALID);
 								dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
 								dbo.setDtDelete(SvConf.MAX_DATE);
-								dbo.setVal("sid_object_id", aclItem.get("sid_object_id") != null
-										? aclItem.get("sid_object_id").getAsString() : null);
-								if (aclItem.get("status") != null)
-									dbo.setStatus(aclItem.get("status").getAsString());
+								dbo.setVal(Sv.SID_OBJECT_ID,
+										aclItem.get(Sv.SID_OBJECT_ID) != null
+												? aclItem.get(Sv.SID_OBJECT_ID).getAsString()
+												: null);
+								if (aclItem.get(Sv.STATUS) != null)
+									dbo.setStatus(aclItem.get(Sv.STATUS).getAsString());
 
-								dbo.setVal("acl_label_code", aclItem.get("acl_label_code") != null
-										? aclItem.get("acl_label_code").getAsString() : null);
-								dbo.setVal("group_name", aclItem.get("group_name") != null
-										? aclItem.get("group_name").getAsString() : null);
+								dbo.setVal(Sv.ACL_LABEL_CODE,
+										aclItem.get(Sv.ACL_LABEL_CODE) != null
+												? aclItem.get(Sv.ACL_LABEL_CODE).getAsString()
+												: null);
+								dbo.setVal(Sv.GROUP_NAME,
+										aclItem.get(Sv.GROUP_NAME) != null ? aclItem.get(Sv.GROUP_NAME).getAsString()
+												: null);
 								dbo.setObjectType(svCONST.OBJECT_TYPE_SID_ACL);
 								arrAclSid.addDataItem(dbo);
 							}
@@ -5771,8 +5830,7 @@ public class DbInit {
 	 * Method to load the properties file for the specific locale and return
 	 * Properties object
 	 * 
-	 * @param localeId
-	 *            The locale for which we should load the labels
+	 * @param localeId The locale for which we should load the labels
 	 * @return Properties object holding all labels for the specific locale
 	 */
 	static Properties loadLabelsBundle(String localeId) {
@@ -5806,13 +5864,11 @@ public class DbInit {
 	}
 
 	/**
-	 * Method to perform internal lables loading from the properties object into
-	 * the HashMap according to the label code as key
+	 * Method to perform internal lables loading from the properties object into the
+	 * HashMap according to the label code as key
 	 * 
-	 * @param localeId
-	 *            The local for which to load the labels
-	 * @param mLabels
-	 *            The map destination of the labels.
+	 * @param localeId The local for which to load the labels
+	 * @param mLabels  The map destination of the labels.
 	 */
 	static void loadInternalLabels(String localeId, HashMap<String, DbDataObject> mLabels) {
 
@@ -5846,8 +5902,8 @@ public class DbInit {
 	}
 
 	/**
-	 * Method that prepares the labels JSON files from the properties files for
-	 * all languages
+	 * Method that prepares the labels JSON files from the properties files for all
+	 * languages
 	 * 
 	 * @return Description of the error if any
 	 */
@@ -5937,8 +5993,7 @@ public class DbInit {
 	/**
 	 * Method to prepare the default code list
 	 * 
-	 * @param defaultCodes
-	 *            Array hold the based default codes
+	 * @param defaultCodes Array hold the based default codes
 	 * @return The object Id index at which the code list ends.
 	 */
 	public static Long prepDefaultCodeList(DbDataArray defaultCodes) {
@@ -5961,16 +6016,11 @@ public class DbInit {
 	 * Method to convert a legacy DbDataTable object to DbDataArray. FFS please
 	 * remove DbDataTable in Svarog v3!!!
 	 * 
-	 * @param dbtList
-	 *            The list of DbDataTable objects to convert
-	 * @param dbarrOut
-	 *            The output DbDataArray with DbDataObjects
-	 * @param defaultCodes
-	 *            The default set of codes
-	 * @param svObjectId
-	 *            The object ID index
-	 * @param errMsg
-	 *            Error string describing the errors
+	 * @param dbtList      The list of DbDataTable objects to convert
+	 * @param dbarrOut     The output DbDataArray with DbDataObjects
+	 * @param defaultCodes The default set of codes
+	 * @param svObjectId   The object ID index
+	 * @param errMsg       Error string describing the errors
 	 * @return The object id which should be used after generating the dbo style
 	 *         objects
 	 */
@@ -6087,10 +6137,8 @@ public class DbInit {
 	 * Method to return an array of the basic core svarog objects needed to
 	 * bootstrap
 	 * 
-	 * @param defaultCodes
-	 *            The array with default codes
-	 * @param defaultObjests
-	 *            The array with default sys objects
+	 * @param defaultCodes   The array with default codes
+	 * @param defaultObjests The array with default sys objects
 	 */
 
 	public static void initCoreRecords(DbDataArray defaultCodes, DbDataArray defaultObjests) {
@@ -6281,23 +6329,20 @@ public class DbInit {
 		 * DbDataObject();
 		 * dblNotificationUser.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		 * dblNotificationUser.setStatus(svCONST.STATUS_VALID);
-		 * dblNotificationUser.setVal("LINK_TYPE",
-		 * "LINK_CONVERSATION_ATTACHMENT");
+		 * dblNotificationUser.setVal("LINK_TYPE", "LINK_CONVERSATION_ATTACHMENT");
 		 * dblNotificationUser.setVal("LINK_TYPE_DESCRIPTION", "link user");
 		 * dblNotificationUser.setVal("LINK_OBJ_TYPE_1",
 		 * svCONST.OBJECT_TYPE_CONVERSATION);
-		 * dblNotificationUser.setVal("LINK_OBJ_TYPE_2",
-		 * svCONST.OBJECT_TYPE_USER);
+		 * dblNotificationUser.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_USER);
 		 * defaultObjests.addDataItem(dblConversationUser);
 		 * 
-		 * // link conversation and org unit DbDataObject dblConversationOrgUnit
-		 * = new DbDataObject();
+		 * // link conversation and org unit DbDataObject dblConversationOrgUnit = new
+		 * DbDataObject();
 		 * dblConversationOrgUnit.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		 * dblConversationOrgUnit.setStatus(svCONST.STATUS_VALID);
-		 * dblConversationOrgUnit.setVal("LINK_TYPE",
-		 * "LINK_CONVERSATION_ATTACHMENT");
-		 * dblConversationOrgUnit.setVal("LINK_TYPE_DESCRIPTION",
-		 * "link org unit"); dblConversationOrgUnit.setVal("LINK_OBJ_TYPE_1",
+		 * dblConversationOrgUnit.setVal("LINK_TYPE", "LINK_CONVERSATION_ATTACHMENT");
+		 * dblConversationOrgUnit.setVal("LINK_TYPE_DESCRIPTION", "link org unit");
+		 * dblConversationOrgUnit.setVal("LINK_OBJ_TYPE_1",
 		 * svCONST.OBJECT_TYPE_CONVERSATION);
 		 * dblConversationOrgUnit.setVal("LINK_OBJ_TYPE_2",
 		 * svCONST.OBJECT_TYPE_ORG_UNITS);
@@ -6358,18 +6403,14 @@ public class DbInit {
 	}
 
 	/**
-	 * Method to process a subdir in the Svarog working directory in order to
-	 * find all potential IDbInit instances which provide custom objects to the
+	 * Method to process a subdir in the Svarog working directory in order to find
+	 * all potential IDbInit instances which provide custom objects to the
 	 * configurator
 	 * 
-	 * @param subDir
-	 *            The sub directory to be traversed
-	 * @param svObjectId
-	 *            The current max object id
-	 * @param defaultCodes
-	 *            the list of default codes used for decoding
-	 * @return The updated max object id as result of the custom DbInit
-	 *         processing
+	 * @param subDir       The sub directory to be traversed
+	 * @param svObjectId   The current max object id
+	 * @param defaultCodes the list of default codes used for decoding
+	 * @return The updated max object id as result of the custom DbInit processing
 	 */
 	static Long saveCustomToJson(String subDir, Long svObjectId, DbDataArray defaultCodes,
 			DbDataArray customObjestsAll) {
@@ -6435,12 +6476,11 @@ public class DbInit {
 	}
 
 	/**
-	 * Method that creates all master records for the tables according to the
-	 * array created by getMasterObjects();
+	 * Method that creates all master records for the tables according to the array
+	 * created by getMasterObjects();
 	 * 
-	 * @param dbtList
-	 *            ArraList holding all DbDataTable objects from the master
-	 *            records should be created
+	 * @param dbtList ArraList holding all DbDataTable objects from the master
+	 *                records should be created
 	 * @return Description of the error if any
 	 */
 	public static String createJsonMasterTableRecords(ArrayList<DbDataTable> dbtList) {
@@ -6577,11 +6617,9 @@ public class DbInit {
 	 * Method to load codes from either 'custom/' directory or OSGI bundles
 	 * AUTODEPLOY DIR
 	 * 
-	 * @param jarPath
-	 *            The path of the jar file containining
-	 *            "labels/codes.properties"
-	 * @param jCodes
-	 *            The
+	 * @param jarPath The path of the jar file containining
+	 *                "labels/codes.properties"
+	 * @param jCodes  The
 	 * @throws IOException
 	 */
 	private static void loadCodesFromCustom(String jarPath, JsonObject jCodes) throws IOException {
@@ -6606,21 +6644,14 @@ public class DbInit {
 	/**
 	 * Method to create a new link type
 	 * 
-	 * @param linkType
-	 *            The link type mnemonic
-	 * @param linkDesc
-	 *            The description of the link type
-	 * @param objectTypeId1
-	 *            The left hand side object type id
-	 * @param objectTypeId2
-	 *            The right hand side object type id
-	 * @param deferSecurity
-	 *            Flag to defer the security checks
-	 * @param svw
-	 *            The SvWriter instance to be used for saving the link
+	 * @param linkType      The link type mnemonic
+	 * @param linkDesc      The description of the link type
+	 * @param objectTypeId1 The left hand side object type id
+	 * @param objectTypeId2 The right hand side object type id
+	 * @param deferSecurity Flag to defer the security checks
+	 * @param svw           The SvWriter instance to be used for saving the link
 	 * @return A DbDataObject link descriptor
-	 * @throws SvException
-	 *             Pass-thru any underlying exception
+	 * @throws SvException Pass-thru any underlying exception
 	 */
 	public static DbDataObject createLinkType(String linkType, String linkDesc, Long objectTypeId1, Long objectTypeId2,
 			Boolean deferSecurity, SvWriter svw) throws SvException {
@@ -6638,13 +6669,11 @@ public class DbInit {
 	}
 
 	/**
-	 * Method to load all codes from deployed bundles or legacy custom
-	 * extensions from Svarog2
+	 * Method to load all codes from deployed bundles or legacy custom extensions
+	 * from Svarog2
 	 * 
-	 * @param jCodes
-	 *            The JsonObject in which the codes will be stored
-	 * @throws IOException
-	 *             any exception when reading the files
+	 * @param jCodes The JsonObject in which the codes will be stored
+	 * @throws IOException any exception when reading the files
 	 */
 	private static void loadCodes(JsonObject jCodes) throws IOException {
 		// load codes from the custom dir
@@ -6671,16 +6700,13 @@ public class DbInit {
 
 	/**
 	 * Method to process the codes loaded from the JSON files in the
-	 * bundles/plugings and populate the "30. master_codes.json" configuration
-	 * file which is used for installation, upgrade and initialisation of Svarog
-	 * codes
+	 * bundles/plugings and populate the "30. master_codes.json" configuration file
+	 * which is used for installation, upgrade and initialisation of Svarog codes
 	 * 
-	 * @param startingObjId
-	 *            when generating object id for code objects, the ids shall
-	 *            start from this value
-	 * @param codesStr
-	 *            The string representation of the codes in the system. This
-	 *            shall be further converted to JsonObject
+	 * @param startingObjId when generating object id for code objects, the ids
+	 *                      shall start from this value
+	 * @param codesStr      The string representation of the codes in the system.
+	 *                      This shall be further converted to JsonObject
 	 * @return the maximum object Id which was generated by this method.
 	 */
 	private static Long prepareCodes(Long startingObjId, String[] codesStr) {
@@ -6819,6 +6845,8 @@ public class DbInit {
 			gridList.toArray(garr);
 			GeometryCollection gcl = SvUtil.sdiFactory.createGeometryCollection(garr);
 			jtsWriter.setUseFeatureType(true);
+			if (SvConf.getSDISrid().equals(Sv.SQL_NULL))
+				jtsWriter.setEncodeCRS(false);
 			jtsJson = jtsWriter.write(gcl);
 			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile,
 					jtsJson);
@@ -6849,10 +6877,8 @@ public class DbInit {
 	 * Load the jar entries from the jar file as well as getting the appropriate
 	 * class loader
 	 * 
-	 * @param pathToJar
-	 *            The path of the JAR on the file system,
-	 * @param jarItems
-	 *            The vector holding the items found in the jar file
+	 * @param pathToJar The path of the JAR on the file system,
+	 * @param jarItems  The vector holding the items found in the jar file
 	 * @return The URL[] to the specific for this jar
 	 */
 	private static URL[] loadJar(String pathToJar, Vector<JarEntry> jarItems) {
@@ -6879,10 +6905,9 @@ public class DbInit {
 	/**
 	 * Method for loading all custom DbInit instances from external jars
 	 * 
-	 * @param pathToJar
-	 *            The path to the location of the JAR
-	 * @return ArrayList holding all classes implementing IDbInit in the
-	 *         external jar
+	 * @param pathToJar The path to the location of the JAR
+	 * @return ArrayList holding all classes implementing IDbInit in the external
+	 *         jar
 	 * @throws IOException
 	 */
 	public static ArrayList<Object> loadClassFromJar(String pathToJar, Class<?> clazz) throws IOException {
@@ -6915,11 +6940,9 @@ public class DbInit {
 	/**
 	 * Method to load a svarog executable from a Jar file
 	 * 
-	 * @param pathToJar
-	 *            The path to the location of the JAR
+	 * @param pathToJar The path to the location of the JAR
 	 * @return The executable from the external jar
-	 * @throws IOException
-	 *             If io exception is thrown on close
+	 * @throws IOException If io exception is thrown on close
 	 */
 	public static ISvarogExecutable loadCustomExecutor(String pathToJar) throws IOException {
 		ISvarogExecutable svExec = null;

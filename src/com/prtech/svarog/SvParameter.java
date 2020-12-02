@@ -17,11 +17,15 @@ package com.prtech.svarog;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
@@ -46,6 +50,20 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
  *
  */
 public class SvParameter extends SvCore {
+
+	static Cache<String, DbDataObject> paramsCache = initParamCache();
+
+	/**
+	 * Method to initialise the params cache.
+	 * 
+	 * @return
+	 */
+	static Cache<String, DbDataObject> initParamCache() {
+		CacheBuilder builder = CacheBuilder.newBuilder();
+		builder = builder.maximumSize(Sv.DEFAULT_CACHE_SIZE);
+		builder = builder.expireAfterAccess(Sv.DEFAULT_CACHE_TTL, TimeUnit.MINUTES);
+		return (Cache<String, DbDataObject>) builder.<Long, DbDataObject>build();
+	}
 
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This is
@@ -101,9 +119,8 @@ public class SvParameter extends SvCore {
 	 */
 	public HashMap<DbDataObject, DbDataArray> getParameters(DbDataObject dbo) throws SvException {
 
-		
 		HashMap<DbDataObject, DbDataArray> allParams = new HashMap<>();
-		try(SvReader svr = new SvReader(this)) {
+		try (SvReader svr = new SvReader(this)) {
 			// get all existing parameters for the object user of the parameters
 			DbDataArray allParamsForObj = svr.getObjectsByParentId(dbo.getObjectId(), svCONST.OBJECT_TYPE_PARAM, null,
 					0, 0);
@@ -118,7 +135,7 @@ public class SvParameter extends SvCore {
 			}
 
 			return allParams;
-		} 
+		}
 	}
 
 	/**
@@ -347,7 +364,8 @@ public class SvParameter extends SvCore {
 			try (SvReader svr = new SvReader(this)) {
 
 				DbSearchExpression dbSearch = new DbSearchExpression();
-				DbSearchCriterion dbcrit = new DbSearchCriterion(Sv.LABEL_CODE, DbCompareOperand.EQUAL, labelCode);
+				DbSearchCriterion dbcrit = new DbSearchCriterion(Sv.LABEL_CODE.toString(), DbCompareOperand.EQUAL,
+						labelCode);
 				dbSearch.addDbSearchItem(dbcrit);
 
 				DbDataArray dbarr = svr.getObjects(dbSearch, svCONST.OBJECT_TYPE_PARAM_TYPE, new DateTime(), 0, 0);
@@ -828,11 +846,65 @@ public class SvParameter extends SvCore {
 
 	}
 
+	/**
+	 * The implementation method that sets the value of parameter in the sys params
+	 * object
+	 * 
+	 * @param key            the system parameter key.
+	 * @param value
+	 * @param autoCommit     Flag to disable the auto commit on success. In case the
+	 *                       linking is part of a transaction
+	 * @param autoCreateType Flag to autocreate an empty param type. Useful for
+	 *                       anonymous params.
+	 * 
+	 */
+	void setSysParamImpl(String key, String value, Boolean autoCommit) throws SvException {
+
+		try (SvReader svr = new SvReader(this); SvWriter svw = new SvWriter(svr)) {
+			DbDataObject dbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SYS_PARAMS);
+			DbDataObject dbParamValue = svr.getObjectByUnqConfId(key, dbt);
+			if (dbParamValue == null) {
+				dbParamValue = new DbDataObject(svCONST.OBJECT_TYPE_SYS_PARAMS);
+				dbParamValue.setVal(Sv.PARAM_NAME, key);
+			}
+			dbParamValue.setVal(Sv.PARAM_VALUE, value);
+			svw.saveObject(dbParamValue, autoCommit);
+			paramsCache.put(Sv.PARAM_NAME, dbParamValue);
+		}
+	}
+
+	/**
+	 * The implementation method that gets the value of parameter in the sys params
+	 * object
+	 * 
+	 * @param key the system parameter key.
+	 * 
+	 * 
+	 */
+	String getSysParamImpl(String key) throws SvException {
+		String value = null;
+		DbDataObject dbParamValue = paramsCache.getIfPresent(key);
+		if (dbParamValue == null) {
+			try (SvReader svr = new SvReader(this)) {
+				DbDataObject dbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SYS_PARAMS);
+				dbParamValue = svr.getObjectByUnqConfId(key, dbt);
+				if (dbParamValue == null) {
+					dbParamValue = new DbDataObject(svCONST.OBJECT_TYPE_SYS_PARAMS);
+					dbParamValue.setVal(Sv.PARAM_NAME, key);
+				}
+				paramsCache.put(Sv.PARAM_NAME, dbParamValue);
+
+			}
+		}
+		value = (String) dbParamValue.getVal(Sv.PARAM_VALUE);
+		return value;
+	}
+
 	public DbDataObject createParamType(String labelCode, Boolean autoCommit) throws SvException {
-		
+
 		DbDataObject paramTypeObj = null;
-		try (SvWriter svw = new SvWriter(this)){
-			
+		try (SvWriter svw = new SvWriter(this)) {
+
 			paramTypeObj = new DbDataObject();
 			paramTypeObj.setObjectType(svCONST.OBJECT_TYPE_PARAM_TYPE);
 			paramTypeObj.setStatus(svCONST.STATUS_VALID);
@@ -846,6 +918,103 @@ public class SvParameter extends SvCore {
 		}
 
 		return paramTypeObj;
+	}
+
+	/**
+	 * Method that sets the value of system parameter of type string, which
+	 * autocommits
+	 * 
+	 * @param key   of the parameter
+	 * @param value of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+
+	public void setSysParam(String key, String value) throws SvException {
+		setSysParamImpl(key, value, true);
+	}
+
+	public void setSysParamDate(String key, DateTime value, String dateFormat) throws Exception {
+		DateTimeFormatter df = DateTimeFormat.forPattern(dateFormat);
+		setSysParamImpl(key, df.print(value), true);
+	}
+
+	public void setSysParamDateTime(String key, DateTime value) throws Exception {
+		setSysParamDate(key, value, SvConf.getDefaultDateFormat() + Sv.SPACE + SvConf.getDefaultTimeFormat());
+	}
+
+	public void setSysParamDate(String key, DateTime value) throws Exception {
+		setSysParamDate(key, value, SvConf.getDefaultDateFormat());
+	}
+
+	public void setSysParamLong(String key, Long value) throws Exception {
+		setSysParam(key, value.toString());
+	}
+	/**
+	 * Method that gets the value of system parameter as type long
+	 * 
+	 * @param paramName The name of the parameter
+	 * @return The value of the parameter as string
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public String getSysParam(String paramName) throws SvException {
+		return getSysParamImpl(paramName);
+	}
+	/**
+	 * Method that gets the value of system parameter as type long
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public Long getSysParamAsLong(String paramName) throws Exception {
+		String value = getSysParamImpl(paramName);
+		return Long.parseLong(value);
+	}
+
+	/**
+	 * Method that gets the value of system parameter as type Date
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public DateTime getSysParamAsDate(String paramName) throws Exception {
+		return getSysParamAsDate(paramName, SvConf.getDefaultDateFormat());
+	}
+
+	/**
+	 * Method that gets the value of system parameter as date time
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public DateTime getSysParamAsDateTime(String paramName) throws Exception {
+		return getSysParamAsDate(paramName, SvConf.getDefaultDateFormat() + Sv.SPACE + SvConf.getDefaultTimeFormat());
+	}
+
+	/**
+	 * Method to get a system system parameter under the specified name, and parse it using the assigned date format.
+	 * @param paramName The param name to be 
+	 * @param dateFormat 
+	 * @return
+	 * @throws Exception
+	 */
+	public DateTime getSysParamAsDate(String paramName, String dateFormat) throws Exception {
+		String value = getSysParamImpl(paramName);
+		DateTime returnValue = null;
+		if (value != null) {
+			DateTimeFormatter df = DateTimeFormat.forPattern(dateFormat);
+			returnValue = DateTime.parse(value, df);
+		}
+		return returnValue;
 	}
 
 }
