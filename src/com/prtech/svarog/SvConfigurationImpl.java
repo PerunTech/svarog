@@ -9,6 +9,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.prtech.svarog.SvConf.SvDbType;
+import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbDataTable;
 import com.prtech.svarog_interfaces.ISvConfiguration;
 import com.prtech.svarog_interfaces.ISvCore;
 
@@ -44,7 +46,7 @@ public class SvConfigurationImpl implements ISvConfiguration {
 				ps.execute();
 				errorMsg = "Successfully dropped column:" + columnName + " from table: " + tableName;
 			} catch (SQLException e) {
-				throw (new SvException("sys.err.drop_column", svc.getInstanceUser(), null, sqlDrop));
+				throw (new SvException("sys.err.drop_column", svc.getInstanceUser(), null, sqlDrop, e));
 			} finally {
 				SvCore.closeResource(ps, svc.getInstanceUser());
 			}
@@ -54,11 +56,28 @@ public class SvConfigurationImpl implements ISvConfiguration {
 
 	}
 
+	void deleteRedundantDbt(ISvCore svc, Long objectId) {
+		try (SvWriter svr = new SvWriter((SvCore) svc);) {
+			DbDataObject dbo104 = SvCore.getDbt(objectId);
+			svr.deleteObject(dbo104, true);
+		} catch (SvException ex) {
+			if (!ex.getLabelCode().equals("system.error.no_dbt_found")) {
+				log4j.error("Error deleting reduntand dbt with id:" + objectId, ex);
+			}
+		}
+
+	}
+
 	@Override
 	public String beforeSchemaUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
 		String msg = dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_WORKFLOW", "WORKFLOW_UID");
 		msg += "; ";
 		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_WORKFLOW", "OBJECT_SUB_CODE");
+		msg += "; ";
+		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_EXEC_PACK", "NAME");
+		msg += dropCoumn(conn, svc, schema, SvConf.getMasterRepo() + "_EXEC_PACK", "PACK_LEVEL");
+		deleteRedundantDbt(svc, svCONST.OBJECT_TYPE_RESERVED_DONTUSE1);
+		deleteRedundantDbt(svc, svCONST.OBJECT_TYPE_RESERVED_DONTUSE2);
 		return msg;
 	}
 

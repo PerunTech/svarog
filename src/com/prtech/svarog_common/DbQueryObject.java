@@ -784,6 +784,10 @@ public class DbQueryObject extends DbQuery {
 
 	}
 
+	public LinkedList<DbQueryObject> getChildren() {
+		return this.children;
+	}
+
 	public void setChildren(LinkedList<DbQueryObject> children) {
 		this.children = children;
 	}
