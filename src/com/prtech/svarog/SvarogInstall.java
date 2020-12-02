@@ -179,7 +179,7 @@ public class SvarogInstall {
 				if (validateCommandLine(line)) {
 					if (line.hasOption("j"))
 						returnStatus = generateJsonCfg();
-					else if (line.hasOption("g"))
+					else if (line.hasOption("gd"))
 						returnStatus = generateGrid();
 					else if (line.hasOption("i")) {
 						returnStatus = validateInstall();
@@ -341,14 +341,14 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject user = svs.getUser(userName);
 
 			if (line.hasOption("p"))
 				password = SvUtil.getMD5(password).toUpperCase();
 
-			svs.createUser(userName, password, (String) user.getVal("first_name"), (String) user.getVal("last_name"),
+			svs.createUser(userName, password, (String) user.getVal(Sv.FIRST_NAME), (String) user.getVal("last_name"),
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
 			System.out.println("Password updated for user " + userName);
@@ -423,7 +423,7 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			if (line.hasOption("p"))
 				password = SvUtil.getMD5(password).toUpperCase();
@@ -478,7 +478,7 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject groupDbo = null;
 			try {
@@ -537,12 +537,12 @@ public class SvarogInstall {
 		try {
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject groupDbo = null;
 			groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
 			DbDataArray acls = svw.getPermissions(groupDbo, svw);
-			groupDbo.setVal("ACLS", acls);
+			groupDbo.setVal(Sv.ACLS, acls);
 			SvUtil.saveStringToFile(exportFile, groupDbo.toJson().toString());
 			returnStatus = 0;
 			System.out.println("Successfully exported " + group + " config to " + exportFile);
@@ -591,16 +591,16 @@ public class SvarogInstall {
 			svw.saveObject(newAcls);
 
 			DbDataArray aclSids = svr.getSecurityObjects(dboGroup, svr, SvCore.getDbt(svCONST.OBJECT_TYPE_SID_ACL));
-			aclSids.rebuildIndex("ACL_OBJECT_ID", true);
+			aclSids.rebuildIndex(Sv.ACL_OBJECT_ID, true);
 
 			DbDataArray newAclSids = new DbDataArray();
 			for (DbDataObject acl : aclList.getItems()) {
 				DbDataObject aclSid = aclSids.getItemByIdx(acl.getObjectId().toString());
 				if (aclSid == null) {
 					aclSid = new DbDataObject(svCONST.OBJECT_TYPE_SID_ACL);
-					aclSid.setVal("SID_OBJECT_ID", dboGroup.getObjectId());
-					aclSid.setVal("SID_TYPE_ID", dboGroup.getObjectType());
-					aclSid.setVal("ACL_OBJECT_ID", acl.getObjectId());
+					aclSid.setVal(Sv.SID_OBJECT_ID, dboGroup.getObjectId());
+					aclSid.setVal(Sv.SID_TYPE_ID, dboGroup.getObjectType());
+					aclSid.setVal(Sv.ACL_OBJECT_ID, acl.getObjectId());
 					newAclSids.addDataItem(aclSid);
 				}
 			}
@@ -629,12 +629,12 @@ public class SvarogInstall {
 			DbDataObject dbo = new DbDataObject();
 			DbDataObject groupDbo = null;
 			dbo.fromJson(jObj);
-			DbDataArray acls = (DbDataArray) dbo.getVal("ACLS");
-			group = (String) dbo.getVal("GROUP_NAME");
+			DbDataArray acls = (DbDataArray) dbo.getVal(Sv.ACLS);
+			group = (String) dbo.getVal(Sv.GROUP_NAME);
 			System.out.println("Importing group " + group + " config from " + importFile);
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svw.setAutoCommit(false);
 			svs = new SvSecurity(svw);
 			try {
@@ -699,7 +699,7 @@ public class SvarogInstall {
 		try {
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject userDbo = svs.getUser(user);
 			DbDataArray defaultGroup = svw.getAllUserGroups(userDbo, true);
@@ -754,7 +754,7 @@ public class SvarogInstall {
 		try {
 
 			svw = new SvWriter();
-			svw.switchUser("ADMIN");
+			svw.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svw);
 			DbDataObject userDbo = svs.getUser(user);
 			DbDataObject groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
@@ -805,7 +805,7 @@ public class SvarogInstall {
 		SvSecurity svs = null;
 		try {
 			svr = new SvReader();
-			svr.switchUser("ADMIN");
+			svr.switchUser(Sv.ADMIN);
 			svs = new SvSecurity(svr);
 			svs.setAutoCommit(false);
 			DbDataArray permissions = svs.getPermissions(permissionMask);
@@ -968,7 +968,7 @@ public class SvarogInstall {
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
-		opt = new Option("g", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
+		opt = new Option("gd", "grid", false, "re-create system grid from the sdi boundary in /conf/sdi/boundary.json");
 		coreGroup.addOption(opt);
 		sysCoreOpts.add(opt);
 
@@ -2571,7 +2571,7 @@ public class SvarogInstall {
 			return true;
 
 		if (dboFields.getItemByIdx("PKID", oldDbo.getObjectType()) == null)
-			dboFields.rebuildIndex(Sv.FIELD_NAME);
+			dboFields.rebuildIndex(Sv.FIELD_NAME.toString());
 		// if(oldDbo.getValues().size()!=newDbo.getValues().size())
 		// return true;
 		Boolean cmpVal = false;
@@ -2751,7 +2751,7 @@ public class SvarogInstall {
 		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
 
 		int upgradeSize = allObjects.size();
-		log4j.info("Processing base table upgrades: " + upgradeFile + ". Total number of objects:" + upgradeSize);
+		log4j.info("Processing base table upgrades: " + upgradeFile + ". :" + upgradeSize);
 
 		DbDataArray dbFieldsUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_FIELD, true);
 		DbDataArray dbTablesUpgrade = extractType(allObjects, svCONST.OBJECT_TYPE_TABLE, true);
@@ -3993,35 +3993,35 @@ public class SvarogInstall {
 
 			DbDataArray oldSidACLs = dbu.getObjects(query, 0, 0);
 			DbDataArray sidAclFields = SvCore.getFields(svCONST.OBJECT_TYPE_SID_ACL);
-			sidAclFields.rebuildIndex("FIELD_NAME");
+			sidAclFields.rebuildIndex(Sv.FIELD_NAME.toString());
 			Iterator<DbDataObject> iteratorAclUpgrade = dbAclSidUpgrade.getItems().iterator();
 			while (iteratorAclUpgrade.hasNext()) {
 				DbDataObject acl = iteratorAclUpgrade.next();
 				boolean shouldIgnore = true;
 				DbDataObject dbt = null;
-				if (acl.getVal("sid_type_id") != null) {
-					if (acl.getVal("sid_type_id") instanceof String) {
-						String strTypeId = (String) acl.getVal("sid_object_id");
+				if (acl.getVal(Sv.SID_TYPE_ID) != null) {
+					if (acl.getVal(Sv.SID_TYPE_ID) instanceof String) {
+						String strTypeId = (String) acl.getVal(Sv.SID_OBJECT_ID);
 						dbt = SvCore.getDbtByName(strTypeId);
 					}
 				} else
 					dbt = SvCore.getDbt(svCONST.OBJECT_TYPE_GROUP);
 
-				acl.setVal("sid_type_id", dbt != null ? dbt.getObjectId() : dbt);
-				if (acl.getVal("sid_object_id") instanceof String) {
+				acl.setVal(Sv.SID_TYPE_ID, dbt != null ? dbt.getObjectId() : dbt);
+				if (acl.getVal(Sv.SID_OBJECT_ID) instanceof String) {
 					DbDataObject dbf = null;
-					dbf = svr.getObjectByUnqConfId((String) acl.getVal("sid_object_id"), dbt);
+					dbf = svr.getObjectByUnqConfId((String) acl.getVal(Sv.SID_OBJECT_ID), dbt);
 					if (dbf != null) {
-						acl.setVal("sid_object_id", dbf.getObjectId());
+						acl.setVal(Sv.SID_OBJECT_ID, dbf.getObjectId());
 						shouldIgnore = false;
 					}
 				}
-				if (acl.getVal("ACL_LABEL_CODE") instanceof String) {
+				if (acl.getVal(Sv.ACL_LABEL_CODE) instanceof String) {
 					DbDataObject dbf = null;
-					dbf = svr.getObjectByUnqConfId((String) acl.getVal("ACL_LABEL_CODE"),
+					dbf = svr.getObjectByUnqConfId((String) acl.getVal(Sv.ACL_LABEL_CODE),
 							SvCore.getDbt(svCONST.OBJECT_TYPE_ACL));
 					if (dbf != null) {
-						acl.setVal("acl_object_id", dbf.getObjectId());
+						acl.setVal(Sv.ACL_OBJECT_ID, dbf.getObjectId());
 						shouldIgnore = false;
 					}
 				}
@@ -4033,9 +4033,9 @@ public class SvarogInstall {
 				} else {
 					boolean shouldUpgrade = true;
 					for (DbDataObject sidAcl : oldSidACLs.getItems()) {
-						if (sidAcl.getVal("sid_object_id").equals(acl.getVal("sid_object_id"))
-								&& sidAcl.getVal("acl_object_id").equals(acl.getVal("acl_object_id"))
-								&& sidAcl.getVal("sid_type_id").equals(acl.getVal("sid_type_id"))) {
+						if (sidAcl.getVal(Sv.SID_OBJECT_ID).equals(acl.getVal(Sv.SID_OBJECT_ID))
+								&& sidAcl.getVal(Sv.ACL_OBJECT_ID).equals(acl.getVal(Sv.ACL_OBJECT_ID))
+								&& sidAcl.getVal(Sv.SID_TYPE_ID).equals(acl.getVal(Sv.SID_TYPE_ID))) {
 							if (shouldUpgradeConfig(sidAcl, acl, sidAclFields)) {
 								acl.setObjectId(sidAcl.getObjectId());
 								acl.setPkid(sidAcl.getPkid());
@@ -4093,16 +4093,16 @@ public class SvarogInstall {
 						shouldIgnore = true;
 					} else {
 						acl.setVal("acl_object_type", dbtId);
-						if (acl.getVal("acl_object_id") instanceof String) {
+						if (acl.getVal(Sv.ACL_OBJECT_ID) instanceof String) {
 							DbDataObject dbf = null;
 							if (dbtId.equals(svCONST.OBJECT_TYPE_FIELD))
-								dbf = SvCore.getFieldByName(strTypeId, (String) acl.getVal("acl_object_id"));
+								dbf = SvCore.getFieldByName(strTypeId, (String) acl.getVal(Sv.ACL_OBJECT_ID));
 							else
-								dbf = svr.getObjectByUnqConfId((String) acl.getVal("acl_object_id"), strTypeId);
+								dbf = svr.getObjectByUnqConfId((String) acl.getVal(Sv.ACL_OBJECT_ID), strTypeId);
 							if (dbf == null) {
 								shouldIgnore = true;
 							} else
-								acl.setVal("acl_object_id", dbf.getObjectId());
+								acl.setVal(Sv.ACL_OBJECT_ID, dbf.getObjectId());
 						}
 
 					}

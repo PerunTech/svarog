@@ -36,6 +36,8 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import com.prtech.svarog_common.DbDataField;
+import com.prtech.svarog_common.DbDataTable;
 import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 
@@ -110,14 +112,14 @@ public class SvConf {
 	private static int heartBeatPort;
 
 	/**
-	 * The heart beat interval between two heart beats for configuring the
-	 * cluster client
+	 * The heart beat interval between two heart beats for configuring the cluster
+	 * client
 	 */
 	private static int heartBeatInterval;
 
 	/**
-	 * Filed to register the IP of the VM Bridge. Svarog will not register this
-	 * IP as valid ip for heartbeat connections
+	 * Filed to register the IP of the VM Bridge. Svarog will not register this IP
+	 * as valid ip for heartbeat connections
 	 */
 	private static String vmBridgeIPAddress;
 	/**
@@ -149,8 +151,7 @@ public class SvConf {
 	private static Double sdiPrecision = null;
 
 	/**
-	 * Property holding the configuration folder containing all svarog JSON
-	 * config
+	 * Property holding the configuration folder containing all svarog JSON config
 	 */
 	private static String configurationFolder = null;
 
@@ -201,8 +202,7 @@ public class SvConf {
 	private static String multiSelectSeparator = ";";
 
 	/**
-	 * Size of the generated grid of the territory covered by the spatial
-	 * modules
+	 * Size of the generated grid of the territory covered by the spatial modules
 	 */
 	static int sdiGridSize;
 	/**
@@ -225,8 +225,8 @@ public class SvConf {
 	static final String appBuild = loadInfo("git.build.time");
 
 	/**
-	 * Array holding the list of service classes allowed to switch to the
-	 * Service user without being authenticated
+	 * Array holding the list of service classes allowed to switch to the Service
+	 * user without being authenticated
 	 */
 	static ArrayList<String> serviceClasses = new ArrayList<String>();
 
@@ -242,11 +242,10 @@ public class SvConf {
 	static final Properties config = initConfig();
 
 	/**
-	 * Static method to return a Logger from the svarog class loader to the
-	 * Svarog OSGI modules
+	 * Static method to return a Logger from the svarog class loader to the Svarog
+	 * OSGI modules
 	 * 
-	 * @param parentClass
-	 *            The class under which the log will be written
+	 * @param parentClass The class under which the log will be written
 	 * @return The logger instance
 	 */
 	public static Logger getLogger(Class<?> parentClass) {
@@ -256,8 +255,8 @@ public class SvConf {
 
 	/**
 	 * Method to set the maximum record validity. With certain databases which
-	 * understand timezones, it is necessary to tweak this date so the database
-	 * can work on servers with different timezones by using the config param
+	 * understand timezones, it is necessary to tweak this date so the database can
+	 * work on servers with different timezones by using the config param
 	 * sys.force_timezone
 	 * 
 	 * @return the maximum date time for the specific time zone
@@ -290,8 +289,8 @@ public class SvConf {
 	}
 
 	/**
-	 * Final field representing the Maximum date time value used in Svarog.
-	 * Includes time zone
+	 * Final field representing the Maximum date time value used in Svarog. Includes
+	 * time zone
 	 */
 	public static final DateTime MAX_DATE = getMaxDate();
 
@@ -301,14 +300,13 @@ public class SvConf {
 	public static final Timestamp MAX_DATE_SQL = new Timestamp(MAX_DATE.getMillis());
 
 	/**
-	 * The resource bundle containing all specific SQL Keywords for different
-	 * RDBMS engines
+	 * The resource bundle containing all specific SQL Keywords for different RDBMS
+	 * engines
 	 */
 	private static ResourceBundle sqlKw = null;
 
 	/**
-	 * flag to enable or disable overriding the DtInsert and dt Delete
-	 * timestamps
+	 * flag to enable or disable overriding the DtInsert and dt Delete timestamps
 	 */
 	private static boolean overrideTimeStamps = true;
 
@@ -330,9 +328,6 @@ public class SvConf {
 			Class<?> c = Class.forName(dbHandlerClass);
 			if (ISvDatabaseIO.class.isAssignableFrom(c)) {
 				dbHandler = ((ISvDatabaseIO) c.newInstance());
-				String srid = config.getProperty("sys.gis.default_srid");
-				if (srid != null)
-					dbHandler.initSrid(srid.trim());
 				if (!dbHandler.getHandlerType().equals(SvConf.getDbType().toString())) {
 					log4j.error("Database type is: " + SvConf.getDbType().toString() + ", while handler type is: "
 							+ dbHandler.getHandlerType() + ".Handler class:" + dbHandlerClass
@@ -346,8 +341,15 @@ public class SvConf {
 		}
 		if (dbHandler == null)
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
-		else
+		else {
 			sqlKw = dbHandler.getSQLKeyWordsBundle();
+			String srid = config.getProperty("sys.gis.default_srid");
+			if (srid != null) {
+				dbHandler.initSrid(srid.trim());
+				DbDataTable.initSrid(srid.trim());
+				DbDataField.initSrid(srid.trim());
+			}
+		}
 
 		return dbHandler;
 	}
@@ -413,11 +415,10 @@ public class SvConf {
 	/**
 	 * Method to configure the database connection based on the main properties
 	 * loaded from svarog.properties. It is separate from initConfig because
-	 * {@link #initConfig()} might be invokes without need for database access,
-	 * such as grid preparation or JSON scripts
+	 * {@link #initConfig()} might be invokes without need for database access, such
+	 * as grid preparation or JSON scripts
 	 * 
-	 * @param mainProperties
-	 *            svarog main parameters
+	 * @param mainProperties svarog main parameters
 	 * @return DataSource instance representing JNDI/DBCP data source
 	 */
 	private static DataSource initDataSource(Properties mainProperties) {
@@ -555,8 +556,7 @@ public class SvConf {
 	/**
 	 * Method to load a value from the version properties.
 	 * 
-	 * @param key
-	 *            The key generated by mvn
+	 * @param key The key generated by mvn
 	 * @return The value which was generated from the pom file
 	 */
 	static String loadInfo(String key) {
@@ -585,15 +585,12 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to try to parse a property to integer and set to default value if
-	 * it fails
+	 * Method to try to parse a property to integer and set to default value if it
+	 * fails
 	 * 
-	 * @param mainProperties
-	 *            the list of properties
-	 * @param propName
-	 *            the name of the property
-	 * @param defaultValue
-	 *            the default value to be set to if parsing fails
+	 * @param mainProperties the list of properties
+	 * @param propName       the name of the property
+	 * @param defaultValue   the default value to be set to if parsing fails
 	 * @return the int value of the property
 	 */
 	static int getProperty(Properties mainProperties, String propName, int defaultValue) {
@@ -607,15 +604,12 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to try to parse a property to boolean and set to default value if
-	 * it fails
+	 * Method to try to parse a property to boolean and set to default value if it
+	 * fails
 	 * 
-	 * @param mainProperties
-	 *            the list of properties
-	 * @param propName
-	 *            the name of the property
-	 * @param defaultValue
-	 *            the default value to be set to if parsing fails
+	 * @param mainProperties the list of properties
+	 * @param propName       the name of the property
+	 * @param defaultValue   the default value to be set to if parsing fails
 	 * @return the boolean value of the property
 	 */
 	static boolean getProperty(Properties mainProperties, String propName, boolean defaultValue) {
@@ -629,15 +623,12 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to try to parse a property to boolean and set to default value if
-	 * it fails
+	 * Method to try to parse a property to boolean and set to default value if it
+	 * fails
 	 * 
-	 * @param mainProperties
-	 *            the list of properties
-	 * @param propName
-	 *            the name of the property
-	 * @param defaultValue
-	 *            the default value to be set to if parsing fails
+	 * @param mainProperties the list of properties
+	 * @param propName       the name of the property
+	 * @param defaultValue   the default value to be set to if parsing fails
 	 * @return the string value of the property
 	 */
 	static String getProperty(Properties mainProperties, String propName, String defaultValue) {
@@ -657,8 +648,7 @@ public class SvConf {
 	/**
 	 * Method to configure the DBCP from the main properties
 	 * 
-	 * @param mainProperties
-	 *            the svarog main properties
+	 * @param mainProperties the svarog main properties
 	 * @return configured DBCP data source
 	 */
 	static DataSource configureDBCP(Properties mainProperties) {
@@ -694,11 +684,10 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to check if a class name is registered in the list of service
-	 * classes in svarog.properties.
+	 * Method to check if a class name is registered in the list of service classes
+	 * in svarog.properties.
 	 * 
-	 * @param className
-	 *            The class name to be checked
+	 * @param className The class name to be checked
 	 * @return True if the class name is a registered service class
 	 */
 	static boolean isServiceClass(String className) {
@@ -706,11 +695,10 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to check if a class name is registered in the list of system
-	 * classes in svarog.properties.
+	 * Method to check if a class name is registered in the list of system classes
+	 * in svarog.properties.
 	 * 
-	 * @param className
-	 *            The class name to be checked
+	 * @param className The class name to be checked
 	 * @return True if the class name is a registered service class
 	 */
 	static boolean isSystemClass(String className) {
@@ -721,9 +709,8 @@ public class SvConf {
 	 * Method to get a new JDBC connection to the database
 	 * 
 	 * @return A JDBC connection object
-	 * @throws SvException
-	 *             If connection can't be acquired from the datasource a
-	 *             system.error.db_conn_err is thrown
+	 * @throws SvException If connection can't be acquired from the datasource a
+	 *                     system.error.db_conn_err is thrown
 	 */
 	static Connection getDBConnection() throws SvException {
 		Connection result = null;
@@ -764,9 +751,9 @@ public class SvConf {
 				String srid = config.getProperty("sys.gis.default_srid").trim();
 				if (srid != null && !srid.isEmpty() && !srid.equals(Sv.SQL_NULL))
 					sdiSrid = Integer.toString(Integer.parseInt(srid));
-				
-				if(srid != null && srid.equals(Sv.SQL_NULL))
-				{	log4j.warn("SRID is set to NULL");
+
+				if (srid != null && srid.equals(Sv.SQL_NULL)) {
+					log4j.warn("SRID is set to NULL");
 					sdiSrid = srid;
 				}
 			} catch (Exception ex) {
@@ -794,8 +781,8 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to get the configuration about JDBC batch size. It seems oracle
-	 * has a bug and doesn't handle more than 10 statements in the JDBC batch.
+	 * Method to get the configuration about JDBC batch size. It seems oracle has a
+	 * bug and doesn't handle more than 10 statements in the JDBC batch.
 	 * 
 	 * @return
 	 */
@@ -813,8 +800,8 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to get the configuration about maximum SvCore Idle time. Default
-	 * is 30 minutes.
+	 * Method to get the configuration about maximum SvCore Idle time. Default is 30
+	 * minutes.
 	 * 
 	 * @return Max minutes of idle time an SvCore instance is allowed.
 	 */
@@ -847,8 +834,8 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to get the path of the conf directory holding all JSON config
-	 * files used for install
+	 * Method to get the path of the conf directory holding all JSON config files
+	 * used for install
 	 * 
 	 * @return
 	 */
@@ -871,8 +858,7 @@ public class SvConf {
 	/**
 	 * Method to set the core idle time out in Minutes
 	 * 
-	 * @param timeout
-	 *            The number of minutes, before the core is considered as idle
+	 * @param timeout The number of minutes, before the core is considered as idle
 	 */
 	public static void setCoreIdleTimeout(int timeout) {
 		coreIdleTimeout = timeout * 60000;
@@ -881,8 +867,7 @@ public class SvConf {
 	/**
 	 * Method to set the core idle time out in Minutes
 	 * 
-	 * @param timeout
-	 *            The number of minutes, before the core is considered as idle
+	 * @param timeout The number of minutes, before the core is considered as idle
 	 */
 	public static void setCoreIdleTimeoutMilis(int timeoutMilis) {
 		coreIdleTimeout = timeoutMilis;
