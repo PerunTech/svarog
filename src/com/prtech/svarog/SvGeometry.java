@@ -34,6 +34,7 @@ import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.SvCharId;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -278,11 +279,29 @@ public class SvGeometry extends SvCore {
 		return result;
 	}
 
-	public ArrayList<Geometry> getGeometriesByBBOX(Long typeId, String bbox) throws SvException {
+	/**
+	 * Method that returns the all geometries from a specific layer within a
+	 * bounding box
+	 * 
+	 * @param layerTypeId the object id of the layer/object type from which to fetch
+	 *                    the geometries
+	 * @param bbox        The string representation of the bounding box
+	 * @return List of {@link Geometry} objects
+	 */
+	public ArrayList<Geometry> getGeometriesByBBOX(Long layerTypeId, String bbox) throws SvException {
 		Envelope envelope = parseBBox(bbox);
-		return getGeometries(typeId, envelope);
+		return getGeometries(layerTypeId, envelope);
 	}
 
+	/**
+	 * Method that returns the all geometries from a specific layer within a
+	 * bounding box
+	 * 
+	 * @param layerTypeId the object id of the layer/object type from which to fetch
+	 *                    the geometries
+	 * @param envelope    The {@link Envelope} of the region we are interested in
+	 * @return List of {@link Geometry} objects
+	 */
 	public ArrayList<Geometry> getGeometries(Long typeId, Envelope envelope) throws SvException {
 		List<Geometry> result = gridIndex.query(envelope);
 		ArrayList<Geometry> geoms = new ArrayList<Geometry>();
@@ -297,73 +316,185 @@ public class SvGeometry extends SvCore {
 		return geoms;
 	}
 
-	public Geometry cutOffLayerImpl(Geometry geom, Long typeId) throws SvException {
-		return cutOffLayerImpl(geom, typeId, false);
+	/**
+	 * Method to cut all intersecting geometries of a specific layer from a
+	 * geometry. The returning geometry will contain any area of the geometry which
+	 * is not cover by the layer features. This method will not cut off the old
+	 * version of the geometry in case of update (if the user data of the geometry
+	 * contains a valid DbDataObject).
+	 * 
+	 * @param geom        The geometry to be modified
+	 * @param layerTypeId The layer id which should be used to calculate the
+	 *                    difference
+	 * @return The difference geometry between the original geometry and the layer
+	 * @throws SvException underlying exception from layer loading.
+	 */
+	public Geometry cutLayerFromGeom(Geometry geom, Long layerTypeId) throws SvException {
+		return cutLayerFromGeom(geom, layerTypeId, null, null);
 	}
 
-	public boolean cutOffLayerTest(Geometry geom, Long typeId) throws SvException {
-		return cutOffLayerImpl(geom, typeId, true) != null;
+	/**
+	 * Method to test if the geometry is intersecting any of the geometries of
+	 * required layer.
+	 * 
+	 * @param geom        The geometry to be tested for intersections
+	 * @param layerTypeId The layer id which should be used to calculate the
+	 *                    intersections
+	 * @return True if the geometry intersects the layer
+	 * @throws SvException underlying exception from layer loading.
+	 */
+	public boolean intersectsLayer(Geometry geom, Long layerTypeId) throws SvException {
+		return intersectsLayer(geom, layerTypeId, null, null);
 	}
 
-	private Geometry cutOffLayerImpl(Geometry geom, Long typeId, boolean testOnly) throws SvException {
-		if (geom == null)
-			return null;
-		boolean intersectionDetected = false;
-		Envelope envelope = geom.getEnvelopeInternal();
-		List<Geometry> result = gridIndex.query(envelope);
+	/**
+	 * Method to test if the geometry is intersecting any of the geometries of
+	 * required layer.
+	 * 
+	 * @param geom            The geometry to be tested for intersections
+	 * @param layerTypeId     The layer id which should be used to calculate the
+	 *                        intersections
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal
+	 * @return True if the geometry intersects the layer
+	 * @throws SvException underlying exception from layer loading.
+	 */
+	public boolean intersectsLayer(Geometry geom, Long layerTypeId, SvCharId filterFieldName, Object filterValue)
+			throws SvException {
+		return cutLayerFromGeomImpl(geom, layerTypeId, true, filterFieldName, filterValue) != null;
+	}
+
+	/**
+	 * Method to cut all intersecting geometries of a specific layer from a
+	 * geometry. The returning geometry will contain any area of the geometry which
+	 * is not cover by the layer features. This method will not cut off the old
+	 * version of the geometry in case of update (if the user data of the geometry
+	 * contains a valid DbDataObject).
+	 * 
+	 * @param geom            The geometry to be modified
+	 * @param layerTypeId     The layer id which should be used to calculate the
+	 *                        difference
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal
+	 * @return The difference geometry between the original geometry and the layer
+	 * @throws SvException underlying exception from layer loading.
+	 */
+	public Geometry cutLayerFromGeom(Geometry geom, Long layerTypeId, SvCharId filterFieldName, Object filterValue)
+			throws SvException {
+		return cutLayerFromGeomImpl(geom, layerTypeId, false, filterFieldName, filterValue);
+	}
+
+	/**
+	 * Method to calculate the difference of the input geometry against the list of
+	 * intersections
+	 * 
+	 * @param geom            The geometry which should used to calculate the
+	 *                        difference from.
+	 * @param intersections   The array of geometries which are intersecting with
+	 *                        the source geometry
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal
+	 * @return
+	 */
+	Geometry calcGeomDiff(Geometry geom, ArrayList<Geometry> intersections, SvCharId filterFieldName,
+			Object filterValue, boolean intersectTestOnly) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
-		for (Geometry tileGeom : result) {
-			SvSDITile tile = getTile(typeId, (String) tileGeom.getUserData(), null);
-			for (Geometry relatedGeom : tile.getRelations(geom, SDIRelation.INTERSECTS, false)) {
-				Long relatedOid = ((DbDataObject) relatedGeom.getUserData()).getObjectId();
-				if (!testOnly) {
-					if (userData == null || (userData != null && !userData.getObjectId().equals(relatedOid)))
-						geom = geom.difference(relatedGeom);
-				} else {
-					intersectionDetected = true;
-					break;
+		for (Geometry relatedGeom : intersections) {
+			DbDataObject relatedUserData = ((DbDataObject) relatedGeom.getUserData());
+			if (filterFieldName != null && !filterValue.equals(relatedUserData.getVal(filterFieldName, true)))
+				continue;
+
+			if (userData == null
+					|| (userData != null && !userData.getObjectId().equals(relatedUserData.getObjectId()))) {
+				if (!intersectTestOnly)
+					geom = geom.difference(relatedGeom);
+				else {
+					return null;
 				}
 			}
 		}
-		// set the user data //parent Dbo to the modified geometry
-		if (!testOnly)
-			geom.setUserData(userData);
-
-		return intersectionDetected ? geom : null;
+		geom.setUserData(userData);
+		return geom;
 	}
 
-	public Collection<Geometry> cutOffGeometry(Geometry geom, Long typeId) throws SvException {
-		return cutOffGeometryImpl(geom, typeId, false);
+	private Geometry cutLayerFromGeomImpl(Geometry geom, Long layerTypeId, boolean testOnly, SvCharId filterFieldName,
+			Object filterValue) throws SvException {
+		if (geom == null)
+			return null;
+		Envelope envelope = geom.getEnvelopeInternal();
+		List<Geometry> result = gridIndex.query(envelope);
+		for (Geometry tileGeom : result) {
+			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
+			ArrayList<Geometry> intersections = tile.getRelations(geom, SDIRelation.INTERSECTS, false);
+			geom = calcGeomDiff(geom, intersections, filterFieldName, filterValue, testOnly);
+			// null geometry is returned only in case when we tested positive for intersections.
+			if (geom == null)
+				break;
+		}
+		return geom;
 	}
 
-	public boolean cutOffGeometryTest(Geometry geom, Long typeId) throws SvException {
-		return cutOffGeometryImpl(geom, typeId, true) != null;
+	public Collection<Geometry> cutGeomFromLayer(Geometry geom, Long layerTypeId) throws SvException {
+		return cutGeomFromLayer(geom, layerTypeId, null, null);
 	}
 
-	public Collection<Geometry> cutOffGeometryImpl(Geometry geom, Long typeId, boolean testOnly) throws SvException {
+	public Collection<Geometry> cutGeomFromLayer(Geometry geom, Long layerTypeId, SvCharId filterFieldName,
+			Object filterValue) throws SvException {
+		return cutGeomFromLayerImpl(geom, layerTypeId, false, filterFieldName, filterValue);
+	}
+
+	public boolean cutGeomFromLayerTest(Geometry geom, Long layerTypeId) throws SvException {
+		return cutGeomFromLayerTest(geom, layerTypeId, null, null);
+	}
+
+	public boolean cutGeomFromLayerTest(Geometry geom, Long layerTypeId, SvCharId filterFieldName, Object filterValue)
+			throws SvException {
+		return cutGeomFromLayerImpl(geom, layerTypeId, true, filterFieldName, filterValue) != null;
+	}
+
+	void calcLayerDiff(Geometry geom, ArrayList<Geometry> intersections, Map<Long, Geometry> updatedGeometries,
+			SvCharId filterFieldName, Object filterValue) {
+		DbDataObject userData = (DbDataObject) geom.getUserData();
+
+		for (Geometry relatedGeom : intersections) {
+			DbDataObject relatedUserData = ((DbDataObject) relatedGeom.getUserData());
+			// apply the filter if not null
+			if (filterFieldName != null && !filterValue.equals(relatedUserData.getVal(filterFieldName, true)))
+				continue;
+			// if we haven't processed the geometry
+			if (!updatedGeometries.containsKey(relatedUserData.getObjectId())) {
+				if (userData == null
+						|| (userData != null && !userData.getObjectId().equals(relatedUserData.getObjectId()))) {
+					Geometry modifiedGeom = relatedGeom.difference(geom);
+					modifiedGeom.setUserData(relatedUserData);
+					updatedGeometries.put(relatedUserData.getObjectId(), modifiedGeom);
+				}
+
+			}
+		}
+	}
+
+	Collection<Geometry> cutGeomFromLayerImpl(Geometry geom, Long layerTypeId, boolean testOnly,
+			SvCharId filterFieldName, Object filterValue) throws SvException {
 		if (geom == null)
 			return null;
 		boolean intersectionDetected = false;
 		Envelope envelope = geom.getEnvelopeInternal();
 		List<Geometry> result = gridIndex.query(envelope);
+
 		Map<Long, Geometry> updatedGeometries = new HashMap<>();
-		DbDataObject userData = (DbDataObject) geom.getUserData();
 		for (Geometry tileGeom : result) {
-			SvSDITile tile = getTile(typeId, (String) tileGeom.getUserData(), null);
-			for (Geometry relatedGeom : tile.getRelations(geom, SDIRelation.INTERSECTS, false)) {
-				DbDataObject relatedUserData = ((DbDataObject) relatedGeom.getUserData());
-				// if we haven't processed the geometry
-				if (!testOnly && !updatedGeometries.containsKey(relatedUserData.getObjectId())) {
-					if (userData == null || (userData != null && !userData.getObjectId().equals(relatedUserData.getObjectId()))) {
-						Geometry modifiedGeom = relatedGeom.difference(geom);
-						modifiedGeom.setUserData(geom.getUserData());
-						updatedGeometries.put(relatedUserData.getObjectId(), modifiedGeom);
-					}
-				} else {
-					intersectionDetected = true;
-					break;
-				}
-			}
+			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
+			ArrayList<Geometry> intersections = tile.getRelations(geom, SDIRelation.INTERSECTS, false);
+			if (testOnly && intersections != null && intersections.size() > 0) {
+				intersectionDetected = true;
+				break;
+			} else
+				calcLayerDiff(geom, intersections, updatedGeometries, filterFieldName, filterValue);
+
 		}
 		return intersectionDetected ? updatedGeometries.values() : null;
 	}
