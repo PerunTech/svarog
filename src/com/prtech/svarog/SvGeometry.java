@@ -420,6 +420,23 @@ public class SvGeometry extends SvCore {
 		return geom;
 	}
 
+	private ArrayList<Geometry> relationWithLayer(Geometry geom, Long layerTypeId, SvCharId filterFieldName,
+			Object filterValue, SDIRelation sdiRelation) throws SvException {
+		if (geom == null)
+			return null;
+		ArrayList<Geometry> coveredBy = new ArrayList<>();
+		Envelope envelope = geom.getEnvelopeInternal();
+		List<Geometry> result = gridIndex.query(envelope);
+		for (Geometry tileGeom : result) {
+			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
+			ArrayList<Geometry> coveredTile = tile.getRelations(geom, sdiRelation, false);
+			for (Geometry grelated : coveredTile)
+				if (!coveredBy.contains(grelated))
+					coveredBy.add(grelated);
+		}
+		return coveredBy;
+	}
+
 	private Geometry cutLayerFromGeomImpl(Geometry geom, Long layerTypeId, boolean testOnly, SvCharId filterFieldName,
 			Object filterValue) throws SvException {
 		if (geom == null)
@@ -430,7 +447,8 @@ public class SvGeometry extends SvCore {
 			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
 			ArrayList<Geometry> intersections = tile.getRelations(geom, SDIRelation.INTERSECTS, false);
 			geom = calcGeomDiff(geom, intersections, filterFieldName, filterValue, testOnly);
-			// null geometry is returned only in case when we tested positive for intersections.
+			// null geometry is returned only in case when we tested positive for
+			// intersections.
 			if (geom == null)
 				break;
 		}
@@ -814,10 +832,10 @@ public class SvGeometry extends SvCore {
 			dbo.setVal("AREA", geom.getArea());
 		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA_HA", geom.getArea() / 10000);
-		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
+		if (dbo.getVal("AREA_KM2") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for
 																// moemris
-		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
+		if (dbo.getVal("PERIMETER") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
 
