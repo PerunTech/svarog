@@ -281,7 +281,7 @@ public class SvGeometry extends SvCore {
 	
 	
 	
-	public ArrayList<Geometry> getGeometriesByRelation(Geometry geom, Long layerTypeId, 
+	public ArrayList<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, 
 			SDIRelation sdiRelation) throws SvException {
 		if (geom == null)
 			return null;
