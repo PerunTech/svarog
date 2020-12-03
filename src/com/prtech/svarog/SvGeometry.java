@@ -278,6 +278,24 @@ public class SvGeometry extends SvCore {
 
 		return result;
 	}
+	
+	
+	
+	public ArrayList<Geometry> getGeometriesByRelation(Geometry geom, Long layerTypeId, 
+			SDIRelation sdiRelation) throws SvException {
+		if (geom == null)
+			return null;
+		ArrayList<Geometry> geoms = new ArrayList<>();
+		List<Geometry> gridItems = gridIndex.query(geom.getEnvelopeInternal());
+		for (Geometry gridGeom : gridItems) {
+			SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
+			ArrayList<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
+			for (Geometry g : relatedGeoms)
+				if (!geoms.contains(g))
+					geoms.add(g);
+		}
+		return geoms;
+	}
 
 	/**
 	 * Method that returns the all geometries from a specific layer within a
@@ -418,23 +436,6 @@ public class SvGeometry extends SvCore {
 		}
 		geom.setUserData(userData);
 		return geom;
-	}
-
-	private ArrayList<Geometry> relationWithLayer(Geometry geom, Long layerTypeId, SvCharId filterFieldName,
-			Object filterValue, SDIRelation sdiRelation) throws SvException {
-		if (geom == null)
-			return null;
-		ArrayList<Geometry> coveredBy = new ArrayList<>();
-		Envelope envelope = geom.getEnvelopeInternal();
-		List<Geometry> result = gridIndex.query(envelope);
-		for (Geometry tileGeom : result) {
-			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
-			ArrayList<Geometry> coveredTile = tile.getRelations(geom, sdiRelation, false);
-			for (Geometry grelated : coveredTile)
-				if (!coveredBy.contains(grelated))
-					coveredBy.add(grelated);
-		}
-		return coveredBy;
 	}
 
 	private Geometry cutLayerFromGeomImpl(Geometry geom, Long layerTypeId, boolean testOnly, SvCharId filterFieldName,
