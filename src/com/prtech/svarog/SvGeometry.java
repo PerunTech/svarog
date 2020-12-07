@@ -278,11 +278,9 @@ public class SvGeometry extends SvCore {
 
 		return result;
 	}
-	
-	
-	
-	public ArrayList<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, 
-			SDIRelation sdiRelation) throws SvException {
+
+	public ArrayList<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation)
+			throws SvException {
 		if (geom == null)
 			return null;
 		ArrayList<Geometry> geoms = new ArrayList<>();
@@ -474,15 +472,21 @@ public class SvGeometry extends SvCore {
 		return cutGeomFromLayerImpl(geom, layerTypeId, true, filterFieldName, filterValue) != null;
 	}
 
-	void calcLayerDiff(Geometry geom, ArrayList<Geometry> intersections, Map<Long, Geometry> updatedGeometries,
-			SvCharId filterFieldName, Object filterValue) {
+	boolean calcLayerDiff(Geometry geom, ArrayList<Geometry> intersections, Map<Long, Geometry> updatedGeometries,
+			SvCharId filterFieldName, Object filterValue, boolean testOnly) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
 
+		boolean intersected = false;
 		for (Geometry relatedGeom : intersections) {
 			DbDataObject relatedUserData = ((DbDataObject) relatedGeom.getUserData());
 			// apply the filter if not null
 			if (filterFieldName != null && !filterValue.equals(relatedUserData.getVal(filterFieldName, true)))
 				continue;
+			else if (testOnly) {
+				intersected = true;
+				break;
+			}
+
 			// if we haven't processed the geometry
 			if (!updatedGeometries.containsKey(relatedUserData.getObjectId())) {
 				if (userData == null
@@ -494,6 +498,7 @@ public class SvGeometry extends SvCore {
 
 			}
 		}
+		return intersected;
 	}
 
 	Collection<Geometry> cutGeomFromLayerImpl(Geometry geom, Long layerTypeId, boolean testOnly,
@@ -508,14 +513,13 @@ public class SvGeometry extends SvCore {
 		for (Geometry tileGeom : result) {
 			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
 			ArrayList<Geometry> intersections = tile.getRelations(geom, SDIRelation.INTERSECTS, false);
-			if (testOnly && intersections != null && intersections.size() > 0) {
-				intersectionDetected = true;
-				break;
-			} else
-				calcLayerDiff(geom, intersections, updatedGeometries, filterFieldName, filterValue);
+			intersectionDetected = calcLayerDiff(geom, intersections, updatedGeometries, filterFieldName, filterValue,
+					testOnly);
 
+			if (testOnly && intersectionDetected)
+				break;
 		}
-		return intersectionDetected ? updatedGeometries.values() : null;
+		return !testOnly ? updatedGeometries.values() : !intersectionDetected ? null : updatedGeometries.values();
 	}
 
 	/**
