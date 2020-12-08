@@ -50,9 +50,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
+import com.vividsolutions.jts.JTSVersion;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
@@ -6507,7 +6509,7 @@ public class DbInit {
 		customObjestsAll.getItems().addAll(customObjests.getItems());
 
 		DbDataArray arrWF = new DbDataArray();
-		svObjectId = addDefaultUnitsUsers(arrWF, svObjectId);
+		addDefaultUnitsUsers(arrWF, svObjectId);
 
 		addDefaultLinkTypes(defaultObjests);
 
@@ -6751,13 +6753,17 @@ public class DbInit {
 
 	}
 
-	static String generateGrid() {
-		String retval = "";
-		System.out.println("Generating Tiles for system boundary");
-
+	/**
+	 * Try to read the system boundary from a geoJSON file
+	 * 
+	 * @return
+	 */
+	static Geometry getSysBoundaryFromJson() {
 		String geoJSONBounds = null;
 		InputStream is = null;
+		Geometry geo = null;
 		try {
+			GeoJsonReader jtsReader = new GeoJsonReader();
 			is = DbInit.class
 					.getResourceAsStream(SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json");
 			if (is == null) {
@@ -6767,10 +6773,11 @@ public class DbInit {
 			if (is != null) {
 				geoJSONBounds = IOUtils.toString(is);
 			}
+			geo = jtsReader.read(geoJSONBounds);
 		} catch (IOException e) {
-			retval = "ERROR System bounds can not be configured";
-			e.printStackTrace();
-			return retval;
+			log4j.error("System bounds can not be read from file!", e);
+		} catch (ParseException e) {
+			log4j.error("System bounds is not in GeoJSON format!", e);
 		} finally {
 			if (is != null)
 				try {
@@ -6780,19 +6787,20 @@ public class DbInit {
 					e.printStackTrace();
 				}
 		}
+		return geo;
+	}
 
-		if (geoJSONBounds == null) {
-			retval = "Can't read system boundary polygon";
-		}
+	static GeometryCollection generateGrid(Geometry geo) {
+		assert (geo != null);
+		Envelope env = geo.getEnvelopeInternal();
 
-		GeoJsonWriter jtsWriter = new GeoJsonWriter();
-		GeoJsonReader jtsReader = new GeoJsonReader();
-
+		log4j.info("Generating Tiles for system boundary with SRID:" + geo.getSRID() + ", area:" + geo.getArea()
+				+ ", and envelope:" + env.toString());
 		int row = 0;
 		int col = 0;
+		GeometryCollection gcl = null;
 		try {
-			Geometry geo = jtsReader.read(geoJSONBounds);
-			Envelope env = geo.getEnvelopeInternal();
+
 			env.expandBy(10);
 
 			Envelope envGrid = new Envelope(java.lang.Math.round(env.getMinX()), java.lang.Math.round(env.getMaxX()),
@@ -6805,12 +6813,8 @@ public class DbInit {
 			double currentMinY = envGrid.getMinY();
 			double currentMaxX = envGrid.getMinX();
 
-			String jtsJson = null;
-
 			Boolean isFinished = false;
-
 			while (!isFinished) {
-
 				currentGridItem = new Envelope(currentMaxX, currentMaxX + SvConf.getSdiGridSize() * 1000, currentMinY,
 						currentMinY + SvConf.getSdiGridSize() * 1000);
 				currentMinY = currentGridItem.getMinY();
@@ -6818,16 +6822,9 @@ public class DbInit {
 
 				polygon = SvUtil.sdiFactory.toGeometry(currentGridItem);
 				if (!polygon.disjoint(geo)) {
-					// polygon = polygon.intersection(geo);
 					if (polygon.getArea() > 1) {
 						polygon.setUserData(row + ":" + col + "-" + (!polygon.within(geo)));
 						gridList.add(polygon);
-						// System.out.println("INSERT INTO
-						// public.\"administrativni granici komplet\"
-						// (name,geom) "
-						// + "VALUES
-						// ('"+row+":"+col+"',st_setSrid(st_multi(st_geomfromgeojson('"+jtsWriter.write(polygon)+"')),6316));");
-
 					}
 				}
 				col++;
@@ -6843,23 +6840,34 @@ public class DbInit {
 			}
 			Geometry[] garr = new Geometry[gridList.size()];
 			gridList.toArray(garr);
-			GeometryCollection gcl = SvUtil.sdiFactory.createGeometryCollection(garr);
+			gcl = SvUtil.sdiFactory.createGeometryCollection(garr);
+
+		} catch (Exception e) {
+			log4j.error("Error generating grid", e);
+		}
+		return gcl;
+
+	}
+
+	static boolean writeGrid(GeometryCollection gcl) {
+		try {
+			String jtsJson = null;
+			GeoJsonWriter jtsWriter = new GeoJsonWriter();
 			jtsWriter.setUseFeatureType(true);
 			if (SvConf.getSDISrid().equals(Sv.SQL_NULL))
 				jtsWriter.setEncodeCRS(false);
 			jtsJson = jtsWriter.write(gcl);
 			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile,
 					jtsJson);
-			System.out.println("Number of tiles written:" + gridList.size());
-			System.out.println("Generating Tiles finished successfully (" + SvConf.getConfPath()
-					+ SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile + ")");
-
-		} catch (com.vividsolutions.jts.io.ParseException e) {
-			retval = "Error generating grid";
-			e.printStackTrace();
+			log4j.info("Number of tiles written:" + gcl.getNumGeometries());
+			log4j.info("Generating Tiles finished successfully (" + SvConf.getConfPath() + SvarogInstall.masterSDIPath
+					+ SvarogInstall.sdiGridFile + ")");
+			return true;
+		} catch (Exception e) {
+			log4j.error("Error saving grid to file:" + SvConf.getConfPath() + SvarogInstall.masterSDIPath
+					+ SvarogInstall.sdiGridFile, e);
 		}
-		return retval;
-
+		return false;
 	}
 
 	private static String getClassName(Enumeration<JarEntry> e) {

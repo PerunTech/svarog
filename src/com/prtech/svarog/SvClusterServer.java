@@ -125,15 +125,12 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to handle Authentication messages between the cluster nodes and
-	 * the coordinator
+	 * Method to handle Authentication messages between the cluster nodes and the
+	 * coordinator
 	 * 
-	 * @param msgType
-	 *            The received message type (TOKEN GET/PUT/SET)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The received message type (TOKEN GET/PUT/SET)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processAuthentication(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -150,7 +147,8 @@ public class SvClusterServer implements Runnable {
 			}
 			// allocate one byte for message type, one long for node Id and the
 			// rest for the token
-			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (token != null ? token.length : 0));
+			respBuffer = ByteBuffer
+					.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (token != null ? token.length : 0));
 			if (token != null) {
 				respBuffer.put(SvCluster.MSG_SUCCESS);
 				respBuffer.putLong(nodeId);
@@ -160,7 +158,8 @@ public class SvClusterServer implements Runnable {
 			break;
 		case SvCluster.MSG_AUTH_TOKEN_PUT:
 			String strToken = new String(
-					Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
+					Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
+					ZMQ.CHARSET);
 			DbDataObject svTokenIn = new DbDataObject();
 			Gson g = new Gson();
 			svTokenIn.fromSimpleJson(g.fromJson(strToken, JsonObject.class));
@@ -189,22 +188,18 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to handle JOIN messages between the cluster nodes and the
-	 * coordinator
+	 * Method to handle JOIN messages between the cluster nodes and the coordinator
 	 * 
-	 * @param msgType
-	 *            The received message type (join or part)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The received message type (join or part)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private List<ByteBuffer> processJoin(long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		List<ByteBuffer> response = new ArrayList<ByteBuffer>();
-		String nodeInfo = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
-				ZMQ.CHARSET);
+		String nodeInfo = new String(
+				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
 		SvWriter svw = null;
 		DbDataObject node = null;
 		synchronized (SvClusterServer.isRunning) {
@@ -241,7 +236,8 @@ public class SvClusterServer implements Runnable {
 					key = entry.getKey().getBytes(ZMQ.CHARSET);
 					// allocate one byte for message type, one long for node Id
 					// and the rest for the token
-					respBuffer = ByteBuffer.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
+					respBuffer = ByteBuffer
+							.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
 					respBuffer.putLong(entry.getValue().nodeId);
 					respBuffer.putInt(entry.getValue().lockHash);
 					respBuffer.put(key);
@@ -260,12 +256,9 @@ public class SvClusterServer implements Runnable {
 	 * Method to handle JOIN/PART messages between the cluster nodes and the
 	 * coordinator
 	 * 
-	 * @param msgType
-	 *            The received message type (join or part)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The received message type (join or part)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processPart(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -290,12 +283,9 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to process a standard heart beat message from a node.
 	 * 
-	 * @param msgType
-	 *            The type of message (in this case only HEARTBEAT)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message (in this case only HEARTBEAT)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processHeartBeat(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -310,32 +300,26 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to release a distributed lock. This is invoked when the
-	 * clusterServer processes releaseLock message. This method is also invoked
-	 * by the SvLock on the coordinator node.
+	 * Method to release a distributed lock. This is invoked when the clusterServer
+	 * processes releaseLock message. This method is also invoked by the SvLock on
+	 * the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param nodeId
-	 *            The node id which acquires the lock
+	 * @param lockHash The hash of the lock
+	 * @param nodeId   The node id which acquires the lock
 	 * 
-	 * @return The lock key if the lock was released with success, otherwise
-	 *         null
+	 * @return The lock key if the lock was released with success, otherwise null
 	 */
 	static String releaseDistributedLock(Integer lockHash, Long nodeId) {
-		return SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
+		return SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, null, false);
 
 	}
 
 	/**
 	 * Method to process a standard heart beat message from a node.
 	 * 
-	 * @param msgType
-	 *            The type of message (in this case only LOCK_RELEASE)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message (in this case only LOCK_RELEASE)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -343,7 +327,7 @@ public class SvClusterServer implements Runnable {
 		Integer lockHash = msgBuffer.getInt();
 
 		// unlock the lock using the server lists of locks
-		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
+		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, null, false);
 		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		if (lockKey != null) {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
@@ -359,14 +343,12 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to get a distributed lock from the Cluster server
 	 * 
-	 * @param lockKey
-	 *            The string identifier of the lock
+	 * @param lockKey The string identifier of the lock
 	 * @return the hash code of the lock
 	 */
 	static int getDistributedLock(String lockKey, Long nodeId) {
 		Long[] extendedInfo = new Long[1];
-		ReentrantLock lck = SvCluster.acquireDistributedLock(lockKey, nodeId, extendedInfo, nodeLocks, distributedLocks,
-				null);
+		ReentrantLock lck = SvCluster.acquireDistributedLock(lockKey, nodeId, extendedInfo, nodeLocks, null, false);
 		if (lck == null && log4j.isDebugEnabled())
 			log4j.debug("Lock not acquired! Lock is held by node:" + Long.toString(extendedInfo[0]));
 		return lck != null ? lck.hashCode() : 0;
@@ -375,25 +357,22 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to process a lock request message from a node.
 	 * 
-	 * @param msgType
-	 *            The type of message (in this case only lock)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message (in this case only lock)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
-				ZMQ.CHARSET);
+		String lockKey = new String(
+				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
 		Long[] extNodeInfo = new Long[1];
 
 		// acquire the lock using the server side lists
-		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, distributedLocks,
-				null);
+		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, null, false);
 
-		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (lock == null ? SvUtil.sizeof.LONG : SvUtil.sizeof.INT));
+		respBuffer = ByteBuffer.allocate(
+				SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (lock == null ? SvUtil.sizeof.LONG : SvUtil.sizeof.INT));
 		if (lock == null)
 			respBuffer.put(SvCluster.MSG_FAIL);
 		else {
@@ -426,12 +405,9 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to process cluster wide messages
 	 * 
-	 * @param msgType
-	 *            The type of message
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private byte[] processMessage(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -559,11 +535,11 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to perform maintenance of the cluster list. The map with
-	 * heartbeats from the nodes of the cluster is evaluated to check if any of
-	 * the nodes hasn't sent a heart beat within the Heart Beat Timeout
-	 * interval. The nodes which haven't sent a heartbeat within the timeout,
-	 * are removed from the cluster and their locks are removed
+	 * Method to perform maintenance of the cluster list. The map with heartbeats
+	 * from the nodes of the cluster is evaluated to check if any of the nodes
+	 * hasn't sent a heart beat within the Heart Beat Timeout interval. The nodes
+	 * which haven't sent a heartbeat within the timeout, are removed from the
+	 * cluster and their locks are removed
 	 */
 	private void clusterMaintenance() {
 		DateTime tsTimeout = lastGCTime.withDurationAdded(heartBeatTimeOut, 1);
@@ -602,14 +578,12 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to update a distributed lock. This is invoked when the Notifier
-	 * client is processing lock acknowledgments and needs to update the list of
+	 * Method to update a distributed lock. This is invoked when the Notifier client
+	 * is processing lock acknowledgments and needs to update the list of
 	 * distributed locks by the SvLock on the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param lockKey
-	 *            The key of the lock
+	 * @param lockHash The hash of the lock
+	 * @param lockKey  The key of the lock
 	 * 
 	 * @return True if the lock was updated
 	 */
@@ -620,11 +594,10 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to clean up the distributed locks acquired by a node
 	 * 
-	 * @param nodeId
-	 *            The node for which the distributed locks shall be cleaned
+	 * @param nodeId The node for which the distributed locks shall be cleaned
 	 */
 	static void clusterCleanUp(Long nodeId) {
-		SvCluster.clusterCleanUp(nodeId, SvClusterServer.nodeLocks, SvClusterServer.distributedLocks);
+		SvCluster.clusterCleanUp(nodeId, SvClusterServer.nodeLocks, false);
 	}
 
 }
