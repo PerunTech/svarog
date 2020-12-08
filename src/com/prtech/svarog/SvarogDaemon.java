@@ -403,13 +403,13 @@ public class SvarogDaemon {
 	/**
 	 * <p>
 	 * Loads the configuration properties in the configuration property file
-	 * associated with the framework installation; these properties are
+	 * associated with the Svarog framework installation; these properties are
 	 * accessible to the framework and to bundles and are intended for
 	 * configuration purposes. By default, the configuration property file is
-	 * located in the <tt>conf/</tt> directory of the Felix installation
-	 * directory and is called "<tt>config.properties</tt>". The installation
-	 * directory of Felix is assumed to be the parent directory of the
-	 * <tt>felix.jar</tt> file as found on the system class path property. The
+	 * located in the <tt>root</tt> directory of the Svarog installation
+	 * directory and is called "<tt>svarog.properties</tt>". The installation
+	 * directory of Svarog is assumed to be the parent directory of the
+	 * <tt>svarog.jar</tt> file as found on the system class path property. The
 	 * precise file from which to load configuration properties can be set by
 	 * initializing the "<tt>felix.config.properties</tt>" system property to an
 	 * arbitrary URL.

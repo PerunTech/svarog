@@ -17,6 +17,7 @@ package com.prtech.svarog;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -61,8 +62,8 @@ public abstract class SvSDITile {
 	protected Envelope tileEnvelope = null;
 	protected Boolean isTileDirty = true;
 
-	protected ArrayList<Geometry> internalGeometries = new ArrayList<Geometry>();
-	protected ArrayList<Geometry> borderGeometries = new ArrayList<Geometry>();
+	protected HashSet<Geometry> internalGeometries = new HashSet<Geometry>();
+	protected HashSet<Geometry> borderGeometries = new HashSet<Geometry>();
 
 	PreparedGeometry getPreparedGeom(Geometry g) {
 		PreparedGeometry pg = null;
@@ -94,13 +95,12 @@ public abstract class SvSDITile {
 				internalGeometries.clear();
 				borderGeometries.clear();
 				Point centroid = null;
-
 				for (Geometry geom : loadGeometries()) {
+
 					tileIndex.insert(geom.getEnvelopeInternal(), getPreparedGeom(geom));
 					if (geom.getUserData() != null && geom.getUserData() instanceof DbDataObject) {
 						centroid = SvGeometry.getCentroid((DbDataObject) geom.getUserData());
-					}
-					if (centroid == null)
+					} else
 						centroid = SvGeometry.calculateCentroid(geom);
 
 					if (tileEnvelope.covers(centroid.getCoordinate()))
@@ -122,14 +122,14 @@ public abstract class SvSDITile {
 
 	}
 
-	public ArrayList<Geometry> getRelations(Geometry geom, SDIRelation relation) throws SvException {
+	public HashSet<Geometry> getRelations(Geometry geom, SDIRelation relation) throws SvException {
 		return getRelations(geom, relation, false);
 	}
 
-	public ArrayList<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
+	public HashSet<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
 			throws SvException {
 		loadTile();
-		ArrayList<Geometry> l = new ArrayList<Geometry>();
+		HashSet<Geometry> l = new HashSet<>();
 		List<PreparedGeometry> geoms = tileIndex.query(geom.getEnvelopeInternal());
 		boolean relates = false;
 		for (PreparedGeometry g : geoms) {
@@ -174,12 +174,12 @@ public abstract class SvSDITile {
 		return l;
 	}
 
-	public ArrayList<Geometry> getBorderGeometries() throws SvException {
+	public HashSet<Geometry> getBorderGeometries() throws SvException {
 		loadTile();
 		return borderGeometries;
 	}
 
-	public ArrayList<Geometry> getInternalGeometries() throws SvException {
+	public HashSet<Geometry> getInternalGeometries() throws SvException {
 		loadTile();
 		return internalGeometries;
 	}
@@ -203,7 +203,7 @@ public abstract class SvSDITile {
 	}
 
 	public GeometryCollection getInternalGeomCollection() throws SvException {
-		ArrayList<Geometry> geoms = this.getInternalGeometries();
+		HashSet<Geometry> geoms = this.getInternalGeometries();
 		Geometry[] gArray = (Geometry[]) geoms.toArray(new Geometry[geoms.size()]);
 		GeometryCollection retGeometries = new GeometryCollection(gArray, SvUtil.sdiFactory);
 		return retGeometries;
