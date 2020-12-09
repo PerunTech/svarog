@@ -334,11 +334,11 @@ public class SvConf {
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
 		else {
 			sqlKw = dbHandler.getSQLKeyWordsBundle();
-			String srid = config.getProperty("sys.gis.default_srid");
-			if (srid != null) {
-				dbHandler.initSrid(srid.trim());
-				DbDataTable.initSrid(srid.trim());
-				DbDataField.initSrid(srid.trim());
+			if (getSDISrid() != null) {
+				dbHandler.initSrid(getSDISrid());
+				DbDataTable.initSrid(getSDISrid());
+				DbDataField.initSrid(getSDISrid());
+				// TODO fix srid
 			}
 		}
 
@@ -739,10 +739,22 @@ public class SvConf {
 		if (sdiSrid == null) {
 			try {
 				String srid = config.getProperty("sys.gis.default_srid").trim();
-				if (srid != null && !srid.isEmpty() && !srid.equals(Sv.SQL_NULL))
+				if (srid == null || srid.isEmpty() || srid.equals(Sv.SQL_NULL)) {
+					switch (getDbType()) {
+					case POSTGRES:
+						srid = "0";
+						break;
+					case ORACLE:
+						srid = Sv.SQL_NULL;
+						break;
+					default:
+					}
+				}
+
+				if (!srid.equals(Sv.SQL_NULL))
 					sdiSrid = Integer.toString(Integer.parseInt(srid));
 
-				if (srid != null && srid.equals(Sv.SQL_NULL)) {
+				if (srid.equals(Sv.SQL_NULL)) {
 					log4j.warn("SRID is set to NULL");
 					sdiSrid = srid;
 				}
