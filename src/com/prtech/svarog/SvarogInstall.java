@@ -1781,7 +1781,7 @@ public class SvarogInstall {
 
 					String dropStr = "begin "
 							+ "for c1 in ( select * from ALL_OBJECTS WHERE  upper(OWNER)=upper('{SCHEMA}') and "
-							+ "object_type<>'INDEX' and object_type<>'LOB' and object_type<>'TYPE' and object_type<>'PROCEDURE') "
+							+ "object_type<>'INDEX' and object_type<>'LOB' and object_type<>'TYPE' and object_type<>'PROCEDURE' and secondary='N') "
 							+ "loop " + "execute immediate 'DROP '||c1.object_type||' '||c1.owner||'.'||c1.object_name;"
 							+ "end loop;" + "end;";
 					st.execute(dropStr.replace("{SCHEMA}", SvConf.getDefaultSchema()));
