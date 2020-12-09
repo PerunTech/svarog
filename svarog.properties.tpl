@@ -26,7 +26,7 @@ sys.defaultJSDateFormat=d/m/Y
 sys.defaultJSTimeFormat=H:i
 
 
-sys.gis.default_srid=6316
+sys.gis.default_srid=NULL
 sys.gis.geom_handler=POSTGIS
 sys.gis.grid_size=10
 sys.gis.tile_cache=100
