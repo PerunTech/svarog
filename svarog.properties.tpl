@@ -34,6 +34,7 @@ sys.gis.precision_scale=1000
 sys.gis.allow_boundary_intersect=false
 sys.gis.legal_sdi_unit_type=1
 sys.gis.override_user_area_perim=false
+sys.gis.enable_spatial=true
 
 sys.codes.multiselect_separator=;
 
