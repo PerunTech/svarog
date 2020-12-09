@@ -172,12 +172,11 @@ public class SvGeometryTest {
 	@Test
 	public void testBoundsSave() {
 
-		try {
+		try (SvGeometry svg = new SvGeometry()){
 			GeometryFactory gf = SvUtil.sdiFactory;
 			Geometry geom = gf
 					.createMultiPolygon(new Polygon[] { (Polygon) gf.toGeometry(new Envelope(-100, 200, -100, 20)) });
 
-			SvGeometry svg = new SvGeometry();
 			DbDataObject dbounds = new DbDataObject(svCONST.OBJECT_TYPE_SDI_BOUNDS);
 			dbounds.setVal("BOUNDS_NAME", "testBounds");
 			dbounds.setVal("BOUNDS_ID", "123");
@@ -206,7 +205,8 @@ public class SvGeometryTest {
 			fail("Test failed with exception:" + e.getFormattedMessage());
 
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -233,6 +233,8 @@ public class SvGeometryTest {
 			fail("Test failed with exception:" + e.getFormattedMessage());
 		}
 
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -252,7 +254,8 @@ public class SvGeometryTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -268,7 +271,8 @@ public class SvGeometryTest {
 		} catch (Exception ex) {
 			fail("test raised exception");
 		}
-
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	static ArrayList<Geometry> testGeoms(double x1, double y1) {
@@ -287,5 +291,7 @@ public class SvGeometryTest {
 			if (svg.intersectsLayer(geom, TEST_LAYER_TYPE_ID))
 				fail("This should not intersect");
 		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 }
