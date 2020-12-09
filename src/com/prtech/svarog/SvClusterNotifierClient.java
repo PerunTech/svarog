@@ -135,7 +135,9 @@ public class SvClusterNotifierClient implements Runnable {
 		}
 		try {
 			// do sleep until socket is able to close within timeout
-			isRunning.wait(sockeReceiveTimeout);
+			synchronized (isRunning) {
+				isRunning.wait(sockeReceiveTimeout);
+			}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -391,8 +393,10 @@ public class SvClusterNotifierClient implements Runnable {
 			log4j.error("Subscriber socket not available, ensure proper initialisation");
 
 		// set the running flag to false
-		isRunning.compareAndSet(true, false);
-		isRunning.notifyAll();
+		synchronized (isRunning) {
+			isRunning.compareAndSet(true, false);
+			isRunning.notifyAll();
+		}
 	}
 
 	/**
