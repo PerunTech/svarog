@@ -33,21 +33,19 @@ install-postgres-ut:
   stage: svarog-unit-tests
   script:
     - mvn clean compile
-    - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh ut $CI_PROJECT_DIR POSTGRES
     - cd $CI_PROJECT_DIR
-    - mvn exec:java@install-drop -P PostgreSQL
+    - mvn exec:java@install-drop-auto -P PostgreSQL
     - mvn test -P PostgreSQL
-    - mvn exec:java@upgrade-force -P PostgreSQL
+    - mvn exec:java@upgrade-force-auto -P PostgreSQL
     - mvn test -P PostgreSQL
     
 install-oracle-ut:
   stage: svarog-unit-tests
   script:
     - mvn clean compile
-    - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh ut $CI_PROJECT_DIR ORACLE
@@ -61,12 +59,11 @@ upgrade-postgres-pipeline:
   stage: svarog-upgrade-pipeline
   script:
     - mvn clean compile
-    - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh $CI_COMMIT_REF_NAME $CI_PROJECT_DIR POSTGRES
     - cd $CI_PROJECT_DIR  
-    - mvn exec:java@upgrade-force -P PostgreSQL
+    - mvn exec:java@upgrade-force-auto -P PostgreSQL
     - mvn test -P PostgreSQL
   environment:
     name: $CI_COMMIT_REF_NAME
@@ -80,12 +77,11 @@ upgrade-oracle-pipeline:
   stage: svarog-upgrade-pipeline
   script:
     - mvn clean compile
-    - mvn exec:java@json
     - cd .gitlab-ci
     - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh $CI_COMMIT_REF_NAME $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR  
-    - mvn exec:java@upgrade-force -P Oracle
+    - mvn exec:java@upgrade-force-auto -P Oracle
     - mvn test -P Oracle
     
     - cd $CI_PROJECT_DIR
