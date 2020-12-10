@@ -2,9 +2,6 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,7 +14,7 @@ import org.junit.Test;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog_common.DboFactory;
+import com.prtech.svarog.*;
 
 public class ClusterTest {
 

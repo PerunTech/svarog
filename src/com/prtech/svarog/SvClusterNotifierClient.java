@@ -92,7 +92,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 * @return True if the client connected to the coordinator successfully
 	 */
 	static boolean initClient(String ipAddressList) {
-		if (isActive.compareAndSet(false, true)) {
+		if (!isActive.compareAndSet(false, true)) {
 			log4j.debug("Notifier client is already active. Shutdown first");
 			return false;
 		}
