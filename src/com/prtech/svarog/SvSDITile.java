@@ -19,6 +19,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
@@ -62,8 +63,8 @@ public abstract class SvSDITile {
 	protected Envelope tileEnvelope = null;
 	protected Boolean isTileDirty = true;
 
-	protected HashSet<Geometry> internalGeometries = new HashSet<Geometry>();
-	protected HashSet<Geometry> borderGeometries = new HashSet<Geometry>();
+	protected Set<Geometry> internalGeometries = new HashSet<Geometry>();
+	protected Set<Geometry> borderGeometries = new HashSet<Geometry>();
 
 	PreparedGeometry getPreparedGeom(Geometry g) {
 		PreparedGeometry pg = null;
@@ -122,14 +123,15 @@ public abstract class SvSDITile {
 
 	}
 
-	public HashSet<Geometry> getRelations(Geometry geom, SDIRelation relation) throws SvException {
+	public Set<Geometry> getRelations(Geometry geom, SDIRelation relation) throws SvException {
 		return getRelations(geom, relation, false);
 	}
 
-	public HashSet<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
+	public Set<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
 			throws SvException {
 		loadTile();
-		HashSet<Geometry> l = new HashSet<>();
+		Set<Geometry> l = new HashSet<>();
+		@SuppressWarnings("unchecked")
 		List<PreparedGeometry> geoms = tileIndex.query(geom.getEnvelopeInternal());
 		boolean relates = false;
 		for (PreparedGeometry g : geoms) {
@@ -167,6 +169,8 @@ public abstract class SvSDITile {
 			case TOUCHES:
 				relates = g.touches(geom);
 				break;
+			default:
+				relates = false;
 			}
 			if (relates)
 				l.add(g.getGeometry());
@@ -174,12 +178,12 @@ public abstract class SvSDITile {
 		return l;
 	}
 
-	public HashSet<Geometry> getBorderGeometries() throws SvException {
+	public Set<Geometry> getBorderGeometries() throws SvException {
 		loadTile();
 		return borderGeometries;
 	}
 
-	public HashSet<Geometry> getInternalGeometries() throws SvException {
+	public Set<Geometry> getInternalGeometries() throws SvException {
 		loadTile();
 		return internalGeometries;
 	}
@@ -203,7 +207,7 @@ public abstract class SvSDITile {
 	}
 
 	public GeometryCollection getInternalGeomCollection() throws SvException {
-		HashSet<Geometry> geoms = this.getInternalGeometries();
+		Set<Geometry> geoms = this.getInternalGeometries();
 		Geometry[] gArray = (Geometry[]) geoms.toArray(new Geometry[geoms.size()]);
 		GeometryCollection retGeometries = new GeometryCollection(gArray, SvUtil.sdiFactory);
 		return retGeometries;

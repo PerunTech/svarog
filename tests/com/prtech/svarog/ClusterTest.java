@@ -657,9 +657,9 @@ public class ClusterTest {
 		System.out.print("Test ClusterLogoffTest");
 		try {
 
-			
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
-			//this test fails often so lets ensure that the cluster is shutdown properly from the previous tests before doing anything else
+			// this test fails often so lets ensure that the cluster is shutdown properly
+			// from the previous tests before doing anything else
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 			SvCluster.shutdown();
 			// if shut down in progress, wait to finish.
@@ -852,7 +852,7 @@ public class ClusterTest {
 			SvClusterNotifierProxy.nodeAcks.put(999, nodes);
 
 			SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_ACQUIRED, 999, 666, lockKey);
-			if (!SvClusterNotifierProxy.waitForAck(nodes, 999, SvClusterClient.heartBeatTimeOut))
+			if (!SvClusterNotifierProxy.waitForAck(999, SvClusterClient.heartBeatTimeOut))
 				fail("Ack failed");
 
 		} catch (SvException e) {

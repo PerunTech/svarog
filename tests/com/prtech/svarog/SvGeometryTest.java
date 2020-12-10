@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -101,7 +102,7 @@ public class SvGeometryTest {
 			Long tileTypeId = SvCore.getTypeIdByName("PHYSICAL_BLOCK");
 
 			SvSDITile tile = svg.createTile(tileTypeId, g.get(0).getUserData().toString(), null);
-			HashSet<Geometry> geoms = tile.getInternalGeometries();
+			Set<Geometry> geoms = tile.getInternalGeometries();
 
 			System.out.println("Tile envelope from bbox:" + env.toString());
 			System.out.println("Area of envelope:" + env.getArea() / 10000 + "Ha");
@@ -148,11 +149,11 @@ public class SvGeometryTest {
 			Geometry geomInside = gf.toGeometry(new Envelope(100, 200, 100, 200));
 
 			SvSDITile sysbounds = SvGeometry.getSysBoundary();
-			HashSet<Geometry> gl = sysbounds.getRelations(geom, SDIRelation.INTERSECTS);
+			Set<Geometry> gl = sysbounds.getRelations(geom, SDIRelation.INTERSECTS);
 			if (gl.size() < 1)
 				fail("Cross bounds polygon didn't detect intersection");
 
-			HashSet<Geometry> gl2 = sysbounds.getRelations(geomInside, SDIRelation.INTERSECTS);
+			Set<Geometry> gl2 = sysbounds.getRelations(geomInside, SDIRelation.INTERSECTS);
 			if (gl2.size() < 1)
 				fail("Cross bounds polygon didn't detect intersection");
 
@@ -172,7 +173,7 @@ public class SvGeometryTest {
 	@Test
 	public void testBoundsSave() {
 
-		try (SvGeometry svg = new SvGeometry()){
+		try (SvGeometry svg = new SvGeometry()) {
 			GeometryFactory gf = SvUtil.sdiFactory;
 			Geometry geom = gf
 					.createMultiPolygon(new Polygon[] { (Polygon) gf.toGeometry(new Envelope(-100, 200, -100, 20)) });
@@ -188,7 +189,7 @@ public class SvGeometryTest {
 			// svg.setAllowNullGeometry(true);
 			svg.saveGeometry(dbounds);
 			String bbox = SvGeometry.getBBox(geom.buffer(100).getEnvelopeInternal());
-			ArrayList<Geometry> result = svg.getGeometriesByBBOX(svCONST.OBJECT_TYPE_SDI_BOUNDS, bbox);
+			Set<Geometry> result = svg.getGeometriesByBBOX(svCONST.OBJECT_TYPE_SDI_BOUNDS, bbox);
 			Boolean matched = false;
 			for (Geometry g : result) {
 				System.out.println(((DbDataObject) g.getUserData()).getObjectId());

@@ -42,7 +42,7 @@ public class DbCache {
 	 */
 	static {
 		initCache();
-	};
+	}
 
 	/**
 	 * Method that initialises the cache. During initialisation, the cache for
@@ -172,7 +172,8 @@ public class DbCache {
 	 * @param objectDescriptor The object type from which the cache should be
 	 *                         configured
 	 */
-	public static CacheBuilder<?, ?> createBuilder(DbDataObject objectDescriptor) {
+	@SuppressWarnings("rawtypes")
+	public static CacheBuilder createBuilder(DbDataObject objectDescriptor) {
 		return createBuilder(objectDescriptor, null, null);
 	}
 
@@ -188,31 +189,22 @@ public class DbCache {
 	 *                         if the object descriptor doesn't specify any
 	 * @return
 	 */
-	public static CacheBuilder<?, ?> createBuilder(DbDataObject objectDescriptor, Long cacheSize, Long cacheExpiry) {
-		CacheBuilder<?, ?> builder = CacheBuilder.newBuilder();
-		cacheSize = cacheSize != null ? cacheSize : Sv.DEFAULT_CACHE_SIZE;
-		cacheExpiry = cacheExpiry != null ? cacheExpiry : Sv.DEFAULT_CACHE_TTL;
+	@SuppressWarnings("rawtypes")
+	public static CacheBuilder createBuilder(DbDataObject objectDescriptor, Long cacheSize, Long cacheExpiry) {
+		CacheBuilder builder = CacheBuilder.newBuilder();
+		Long lSize = cacheSize != null ? cacheSize : Sv.DEFAULT_CACHE_SIZE;
+		Long lExpiry = cacheExpiry != null ? cacheExpiry : Sv.DEFAULT_CACHE_TTL;
+		String cacheType = Sv.LRU_TTL;
 		if (objectDescriptor != null) {
-			String cType = (String) objectDescriptor.getVal(Sv.CACHE_TYPE);
-			if (Sv.LRU.equals(cType) || Sv.LRU_TTL.equals(cType)) {
-				if (objectDescriptor.getVal(Sv.CACHE_SIZE) != null)
-					builder = builder.maximumSize((Long) objectDescriptor.getVal(Sv.CACHE_SIZE));
-				else
-					builder = builder.maximumSize(cacheSize);
-
-			}
-
-			if (Sv.TTL.equals(cType) || Sv.LRU_TTL.equals(cType)) {
-				if (objectDescriptor.getVal(Sv.CACHE_EXPIRY) != null)
-					builder = builder.expireAfterAccess((Long) objectDescriptor.getVal(Sv.CACHE_EXPIRY),
-							TimeUnit.MINUTES);
-				else
-					builder = builder.expireAfterAccess(cacheExpiry, TimeUnit.MINUTES);
-
-			}
-		} else {
-			builder = builder.expireAfterAccess(cacheExpiry, TimeUnit.MINUTES);
-			builder = builder.maximumSize(cacheSize);
+			cacheType = (String) objectDescriptor.getVal(Sv.CACHE_TYPE);
+			lSize = objectDescriptor.getVal(Sv.CACHE_SIZE) == null ? lSize
+					: (Long) objectDescriptor.getVal(Sv.CACHE_SIZE);
+			lExpiry = objectDescriptor.getVal(Sv.CACHE_EXPIRY) == null ? lExpiry
+					: (Long) objectDescriptor.getVal(Sv.CACHE_EXPIRY);
+		}
+		if (!Sv.PERM.equals(cacheType)) {
+			builder = builder.expireAfterAccess(lSize, TimeUnit.MINUTES);
+			builder = builder.maximumSize(lExpiry);
 		}
 		return builder;
 	}
@@ -266,11 +258,11 @@ public class DbCache {
 	 * @param objectType Id of the type of parent
 	 * @return
 	 */
-	static DbDataArray getObjectsByLinkedId(Long LinkObjectId, Long linkObjectTypeId, Long dbLinkId, Long objectType,
+	static DbDataArray getObjectsByLinkedId(Long linkObjectId, Long linkObjectTypeId, Long dbLinkId, Long objectType,
 			String linkStatus) {
 		DbCacheTable tbl = cacheStorage.get(objectType);
 		if (tbl != null)
-			return tbl.getObjectsByLinkedId(LinkObjectId, linkObjectTypeId, dbLinkId, linkStatus);
+			return tbl.getObjectsByLinkedId(linkObjectId, linkObjectTypeId, dbLinkId, linkStatus);
 		return null;
 	}
 

@@ -359,15 +359,10 @@ public class SvConf {
 		InputStream props = null;
 		boolean hasErrors = true;
 		try {
-			if (props == null) {
-				String path = System.getProperties().getProperty(Sv.CONFIG_FILENAME, "./" + Sv.CONFIG_FILENAME);
-				File pFile = new File(path);
-				if (pFile != null) {
-					log4j.info("Loading configuration from:" + pFile.getCanonicalPath());
-					props = SvConf.class.getClassLoader().getResourceAsStream("svarog.properties");
-				}
-				props = new FileInputStream(pFile);
-			}
+			String path = System.getProperties().getProperty(Sv.CONFIG_FILENAME, "./" + Sv.CONFIG_FILENAME);
+			File pFile = new File(path);
+			log4j.info("Loading configuration from:" + pFile.getCanonicalPath());
+			props = new FileInputStream(pFile);
 			log4j.info("Starting " + appName);
 			log4j.info("Version:" + appVersion);
 			log4j.info("Build:" + appBuild);
@@ -748,6 +743,7 @@ public class SvConf {
 						srid = Sv.SQL_NULL;
 						break;
 					default:
+						srid = "0";
 					}
 				}
 
@@ -1039,8 +1035,8 @@ public class SvConf {
 		return intersectSysBoundary;
 	}
 
-	public static void setIntersectSysBoundary(boolean IntersectSysBoundary) {
-		SvConf.intersectSysBoundary = IntersectSysBoundary;
+	public static void setIntersectSysBoundary(boolean intersectSysBoundary) {
+		SvConf.intersectSysBoundary = intersectSysBoundary;
 	}
 
 }
