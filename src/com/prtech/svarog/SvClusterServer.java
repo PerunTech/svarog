@@ -93,7 +93,7 @@ public class SvClusterServer implements Runnable {
 	 * @return True if the server proxy was initialised correctly
 	 */
 	static boolean initServer() {
-		if (isActive.compareAndSet(false, true)) {
+		if (!isActive.compareAndSet(false, true)) {
 			log4j.debug("Heartbeat thread is already running. Shutdown first");
 			return false;
 		}
