@@ -16,12 +16,14 @@
 package com.prtech.svarog;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -148,6 +150,15 @@ public class SvarogInstall {
 
 	public static final String aclFile = "acl.json";
 	public static final String aclSidFile = "acl_sid.json";
+
+	static void writeToScreen(String message) {
+		Console console = System.console();
+		if (console != null) {
+			console.writer().println(message);
+		} else {
+			log4j.info(message);
+		}
+	}
 
 	/**
 	 * Main entry point of the svarog install Supported operations: JSON - will
@@ -277,7 +288,7 @@ public class SvarogInstall {
 		GeometryCollection grid = DbInit.generateGrid(boundary);
 		boolean result = DbInit.writeGrid(grid);
 		if (!result) {
-			System.out.println("Error generating system tile grid. ");
+			log4j.error("Error generating system tile grid.");
 			return -1;
 		}
 		return 0;
@@ -289,7 +300,7 @@ public class SvarogInstall {
 		if (opt != null) {
 			retVal = getEntryFromCmd(optionName.toUpperCase(), opt.getDescription());
 		} else
-			System.out.println("Error: Option " + optionName + " doesn't exist!");
+			writeToScreen("Error: Option " + optionName + " doesn't exist!");
 		return retVal;
 	}
 
@@ -298,8 +309,8 @@ public class SvarogInstall {
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(System.in);
-			System.out.println("Please enter " + valueName + ", to " + valueDescription);
-			System.out.println(valueName + ":");
+			writeToScreen("Please enter " + valueName + ", to " + valueDescription);
+			writeToScreen(valueName + ":");
 			retVal = scanner.nextLine();
 		} finally {
 			if (scanner != null)
@@ -331,10 +342,10 @@ public class SvarogInstall {
 
 		if (password != "") {
 			String passwordConfirm;
-			System.out.println("Please confirm the entered password.");
+			writeToScreen("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
 			if (!password.equals(passwordConfirm)) {
-				System.out.println("Passwords dont' match!");
+				writeToScreen("Passwords dont' match!");
 				return -3;
 			}
 
@@ -353,14 +364,14 @@ public class SvarogInstall {
 			svs.createUser(userName, password, (String) user.getVal(Sv.FIRST_NAME), (String) user.getVal("last_name"),
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
-			System.out.println("Password updated for user " + userName);
+			writeToScreen("Password updated for user " + userName);
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, password update for " + userName + " failed");
+			writeToScreen("Error, password update for " + userName + " failed");
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -406,17 +417,17 @@ public class SvarogInstall {
 		if (status == "")
 			status = null;
 
-		System.out.println("If you don't want to change the password, just hit enter");
+		writeToScreen("If you don't want to change the password, just hit enter");
 		String password = line.getOptionValue("password");
 		if (password == null || password == "")
 			password = getOptionFromCmd("password");
 
 		if (password != "") {
 			String passwordConfirm;
-			System.out.println("Please confirm the entered password.");
+			writeToScreen("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
 			if (!password.equals(passwordConfirm)) {
-				System.out.println("Passwords dont' match!");
+				writeToScreen("Passwords dont' match!");
 				return -3;
 			}
 
@@ -431,14 +442,14 @@ public class SvarogInstall {
 				password = SvUtil.getMD5(password).toUpperCase();
 
 			svs.createUser(userName, password, firstName, surName, email, userPin, "", sidType, status, true);
-			System.out.println("User " + userName + " successfully created/updated");
+			writeToScreen("User " + userName + " successfully created/updated");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, user " + userName + " can not be created/updated");
+			writeToScreen("Error, user " + userName + " can not be created/updated");
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -502,14 +513,14 @@ public class SvarogInstall {
 			groupDbo.setVal("group_security_type", securityType);
 			groupDbo.setVal("e_mail", email);
 			svw.saveObject(groupDbo);
-			System.out.println("Group " + groupName + " successfully created/updated");
+			writeToScreen("Group " + groupName + " successfully created/updated");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, user " + groupName + " can not be created/updated");
+			writeToScreen("Error, user " + groupName + " can not be created/updated");
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -531,7 +542,7 @@ public class SvarogInstall {
 		if (exportFile == null || exportFile == "")
 			exportFile = getOptionFromCmd("export-group-cfg");
 
-		System.out.println("Exporting group " + group + " config to " + exportFile);
+		writeToScreen("Exporting group " + group + " config to " + exportFile);
 
 		int returnStatus = 0;
 		SvWriter svw = null;
@@ -547,14 +558,14 @@ public class SvarogInstall {
 			groupDbo.setVal(Sv.ACLS, acls);
 			SvUtil.saveStringToFile(exportFile, groupDbo.toJson().toString());
 			returnStatus = 0;
-			System.out.println("Successfully exported " + group + " config to " + exportFile);
+			writeToScreen("Successfully exported " + group + " config to " + exportFile);
 
 		} catch (Exception ex) {
-			System.out.println("Error, can not get user groups for user " + group);
+			writeToScreen("Error, can not get user groups for user " + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -633,7 +644,7 @@ public class SvarogInstall {
 			dbo.fromJson(jObj);
 			DbDataArray acls = (DbDataArray) dbo.getVal(Sv.ACLS);
 			group = (String) dbo.getVal(Sv.GROUP_NAME);
-			System.out.println("Importing group " + group + " config from " + importFile);
+			writeToScreen("Importing group " + group + " config from " + importFile);
 
 			svw = new SvWriter();
 			svw.switchUser(Sv.ADMIN);
@@ -670,14 +681,14 @@ public class SvarogInstall {
 			upgradeACLS(dbo, acls, svw);
 			svw.dbCommit();
 			returnStatus = 0;
-			System.out.println("Successfully imported " + group + " config from " + importFile);
+			writeToScreen("Successfully imported " + group + " config from " + importFile);
 
 		} catch (Exception ex) {
-			System.out.println("Error, can not get user groups for user " + group);
+			writeToScreen("Error, can not get user groups for user " + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -710,23 +721,23 @@ public class SvarogInstall {
 				printDefault = " has configured a default group:" + defaultGroup.get(0).getVal("GROUP_NAME");
 
 			}
-			System.out.println("User " + user + printDefault);
+			writeToScreen("User " + user + printDefault);
 
 			defaultGroup = svw.getAllUserGroups(userDbo, false);
-			System.out.println("User " + user + " is member of the following groups:");
-			System.out.println("----------");
+			writeToScreen("User " + user + " is member of the following groups:");
+			writeToScreen("----------");
 			for (DbDataObject dbg : defaultGroup.getItems()) {
-				System.out.println((String) dbg.getVal("GROUP_NAME"));
+				writeToScreen((String) dbg.getVal("GROUP_NAME"));
 			}
-			System.out.println("Total of " + defaultGroup.size() + " groups associated to the user");
+			writeToScreen("Total of " + defaultGroup.size() + " groups associated to the user");
 
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, can not get user groups for user " + user);
+			writeToScreen("Error, can not get user groups for user " + user);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -764,14 +775,14 @@ public class SvarogInstall {
 				svs.removeUserFromGroup(userDbo, groupDbo);
 			else
 				svs.addUserToGroup(userDbo, groupDbo, isDefaultGroup);
-			System.out.println("User " + user + " successfully " + groupOperation + " group: " + group);
+			writeToScreen("User " + user + " successfully " + groupOperation + " group: " + group);
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, user " + user + " can not be " + groupOperation + " group:" + group);
+			writeToScreen("Error, user " + user + " can not be " + groupOperation + " group:" + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -786,7 +797,7 @@ public class SvarogInstall {
 
 	private static int updatePermissions(CommandLine line) {
 		if (!line.hasOption("permissions")) {
-			System.out.println("Error: Missing --permissions parameter. " + "In order to grant or revoke permissions, "
+			writeToScreen("Error: Missing --permissions parameter. " + "In order to grant or revoke permissions, "
 					+ "the --permissions parameter must be set");
 			return -4;
 		}
@@ -794,10 +805,10 @@ public class SvarogInstall {
 		String group = line.getOptionValue("group");
 		Boolean isGroup = false;
 		if (group != null) {
-			System.out.println("Setting permissions for group:" + group);
+			writeToScreen("Setting permissions for group:" + group);
 			isGroup = true;
 		} else if (user != null)
-			System.out.println("Setting permissions for user:" + user);
+			writeToScreen("Setting permissions for user:" + user);
 
 		String permissionMask = line.getOptionValue("permissions");
 		boolean isGrant = line.hasOption("g");
@@ -824,21 +835,21 @@ public class SvarogInstall {
 						svs.grantPermission(sid, (String) perm.getVal("LABEL_CODE"));
 					else
 						svs.revokePermission(sid, (String) perm.getVal("LABEL_CODE"));
-					System.out.println("User " + user + " successfully " + permissionOperation + " permission: "
+					writeToScreen("User " + user + " successfully " + permissionOperation + " permission: "
 							+ (String) perm.getVal("LABEL_CODE"));
 				}
 				svs.dbCommit();
 			} else {
-				System.out.println("Error, sid " + (isGroup ? group : user) + " can not be found");
+				writeToScreen("Error, sid " + (isGroup ? group : user) + " can not be found");
 				returnStatus = -5;
 			}
 
 		} catch (Exception ex) {
-			System.out.println("Error, user " + user + " can not be " + permissionOperation + " permission:" + group);
+			writeToScreen("Error, user " + user + " can not be " + permissionOperation + " permission:" + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -934,9 +945,9 @@ public class SvarogInstall {
 	private static boolean validateCommandLine(CommandLine line) {
 		ArrayList<Option> opts = getCoreOpts(line);
 		if (opts.size() == 0)
-			System.out.println("No core options set. You must set at ONLY one of the core options:");
+			writeToScreen("No core options set. You must set at ONLY one of the core options:");
 		else if (opts.size() > 1)
-			System.out.println("More than one core option set. You must set ONLY one of the core options:");
+			writeToScreen("More than one core option set. You must set ONLY one of the core options:");
 		if (opts.size() != 1) {
 			HelpFormatter formatter = new HelpFormatter();
 			Options options = new Options();
@@ -4117,7 +4128,7 @@ public class SvarogInstall {
 
 			return bytes;
 		} catch (Exception ex) {
-			System.out.println(ex.getMessage());
+			log4j.error("Error reading file.", ex);
 		}
 		return null;
 	}

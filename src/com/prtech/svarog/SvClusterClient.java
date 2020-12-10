@@ -53,12 +53,12 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Flag if the client is running
 	 */
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the client has joined a cluster
 	 */
-	static AtomicBoolean isActive = new AtomicBoolean(false);
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
 
 	/**
 	 * Delimiter to be used for split of the address list
@@ -540,15 +540,12 @@ public class SvClusterClient implements Runnable {
 	 */
 	@Override
 	public void run() {
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
 			return;
 		}
-		if (hbClientSock == null) {
-			log4j.error("Heartbeat socket not available, ensure proper initialisation");
-			return;
-		}
-		while (isRunning.get() && hbClientSock != null) {
+		while (isRunning.get()) {
 			synchronized (hbClientSock) {
 				ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 				msgBuffer.put(SvCluster.MSG_HEARTBEAT);

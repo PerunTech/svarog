@@ -53,9 +53,14 @@ public class SvClusterNotifierClient implements Runnable {
 	static private ZContext context = null;
 
 	/**
-	 * Flag if the client is running
+	 * Flag if the main client thread is running
 	 */
 	static final AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	/**
+	 * Flag if the notifier is in Active state or shutdown
+	 */
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
 
 	/**
 	 * ZMQ publisher socket used for publishing notifications to the cluster
@@ -74,7 +79,7 @@ public class SvClusterNotifierClient implements Runnable {
 	/**
 	 * Timeout for receiving a message on the socket.
 	 */
-	static final int sockeReceiveTimeout = 500;
+	static final int socketReceiveTimeout = 500;
 
 	/**
 	 * Method to initialise the notifier client. The client uses the ip address list
@@ -87,8 +92,8 @@ public class SvClusterNotifierClient implements Runnable {
 	 * @return True if the client connected to the coordinator successfully
 	 */
 	static boolean initClient(String ipAddressList) {
-		if (isRunning.get()) {
-			log4j.error("Notifier client thread is already running. Shutdown first");
+		if (isActive.compareAndSet(false, true)) {
+			log4j.debug("Notifier client is already active. Shutdown first");
 			return false;
 		}
 		boolean initSuccess = false;
@@ -121,7 +126,11 @@ public class SvClusterNotifierClient implements Runnable {
 				break;
 		}
 		if (initSuccess)
-			subServerSock.setReceiveTimeOut(sockeReceiveTimeout);
+			subServerSock.setReceiveTimeOut(socketReceiveTimeout);
+		else {
+			isActive.set(false);
+			log4j.error("Notifier client failed to connect/bind to required ports");
+		}
 		return initSuccess;
 	}
 
@@ -134,13 +143,13 @@ public class SvClusterNotifierClient implements Runnable {
 			return;
 		}
 		try {
-			// do sleep until socket is able to close within timeout
-			synchronized (isRunning) {
-				isRunning.wait(sockeReceiveTimeout);
-			}
+			// do wait for the main thread to shutdown
+			while (isActive.get())
+				synchronized (isActive) {
+					isActive.wait();
+				}
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log4j.warn("Shutdown procedure raised exception", e);
 		}
 		if (context != null) {
 			context.close();
@@ -368,10 +377,11 @@ public class SvClusterNotifierClient implements Runnable {
 	 */
 	@Override
 	public void run() {
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("Notify subscriber thread is already running. Shutdown first");
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName()+ ".run() failed. Current status is active:"+isActive.get()+". Main server thread is running:"+isRunning.get());
 			return;
 		}
+
 		if (subServerSock != null) {
 			subServerSock.subscribe(ZMQ.SUBSCRIPTION_ALL);
 			log4j.info("Notify subscriber client started");
@@ -392,10 +402,10 @@ public class SvClusterNotifierClient implements Runnable {
 		} else
 			log4j.error("Subscriber socket not available, ensure proper initialisation");
 
-		// set the running flag to false
-		synchronized (isRunning) {
-			isRunning.compareAndSet(true, false);
-			isRunning.notifyAll();
+		// set the active flag to false and notify the waiting threads
+		isActive.set(false);
+		synchronized (isActive) {
+			isActive.notifyAll();
 		}
 	}
 

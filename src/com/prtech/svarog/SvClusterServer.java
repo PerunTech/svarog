@@ -74,11 +74,27 @@ public class SvClusterServer implements Runnable {
 
 	static DateTime lastGCTime = DateTime.now();
 
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	/**
+	 * Flag if the main thread is running
+	 */
+	static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+	/**
+	 * Flag if the server is in Active state or shutdown
+	 */
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
+
+	/**
+	 * Main Cluster server initalisation. It requires that the current state of the
+	 * server is not active (isActive=false). After the active check this method
+	 * will create the main ZMQ context as well as the REP socket for heart beat
+	 * messages.
+	 * 
+	 * @return True if the server proxy was initialised correctly
+	 */
 	static boolean initServer() {
-		if (isRunning.get()) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
+		if (isActive.compareAndSet(false, true)) {
+			log4j.debug("Heartbeat thread is already running. Shutdown first");
 			return false;
 		}
 		if (context == null)
@@ -93,24 +109,36 @@ public class SvClusterServer implements Runnable {
 		} catch (Exception e) {
 			log4j.error("The node can't bind socket on port range:" + SvConf.getHeartBeatPort(), e);
 		}
-		if (hbServerSock == null)
-			log4j.info("Heartbeat socket bind on port:" + SvConf.getHeartBeatPort());
-		else
+		if (hbServerSock == null) {
+			isActive.set(false);
+			log4j.error("Heartbeat socket failed to bind to required ports:" + SvConf.getHeartBeatPort());
+		} else
 			hbServerSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 		// start the internal hearbeat client
 		return (hbServerSock != null);
 	}
 
+	/**
+	 * Method to shutdown the main heart beat server. If the heart-beat thread is
+	 * running, try to set it to false. If the thread is not running just return.
+	 * After that check if the server is active, if yes, wait for it until it
+	 * performs a clean shutdown. After the main thread has shutdown, close the
+	 * context so we can clean exit the ZMQ.proxy
+	 */
 	static public void shutdown() {
 		if (!isRunning.compareAndSet(true, false)) {
 			log4j.error("Heartbeat thread is not running. Run the heartbeat thread first");
 			return;
 		}
 		try {
-			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
+			// do wait for the main thread to shutdown
+			while (isActive.get())
+				synchronized (isActive) {
+					isActive.wait();
+				}
+
 		} catch (InterruptedException e) {
-			log4j.error("Shutdown interrupted", e);
+			log4j.error("Heart-beat shutdown interrupted", e);
 		}
 		if (context != null) {
 			context.close();
@@ -121,6 +149,58 @@ public class SvClusterServer implements Runnable {
 			synchronized (SvMaintenance.maintenanceThread) {
 				SvMaintenance.maintenanceThread.notifyAll();
 			}
+
+	}
+
+	@Override
+	public void run() {
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
+			return;
+		}
+		// make sure we promote any locks if we got promoted from Worker to
+		// Coordinator
+		promoteLocalLocks();
+
+		lastGCTime = DateTime.now();
+		log4j.info("Heartbeat server started");
+		while (isRunning.get()) {
+			byte[] msg = hbServerSock.recv(0);
+			if (msg != null) {
+				ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
+				byte msgType = msgBuffer.get();
+				long nodeId = msgBuffer.getLong();
+				int sockFlag;
+				if (msgType == SvCluster.MSG_JOIN) {
+					Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
+					sockFlag = ZMQ.SNDMORE;
+					while (iterator.hasNext()) {
+						ByteBuffer b = iterator.next();
+
+						if (!iterator.hasNext())
+							sockFlag = 0;
+						if (!hbServerSock.send(b.array(), sockFlag))
+							log4j.error("Error sending message to node:" + Long.toString(nodeId));
+					}
+				} else {
+					byte[] response = processMessage(msgType, nodeId, msgBuffer);
+					if (!hbServerSock.send(response))
+						log4j.error("Error sending message to node:" + Long.toString(nodeId));
+				}
+			} else
+				clusterMaintenance();
+
+		}
+		// make sure we clear the locks on shutdown
+		clearDistributedLocks();
+		log4j.info("Heartbeat server shut down");
+
+		// set the active flag to false and notify the waiting threads
+		isActive.set(false);
+		synchronized (isActive) {
+			isActive.notifyAll();
+		}
 
 	}
 
@@ -182,6 +262,10 @@ public class SvClusterServer implements Runnable {
 				respBuffer.put(SvCluster.MSG_FAIL);
 			respBuffer.putLong(nodeId);
 			break;
+		default:
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+			respBuffer.put(SvCluster.MSG_FAIL);
+			respBuffer.putLong(nodeId);
 		}
 
 		return respBuffer;
@@ -263,20 +347,17 @@ public class SvClusterServer implements Runnable {
 	 */
 	private ByteBuffer processPart(byte msgType, long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-		{
-			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-			respBuffer.put(SvCluster.MSG_SUCCESS);
-			respBuffer.putLong(nodeId);
-			nodeHeartBeats.remove(nodeId);
-			clusterCleanUp(nodeId);
-			if (SvMaintenance.maintenanceThread != null && !SvMaintenance.getMaintenanceInProgress().get())
-				if (SvarogDaemon.osgiFramework != null)
-					SvMaintenance.maintenanceThread.interrupt();
-				else
-					synchronized (SvMaintenance.maintenanceThread) {
-						SvMaintenance.maintenanceThread.notifyAll();
-					}
-		}
+		respBuffer.put(SvCluster.MSG_SUCCESS);
+		respBuffer.putLong(nodeId);
+		nodeHeartBeats.remove(nodeId);
+		clusterCleanUp(nodeId);
+		if (SvMaintenance.maintenanceThread != null && !SvMaintenance.getMaintenanceInProgress().get())
+			if (SvarogDaemon.osgiFramework != null)
+				SvMaintenance.maintenanceThread.interrupt();
+			else
+				synchronized (SvMaintenance.maintenanceThread) {
+					SvMaintenance.maintenanceThread.notifyAll();
+				}
 		return respBuffer;
 	}
 
@@ -323,12 +404,10 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		Integer lockHash = msgBuffer.getInt();
-
 		// unlock the lock using the server lists of locks
 		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, null, false);
-		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		if (lockKey != null) {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			// send a broadcast that the lock was acquired
@@ -363,7 +442,7 @@ public class SvClusterServer implements Runnable {
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+
 		String lockKey = new String(
 				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
 		Long[] extNodeInfo = new Long[1];
@@ -371,7 +450,7 @@ public class SvClusterServer implements Runnable {
 		// acquire the lock using the server side lists
 		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, null, false);
 
-		respBuffer = ByteBuffer.allocate(
+		ByteBuffer respBuffer = ByteBuffer.allocate(
 				SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (lock == null ? SvUtil.sizeof.LONG : SvUtil.sizeof.INT));
 		if (lock == null)
 			respBuffer.put(SvCluster.MSG_FAIL);
@@ -382,7 +461,7 @@ public class SvClusterServer implements Runnable {
 			nodes.addAll(nodeHeartBeats.keySet());
 			SvClusterNotifierProxy.nodeAcks.put(lock.hashCode(), nodes);
 			SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_ACQUIRED, lock.hashCode(), nodeId, lockKey);
-			if (!SvClusterNotifierProxy.waitForAck(nodes, lock.hashCode(), heartBeatTimeOut))
+			if (!SvClusterNotifierProxy.waitForAck(lock.hashCode(), heartBeatTimeOut))
 				lockResult = SvCluster.MSG_FAIL;
 
 			respBuffer.put(lockResult);
@@ -444,7 +523,7 @@ public class SvClusterServer implements Runnable {
 				respBuffer.put(SvCluster.MSG_UNKNOWN);
 			}
 		if (log4j.isDebugEnabled())
-			log4j.debug("Response to node " + nodeId + " was " + respBuffer.get(0));
+			log4j.debug("Response to node " + nodeId + " was " + respBuffer != null ? respBuffer.get(0) : "null");
 		return respBuffer.array();
 
 	}
@@ -461,64 +540,11 @@ public class SvClusterServer implements Runnable {
 				CopyOnWriteArrayList<DistributedLock> myLocks = entry.getValue();
 				if (myLocks != null)
 					for (DistributedLock d : myLocks) {
-						int lockHash = SvClusterServer.getDistributedLock(d.key, d.nodeId);
+						SvClusterServer.getDistributedLock(d.key, d.nodeId);
 						SvClusterServer.updateDistributedLock(d.key, d.lockHash);
 					}
 			}
 		}
-
-	}
-
-	@Override
-	public void run() {
-
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
-			return;
-		}
-		// TODO Auto-generated method stub
-		// lets try to bind our heart beat socket.
-		if (hbServerSock == null) {
-			log4j.error("Heartbeat socket not available, ensure proper initialisation");
-			return;
-		}
-		// make sure we promote any locks if we got promoted from Worker to
-		// Coordinator
-		promoteLocalLocks();
-
-		lastGCTime = DateTime.now();
-		log4j.info("Heartbeat server started");
-		while (isRunning.get()) {
-			byte[] msg = hbServerSock.recv(0);
-			if (msg != null) {
-				ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
-				byte msgType = msgBuffer.get();
-				long nodeId = msgBuffer.getLong();
-				int sockFlag;
-				if (msgType == SvCluster.MSG_JOIN) {
-					Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
-					sockFlag = ZMQ.SNDMORE;
-					while (iterator.hasNext()) {
-						ByteBuffer b = iterator.next();
-
-						if (!iterator.hasNext())
-							sockFlag = 0;
-						if (!hbServerSock.send(b.array(), sockFlag))
-							log4j.error("Error sending message to node:" + Long.toString(nodeId));
-					}
-				} else {
-					byte[] response = processMessage(msgType, nodeId, msgBuffer);
-					if (!hbServerSock.send(response))
-						log4j.error("Error sending message to node:" + Long.toString(nodeId));
-				}
-			} else
-				clusterMaintenance();
-
-		}
-		// make sure we clear the locks on shutdown
-		clearDistributedLocks();
-		log4j.info("Heartbeat server shut down");
-		// the result of the binding is the status
 
 	}
 

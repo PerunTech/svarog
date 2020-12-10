@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -188,9 +189,7 @@ public class SvGeometry extends SvCore {
 		try {
 			String path = gridFileName;
 			is = new FileInputStream(path);
-			if (is != null) {
-				geoJSONBounds = IOUtils.toString(is);
-			}
+			geoJSONBounds = IOUtils.toString(is);
 			GeoJsonReader jtsReader = new GeoJsonReader();
 			jtsReader.setUseFeatureType(true);
 			grid = (GeometryCollection) jtsReader.read(geoJSONBounds);
@@ -294,29 +293,30 @@ public class SvGeometry extends SvCore {
 	 * @return A set of related geometries
 	 * @throws SvException Exception if raised by underlying methods
 	 */
-	public HashSet<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
+	public Set<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
 			SvCharId filterFieldName, Object filterValue, boolean excludeSelf) throws SvException {
-		if (geom == null)
-			return null;
-		DbDataObject userData = (DbDataObject) geom.getUserData();
 		HashSet<Geometry> geoms = new HashSet<>();
-		@SuppressWarnings("unchecked")
-		List<Geometry> gridItems = gridIndex.query(geom.getEnvelopeInternal());
-		for (Geometry gridGeom : gridItems) {
-			SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
-			HashSet<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
-			for (Geometry g : relatedGeoms) {
-				// apply the filter by value
-				DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
-				if ((filterFieldName != null && relatedUserData != null
-						&& !filterValue.equals(relatedUserData.getVal(filterFieldName, true)))
-						// or we check the exclusion of self
-						|| (excludeSelf && userData != null
-								&& userData.getObjectId().equals(relatedUserData.getObjectId())))
-					continue;
+		SvCharId objectIdField = new SvCharId(Sv.OBJECT_ID);
+		if (geom != null) {
+			DbDataObject userData = (DbDataObject) geom.getUserData();
+			Object geometryOid = userData != null ? userData.getObjectId() : null;
+			@SuppressWarnings("unchecked")
+			List<Geometry> gridItems = gridIndex.query(geom.getEnvelopeInternal());
+			for (Geometry gridGeom : gridItems) {
+				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
+				Set<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
+				for (Geometry g : relatedGeoms) {
+					// apply the filter by value
+					DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
+					if (SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue))
+						continue;
+					// exclude self if needed
+					if (excludeSelf && SvUtil.fieldMatchValue(relatedUserData, objectIdField, geometryOid))
+						continue;
 
-				if (!geoms.contains(g))
-					geoms.add(g);
+					if (!geoms.contains(g))
+						geoms.add(g);
+				}
 			}
 		}
 		return geoms;
@@ -329,9 +329,9 @@ public class SvGeometry extends SvCore {
 	 * @param layerTypeId the object id of the layer/object type from which to fetch
 	 *                    the geometries
 	 * @param bbox        The string representation of the bounding box
-	 * @return List of {@link Geometry} objects
+	 * @return Set of {@link Geometry} objects
 	 */
-	public ArrayList<Geometry> getGeometriesByBBOX(Long layerTypeId, String bbox) throws SvException {
+	public Set<Geometry> getGeometriesByBBOX(Long layerTypeId, String bbox) throws SvException {
 		Envelope envelope = parseBBox(bbox);
 		return getGeometries(layerTypeId, envelope);
 	}
@@ -343,21 +343,11 @@ public class SvGeometry extends SvCore {
 	 * @param layerTypeId the object id of the layer/object type from which to fetch
 	 *                    the geometries
 	 * @param envelope    The {@link Envelope} of the region we are interested in
-	 * @return List of {@link Geometry} objects
+	 * @return Set of {@link Geometry} objects
 	 */
-	public ArrayList<Geometry> getGeometries(Long typeId, Envelope envelope) throws SvException {
-		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(envelope);
-		ArrayList<Geometry> geoms = new ArrayList<Geometry>();
-		for (Geometry tileGeom : result) {
-			SvSDITile tile = getTile(typeId, (String) tileGeom.getUserData(), null);
-			if (envelope.covers(tile.getEnvelope())) {
-				geoms.addAll(tile.getInternalGeometries());
-			} else {
-				geoms.addAll(tile.getRelations(SvUtil.sdiFactory.toGeometry(envelope), SDIRelation.INTERSECTS, true));
-			}
-		}
-		return geoms;
+	public Set<Geometry> getGeometries(Long typeId, Envelope envelope) throws SvException {
+		return getRelatedGeometries(SvUtil.sdiFactory.toGeometry(envelope), typeId, SDIRelation.INTERSECTS, null, null,
+				false);
 	}
 
 	/**
@@ -466,7 +456,7 @@ public class SvGeometry extends SvCore {
 	 *                      source geometry
 	 * @return
 	 */
-	Geometry calcGeomDiff(Geometry geom, HashSet<Geometry> intersections) {
+	Geometry calcGeomDiff(Geometry geom, Set<Geometry> intersections) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
 		Geometry result = geom;
 
@@ -482,12 +472,15 @@ public class SvGeometry extends SvCore {
 	private Geometry cutLayerFromGeomImpl(Geometry geom, Long layerTypeId, boolean testOnly, SvCharId filterFieldName,
 			Object filterValue) throws SvException {
 		Geometry updatedGeometry = null;
-		HashSet<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS,
-				filterFieldName, filterValue, true);
+		Set<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, filterFieldName,
+				filterValue, true);
 
 		if (!testOnly)
 			updatedGeometry = calcGeomDiff(geom, intersections);
-		return !testOnly ? updatedGeometry : intersections.size() > 0 ? geom : null;
+		else
+			updatedGeometry = !intersections.isEmpty() ? geom : null;
+
+		return updatedGeometry;
 	}
 
 	public Collection<Geometry> cutGeomFromLayer(Geometry geom, Long layerTypeId) throws SvException {
@@ -508,7 +501,7 @@ public class SvGeometry extends SvCore {
 		return cutGeomFromLayerImpl(geom, layerTypeId, true, filterFieldName, filterValue) != null;
 	}
 
-	HashSet<Geometry> calcLayerDiff(Geometry geom, HashSet<Geometry> intersections) {
+	Set<Geometry> calcLayerDiff(Geometry geom, Set<Geometry> intersections) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
 		HashSet<Geometry> updatedGeometries = new HashSet<>();
 		for (Geometry relatedGeom : intersections) {
@@ -528,13 +521,15 @@ public class SvGeometry extends SvCore {
 			SvCharId filterFieldName, Object filterValue) throws SvException {
 		if (geom == null)
 			return null;
-		HashSet<Geometry> updatedGeometries = null;
-		HashSet<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS,
-				filterFieldName, filterValue, true);
+		Set<Geometry> updatedGeometries = null;
+		Set<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, filterFieldName,
+				filterValue, true);
 
 		if (!testOnly)
 			updatedGeometries = calcLayerDiff(geom, intersections);
-		return !testOnly ? updatedGeometries : intersections.size() > 0 ? intersections : null;
+		else
+			updatedGeometries = !intersections.isEmpty() ? intersections : null;
+		return updatedGeometries;
 	}
 
 	/**
@@ -813,7 +808,7 @@ public class SvGeometry extends SvCore {
 	 */
 	public DbDataObject getAdmUnit(Point geom) throws SvException {
 		SvSDITile admTile = getSDIUnitBoundary(SvConf.getAdmUnitClass());
-		HashSet<Geometry> units = admTile.getRelations(geom, SDIRelation.COVERS);
+		Set<Geometry> units = admTile.getRelations(geom, SDIRelation.COVERS);
 		if (units.size() == 1) {
 			Iterator<Geometry> i = units.iterator();
 			return (DbDataObject) i.next().getUserData();

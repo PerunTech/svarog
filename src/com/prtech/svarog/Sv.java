@@ -132,5 +132,6 @@ public class Sv {
 	public static final String CACHE_EXPIRY = "CACHE_EXPIRY";
 	public static final String SDI_SYSTEM_BOUNDARY = "SDI_SYSTEM_BOUNDARY";
 	public static final String ENVELOPE = "ENVELOPE";
+	public static final String PERM = "PERM";
 
 }

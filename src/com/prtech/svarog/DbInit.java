@@ -50,7 +50,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
-import com.vividsolutions.jts.JTSVersion;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
@@ -5368,9 +5367,6 @@ public class DbInit {
 		for (DbDataTable dbt : dbtList) {
 			if (dbt.getObjectId() == null) {
 				dbt.setObjectId(0L);
-				// System.out.println("Object " + dbt.getDbTableName() +
-				// "doesn't have ID, FIX IT FIX IT !!!");
-				// return null;
 			}
 
 		}
@@ -5470,8 +5466,7 @@ public class DbInit {
 					fileList);
 
 		} catch (Exception e) {
-			System.out.println("Error Generating file list");
-			e.printStackTrace();
+			log4j.error("Error Generating file list", e);
 		}
 	}
 
@@ -5687,12 +5682,12 @@ public class DbInit {
 							JsonElement jsonAcl = loadJsonResource(customJars[i].getAbsolutePath(), aclFilePath);
 							if (jsonAcl != null) {
 								mACLs.add(jsonAcl);
-								System.out.println("Loaded ACLs from " + aclFilePath);
+								log4j.info("Loaded ACLs from " + aclFilePath);
 							}
 							JsonElement jsonAclSID = loadJsonResource(customJars[i].getAbsolutePath(), aclSidFilePath);
 							if (jsonAclSID != null) {
 								mACLSIDs.add(jsonAclSID);
-								System.out.println("Loaded ACL/SIDs from " + aclSidFilePath);
+								log4j.info("Loaded ACL/SIDs from " + aclSidFilePath);
 							}
 
 						}
@@ -5707,12 +5702,12 @@ public class DbInit {
 							JsonElement jsonAcl = loadJsonResource(customJars[i].getAbsolutePath(), aclFilePath);
 							if (jsonAcl != null) {
 								mACLs.add(jsonAcl);
-								System.out.println("Loaded ACLs from " + aclFilePath);
+								log4j.info("Loaded ACLs from " + aclFilePath);
 							}
 							JsonElement jsonAclSID = loadJsonResource(customJars[i].getAbsolutePath(), aclSidFilePath);
 							if (jsonAclSID != null) {
 								mACLSIDs.add(jsonAclSID);
-								System.out.println("Loaded ACL/SIDs from " + aclSidFilePath);
+								log4j.info("Loaded ACL/SIDs from " + aclSidFilePath);
 							}
 
 						}
@@ -5724,12 +5719,12 @@ public class DbInit {
 				JsonElement jsonAcl = loadJsonResource(null, aclFilePath);
 				if (jsonAcl != null) {
 					mACLs.add(jsonAcl);
-					System.out.println("Loaded ACLs from " + aclFilePath);
+					log4j.info("Loaded ACLs from " + aclFilePath);
 				}
 				JsonElement jsonAclSID = loadJsonResource(null, aclSidFilePath);
 				if (jsonAclSID != null) {
 					mACLSIDs.add(jsonAclSID);
-					System.out.println("Loaded ACL/SIDs from " + aclSidFilePath);
+					log4j.info("Loaded ACL/SIDs from " + aclSidFilePath);
 				}
 
 				if (mACLs.size() > 0) {
@@ -5768,7 +5763,7 @@ public class DbInit {
 								arrAcl.addDataItem(dbo);
 							}
 						} else
-							System.out.println("Json object isn't array: " + acl.toString());
+							log4j.warn("Json object isn't array: " + acl.toString());
 					}
 
 				}
@@ -5804,13 +5799,11 @@ public class DbInit {
 								arrAclSid.addDataItem(dbo);
 							}
 						} else
-							System.out.println("Json object isn't array: " + acl.toString());
+							log4j.warn("Json object isn't array: " + acl.toString());
 					}
 				}
 			} catch (Exception e) {
-				System.out.println("Exception while parsing ACLs");
-				e.printStackTrace();
-
+				log4j.error("Exception while parsing ACLs",e );
 			}
 
 			testRetval += saveMasterJson(
@@ -6566,8 +6559,6 @@ public class DbInit {
 
 			dbo.setVal("PARENT_CODE_VALUE", parentCodeValue != null ? parentCodeValue.getAsString() : null);
 
-			// System.out.println(inObj.get("user_code").getAsString() + " objid
-			// :" + object_id + " parid : " + parent_id);
 			JsonElement children = inObj.get("children");
 			items.add(dbo);
 			if (children != null) {
@@ -6764,15 +6755,9 @@ public class DbInit {
 		Geometry geo = null;
 		try {
 			GeoJsonReader jtsReader = new GeoJsonReader();
-			is = DbInit.class
-					.getResourceAsStream(SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json");
-			if (is == null) {
-				String path = "./" + SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json";
-				is = new FileInputStream(path);
-			}
-			if (is != null) {
-				geoJSONBounds = IOUtils.toString(is);
-			}
+			String path = "./" + SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json";
+			is = new FileInputStream(path);
+			geoJSONBounds = IOUtils.toString(is);
 			geo = jtsReader.read(geoJSONBounds);
 		} catch (IOException e) {
 			log4j.error("System bounds can not be read from file!", e);
