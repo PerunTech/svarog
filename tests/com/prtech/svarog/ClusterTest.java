@@ -31,6 +31,7 @@ public class ClusterTest {
 
 	}
 
+	@Test
 	public void promoteToCoordinator() {
 		System.out.print("Test promoteToCoordinator");
 		try {
@@ -64,8 +65,8 @@ public class ClusterTest {
 				fail("Lock was NOT present on the Cluster after acquiring");
 
 			Thread.sleep(2 * SvConf.getHeartBeatInterval());
-			SvCluster.shutdown();
 			SvConf.setClusterEnabled(true);
+			SvCluster.shutdown();
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 			boolean didWePromote = false;
 			while (tsTimeout.isAfterNow()) {

@@ -118,7 +118,8 @@ public class SvCluster extends SvCore {
 	static private Thread notifierThread = null;
 
 	/**
-	 * Reference to the coordinator node
+	 * We need the autoStartClient flag to enable us to start cluster without
+	 * clients for the purpose of unit testing
 	 */
 	static boolean autoStartClient = true;
 
@@ -169,38 +170,28 @@ public class SvCluster extends SvCore {
 	 *                     which would mean someone else got promoted in meantime)
 	 */
 	static boolean becomeCoordinator(SvCore svc) throws SvException {
-		SvWriter svw = null;
-		boolean success = false;
-		try {
-			svw = new SvWriter(svc);
+		try (SvWriter svw = new SvWriter(svc); SvReader svr = new SvReader(svc);) {
 			if (coordinatorNode == null) {
-				coordinatorNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
-				coordinatorNode.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
+				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 			}
 			coordinatorNode.setValuesMap(getCurrentNodeInfo().getValuesMap());
 			svw.isInternal = true;
 			svw.saveObject(coordinatorNode, true);
-			success = true;
+			log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal(NODE_INFO));
 		} catch (SvException e) {
 			// if the object is not update-able, another node became
 			// coordinator and we should register a worker node
 			if (!e.getLabelCode().equals("system.error.obj_not_updateable"))
 				throw (e);
-		} finally {
-			if (svw != null)
-				svw.release();
+			else {
+				// If we failed to promote lets try to refresh the coordinator node info
+				DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
+				coordinatorNode = null;
+				log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
+						+ coordinatorNode.getVal(NEXT_MAINTENANCE));
+			}
 		}
-
-		// If we failed to promote lets try to refresh the coordinator node info
-		if (!success) {
-			DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
-			coordinatorNode = null;
-			log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
-					+ coordinatorNode.getVal(NEXT_MAINTENANCE));
-		} else
-			log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal(NODE_INFO));
-
-		return success;
+		return coordinatorNode != null;
 	}
 
 	/**
