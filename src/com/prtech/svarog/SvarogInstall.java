@@ -327,8 +327,8 @@ public class SvarogInstall {
 		return retVal.equalsIgnoreCase("Y");
 	}
 
-	private static int updatePassword(CommandLine line) {
-		int returnStatus = 0;
+	private static ArrayList<String> getUserPassFromCmd(CommandLine line) {
+		ArrayList<String> values = new ArrayList<>();
 		String userName = line.getOptionValue("user");
 		if (userName == null || userName.isEmpty())
 			userName = getOptionFromCmd("user");
@@ -343,20 +343,27 @@ public class SvarogInstall {
 			passwordConfirm = getOptionFromCmd("password");
 			if (!password.equals(passwordConfirm)) {
 				writeToScreen("Passwords dont' match!");
-				return -3;
+			} else {
+				values.add(userName);
+				values.add(password);
 			}
 
-		} else
+		}
+		return values;
+	}
+
+	private static int updatePassword(CommandLine line) {
+
+		ArrayList<String> userNPass = getUserPassFromCmd(line);
+		if (userNPass.isEmpty())
 			return -3;
 
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
-			svw = new SvWriter();
-			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
-			DbDataObject user = svs.getUser(userName);
+		String userName = userNPass.get(0);
+		String password = userNPass.get(1);
 
+		try (SvWriter svw = new SvWriter(); SvSecurity svs = new SvSecurity(svw);) {
+
+			DbDataObject user = svs.getUser(userName);
 			if (line.hasOption("p"))
 				password = SvUtil.getMD5(password).toUpperCase();
 
@@ -364,23 +371,15 @@ public class SvarogInstall {
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
 			writeToScreen("Password updated for user " + userName);
-			returnStatus = 0;
+		} catch (SvException ex) {
+			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(((SvException) ex).getFormattedMessage());
 		} catch (Exception ex) {
 			writeToScreen("Error, password update for " + userName + " failed");
-			if (ex instanceof SvException)
-				writeToScreen(((SvException) ex).getFormattedMessage());
-			else {
-				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
-			}
-			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
+			writeToScreen(UNEXPECTED_EX);
+			ex.printStackTrace();
 		}
-		return returnStatus;
+		return 0;
 	}
 
 	private static int updateUser(CommandLine line) {
@@ -1824,7 +1823,7 @@ public class SvarogInstall {
 	static ArrayList<DbDataTable> readTablesFromConf() {
 		String confPath = SvConf.getConfPath() + masterDbtPath;
 		InputStream flst = null;
-		ArrayList<DbDataTable> dbTables = new ArrayList<DbDataTable>();
+		ArrayList<DbDataTable> dbTables = new ArrayList<>();
 		try {
 			// init the table configs
 			flst = new FileInputStream(new File(confPath + fileListName));
@@ -2388,7 +2387,7 @@ public class SvarogInstall {
 	static Boolean executeDbScript(String scriptName, HashMap<String, String> params, Connection conn,
 			Boolean returnsResultSet, ResultSet[] resultSet, PreparedStatement[] prepStatement) {
 		Boolean retval = false;
-		if (returnsResultSet && resultSet == null && prepStatement == null) {
+		if (returnsResultSet && (resultSet == null || prepStatement == null)) {
 			log4j.error("Can't store resultsets in null object!");
 			return false;
 		}

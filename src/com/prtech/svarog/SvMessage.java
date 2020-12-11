@@ -132,6 +132,34 @@ public class SvMessage extends DbDataObject {
 		return getSentMessages(svr, dbUser, false);
 	}
 
+	private DbDataObject loadMessageObjects(SvReader svr, JsonObject formVals) throws SvException {
+		DbDataObject newMessage = null;
+		DbDataObject oldMessage = null;
+		if (formVals != null && formVals.has("OBJECT_ID")) {
+			oldMessage = svr.getObjectById(formVals.get("OBJECT_ID").getAsLong(), svCONST.OBJECT_TYPE_MESSAGE, null);
+		}
+
+		if (oldMessage != null && oldMessage.getObjectType().compareTo(svCONST.OBJECT_TYPE_MESSAGE) == 0) {
+			newMessage = oldMessage;
+		} else {
+			newMessage = new DbDataObject();
+			newMessage.setObjectType(svCONST.OBJECT_TYPE_MESSAGE);
+			newMessage.setVal("CREATED_BY", svr.getInstanceUser().getObjectId());
+
+			DbSearchCriterion critM = new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, "ADMIN");
+			DbDataArray adminUserArray = svr.getObjects(critM, svCONST.OBJECT_TYPE_USER, null, null, null);
+			newMessage.setVal("ASSIGNED_TO", 0L);
+			if (adminUserArray != null && !adminUserArray.getItems().isEmpty()
+					&& adminUserArray.getItems().size() == 1) {
+				DbDataObject userObject = adminUserArray.getItems().get(0);
+				newMessage.setVal("ASSIGNED_TO", userObject.getObjectId());
+			}
+
+		}
+		return newMessage;
+
+	}
+
 	/**
 	 * 
 	 * @param svr        SvReader connected to database
@@ -143,34 +171,13 @@ public class SvMessage extends DbDataObject {
 	 */
 	public DbDataObject saveMessage(SvReader svr, DbDataObject conversationObj, DbDataObject messageObj,
 			JsonObject formVals) throws SvException {
-		DbDataObject oldMessage = null;
-		DbDataObject newMessage = null;
-		if (formVals != null && formVals.has("OBJECT_ID")) {
-			oldMessage = svr.getObjectById(formVals.get("OBJECT_ID").getAsLong(), svCONST.OBJECT_TYPE_MESSAGE, null);
-		}
+		DbDataObject newMessage = loadMessageObjects(svr, formVals);
 
-		if (oldMessage != null && oldMessage.getObject_type().compareTo(svCONST.OBJECT_TYPE_MESSAGE) == 0) {
-			newMessage = oldMessage;
-		} else {
-			newMessage = new DbDataObject();
-			newMessage.setObject_type(svCONST.OBJECT_TYPE_MESSAGE);
-			newMessage.setVal("CREATED_BY", svr.getInstanceUser().getObject_id());
-
-			DbSearchCriterion critM = new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, "ADMIN");
-			DbDataArray adminUserArray = svr.getObjects(critM, svCONST.OBJECT_TYPE_USER, null, null, null);
-			newMessage.setVal("ASSIGNED_TO", 0L);
-			if (adminUserArray != null && !adminUserArray.getItems().isEmpty()
-					&& adminUserArray.getItems().size() == 1) {
-				DbDataObject userObject = adminUserArray.getItems().get(0);
-				newMessage.setVal("ASSIGNED_TO", userObject.getObject_id());
-			}
-
-		}
 		if (conversationObj != null) {
-			newMessage.setParent_id(conversationObj.getObject_id());
+			newMessage.setParentId(conversationObj.getObjectId());
 		}
 		if (messageObj != null) {
-			newMessage.setVal("REPLY_TO", messageObj.getObject_id());
+			newMessage.setVal("REPLY_TO", messageObj.getObjectId());
 		}
 
 		if (formVals != null) {

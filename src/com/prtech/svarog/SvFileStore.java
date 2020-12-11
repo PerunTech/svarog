@@ -704,6 +704,31 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
+	 * Method to get a file from the system file store, using the system cache for
+	 * fast access to system configuration files
+	 * 
+	 * @param dboFile The file descriptor which we want to get the content
+	 * @return The byte array with file content
+	 */
+
+	private byte[] getSystemFilestore(DbDataObject dboFile) {
+		byte[] data = null;
+		if (dboFile.getVal("FILE_STORE_ID") != null
+				&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID) {
+			data = systemCache.getIfPresent((Long) dboFile.getVal("FILE_ID"));
+			if (data != null && (data.length / 1024 / 1024) <= max_cache_size)
+				systemCache.put((Long) dboFile.getVal("FILE_ID"), data);
+			else
+				log4j.warn("System file " + dboFile.getVal("file_name") + " has size "
+						+ Integer.toString(data != null ? (data.length / 1024 / 1024) : 0)
+						+ " MB. The max file size to be cached is " + max_cache_size
+						+ ". The file will not be cached! Verify your file or your size limit");
+		}
+		return data;
+
+	}
+
+	/**
 	 * Method to read a file from disk or db for a descriptor and return a byte
 	 * array.
 	 * 
@@ -711,16 +736,11 @@ public class SvFileStore extends SvCore {
 	 * @return
 	 * @throws SvException
 	 */
-	public byte[] getFileAsByte(DbDataObject dboFile) throws SvException
-
-	{
+	public byte[] getFileAsByte(DbDataObject dboFile) throws SvException {
 		byte[] data = null;
 		InputStream fstr = null;
 		try {
-			if (dboFile.getVal("FILE_STORE_ID") != null
-					&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID)
-				data = systemCache.getIfPresent((Long) dboFile.getVal("FILE_ID"));
-
+			data = getSystemFilestore(dboFile);
 			if (data == null || data.length == 0) {
 				HashMap<String, Object> extendedInfo = new HashMap<String, Object>();
 				fstr = getFileAsStream(dboFile, extendedInfo);
@@ -730,16 +750,6 @@ public class SvFileStore extends SvCore {
 					data = new byte[Integer.valueOf(extendedInfo.get("FILE_SIZE").toString())];
 					IOUtils.read(fstr, data);
 				}
-			}
-			if (dboFile.getVal("FILE_STORE_ID") != null
-					&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID) {
-				if (data != null && (data.length / 1024 / 1024) <= max_cache_size)
-					systemCache.put((Long) dboFile.getVal("FILE_ID"), data);
-				else
-					log4j.warn("System file " + dboFile.getVal("file_name") + " has size "
-							+ Integer.toString(data != null ? (data.length / 1024 / 1024) : 0)
-							+ " MB. The max file size to be cached is " + max_cache_size
-							+ ". The file will not be cached! Verify your file or your size limit");
 			}
 
 		} catch (IOException e) {

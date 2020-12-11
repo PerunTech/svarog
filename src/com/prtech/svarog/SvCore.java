@@ -21,8 +21,6 @@ import java.io.InputStream;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -268,11 +266,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * Local static var holding the default system locale
 	 */
 	private static volatile DbDataObject defaultSysLocale = null;
-
-	/**
-	 * The internal static geometry handler instance
-	 */
-	private static ISvDatabaseIO dbHandler = null;
 
 	/////////////////////////////////////////////////////////////
 	// SvCore instance (non-static) variables and methods
@@ -625,7 +618,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @return True if the object id is identifier for a DBT
 	 */
 	public static boolean isDbt(Long objectId) {
-		return dbtMap.containsKey(objectId);
+		DbDataObject dbt = DbCache.getObject(objectId, svCONST.OBJECT_TYPE_TABLE);
+		String tableName = (String) dbt.getVal(Sv.TABLE_NAME);
+		return dbtMap.containsKey(tableName);
 	}
 
 	/**
@@ -3054,6 +3049,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @param type           The type of the value bound to the field
 	 * @throws SQLException Any underlying exception is re-thrown
 	 */
+	@SuppressWarnings("unchecked")
 	private void bindString(PreparedStatement ps, DbDataObject dbf, int bindAtPosition, Object value, SvLob lob,
 			DbFieldType type) throws SQLException {
 		if (value == null)
