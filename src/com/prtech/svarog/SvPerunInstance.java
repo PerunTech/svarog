@@ -95,7 +95,7 @@ public class SvPerunInstance {
 		if (obj == null) {
 			return false;
 		}
-		if (!SvPerunInstance.class.isAssignableFrom(obj.getClass())) {
+		if (this.getClass().isAssignableFrom(obj.getClass())) {
 			return false;
 		}
 		if (this.plugin == null) {

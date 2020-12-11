@@ -507,7 +507,7 @@ public class SvConf {
 			sdiGridSize = getProperty(mainProperties, "sys.gis.grid_size", 10);
 			sdiOverrideGeomCalc = getProperty(mainProperties, "sys.gis.override_user_area_perim", false);
 
-			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5) * 60 * 1000;
+			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5) * 60L * 1000L;
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);

@@ -278,7 +278,7 @@ public class SvConversation extends DbDataObject {
 				throw new SvException("attachemts.not.found", svr.getInstanceUser());
 			for (int j = 0; j < attachments.size(); j++) {
 				JsonObject attachObject = (JsonObject) attachments.get(j);
-				if (attachObject.has("OBJECT_ID") && attachObject.has("OBJECT_TYPE")) {
+				if (attachObject.has("OBJECT_ID") && attachObject.has("OBJECT_TYPE") && linkTypes != null) {
 					Long objectId = attachObject.get("OBJECT_ID").getAsLong();
 
 					DbDataObject linkedObject = svr.getObjectById(objectId, attachObject.get("OBJECT_TYPE").getAsLong(),
