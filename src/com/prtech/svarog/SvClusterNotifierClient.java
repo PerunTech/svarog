@@ -150,6 +150,7 @@ public class SvClusterNotifierClient implements Runnable {
 				}
 		} catch (InterruptedException e) {
 			log4j.warn("Shutdown procedure raised exception", e);
+			Thread.currentThread().interrupt();
 		}
 		if (context != null) {
 			context.close();

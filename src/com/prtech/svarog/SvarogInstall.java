@@ -330,14 +330,14 @@ public class SvarogInstall {
 	private static int updatePassword(CommandLine line) {
 		int returnStatus = 0;
 		String userName = line.getOptionValue("user");
-		if (userName == null || userName == "")
+		if (userName == null || userName.isEmpty())
 			userName = getOptionFromCmd("user");
 
 		String password = line.getOptionValue("password");
-		if (password == null || password == "")
+		if (password == null || password.isEmpty())
 			password = getOptionFromCmd("password");
 
-		if (password != "") {
+		if (password != null && !password.isEmpty()) {
 			String passwordConfirm;
 			writeToScreen("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
@@ -346,7 +346,9 @@ public class SvarogInstall {
 				return -3;
 			}
 
-		}
+		} else
+			return -3;
+
 		SvWriter svw = null;
 		SvSecurity svs = null;
 		try {
@@ -419,7 +421,7 @@ public class SvarogInstall {
 		if (password == null || password == "")
 			password = getOptionFromCmd("password");
 
-		if (password != "") {
+		if (password != null && !password.isEmpty()) {
 			String passwordConfirm;
 			writeToScreen("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
@@ -428,7 +430,8 @@ public class SvarogInstall {
 				return -3;
 			}
 
-		}
+		} else
+			return -3;
 		SvWriter svw = null;
 		SvSecurity svs = null;
 		try {
@@ -1322,7 +1325,7 @@ public class SvarogInstall {
 			Connection conn = null;
 			try {
 				conn = SvConf.getDBConnection();
-				String before = SvCore.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
+				String before = SvConf.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
 				log4j.info("Svarog DbHandler pre-upgrade:" + before);
 			} finally {
 				if (conn != null)
@@ -1375,7 +1378,7 @@ public class SvarogInstall {
 
 			try {
 				conn = SvConf.getDBConnection();
-				String after = SvCore.getDbHandler().afterInstall(conn, SvConf.getDefaultSchema());
+				String after = SvConf.getDbHandler().afterInstall(conn, SvConf.getDefaultSchema());
 				log4j.info("Svarog DbHandler post-upgrade:" + after);
 			} finally {
 				if (conn != null)
@@ -1821,13 +1824,11 @@ public class SvarogInstall {
 	static ArrayList<DbDataTable> readTablesFromConf() {
 		String confPath = SvConf.getConfPath() + masterDbtPath;
 		InputStream flst = null;
-		ArrayList<DbDataTable> dbTables = null;
+		ArrayList<DbDataTable> dbTables = new ArrayList<DbDataTable>();
 		try {
 			// init the table configs
 			flst = new FileInputStream(new File(confPath + fileListName));
 			String[] texFiles = IOUtils.toString(flst, "UTF-8").split("\n");
-
-			dbTables = new ArrayList<DbDataTable>();
 
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].endsWith(".json")) {
@@ -2387,8 +2388,10 @@ public class SvarogInstall {
 	static Boolean executeDbScript(String scriptName, HashMap<String, String> params, Connection conn,
 			Boolean returnsResultSet, ResultSet[] resultSet, PreparedStatement[] prepStatement) {
 		Boolean retval = false;
-		if (returnsResultSet && resultSet == null && prepStatement == null)
+		if (returnsResultSet && resultSet == null && prepStatement == null) {
 			log4j.error("Can't store resultsets in null object!");
+			return false;
+		}
 
 		log4j.debug("executeDbScript() for " + scriptName + " started.");
 
@@ -3633,7 +3636,6 @@ public class SvarogInstall {
 	@SuppressWarnings("unused")
 	static void upgradeObjectCfg(DbDataArray dbTablesUpgrade, DbDataArray dbFieldsUpgrade) throws SvException {
 		// TODO this sausage must be refactored!!!
-		boolean parentNotFound = false;
 		Boolean updateRequired = true;
 		Long existingPkid = 0L;
 		Long existingOID = 0L;
@@ -3696,10 +3698,6 @@ public class SvarogInstall {
 			}
 			dbu.dbCommit();
 		}
-		if (parentNotFound)
-			log4j.info(
-					"Some objects were not properly updated due to missing parent table. You should re-run the upgrade to ensure any out-of order upgrades are applied");
-
 	}
 
 	/**
@@ -4214,7 +4212,8 @@ public class SvarogInstall {
 		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
 
 			// try to load the form config
-			DbDataArray res = svr.getObjects(new DbSearchCriterion(Sv.LABEL_CODE.toString(), DbCompareOperand.EQUAL, formLabel),
+			DbDataArray res = svr.getObjects(
+					new DbSearchCriterion(Sv.LABEL_CODE.toString(), DbCompareOperand.EQUAL, formLabel),
 					svCONST.OBJECT_TYPE_FORM_TYPE, null, 0, 0);
 
 			// if the config exists, load it
@@ -4234,7 +4233,7 @@ public class SvarogInstall {
 					SvCore.initSvCore(true);
 				}
 			}
-		} 
+		}
 		return dboFormType;
 
 	}

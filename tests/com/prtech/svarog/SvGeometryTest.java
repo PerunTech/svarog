@@ -240,9 +240,14 @@ public class SvGeometryTest {
 
 	@Test
 	public void testGetGIOHandler() {
-		ISvDatabaseIO gio = SvConf.getDbHandler();
-		if (gio == null)
+		ISvDatabaseIO gio;
+		try {
+			gio = SvConf.getDbHandler();
+		} catch (SvException e) {
+			e.printStackTrace();
 			fail("Can't get geometry handler");
+		}
+
 	}
 
 	@Test

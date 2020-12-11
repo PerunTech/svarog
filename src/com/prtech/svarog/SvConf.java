@@ -305,8 +305,9 @@ public class SvConf {
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
 	 * @return ISvDatabaseIO instance
+	 * @throws SvException 
 	 */
-	public static ISvDatabaseIO getDbHandler() {
+	public static ISvDatabaseIO getDbHandler() throws SvException {
 		if (dbHandler != null)
 			return dbHandler;
 		String dbHandlerClass = SvConf.getParam("conn.dbHandlerClass");
@@ -331,7 +332,10 @@ public class SvConf {
 			// e.printStackTrace();
 		}
 		if (dbHandler == null)
+		{
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
+			throw (new SvException("system.error.misconfigured_dbhandlerclass", svCONST.systemUser));
+		}
 		else {
 			sqlKw = dbHandler.getSQLKeyWordsBundle();
 			if (getSDISrid() != null) {

@@ -139,6 +139,7 @@ public class SvClusterServer implements Runnable {
 
 		} catch (InterruptedException e) {
 			log4j.error("Heart-beat shutdown interrupted", e);
+			Thread.currentThread().interrupt();
 		}
 		if (context != null) {
 			context.close();
@@ -307,11 +308,10 @@ public class SvClusterServer implements Runnable {
 
 				// all done so we return the new node descriptor
 				node = tempNode;
+			} catch (SvException e) {
+				log4j.error("Svarog failed to save the node in DB!", e);
 			} catch (Exception e) {
-				if (e instanceof SvException)
-					log4j.error("Svarog failed to save the node in DB!", e);
-				else
-					log4j.error("Malformatted join message", e);
+				log4j.error("Malformatted join message", e);
 			}
 		}
 		return node;
@@ -560,8 +560,8 @@ public class SvClusterServer implements Runnable {
 				respBuffer.put(SvCluster.MSG_UNKNOWN);
 			}
 		if (log4j.isDebugEnabled())
-			log4j.debug("Response to node " + nodeId + " was "
-					+ (respBuffer != null ? Byte.toString(respBuffer.get(0)) : "null"));
+			log4j.debug("Response to node " + nodeId + " was " + Byte.toString(respBuffer.get(0)));
+
 		return respBuffer.array();
 
 	}

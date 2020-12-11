@@ -191,6 +191,7 @@ public class SvClusterNotifierProxy implements Runnable {
 
 		} catch (InterruptedException e) {
 			log4j.error("Notifier shutdown interrupted", e);
+			Thread.currentThread().interrupt();
 		}
 		if (context != null) {
 			context.close();

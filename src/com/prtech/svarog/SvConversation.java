@@ -16,8 +16,6 @@ package com.prtech.svarog;
 
 import java.util.LinkedHashMap;
 
-
-
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
@@ -37,7 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class SvConversation extends DbDataObject {
-	
+
 	static final Logger log4j = LogManager.getLogger(SvConversation.class.getName());
 
 	public SvConversation() {
@@ -54,16 +52,14 @@ public class SvConversation extends DbDataObject {
 	public SvConversation(String objectTypeName) {
 		super(SvCore.getDbtByName(objectTypeName).getObject_id());
 	}
-	
+
 	/**
-	 * method to return DbDataArray of all conversations that are created by
-	 * dbUser , if user is not specified it will return all conversations
-	 * created by the user that is logged in
+	 * method to return DbDataArray of all conversations that are created by dbUser
+	 * , if user is not specified it will return all conversations created by the
+	 * user that is logged in
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param dbUser
-	 *            DbDataObject of the user from SVAROG_USERS
+	 * @param svr    SvReader connected to database
+	 * @param dbUser DbDataObject of the user from SVAROG_USERS
 	 * @return DbDataArray
 	 * @throws SvException
 	 */
@@ -77,16 +73,13 @@ public class SvConversation extends DbDataObject {
 
 	/**
 	 * method to return all conversation that are assigned to specified user, if
-	 * user is not specified it will return the conversations assigned to user
-	 * that is logged in, it will also check the groups that the user belongs to
-	 * and check for conversations assigned for all his groups
+	 * user is not specified it will return the conversations assigned to user that
+	 * is logged in, it will also check the groups that the user belongs to and
+	 * check for conversations assigned for all his groups
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param isUnread
-	 *            Boolean , if true it will return only unread messages
-	 * @param dbUser
-	 *            DbDataObject of the user from SVAROG_USERS
+	 * @param svr      SvReader connected to database
+	 * @param isUnread Boolean , if true it will return only unread messages
+	 * @param dbUser   DbDataObject of the user from SVAROG_USERS
 	 * @return DbDataArray
 	 * @throws SvException
 	 */
@@ -124,13 +117,11 @@ public class SvConversation extends DbDataObject {
 
 	/**
 	 * method to generate list of all conversations in which the user typed a
-	 * message for it, if the user is not specified, it will check for the user
-	 * that is logged in
+	 * message for it, if the user is not specified, it will check for the user that
+	 * is logged in
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param dbUser
-	 *            DbDataObject of the user from SVAROG_USERS
+	 * @param svr    SvReader connected to database
+	 * @param dbUser DbDataObject of the user from SVAROG_USERS
 	 * @return DbDataArray
 	 * @throws SvException
 	 */
@@ -159,21 +150,19 @@ public class SvConversation extends DbDataObject {
 				}
 		return myCreatedMess;
 	}
-	
-	public boolean deleteConversation (DbDataObject conversationObj) throws SvException{
+
+	public boolean deleteConversation(DbDataObject conversationObj) throws SvException {
 		return true;
 	}
 
 	/**
-	 * method to create new conversation object or update existing one, it will
-	 * fill the field CREATED_BY only on new objects and it will never be
-	 * changed, conversation can be assigned to valid users or user groups, on
-	 * updating object it will check the PKID so we don't do WriteAfterWrite
+	 * method to create new conversation object or update existing one, it will fill
+	 * the field CREATED_BY only on new objects and it will never be changed,
+	 * conversation can be assigned to valid users or user groups, on updating
+	 * object it will check the PKID so we don't do WriteAfterWrite
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param jsonData
-	 *            JsonObject with pairs of fieldName : fieldValue
+	 * @param svr      SvReader connected to database
+	 * @param jsonData JsonObject with pairs of fieldName : fieldValue
 	 * @return DbDataObject newly created or edited SvConversation Object
 	 * @throws SvException
 	 */
@@ -201,12 +190,11 @@ public class SvConversation extends DbDataObject {
 			else
 				newConv.setPkid(jsonData.get("PKID").getAsLong());
 		}
-		//add sequence only on new conversations that dont have object_id and ID
-		if (newConv.getObject_id()==0L && newConv.getVal("ID")== null ){
-			SvSequence svs = new SvSequence();	
-			newConv.setVal("ID", svs.getSeqNextVal(newConv.getObject_type().toString(), false));
-			svs.dbCommit();
-			svs.release();
+		// add sequence only on new conversations that dont have object_id and ID
+
+		if (newConv.getObject_id() == 0L && newConv.getVal("ID") == null) {
+
+			newConv.setVal("ID", SvSequence.getSeqNextVal(newConv.getObject_type().toString(), svr));
 		}
 		// double check for user_name that we have to assign the conversation
 		if (jsonData.has("ASSIGNED_TO_USERNAME") && jsonData.get("ASSIGNED_TO_USERNAME") != null) {
@@ -218,21 +206,19 @@ public class SvConversation extends DbDataObject {
 			if (vData != null) {
 				if (vData.getItems().size() == 1)
 					jsonData.addProperty("ASSIGNED_TO", (Long) vData.getItems().get(0).getObject_id());
-				//TODO add in unread messages TABLE
+				// TODO add in unread messages TABLE
 				else {
 					// try for groups
 					crit1 = new DbSearchCriterion("GROUP_NAME", DbCompareOperand.EQUAL,
 							jsonData.get("ASSIGNED_TO_USERNAME").getAsString());
 					vData = svr.getObjects(crit1, svCONST.OBJECT_TYPE_GROUP, null, 0, 0);
-					if (vData.getItems().size() == 1){
+					if (vData.getItems().size() == 1) {
 						jsonData.addProperty("ASSIGNED_TO", (Long) vData.getItems().get(0).getObject_id());
-					//TODO add in unread messages TABLE
-					}
-					else
+						// TODO add in unread messages TABLE
+					} else
 						throw (new SvException("system.error.user_not_found", svr.getInstanceUser()));
 				}
-			}
-			else
+			} else
 				throw (new SvException("system.error.user_not_found", svr.getInstanceUser()));
 		} else
 			throw (new SvException("system.error.user_not_found", svr.getInstanceUser()));
@@ -260,81 +246,79 @@ public class SvConversation extends DbDataObject {
 				}
 			}
 		}
-		//make conversation unread
+		// make conversation unread
 		newConv.setVal("IS_READ", false);
 		return newConv;
 	}
-	
+
 	/**
 	 * method to attach objects to existing conversation
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param conversationObj
-	 *            DbDataObject from SVAROG_CONVERSATION table that the other
-	 *            objects will be attached to
-	 * @param attachments
-	 *            JsonArray of JsonObject with keys : OBJECT_ID, OBJECT_TYPE,
-	 *            and object_id or key for the link type
+	 * @param svr             SvReader connected to database
+	 * @param conversationObj DbDataObject from SVAROG_CONVERSATION table that the
+	 *                        other objects will be attached to
+	 * @param attachments     JsonArray of JsonObject with keys : OBJECT_ID,
+	 *                        OBJECT_TYPE, and object_id or key for the link type
 	 * @throws SvException
 	 */
-	public void attachObjects ( SvReader svr, DbDataObject conversationObj, JsonArray attachments ) throws SvException{
-		SvLink svl = new SvLink(svr);
-		DbSearchExpression expr = new DbSearchExpression();
-		// find the link types
-		DbSearchCriterion critLT = new DbSearchCriterion("LINK_TYPE", DbCompareOperand.EQUAL,
-				"LINK_CONVERSATION_ATTACHMENT");
-		critLT.setNextCritOperand(DbLogicOperand.AND.toString());
-		DbSearchCriterion critO1 = new DbSearchCriterion("LINK_OBJ_TYPE_1", DbCompareOperand.EQUAL,
-				conversationObj.getObject_type());
-		critO1.setNextCritOperand(DbLogicOperand.AND.toString());
-		expr.addDbSearchItem(critLT);
-		expr.addDbSearchItem(critO1);
-		DbDataArray linkTypes = svr.getObjects(expr, svCONST.OBJECT_TYPE_LINK_TYPE, null, 0, 0);
-		if ((linkTypes == null || linkTypes.getItems().isEmpty()) && attachments.size() > 0)
-			throw new SvException("attachemts.not.found", svr.getInstanceUser());
-		for (int j = 0; j < attachments.size(); j++) {
-			JsonObject attachObject = (JsonObject) attachments.get(j);
-			if (attachObject.has("OBJECT_ID") && attachObject.has("OBJECT_TYPE")) {
-				Long objectId = attachObject.get("OBJECT_ID").getAsLong();
-				
-				DbDataObject linkedObject = svr.getObjectById(objectId,
-						attachObject.get("OBJECT_TYPE").getAsLong(), null);
-				for (DbDataObject linkObj : linkTypes.getItems())
-					if (linkedObject.getObject_type().equals((Long) linkObj.getVal("LINK_OBJ_TYPE_2"))) {
-						// link type found so check if link exist, if not create
-						// one
-						DbDataArray linkedObject1 = svr.getObjectsByLinkedId(conversationObj.getObject_id(),
-								linkObj, null, 0, 0);
-						Boolean linkexist = false;
-						if (linkedObject1 != null && !linkedObject1.getItems().isEmpty())
-							for (DbDataObject linkedItem : linkedObject1.getItems())
-								if (((Long) linkedItem.getObject_id()).compareTo(objectId) == 0)
-									linkexist = true;
-						if (!linkexist)
-							svl.linkObjects(conversationObj.getObject_id(), objectId,
-									linkObj.getObject_id(), "attachment");
-					}
+	public void attachObjects(SvReader svr, DbDataObject conversationObj, JsonArray attachments) throws SvException {
+		try (SvLink svl = new SvLink(svr)) {
+			DbSearchExpression expr = new DbSearchExpression();
+			// find the link types
+			DbSearchCriterion critLT = new DbSearchCriterion("LINK_TYPE", DbCompareOperand.EQUAL,
+					"LINK_CONVERSATION_ATTACHMENT");
+			critLT.setNextCritOperand(DbLogicOperand.AND.toString());
+			DbSearchCriterion critO1 = new DbSearchCriterion("LINK_OBJ_TYPE_1", DbCompareOperand.EQUAL,
+					conversationObj.getObject_type());
+			critO1.setNextCritOperand(DbLogicOperand.AND.toString());
+			expr.addDbSearchItem(critLT);
+			expr.addDbSearchItem(critO1);
+			DbDataArray linkTypes = svr.getObjects(expr, svCONST.OBJECT_TYPE_LINK_TYPE, null, 0, 0);
+			if ((linkTypes == null || linkTypes.getItems().isEmpty()) && attachments.size() > 0)
+				throw new SvException("attachemts.not.found", svr.getInstanceUser());
+			for (int j = 0; j < attachments.size(); j++) {
+				JsonObject attachObject = (JsonObject) attachments.get(j);
+				if (attachObject.has("OBJECT_ID") && attachObject.has("OBJECT_TYPE")) {
+					Long objectId = attachObject.get("OBJECT_ID").getAsLong();
+
+					DbDataObject linkedObject = svr.getObjectById(objectId, attachObject.get("OBJECT_TYPE").getAsLong(),
+							null);
+					for (DbDataObject linkObj : linkTypes.getItems())
+						if (linkedObject.getObject_type().equals((Long) linkObj.getVal("LINK_OBJ_TYPE_2"))) {
+							// link type found so check if link exist, if not create
+							// one
+							DbDataArray linkedObject1 = svr.getObjectsByLinkedId(conversationObj.getObject_id(),
+									linkObj, null, 0, 0);
+							Boolean linkexist = false;
+							if (linkedObject1 != null && !linkedObject1.getItems().isEmpty())
+								for (DbDataObject linkedItem : linkedObject1.getItems())
+									if (((Long) linkedItem.getObject_id()).compareTo(objectId) == 0)
+										linkexist = true;
+							if (!linkexist)
+								svl.linkObjects(conversationObj.getObject_id(), objectId, linkObj.getObject_id(),
+										"attachment");
+						}
+				}
 			}
 		}
-		svl.release();
 	}
 
-	public DbDataObject responseConversation (DbDataObject conversationObj) throws SvException{
+	public DbDataObject responseConversation(DbDataObject conversationObj) throws SvException {
 		return new DbDataObject();
 	}
-	
-	public void markAsUnread (SvWriter svw , DbDataObject conversationObj) throws SvException{
-		if (conversationObj.getObject_type().equals(svCONST.OBJECT_TYPE_CONVERSATION)){
+
+	public void markAsUnread(SvWriter svw, DbDataObject conversationObj) throws SvException {
+		if (conversationObj.getObject_type().equals(svCONST.OBJECT_TYPE_CONVERSATION)) {
 			conversationObj.setVal("IS_READ", false);
 			svw.saveObject(conversationObj);
-		} else throw (new SvException("system.error.not_conversation_object", svw.getInstanceUser()));
+		} else
+			throw (new SvException("system.error.not_conversation_object", svw.getInstanceUser()));
 	}
-	
-	public void printConversation () throws SvException{
-		
+
+	public void printConversation() throws SvException {
+
 	}
-	
+
 	public void addWatchers(DbDataObject conversationObj, DbDataArray userArray) throws SvException {
 
 	}
@@ -342,6 +326,5 @@ public class SvConversation extends DbDataObject {
 	public void removeWatchers(DbDataObject conversationObj, DbDataArray userArray) throws SvException {
 
 	}
-
 
 }
