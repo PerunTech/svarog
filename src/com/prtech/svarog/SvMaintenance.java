@@ -193,7 +193,7 @@ public class SvMaintenance implements Runnable {
 	 * @throws SvException
 	 * @throws Exception    Throw any underlying exception
 	 */
-	static private void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
+	 private static void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
 			throws SQLException, SvException {
 		PreparedStatement ps = null;
 

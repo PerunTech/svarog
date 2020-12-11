@@ -521,40 +521,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to return the currently configured ISvDatabaseIO instance
-	 * 
-	 * @return ISvDatabaseIO instance
-	 */
-	public static ISvDatabaseIO getDbHandler() {
-		if (dbHandler != null)
-			return dbHandler;
-		String dbHandlerClass = SvConf.getParam("conn.dbHandlerClass");
-		if (dbHandlerClass == null || dbHandlerClass.equals("")) {
-			dbHandlerClass = SvPostgresIO.class.getName();
-			log4j.warn("Param conn.dbHandlerClass is not set. Defaulting to POSTGRES. Handler class:" + dbHandlerClass);
-
-		}
-		try {
-			Class<?> c = Class.forName(dbHandlerClass);
-			if (ISvDatabaseIO.class.isAssignableFrom(c)) {
-				dbHandler = ((ISvDatabaseIO) c.newInstance());
-				if (!dbHandler.getHandlerType().equals(SvConf.getDbType().toString())) {
-					log4j.error("Database type is: " + SvConf.getDbType().toString() + ", while handler type is: "
-							+ dbHandler.getHandlerType() + ".Handler class:" + dbHandlerClass
-							+ " is incompatible with the database type");
-					dbHandler = null;
-				}
-			}
-		} catch (Exception e) {
-			log4j.error("Can't find Database Handler named: " + SvConf.getParam("conn.dbHandlerClass"));
-			// e.printStackTrace();
-		}
-		if (dbHandler == null)
-			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
-		return dbHandler;
-	}
-
-	/**
 	 * Method to register an OnSave callback
 	 * 
 	 * @param callback Reference to a class implementing the {@link ISvOnSave}
@@ -753,7 +719,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbDataObject tableObj = getDbtByName(tableName);
 		DbDataArray fields = null;
 		DbDataObject retField = null;
-		fields = DbCache.getObjectsByParentId(tableObj.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
+		if (tableObj != null)
+			fields = DbCache.getObjectsByParentId(tableObj.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 		if (fields != null)
 			for (DbDataObject dbf : fields.getItems()) {
 				if (dbf.getVal(Sv.FIELD_NAME).equals(fieldName)) {
@@ -1610,13 +1577,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @throws SvException Re-throws any underlying exception
 	 */
 	static DbDataArray getUserGroups(DbDataObject user, boolean returnOnlyDefault) throws SvException {
-		SvReader svr = null;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
 			svr.isInternal = true;
 			return getUserGroups(user, returnOnlyDefault, svr);
-		} finally {
-			svr.release();
 		}
 	}
 
@@ -2125,7 +2088,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			// create the SID search expression
 			DbSearchExpression dbxSid = new DbSearchExpression()
 					.addDbSearchItem(new DbSearchCriterion(Sv.SID_OBJECT_ID, DbCompareOperand.EQUAL, sid.getObjectId()))
-					.addDbSearchItem(new DbSearchCriterion(Sv.SID_TYPE_ID, DbCompareOperand.EQUAL, sid.getObjectType()));
+					.addDbSearchItem(
+							new DbSearchCriterion(Sv.SID_TYPE_ID, DbCompareOperand.EQUAL, sid.getObjectType()));
 			dbxSid.setNextCritOperand(Sv.OR);
 
 			DbSearchExpression dbx = new DbSearchExpression().addDbSearchItem(dbxSid);
@@ -2139,9 +2103,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 							group.getObjectId(), DbLogicOperand.OR));
 				}
 
-				DbSearchExpression dbxGroups = new DbSearchExpression()
-						.addDbSearchItem(
-								new DbSearchCriterion(Sv.SID_TYPE_ID, DbCompareOperand.EQUAL, svCONST.OBJECT_TYPE_GROUP))
+				DbSearchExpression dbxGroups = new DbSearchExpression().addDbSearchItem(
+						new DbSearchCriterion(Sv.SID_TYPE_ID, DbCompareOperand.EQUAL, svCONST.OBJECT_TYPE_GROUP))
 						.addDbSearchItem(dbxGroupsList);
 
 				dbx.addDbSearchItem(dbxGroups);
@@ -2271,12 +2234,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 							HashMap<String, DbDataObject> pMap = instancePermissions.get(key);
 							if (pMap != null) {
 								DbDataObject dbo = pMap.get((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ));
-								if (dbo == null) {
+								if (dbo == null || ((SvAccess) dbo.getVal(Sv.ACCESS_TYPE))
+										.compareTo((SvAccess) dboAcl.getVal(Sv.ACCESS_TYPE)) < 0)
 									pMap.put((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ), dboAcl);
-								} else if (((SvAccess) dbo.getVal(Sv.ACCESS_TYPE))
-										.compareTo((SvAccess) dboAcl.getVal(Sv.ACCESS_TYPE)) < 0) {
-									pMap.put((String) dboAcl.getVal(Sv.ACL_CONFIG_UNQ), dboAcl);
-								}
 							} else {
 								pMap = new HashMap<String, DbDataObject>();
 								// make sure the ACL is read-only so we
@@ -2540,12 +2500,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @param colIndex  The index of the field in the resultset
 	 * @return A java object of the specific type (string, number, geometry,
 	 *         boolean)
-	 * @throws SQLException   Any underlying exception is re-thrown
-	 * @throws ParseException Any underlying exception is re-thrown
+	 * @throws SQLException   Any of the vcalls to the ResultSet methods raised an
+	 *                        exception
+	 * @throws ParseException Is thrown if the WKB Reader failed to parse the WKB
+	 *                        geometry format
+	 * @throws SvException    If the getDbHandler thrown exception
 	 */
 
 	private Object getObjectFromCol(ResultSet rs, String fieldType, int colIndex, ResultSetMetaData rsmt)
-			throws SQLException, ParseException {
+			throws SQLException, ParseException, SvException {
 
 		Object obj = null;
 
@@ -2556,7 +2519,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				break;
 			case Sv.GEOMETRY:
 				if (includeGeometries) {
-					byte[] geom = getDbHandler().getGeometry(rs, colIndex);
+					byte[] geom = SvConf.getDbHandler().getGeometry(rs, colIndex);
 					if (geom != null) {
 						obj = getWKBReader().read(geom);
 					}
@@ -2901,13 +2864,13 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				try {
 					rs.close();
 				} catch (Exception ex) {
-					throw (new SvException("system.error.jdbc_cant_realease", instanceUser, ex.getCause()));
+					log4j.error("Error releasing result set", ex);
 				}
 			if (ps != null)
 				try {
 					ps.close();
 				} catch (Exception ex) {
-					throw (new SvException("system.error.jdbc_cant_realease", instanceUser, ex.getCause()));
+					log4j.error("Error releasing prepared statement", ex);
 				}
 		}
 	}
@@ -2972,8 +2935,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal(Sv.FIELD_TYPE));
 		if (log4j.isDebugEnabled())
 			log4j.debug("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
-					+ (value != null ? value.toString() : Sv.SQL_NULL) + " at position " + bindAtPosition + " as data type "
-					+ type.toString());
+					+ (value != null ? value.toString() : Sv.SQL_NULL) + " at position " + bindAtPosition
+					+ " as data type " + type.toString());
 
 		switch (type) {
 		case BOOLEAN:
@@ -2994,7 +2957,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		case GEOMETRY:
 			byte[] byteVal = getWKBWriter().write((Geometry) value);
 			try {
-				getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+				SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
 			} catch (Exception e) {
 				throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
 			}

@@ -30,7 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 public class SvMessage extends DbDataObject {
-	
+
 	static final Logger log4j = LogManager.getLogger(SvMessage.class.getName());
 
 	public SvMessage() {
@@ -47,18 +47,16 @@ public class SvMessage extends DbDataObject {
 	public SvMessage(String objectTypeName) {
 		super(SvCore.getDbtByName(objectTypeName).getObject_id());
 	}
-	
+
 	/**
 	 * method to get all sent message for the specific user
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param dbUser
-	 *            DbDataObject for the user that we are searching messages for
-	 * @param allMessages
-	 *            Boolean if set to TRUE it will return all messages ever
-	 *            created, even replies to existing messages, if set to FALSE it
-	 *            will return only starter messages
+	 * @param svr         SvReader connected to database
+	 * @param dbUser      DbDataObject for the user that we are searching messages
+	 *                    for
+	 * @param allMessages Boolean if set to TRUE it will return all messages ever
+	 *                    created, even replies to existing messages, if set to
+	 *                    FALSE it will return only starter messages
 	 * @return DbDataArray with messages
 	 * @throws SvException
 	 */
@@ -71,27 +69,25 @@ public class SvMessage extends DbDataObject {
 			DbSearchCriterion crit2 = new DbSearchCriterion("REPLY_TO", DbCompareOperand.ISNULL);
 			DbSearchExpression expr = new DbSearchExpression();
 			expr.addDbSearchItem(crit1);
-			if (!allMessages) expr.addDbSearchItem(crit2);
+			if (!allMessages)
+				expr.addDbSearchItem(crit2);
 			ret = svr.getObjects(expr, svCONST.OBJECT_TYPE_MESSAGE, null, 0, 0);
-		} else  {
-			throw (new SvException("message.user.not.found", svr.instanceUser));
-			
+		} else {
+			throw (new SvException("message.user.not.found", (svr != null ? svr.instanceUser : svCONST.systemUser)));
+
 		}
 		return ret;
 	}
-	
-	
+
 	/**
 	 * method to get all received message for the specific user
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
-	 * @param dbUser
-	 *            DbDataObject for the user that we are searching messages for
-	 * @param allMessages
-	 *            Boolean if set to TRUE it will return all messages ever
-	 *            received, even replies to existing messages, if set to FALSE it
-	 *            will return only starter messages
+	 * @param svr         SvReader connected to database
+	 * @param dbUser      DbDataObject for the user that we are searching messages
+	 *                    for
+	 * @param allMessages Boolean if set to TRUE it will return all messages ever
+	 *                    received, even replies to existing messages, if set to
+	 *                    FALSE it will return only starter messages
 	 * @return DbDataArray with messages
 	 * @throws SvException
 	 */
@@ -111,105 +107,95 @@ public class SvMessage extends DbDataObject {
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * method to get all received message for the user that is logged in
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
+	 * @param svr SvReader connected to database
 	 * @return DbDataArray with messages
 	 * @throws SvException
 	 */
-	public DbDataArray getMyRecivedMessages(SvReader svr) throws SvException{
+	public DbDataArray getMyRecivedMessages(SvReader svr) throws SvException {
 		DbDataObject dbUser = svr.getInstanceUser();
 		return getReceivedMessages(svr, dbUser, false);
 	}
-	
+
 	/**
 	 * method to get all sebt message for the user that is logged in
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
+	 * @param svr SvReader connected to database
 	 * @return DbDataArray with messages
 	 * @throws SvException
 	 */
-	public DbDataArray getMySentMessages(SvReader svr) throws SvException{
+	public DbDataArray getMySentMessages(SvReader svr) throws SvException {
 		DbDataObject dbUser = svr.getInstanceUser();
 		return getSentMessages(svr, dbUser, false);
 	}
-	
+
 	/**
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
+	 * @param svr        SvReader connected to database
 	 * @param formVals
-	 * @param oldMessage
-	 *            DbDataObject of the old message if we are doing changes , null
-	 *            if it is a new message
+	 * @param oldMessage DbDataObject of the old message if we are doing changes ,
+	 *                   null if it is a new message
 	 * @return DbDataObject of the new message
 	 * @throws SvException
 	 */
-	public DbDataObject saveMessage(SvReader svr , DbDataObject conversationObj,  DbDataObject messageObj, JsonObject formVals) throws SvException {
-		 DbDataObject oldMessage = null;
-		 DbDataObject newMessage = null;
-		 if (formVals != null && formVals.has("OBJECT_ID")) {
-			 oldMessage = svr.getObjectById(formVals.get("OBJECT_ID").getAsLong(), svCONST.OBJECT_TYPE_MESSAGE, null);
-		 }
-		 
+	public DbDataObject saveMessage(SvReader svr, DbDataObject conversationObj, DbDataObject messageObj,
+			JsonObject formVals) throws SvException {
+		DbDataObject oldMessage = null;
+		DbDataObject newMessage = null;
+		if (formVals != null && formVals.has("OBJECT_ID")) {
+			oldMessage = svr.getObjectById(formVals.get("OBJECT_ID").getAsLong(), svCONST.OBJECT_TYPE_MESSAGE, null);
+		}
 
-		
 		if (oldMessage != null && oldMessage.getObject_type().compareTo(svCONST.OBJECT_TYPE_MESSAGE) == 0) {
 			newMessage = oldMessage;
 		} else {
 			newMessage = new DbDataObject();
 			newMessage.setObject_type(svCONST.OBJECT_TYPE_MESSAGE);
 			newMessage.setVal("CREATED_BY", svr.getInstanceUser().getObject_id());
-			
+
 			DbSearchCriterion critM = new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, "ADMIN");
 			DbDataArray adminUserArray = svr.getObjects(critM, svCONST.OBJECT_TYPE_USER, null, null, null);
 			newMessage.setVal("ASSIGNED_TO", 0L);
-			if (adminUserArray != null && !adminUserArray.getItems().isEmpty() && adminUserArray.getItems().size()==1) {
+			if (adminUserArray != null && !adminUserArray.getItems().isEmpty()
+					&& adminUserArray.getItems().size() == 1) {
 				DbDataObject userObject = adminUserArray.getItems().get(0);
 				newMessage.setVal("ASSIGNED_TO", userObject.getObject_id());
 			}
-			
-			
-			
-			
+
 		}
 		if (conversationObj != null) {
-			newMessage.setParent_id(conversationObj.getObject_id()); 
+			newMessage.setParent_id(conversationObj.getObject_id());
 		}
-		if (messageObj != null){
+		if (messageObj != null) {
 			newMessage.setVal("REPLY_TO", messageObj.getObject_id());
 		}
-		
+
 		if (formVals != null) {
-			if (formVals.has("PKID") && newMessage.getPkid()!= null &&   newMessage.getPkid()>0   ) {
+			if (formVals.has("PKID") && newMessage.getPkid() != null && newMessage.getPkid() > 0) {
 				newMessage.setPkid(formVals.get("PKID").getAsLong());
 			}
-			
-			if (formVals.has("MESSAGE_TEXT") && formVals.get("MESSAGE_TEXT") != null  ) {
-				newMessage.setVal("MESSAGE_TEXT", formVals.get("MESSAGE_TEXT").getAsString()  );
+
+			if (formVals.has("MESSAGE_TEXT") && formVals.get("MESSAGE_TEXT") != null) {
+				newMessage.setVal("MESSAGE_TEXT", formVals.get("MESSAGE_TEXT").getAsString());
 			}
 
-		} else 
-		{
+		} else {
 			DateTime dtNow = new DateTime();
 			String dtString = dtNow.toString();
-			newMessage.setVal("MESSAGE_TEXT", "message text on date: "+dtString);
-			
+			newMessage.setVal("MESSAGE_TEXT", "message text on date: " + dtString);
+
 		}
-		
-		
+
 		return newMessage;
 	}
-	
-	
-	/** method to delete the message as we get it it from the GUI POST data
+
+	/**
+	 * method to delete the message as we get it it from the GUI POST data
 	 * 
-	 * @param svr
-	 *            SvReader connected to database
+	 * @param svr      SvReader connected to database
 	 * @param formVals
 	 * @throws SvException
 	 */
@@ -231,14 +217,13 @@ public class SvMessage extends DbDataObject {
 			throw (new SvException("message.error.deleting", svr.instanceUser));
 		}
 	}
-	
+
 	public void changeMessageStatus(SvReader svr, String newStatus) throws SvException {
 
 	}
-	
+
 	public void addAttachment() throws SvException {
 
 	}
-	
 
 }

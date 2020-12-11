@@ -535,7 +535,7 @@ public class SvClusterClient implements Runnable {
 		return result;
 	}
 
-	private void processHeartBeat(byte[] msg) {
+	private static void processHeartBeat(byte[] msg) {
 		ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
 		byte msgType = msgBuffer.get();
 		long dstNode = msgBuffer.getLong();
@@ -556,7 +556,30 @@ public class SvClusterClient implements Runnable {
 		}
 	}
 
-	private void failOver() {
+	private static void forcePromotion()
+	{
+		log4j.info("Restarting SvCluster node to force re-election of coordinator");
+		if (SvCluster.isRunning().get()) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Cluster is running, initiate shutdown");
+			SvCluster.shutdown();
+		}
+		// if shut down in progress, wait to finish.
+		while (SvCluster.getIsActive().get()) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Cluster is still active, waiting for it to shutdown");
+
+			try {
+				synchronized (SvCluster.isRunning()) {
+					SvCluster.isRunning().wait(heartBeatInterval);
+				}
+			} catch (InterruptedException e) {
+				log4j.error("Heart beat thread sleep raised exception! Cluster still not shutdown", e);
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+	private static void failOver() {
 		// if the last contact was more than the timeout in the
 		// past .. we consider the coordinator dead and
 		// shutdown this socket. we are up for new election
@@ -567,25 +590,7 @@ public class SvClusterClient implements Runnable {
 			// don't sent part message to dead node
 			shutdown(false);
 			if (forcePromotionOnShutDown) {
-				log4j.info("Restarting SvCluster node to force re-election of coordinator");
-				if (SvCluster.isRunning().get()) {
-					if (log4j.isDebugEnabled())
-						log4j.debug("Cluster is running, initiate shutdown");
-					SvCluster.shutdown();
-				}
-				// if shut down in progress, wait to finish.
-				while (SvCluster.getIsActive().get()) {
-					if (log4j.isDebugEnabled())
-						log4j.debug("Cluster is still active, waiting for it to shutdown");
-
-					try {
-						synchronized (SvCluster.isRunning()) {
-							SvCluster.isRunning().wait(heartBeatInterval);
-						}
-					} catch (InterruptedException e) {
-						log4j.error("Heart beat thread sleep raised exception! Cluster still not shutdown", e);
-					}
-				}
+				forcePromotion();
 				// if we have active maintenance thread, just notify it, and it will initialise
 				// the cluster. Otherwise perform manual initialisation
 				if (!SvMaintenance.getMaintenanceInProgress().get()) {

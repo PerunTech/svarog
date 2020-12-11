@@ -48,6 +48,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
+import com.google.common.math.DoubleMath;
 
 /**
  * Class for handling all kinds of GIS information attached to the standard
@@ -634,9 +635,10 @@ public class SvGeometry extends SvCore {
 		Point centroid = null;
 		centroid = (geom).getCentroid();
 		Coordinate cor = centroid.getCoordinate();
-		if (cor.x % 1 == 0)
+
+		if (DoubleMath.isMathematicalInteger(cor.x))
 			cor.x = cor.x + factorX;
-		if (cor.y % 1 == 0)
+		if (DoubleMath.isMathematicalInteger(cor.y))
 			cor.y = cor.y + factorY;
 		centroid = SvUtil.sdiFactory.createPoint(cor);
 
@@ -645,9 +647,9 @@ public class SvGeometry extends SvCore {
 				log4j.info("Geometry centroid " + centroid.toText() + "is out of the polygon:" + geom.toText());
 			centroid = geom.getInteriorPoint();
 			cor = centroid.getCoordinate();
-			if (cor.x % 1 == 0)
+			if (DoubleMath.isMathematicalInteger(cor.x))
 				cor.x = cor.x + factorX;
-			if (cor.y % 1 == 0)
+			if (DoubleMath.isMathematicalInteger(cor.y))
 				cor.y = cor.y + factorY;
 			centroid = SvUtil.sdiFactory.createPoint(cor);
 
@@ -658,9 +660,9 @@ public class SvGeometry extends SvCore {
 				// create a random point in the geometry envelope
 				cor.x = env.getMinX() + Math.random() * env.getWidth();
 				cor.y = env.getMinY() + Math.random() * env.getHeight();
-				if (cor.x % 1 == 0)
+				if (DoubleMath.isMathematicalInteger(cor.x))
 					cor.x = cor.x + factorX;
-				if (cor.y % 1 == 0)
+				if (DoubleMath.isMathematicalInteger(cor.y))
 					cor.y = cor.y + factorY;
 				centroid = SvUtil.sdiFactory.createPoint(cor);
 
