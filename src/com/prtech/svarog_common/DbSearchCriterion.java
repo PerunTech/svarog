@@ -273,7 +273,7 @@ public class DbSearchCriterion extends DbSearch {
 
 		String tmpRPrefix = "";
 		String tmpTPrefix = "";
-		if (this.fieldName == null || this.operand == null || this.compareValue == null)
+		if (this.fieldName == null || this.operand == null)
 			throw (new SvException("system.error.dbsc_missing_fields", svCONST.systemUser, null, this));
 
 		DbCompareOperand tmpOperand = operand;
