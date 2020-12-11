@@ -326,9 +326,10 @@ public class SvWriter extends SvCore {
 	 * @param objectFields The list of fields which we plan to insert
 	 * @param oldPKID      The old PKID of the object in case of update
 	 * @return
+	 * @throws SvException 
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
-			Boolean hasPKID) {
+			Boolean hasPKID) throws SvException {
 		String sql = null;
 		if (!isUpdate)
 			sql = queryCache.get(dbt.getObjectId());
@@ -641,11 +642,12 @@ public class SvWriter extends SvCore {
 	 * @param conn           SQL Connection to be used for execution of the SQL
 	 *                       statements.
 	 * @throws SQLException
+	 * @throws SvException 
 	 * @throws Exception
 	 */
 	void addRepoBatch(DbDataObject dbt, DbDataObject dbo, Boolean withMetaUpdate, Object[] repoObjects,
 			PreparedStatement psInvalidate, PreparedStatement psInsert, Timestamp dtInsert, Timestamp dtEndPrev,
-			Object extendedRepoStruct, int rowIndex) throws SQLException {
+			Object extendedRepoStruct, int rowIndex) throws SQLException, SvException {
 
 		ISvDatabaseIO dbHandler = SvConf.getDbHandler();
 		Timestamp tsInsert, tsDelete;

@@ -1,8 +1,8 @@
 stages:
   - build
+  - code_analysis
   - svarog-unit-tests
   - svarog-upgrade-pipeline
-  - code_analysis
   - mvn_install
 
 

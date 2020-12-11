@@ -64,8 +64,7 @@ public class SvFileStore extends SvCore {
 
 	static String fileStorePath = initFileStorePath();
 	/**
-	 * Variable holding the maximum size of a system file to be cached in mega
-	 * bytes
+	 * Variable holding the maximum size of a system file to be cached in mega bytes
 	 */
 	private static int max_cache_size = initMaxSize();
 
@@ -107,50 +106,43 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @param session_id
-	 *            String UID of the user session under which the SvCore instance
-	 *            will run
+	 * @param session_id String UID of the user session under which the SvCore
+	 *                   instance will run
 	 * 
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvFileStore(String session_id) throws SvException {
 		super(session_id);
 	}
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
 	 * 
-	 * @param session_id
-	 *            String UID of the user session under which the SvCore instance
-	 *            will run
-	 * @param sharedSvCore
-	 *            The SvCore instance which will be used for JDBC connection
-	 *            sharing (i.e. parent SvCore)
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @param session_id   String UID of the user session under which the SvCore
+	 *                     instance will run
+	 * @param sharedSvCore The SvCore instance which will be used for JDBC
+	 *                     connection sharing (i.e. parent SvCore)
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvFileStore(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
 	}
 
 	/**
-	 * Shared core Constructor. This constructor can be used only within the
-	 * svarog package since it will run with system priveleges.
+	 * Shared core Constructor. This constructor can be used only within the svarog
+	 * package since it will run with system priveleges.
 	 * 
 	 * 
-	 * @param sharedSvCore
-	 *            The SvCore instance which will be used for JDBC connection
-	 *            sharing (i.e. parent SvCore)
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @param sharedSvCore The SvCore instance which will be used for JDBC
+	 *                     connection sharing (i.e. parent SvCore)
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvFileStore(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -161,8 +153,7 @@ public class SvFileStore extends SvCore {
 	 * package since it will run with system priveleges.
 	 * 
 	 * 
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	SvFileStore() throws SvException {
 		super(svCONST.systemUser, null);
@@ -188,18 +179,14 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Method to save a file based on byte[] file data.
 	 * 
-	 * @param fileDescriptor
-	 *            DbDataObject describing the file.
-	 * @param objectId
-	 *            The id of the object to which file should be linked
-	 * @param objectType
-	 *            The type of the object to which the file should be linked
-	 * @param fileData
-	 *            The file data it self. It can be byte[] or InputStream. Svarog
-	 *            will not close the stream after successful save.
-	 * @throws SvException
-	 *             Pass through exception from
-	 *             {@link #saveFile(DbDataObject, DbDataObject, Object, Boolean)}
+	 * @param fileDescriptor DbDataObject describing the file.
+	 * @param objectId       The id of the object to which file should be linked
+	 * @param objectType     The type of the object to which the file should be
+	 *                       linked
+	 * @param fileData       The file data it self. It can be byte[] or InputStream.
+	 *                       Svarog will not close the stream after successful save.
+	 * @throws SvException Pass through exception from
+	 *                     {@link #saveFile(DbDataObject, DbDataObject, Object, Boolean)}
 	 */
 	@Deprecated
 	public void saveFile(DbDataObject fileDescriptor, Long objectId, Long objectType, byte[] fileData)
@@ -215,22 +202,18 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Method to save file in the svarog data store. In case you passed
-	 * InputStream as file data, you MUST CLOSE IT your self!
+	 * Method to save file in the svarog data store. In case you passed InputStream
+	 * as file data, you MUST CLOSE IT your self!
 	 * 
-	 * @param fileDescriptor
-	 *            DbDataObject describing the file.
-	 * @param linkedObject
-	 *            The object to which this file will be linked
-	 * @param fileData
-	 *            The file data it self. It can be byte[] or InputStream. Svarog
-	 *            will not close the stream after successful save.
-	 * @param fileStoreId
-	 *            The file store in which the data should be stored
-	 *            {@link svCONST.SYSTEM_FILESTORE_ID} means it will be stored in
-	 *            the DB
-	 * @param autoCommit
-	 *            If svarog should commit on success or rollback on exception
+	 * @param fileDescriptor DbDataObject describing the file.
+	 * @param linkedObject   The object to which this file will be linked
+	 * @param fileData       The file data it self. It can be byte[] or InputStream.
+	 *                       Svarog will not close the stream after successful save.
+	 * @param fileStoreId    The file store in which the data should be stored
+	 *                       {@link svCONST.SYSTEM_FILESTORE_ID} means it will be
+	 *                       stored in the DB
+	 * @param autoCommit     If svarog should commit on success or rollback on
+	 *                       exception
 	 * @throws SvException
 	 */
 	public void saveFile(DbDataObject fileDescriptor, DbDataObject linkedObject, Object fileData, Boolean autoCommit)
@@ -252,14 +235,10 @@ public class SvFileStore extends SvCore {
 
 	/**
 	 * 
-	 * @param dbo
-	 *            DbDataObject describing the file (File Metadata)
-	 * @param objectId
-	 *            ID of the object to which the file is associated
-	 * @param objectType
-	 *            Type Id of the objectId (can be null)
-	 * @param fileData
-	 *            Binary array (file content)
+	 * @param dbo        DbDataObject describing the file (File Metadata)
+	 * @param objectId   ID of the object to which the file is associated
+	 * @param objectType Type Id of the objectId (can be null)
+	 * @param fileData   Binary array (file content)
 	 * @return
 	 * @throws SvException
 	 */
@@ -297,18 +276,14 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Overload to take object id and object type to get a list of file
-	 * descriptors
+	 * Overload to take object id and object type to get a list of file descriptors
 	 * 
-	 * @param objectId
-	 *            The id of the object to which file descriptors are associated
-	 * @param objectTypeId
-	 *            The object type of the linked object
-	 * @param fileTypes
-	 *            The file types
-	 * @param refDate
-	 *            The reference date on which the list of file descriptors
-	 *            should be retrieved
+	 * @param objectId     The id of the object to which file descriptors are
+	 *                     associated
+	 * @param objectTypeId The object type of the linked object
+	 * @param fileTypes    The file types
+	 * @param refDate      The reference date on which the list of file descriptors
+	 *                     should be retrieved
 	 * @return
 	 * @throws SvException
 	 */
@@ -329,12 +304,10 @@ public class SvFileStore extends SvCore {
 	 * Method to fetch a list of files filtering by fileType. Uses SvReader and
 	 * fetches cached objects
 	 * 
-	 * @param linkedObject
-	 *            The objet to which the files were linked
-	 * @param fileTypes
-	 *            The file types according to which a filter should be applied
-	 * @param refDate
-	 *            The reference date
+	 * @param linkedObject The objet to which the files were linked
+	 * @param fileTypes    The file types according to which a filter should be
+	 *                     applied
+	 * @param refDate      The reference date
 	 * @return
 	 * @throws SvException
 	 */
@@ -363,15 +336,11 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Method to get list of file descriptors based on search criteria
 	 * 
-	 * @param objectTypeId
-	 *            The object type of the linked object
-	 * @param fileTypes
-	 *            The file types
-	 * @param refDate
-	 *            The reference date on which the list of file descriptors
-	 *            should be retrieved * @param fileSearch
-	 * @param fileSearch
-	 *            A DbSearch object which contains the search parameters
+	 * @param objectTypeId The object type of the linked object
+	 * @param fileTypes    The file types
+	 * @param refDate      The reference date on which the list of file descriptors
+	 *                     should be retrieved * @param fileSearch
+	 * @param fileSearch   A DbSearch object which contains the search parameters
 	 * @return
 	 * @throws SvException
 	 */
@@ -387,8 +356,7 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Method to fetch a list of file descriptors associated via search
-	 * criteria.
+	 * Method to fetch a list of file descriptors associated via search criteria.
 	 * 
 	 * @param linkedObject
 	 * @param fileSearch
@@ -433,10 +401,8 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Method to save a byte[] to disk based file store. Legacy overload.
 	 * 
-	 * @param fileId
-	 *            The id of the file data under which it should be stored
-	 * @param data
-	 *            The byte array which contains the file data
+	 * @param fileId The id of the file data under which it should be stored
+	 * @param data   The byte array which contains the file data
 	 * @throws SvException
 	 */
 	@Deprecated
@@ -457,8 +423,7 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Method to save a file to a disk based file store.
 	 * 
-	 * @param fileId
-	 *            The id of the file data under which it should be stored
+	 * @param fileId The id of the file data under which it should be stored
 	 * @return
 	 * @throws SvException
 	 */
@@ -481,12 +446,9 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Get input stream from a file store
 	 * 
-	 * @param rbConfig
-	 *            Global svarog properties
-	 * @param fileId
-	 *            Id of the file to be read
-	 * @param errorCode
-	 *            Standard svarog error code as defined in SvCONST
+	 * @param rbConfig  Global svarog properties
+	 * @param fileId    Id of the file to be read
+	 * @param errorCode Standard svarog error code as defined in SvCONST
 	 * @return
 	 * @throws SvException
 	 */
@@ -516,8 +478,7 @@ public class SvFileStore extends SvCore {
 	 * Method to get an InputStream from a database file store based on file
 	 * descriptor
 	 * 
-	 * @param fileDescriptor
-	 *            The file descriptor for which we want to fetch the data
+	 * @param fileDescriptor The file descriptor for which we want to fetch the data
 	 * @return
 	 * @throws SvException
 	 */
@@ -568,9 +529,8 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Method to store file data into the database.
 	 * 
-	 * @param inputData
-	 *            The input data can be of type InputStream or byte[]. Its up to
-	 *            you which data type you will use
+	 * @param inputData The input data can be of type InputStream or byte[]. Its up
+	 *                  to you which data type you will use
 	 * @return The id of the stored binary data
 	 * @throws SvException
 	 */
@@ -627,8 +587,8 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Method to get the file Id from a DB sequence. This method is used only
-	 * when saving files to disk
+	 * Method to get the file Id from a DB sequence. This method is used only when
+	 * saving files to disk
 	 * 
 	 * @return The next available file id
 	 * @throws SvException
@@ -665,13 +625,11 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Method to save the file data in the appropriate storage and return the ID
-	 * of the file data
+	 * Method to save the file data in the appropriate storage and return the ID of
+	 * the file data
 	 * 
-	 * @param inputData
-	 *            The file data to be stored (InputDataStream or byte[])
-	 * @param isSystem
-	 *            Flag to store the system files always in the database
+	 * @param inputData The file data to be stored (InputDataStream or byte[])
+	 * @param isSystem  Flag to store the system files always in the database
 	 * @return The id of the stored file data
 	 * @throws SvException
 	 */
@@ -709,11 +667,10 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Method to get the file data for the requested descriptor as InputStream.
-	 * You MUST CLOSE the stream your self.
+	 * Method to get the file data for the requested descriptor as InputStream. You
+	 * MUST CLOSE the stream your self.
 	 * 
-	 * @param dboFile
-	 *            The file descriptor
+	 * @param dboFile The file descriptor
 	 * @return The InputStream holding the file data.
 	 * @throws SvException
 	 */
@@ -725,11 +682,10 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
-	 * Method to get the file data for the requested descriptor as InputStream.
-	 * You MUST CLOSE the stream your self.
+	 * Method to get the file data for the requested descriptor as InputStream. You
+	 * MUST CLOSE the stream your self.
 	 * 
-	 * @param dboFile
-	 *            The file descriptor
+	 * @param dboFile The file descriptor
 	 * @return The InputStream holding the file data.
 	 * @throws SvException
 	 */
@@ -748,24 +704,43 @@ public class SvFileStore extends SvCore {
 	}
 
 	/**
+	 * Method to get a file from the system file store, using the system cache for
+	 * fast access to system configuration files
+	 * 
+	 * @param dboFile The file descriptor which we want to get the content
+	 * @return The byte array with file content
+	 */
+
+	private byte[] getSystemFilestore(DbDataObject dboFile) {
+		byte[] data = null;
+		if (dboFile.getVal("FILE_STORE_ID") != null
+				&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID) {
+			data = systemCache.getIfPresent((Long) dboFile.getVal("FILE_ID"));
+			if (data != null && (data.length / 1024 / 1024) <= max_cache_size)
+				systemCache.put((Long) dboFile.getVal("FILE_ID"), data);
+			else
+				log4j.warn("System file " + dboFile.getVal("file_name") + " has size "
+						+ Integer.toString(data != null ? (data.length / 1024 / 1024) : 0)
+						+ " MB. The max file size to be cached is " + max_cache_size
+						+ ". The file will not be cached! Verify your file or your size limit");
+		}
+		return data;
+
+	}
+
+	/**
 	 * Method to read a file from disk or db for a descriptor and return a byte
 	 * array.
 	 * 
-	 * @param dboFile
-	 *            The file descriptor
+	 * @param dboFile The file descriptor
 	 * @return
 	 * @throws SvException
 	 */
-	public byte[] getFileAsByte(DbDataObject dboFile) throws SvException
-
-	{
+	public byte[] getFileAsByte(DbDataObject dboFile) throws SvException {
 		byte[] data = null;
 		InputStream fstr = null;
 		try {
-			if (dboFile.getVal("FILE_STORE_ID") != null
-					&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID)
-				data = systemCache.getIfPresent((Long) dboFile.getVal("FILE_ID"));
-
+			data = getSystemFilestore(dboFile);
 			if (data == null || data.length == 0) {
 				HashMap<String, Object> extendedInfo = new HashMap<String, Object>();
 				fstr = getFileAsStream(dboFile, extendedInfo);
@@ -775,15 +750,6 @@ public class SvFileStore extends SvCore {
 					data = new byte[Integer.valueOf(extendedInfo.get("FILE_SIZE").toString())];
 					IOUtils.read(fstr, data);
 				}
-			}
-			if (dboFile.getVal("FILE_STORE_ID") != null
-					&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID) {
-				if (data != null && (data.length / 1024 / 1024) <= max_cache_size)
-					systemCache.put((Long) dboFile.getVal("FILE_ID"), data);
-				else
-					log4j.warn("System file " + dboFile.getVal("file_name") + " has size " + (data.length / 1024 / 1024)
-							+ " MB. The max file size to be cached is " + max_cache_size
-							+ ". The file will not be cached! Verify your file or your size limit");
 			}
 
 		} catch (IOException e) {

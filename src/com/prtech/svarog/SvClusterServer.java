@@ -139,6 +139,7 @@ public class SvClusterServer implements Runnable {
 
 		} catch (InterruptedException e) {
 			log4j.error("Heart-beat shutdown interrupted", e);
+			Thread.currentThread().interrupt();
 		}
 		if (context != null) {
 			context.close();
@@ -177,7 +178,6 @@ public class SvClusterServer implements Runnable {
 					sockFlag = ZMQ.SNDMORE;
 					while (iterator.hasNext()) {
 						ByteBuffer b = iterator.next();
-
 						if (!iterator.hasNext())
 							sockFlag = 0;
 						if (!hbServerSock.send(b.array(), sockFlag))
@@ -272,44 +272,80 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to handle JOIN messages between the cluster nodes and the coordinator
+	 * This method assumes that the buffer is a valid JOIN message, which contains a
+	 * message type as first byte then a byte array containing a valid JSON string
+	 * coming from the registering node
 	 * 
-	 * @param msgType   The received message type (join or part)
-	 * @param nodeId    The node which sent the message
-	 * @param msgBuffer The rest of the message buffer
-	 * @return A response message buffer
+	 * @param msgBuffer The byte buffer which holds the valid join message with JSON
+	 *                  string in it.
+	 * @return Null if the registration failed, or a valid node descriptor
+	 */
+	DbDataObject registerNode(ByteBuffer msgBuffer) {
+		DbDataObject node = null;
+
+		synchronized (SvClusterServer.isRunning) {
+			try (SvWriter svw = new SvWriter()) {
+				// get the string, starting from byte 1 + sizeof(LONG). The first byte is the
+				// message type, the second is the node id
+				String nodeInfo = new String(
+						Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
+						ZMQ.CHARSET);
+
+				// get our local node descriptor as starting point
+				DbDataObject tempNode = SvCluster.getCurrentNodeInfo();
+
+				// replace our local node info with the info coming from the remote node
+				tempNode.setVal("node_info", nodeInfo);
+				// parse the info to get the IP of the remote node
+				Gson g = new Gson();
+				JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
+				String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
+				tempNode.setVal("local_ip", remoteIp);
+
+				// finally save and register in the hearbeats map
+				svw.saveObject(tempNode, true);
+				nodeHeartBeats.put(tempNode.getObjectId(), DateTime.now());
+
+				// all done so we return the new node descriptor
+				node = tempNode;
+			} catch (SvException e) {
+				log4j.error("Svarog failed to save the node in DB!", e);
+			} catch (Exception e) {
+				log4j.error("Malformatted join message", e);
+			}
+		}
+		return node;
+	}
+
+	/**
+	 * Method to handle JOIN messages between the cluster nodes and the coordinator.
+	 * The node sense a join message with the node info, and receives back a buffer
+	 * containing the list of available distributed locks on the cluster
+	 * 
+	 * @param nodeId    The node which sent the message. In case of re-join this is
+	 *                  the old node id from which we should migrate the existing
+	 *                  locks
+	 * @param msgBuffer The rest of the message buffer, which contains the node info
+	 *                  in JSON format
+	 * @return A response message buffer containing a list of all distributed locks
+	 *         held on the server
 	 */
 	private List<ByteBuffer> processJoin(long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		List<ByteBuffer> response = new ArrayList<ByteBuffer>();
-		String nodeInfo = new String(
-				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
-		SvWriter svw = null;
-		DbDataObject node = null;
-		synchronized (SvClusterServer.isRunning) {
-			try {
-				node = SvCluster.getCurrentNodeInfo();
-				node.setVal("node_info", nodeInfo);
-				Gson g = new Gson();
-				JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
-				String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
-				node.setVal("local_ip", remoteIp);
-				svw = new SvWriter();
-				svw.saveObject(node, true);
-				nodeHeartBeats.put(node.getObjectId(), DateTime.now());
-			} catch (SvException e) {
-				log4j.error("Error registering new node in db!", e);
-			} finally {
-				if (svw != null)
-					svw.release();
-			}
-		}
+		// the join message carries a JSON in the body, which contains info about the
+		// joining node, hence we use the message to register the node in the database
+		// and get the node descriptor
+		DbDataObject node = registerNode(msgBuffer);
 
+		// if the node was successfully registered we prepare the list of distributed
+		// locks to send
 		if (node != null && node.getObjectId() > 0L) {
-			// migrate server locks from old ID to new node id
+			// If the joining node has Re-joined and had existing cluster locks owned, then
+			// we need to migrate server locks from old ID to new node id
 			SvCluster.migrateLocks(node.getObjectId(), nodeId, nodeLocks);
-			// promote local local locks to the server and confirm them
 
+			// now prepare the response with all distributed locks
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(node.getObjectId());
 			response.add(respBuffer);
@@ -319,7 +355,7 @@ public class SvClusterServer implements Runnable {
 					byte[] key = null;
 					key = entry.getKey().getBytes(ZMQ.CHARSET);
 					// allocate one byte for message type, one long for node Id
-					// and the rest for the token
+					// and the rest for the hash of the lock
 					respBuffer = ByteBuffer
 							.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
 					respBuffer.putLong(entry.getValue().nodeId);
@@ -329,6 +365,7 @@ public class SvClusterServer implements Runnable {
 				}
 			}
 		} else {
+			// the node was not registered properly, we shall respond with failure message
 			respBuffer.put(SvCluster.MSG_FAIL);
 			respBuffer.putLong(0L);
 			response.add(respBuffer);
@@ -523,7 +560,8 @@ public class SvClusterServer implements Runnable {
 				respBuffer.put(SvCluster.MSG_UNKNOWN);
 			}
 		if (log4j.isDebugEnabled())
-			log4j.debug("Response to node " + nodeId + " was " + respBuffer != null ? respBuffer.get(0) : "null");
+			log4j.debug("Response to node " + nodeId + " was " + Byte.toString(respBuffer.get(0)));
+
 		return respBuffer.array();
 
 	}
