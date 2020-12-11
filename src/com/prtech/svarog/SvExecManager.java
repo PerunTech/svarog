@@ -77,7 +77,7 @@ public class SvExecManager extends SvCore {
 			if (obj == null) {
 				return false;
 			}
-			if (!SvExecInstance.class.isAssignableFrom(obj.getClass())) {
+			if (this.getClass().isAssignableFrom(obj.getClass())) {
 				return false;
 			}
 			if (this.executor == null) {
