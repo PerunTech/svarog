@@ -42,7 +42,7 @@ public class SvMaintenance implements Runnable {
 	/**
 	 * Atomic boolean flag to signify a maintenance thread is in progress
 	 */
-	static AtomicBoolean maintenanceRunning = new AtomicBoolean();
+	static final AtomicBoolean maintenanceRunning = new AtomicBoolean();
 
 	/**
 	 * Log4j instance used for logging
@@ -78,7 +78,8 @@ public class SvMaintenance implements Runnable {
 	}
 
 	/**
-	 * The default run method to perform cleaning of the tracked connections
+	 * The default run method to perform cleaning of the tracked connections as well
+	 * as cluster management
 	 */
 	@Override
 	public void run() {
@@ -146,13 +147,12 @@ public class SvMaintenance implements Runnable {
 	}
 
 	/**
-	 * Method to update all information related to a node in the cluster list.
-	 * If the node is subject of historical date or should be removed from the
-	 * list the method will return EMPTY string. If the node should not be
-	 * removed the method will return the versioning id of the node.
+	 * Method to update all information related to a node in the cluster list. If
+	 * the node is subject of historical date or should be removed from the list the
+	 * method will return EMPTY string. If the node should not be removed the method
+	 * will return the versioning id of the node.
 	 * 
-	 * @param node
-	 *            Reference to a DbDataObject containing the node info
+	 * @param node Reference to a DbDataObject containing the node info
 	 * @return EMPTY string if the node should be delete, otherwise PKID
 	 */
 	static private DbDataArray clusterListUpdateNode(DbDataArray nodeList) {
@@ -171,33 +171,30 @@ public class SvMaintenance implements Runnable {
 				node.setVal(SvCluster.PART_TIME, DateTime.now());
 			// if the node is not removed or it is the coordinator
 			// record make sure we keep it
-			if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID))
-			{
-				//add the node 
+			if (!nodeRemoved || node.getObjectId().equals(svCONST.CLUSTER_COORDINATOR_ID)) {
+				// add the node
 				updatedList.addDataItem(node);
 
 			}
 		}
 		return updatedList;
-		
+
 	}
 
 	/**
-	 * Method to delete all historical information from the cluster table. For
-	 * nodes membership we don't really want to grow a big big table so its
-	 * easier to delete everything which isn't in the list of dontDeleteIDs
+	 * Method to delete all historical information from the cluster table. For nodes
+	 * membership we don't really want to grow a big big table so its easier to
+	 * delete everything which isn't in the list of dontDeleteIDs
 	 * 
-	 * @param conn
-	 *            The JDBC connection to used for executing the query
-	 * @param validNodes
-	 *            The list of objects which we want to keep (don't delete)
-	 *            in string format, comma separated
-	 * @throws SQLException 
-	 * @throws SvException 
-	 * @throws Exception
-	 *             Throw any underlying exception
+	 * @param conn       The JDBC connection to used for executing the query
+	 * @param validNodes The list of objects which we want to keep (don't delete) in
+	 *                   string format, comma separated
+	 * @throws SQLException
+	 * @throws SvException
+	 * @throws Exception    Throw any underlying exception
 	 */
-	static private void clusterListDeleteHistory(Connection conn, DbDataArray validNodes) throws SQLException, SvException {
+	static private void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
+			throws SQLException, SvException {
 		PreparedStatement ps = null;
 
 		try {
@@ -209,9 +206,9 @@ public class SvMaintenance implements Runnable {
 			sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("REPO_NAME") + " WHERE ");
 			sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER) + " AND  PKID NOT IN (");
 			// append the ids which we should not delete
-			for(DbDataObject dbo: validNodes.getItems())
-				sbr.append(dbo.getPkid().toString()+",");
-			
+			for (DbDataObject dbo : validNodes.getItems())
+				sbr.append(dbo.getPkid().toString() + ",");
+
 			sbr.setLength(sbr.length() - 1);
 			sbr.append(")");
 			conn.setAutoCommit(false);
@@ -234,8 +231,8 @@ public class SvMaintenance implements Runnable {
 			sbr.append(
 					(String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME") + " WHERE PKID NOT IN (");
 			// append the ids which we should not delete
-			for(DbDataObject dbo: validNodes.getItems())
-				sbr.append(dbo.getPkid().toString()+",");
+			for (DbDataObject dbo : validNodes.getItems())
+				sbr.append(dbo.getPkid().toString() + ",");
 			sbr.setLength(sbr.length() - 1);
 			sbr.append(")");
 			conn.setAutoCommit(false);
@@ -253,9 +250,9 @@ public class SvMaintenance implements Runnable {
 	}
 
 	/**
-	 * Method to maintain the table of cluster nodes. It will first delete any
-	 * old redundant records, then update the current cluster state based on the
-	 * nodes which have been reporting via heartbeat in the last interval
+	 * Method to maintain the table of cluster nodes. It will first delete any old
+	 * redundant records, then update the current cluster state based on the nodes
+	 * which have been reporting via heartbeat in the last interval
 	 */
 	private static void clusterListMaintenance() {
 		// we are the coordinator and the Heart Beat server is running
@@ -269,7 +266,6 @@ public class SvMaintenance implements Runnable {
 					Connection conn = svr.dbGetConn();
 
 					DbDataArray nodeList = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
-
 
 					DbDataArray updatedList = new DbDataArray();
 					updatedList = clusterListUpdateNode(nodeList);

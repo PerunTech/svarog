@@ -535,6 +535,71 @@ public class SvClusterClient implements Runnable {
 		return result;
 	}
 
+	private void processHeartBeat(byte[] msg) {
+		ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
+		byte msgType = msgBuffer.get();
+		long dstNode = msgBuffer.getLong();
+		if (msgType != SvCluster.MSG_SUCCESS) {
+			log4j.error("Error receiving heartbeat from coordinator node");
+			if (!rejoinOnFailedHeartBeat)
+				shutdown(false);
+			else {
+				if (log4j.isDebugEnabled())
+					log4j.debug("Received failed heartbeat from coordinator. Trying to re-join");
+				joinCluster();
+			}
+		} else {
+			lastContact = DateTime.now();
+			if (log4j.isDebugEnabled()) {
+				log4j.debug("Received heartbeat from coordinator node with destination:" + Long.toString(dstNode));
+			}
+		}
+	}
+
+	private void failOver() {
+		// if the last contact was more than the timeout in the
+		// past .. we consider the coordinator dead and
+		// shutdown this socket. we are up for new election
+		if (lastContact.withDurationAdded(heartBeatTimeOut, 1).isBeforeNow()) {
+			log4j.error("Heartbeat timed out. Max wait is:" + Integer.toString(heartBeatTimeOut)
+					+ ". Last contact was: " + lastContact.toString());
+
+			// don't sent part message to dead node
+			shutdown(false);
+			if (forcePromotionOnShutDown) {
+				log4j.info("Restarting SvCluster node to force re-election of coordinator");
+				if (SvCluster.isRunning().get()) {
+					if (log4j.isDebugEnabled())
+						log4j.debug("Cluster is running, initiate shutdown");
+					SvCluster.shutdown();
+				}
+				// if shut down in progress, wait to finish.
+				while (SvCluster.getIsActive().get()) {
+					if (log4j.isDebugEnabled())
+						log4j.debug("Cluster is still active, waiting for it to shutdown");
+
+					try {
+						synchronized (SvCluster.isRunning()) {
+							SvCluster.isRunning().wait(heartBeatInterval);
+						}
+					} catch (InterruptedException e) {
+						log4j.error("Heart beat thread sleep raised exception! Cluster still not shutdown", e);
+					}
+				}
+				// if we have active maintenance thread, just notify it, and it will initialise
+				// the cluster. Otherwise perform manual initialisation
+				if (!SvMaintenance.getMaintenanceInProgress().get()) {
+					if (SvMaintenance.maintenanceThread != null)
+						synchronized (SvMaintenance.maintenanceRunning) {
+							SvMaintenance.maintenanceRunning.notifyAll();
+						}
+					else
+						SvCluster.initCluster();
+				}
+			}
+		}
+	}
+
 	/**
 	 * Overriden run method to perform the actual heart beat
 	 */
@@ -546,87 +611,28 @@ public class SvClusterClient implements Runnable {
 			return;
 		}
 		while (isRunning.get()) {
-			synchronized (hbClientSock) {
-				ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-				msgBuffer.put(SvCluster.MSG_HEARTBEAT);
-				msgBuffer.putLong(nodeId);
-				byte[] msg = null;
-				if (isRunning.get()) {
+			try {
+				synchronized (hbClientSock) {
+					ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+					msgBuffer.put(SvCluster.MSG_HEARTBEAT);
+					msgBuffer.putLong(nodeId);
+					byte[] msg = null;
 					if (!hbClientSock.send(msgBuffer.array()))
 						log4j.error("Error sending message to coordinator node");
 					msg = hbClientSock.recv(0);
-				}
-				if (msg != null) {
-					msgBuffer = ByteBuffer.wrap(msg);
-					byte msgType = msgBuffer.get();
-					long dstNode = msgBuffer.getLong();
-					if (msgType != SvCluster.MSG_SUCCESS) {
-						log4j.error("Error receiving heartbeat from coordinator node");
-						if (!rejoinOnFailedHeartBeat)
-							shutdown(false);
-						else {
-							if (log4j.isDebugEnabled())
-								log4j.debug("Received failed heartbeat from coordinator. Trying to re-join");
-							joinCluster();
-						}
-					} else {
-						lastContact = DateTime.now();
-						if (log4j.isDebugEnabled()) {
-							log4j.debug("Received heartbeat from coordinator node with destination:"
-									+ Long.toString(dstNode));
-						}
-					}
-				} else { // if the last contact was more than the timeout in the
-							// past .. we consider the coordinator dead and
-							// shutdown
-							// this socket. we are up for new election
-					if (lastContact.withDurationAdded(heartBeatTimeOut, 1).isBeforeNow()) {
-						log4j.error("Heartbeat timed out. Max wait is:" + Integer.toString(heartBeatTimeOut)
-								+ ". Last contact was: " + lastContact.toString());
-						// don't sent part message to dead node
-						shutdown(false);
-						if (forcePromotionOnShutDown) {
-							log4j.info("Restarting SvCluster node to force re-election of coordinator");
-							if (SvCluster.isRunning().get()) {
-								if (log4j.isDebugEnabled())
-									log4j.debug("Cluster is running, initiate shutdown");
-								SvCluster.shutdown();
-							}
-							DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
-							// if shut down in progress, wait to finish.
-							while (tsTimeout.isAfterNow() && SvCluster.getIsActive().get()) {
-								if (log4j.isDebugEnabled())
-									log4j.debug("Cluster is still active, waiting for it to shutdown");
+					if (msg != null)
+						processHeartBeat(msg);
+					else
+						failOver();
 
-								try {
-									synchronized (SvCluster.isRunning()) {
-										SvCluster.isRunning().wait(heartBeatInterval);
-									}
-								} catch (InterruptedException e) {
-									tsTimeout = DateTime.now();
-									Thread.currentThread().interrupt();
-									log4j.error("Heart beat thread sleep raised exception! Cluster did not shutdown",
-											e);
-
-								}
-							}
-							if (!SvMaintenance.getMaintenanceInProgress().get()) {
-								if (SvMaintenance.maintenanceThread != null)
-									SvMaintenance.maintenanceThread.interrupt();
-								else
-									SvCluster.initCluster();
-							}
-						}
-						continue;
-					}
 				}
-			}
-			try {
-				Thread.sleep(heartBeatInterval);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				log4j.error("Heart beat thread sleep raised exception! Shutting down client", e);
-				shutdown();
+
+				synchronized (isRunning) {
+					isRunning.wait(heartBeatInterval);
+				}
+			} catch (Exception e) {
+				log4j.error("ClusterClient heart beat raised exception. Shutting down client", e);
+				shutdown(false);
 			}
 		}
 
