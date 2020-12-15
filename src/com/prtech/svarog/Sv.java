@@ -9,6 +9,21 @@ import com.prtech.svarog_common.SvCharId;
  *
  */
 public class Sv {
+	public class Exceptions {
+
+		/**
+		 * Different exception type constants
+		 */
+		public static final String SDI_SPIKE_DETECTED = "system.error.sdi.spike_detected";
+		public static final String SDI_SPIKE_FIX_FAILED = "system.error.sdi.spike_fix_fail";
+		public static final String SDI_VERTEX_DISTANCE_ERR = "system.error.sdi.vertex_min_dist_err";
+		public static final String SDI_GEOM_DISTANCE_ERR = "system.error.sdi.geom_min_dist_err";
+		public static final String SDI_VERTEX_DIST_FIX_FAILED = "system.error.sdi.vertex_dist_fix_fail";
+
+		private Exceptions() {
+		};
+
+	}
 
 	private Sv() {
 	};
@@ -133,5 +148,15 @@ public class Sv {
 	public static final String SDI_SYSTEM_BOUNDARY = "SDI_SYSTEM_BOUNDARY";
 	public static final String ENVELOPE = "ENVELOPE";
 	public static final String PERM = "PERM";
+	public static final String GEOM = "GEOM";
+	public static final String PARAM_TYPE = "PARAM_TYPE";
+	public static final String SDI_SPIKE_MAX_ANGLE = "SDI_SPIKE_MAX_ANGLE";
+	public static final Double DEFAULT_SPIKE_MAX_ANGLE = 0.0;
+
+	public static final String SDI_MIN_POINT_DISTANCE = "SDI_MIN_POINT_DISTANCE";
+	public static final Integer DEFAULT_MIN_POINT_DISTANCE = 0;
+
+	public static final String SDI_MIN_GEOM_DISTANCE = "SDI_MIN_GEOM_DISTANCE";
+	public static final Integer DEFAULT_MIN_GEOM_DISTANCE = 0;
 
 }

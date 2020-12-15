@@ -46,8 +46,8 @@ public class SvUtil {
 
 	static final Logger log4j = SvConf.getLogger(SvUtil.class);
 
-	public static PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
-	public static GeometryFactory sdiFactory = initFactory();
+	public static final PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
+	public static final GeometryFactory sdiFactory = initFactory();
 
 	/**
 	 * Public enum to provide information of Java Basic Datatypes in Bytes

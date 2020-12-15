@@ -19,6 +19,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +38,7 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
@@ -47,12 +49,16 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
 public class SvGeometryTest {
 	private static final Long TEST_LAYER_TYPE_ID = 999L;
+	private static final Long TEST_LAYER_SECOND_TYPE_ID = 998L;
+
+	private static final long gridX0 = 0L;
+	private static final long gridY0 = 0L;
 
 	@BeforeClass
 	static public void initTestSDI() throws SvException {
 		SvGeometry.isSDIInitalized.set(true);
 		// create a fake boundary with about 10x10 grid cells
-		Envelope boundaryEnv = new Envelope(0, 10 * SvConf.getSdiGridSize() * 1000, 0,
+		Envelope boundaryEnv = new Envelope(gridX0, 10 * SvConf.getSdiGridSize() * 1000, gridY0,
 				10 * SvConf.getSdiGridSize() * 1000);
 		ArrayList<Geometry> boundGeom = new ArrayList<>();
 		boundGeom.add(SvUtil.sdiFactory.toGeometry(boundaryEnv));
@@ -69,13 +75,23 @@ public class SvGeometryTest {
 
 		// now add a test layer with ID TEST_LAYER_TYPE_ID
 		CacheBuilder<String, SvSDITile> b = (CacheBuilder<String, SvSDITile>) DbCache.createBuilder(null);
-		Cache<String, SvSDITile> newCache = b.<String, SvSDITile>build();
+		Cache<String, SvSDITile> newCacheBase = b.<String, SvSDITile>build();
+		Cache<String, SvSDITile> newCacheSecond = b.<String, SvSDITile>build();
+
 		SvSDITile layerTile = new SvTestTile(
-				new Envelope(0, SvConf.getSdiGridSize() * 1000, 0, SvConf.getSdiGridSize() * 1000), TEST_LAYER_TYPE_ID,
-				testGeoms(0, 0));
+				new Envelope(gridX0, SvConf.getSdiGridSize() * 1000, gridY0, SvConf.getSdiGridSize() * 1000),
+				TEST_LAYER_TYPE_ID, testGeomsBase(gridX0, gridY0));
 		layerTile.tilelId = "0:0";
-		newCache.put(layerTile.tilelId, layerTile);
-		cache = SvGeometry.layerCache.putIfAbsent(TEST_LAYER_TYPE_ID, newCache);
+
+		SvSDITile layerTileSecond = new SvTestTile(
+				new Envelope(gridX0, SvConf.getSdiGridSize() * 1000, gridY0, SvConf.getSdiGridSize() * 1000),
+				TEST_LAYER_SECOND_TYPE_ID, testGeomsSecond(gridX0, gridY0));
+		layerTileSecond.tilelId = "0:0";
+
+		newCacheBase.put(layerTile.tilelId, layerTile);
+		newCacheSecond.put(layerTileSecond.tilelId, layerTileSecond);
+		cache = SvGeometry.layerCache.putIfAbsent(TEST_LAYER_TYPE_ID, newCacheBase);
+		cache = SvGeometry.layerCache.putIfAbsent(TEST_LAYER_SECOND_TYPE_ID, newCacheSecond);
 		assert (layerTile.getBorderGeometries().size() > 0);
 		assert (layerTile.getInternalGeometries().size() > 0);
 
@@ -281,10 +297,17 @@ public class SvGeometryTest {
 			fail("You have a connection leak, you dirty animal!");
 	}
 
-	static ArrayList<Geometry> testGeoms(double x1, double y1) {
+	static ArrayList<Geometry> testGeomsBase(double x1, double y1) {
 		ArrayList<Geometry> g = new ArrayList<>();
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30)));
+		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
+		return g;
+	}
+
+	static ArrayList<Geometry> testGeomsSecond(double x1, double y1) {
+		ArrayList<Geometry> g = new ArrayList<>();
+		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 25, x1 + 27, y1 + 20, y1 + 30)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
 		return g;
 	}
@@ -296,6 +319,330 @@ public class SvGeometryTest {
 			Geometry geom = SvUtil.sdiFactory.toGeometry(new Envelope(50, 70, 50, 70));
 			if (svg.intersectsLayer(geom, TEST_LAYER_TYPE_ID))
 				fail("This should not intersect");
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomFromPointFullCopy() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Point point = SvUtil.sdiFactory.createPoint(new Coordinate(15, 15));
+
+			Set<Geometry> copied = svg.geometryFromPoint(point, TEST_LAYER_TYPE_ID, TEST_LAYER_SECOND_TYPE_ID, false);
+
+			Set<Geometry> intersected = svg.getRelatedGeometries(point, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS,
+					null, null, false);
+			Geometry g1 = copied.iterator().next();
+			Geometry g2 = intersected.iterator().next();
+			if (!g1.equalsExact(g2))
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomFromPointEmptyPolygon() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Point point = SvUtil.sdiFactory.createPoint(new Coordinate(3, 3));
+
+			Set<Geometry> copied = svg.geometryFromPoint(point, TEST_LAYER_TYPE_ID, TEST_LAYER_SECOND_TYPE_ID, false);
+
+			Geometry g1 = copied.iterator().next();
+			if (!g1.isEmpty())
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomFromPointPartialPolygon() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Point point = SvUtil.sdiFactory.createPoint(new Coordinate(21, 21));
+
+			Set<Geometry> copied = svg.geometryFromPoint(point, TEST_LAYER_TYPE_ID, TEST_LAYER_SECOND_TYPE_ID, false);
+
+			Geometry g1 = copied.iterator().next();
+
+			Geometry g2 = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 20, gridX0 + 25, gridY0 + 20, gridY0 + 30));
+			if (!g1.equalsExact(g2))
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomSplit() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Geometry g2_1 = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 10, gridX0 + 20, gridY0 + 10, gridY0 + 15));
+			Geometry g2_2 = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 10, gridX0 + 20, gridY0 + 15, gridY0 + 20));
+
+			Coordinate[] coords = new Coordinate[3];
+			coords[0] = new Coordinate(0, 15);
+			coords[1] = new Coordinate(25, 15);
+			coords[2] = new Coordinate(25, 25);
+			LineString line = SvUtil.sdiFactory.createLineString(coords);
+
+			Set<Geometry> copied = svg.splitGeometry(line, TEST_LAYER_TYPE_ID, false);
+
+			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
+			// 20, 20 15, 10 15))]
+			Iterator<Geometry> it = copied.iterator();
+			Geometry g1 = it.next();
+			if (!g1.equalsNorm(g2_1))
+				fail("Test did not return a copy of geometry");
+
+			g1 = it.next();
+			if (!g1.equalsNorm(g2_2))
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testDetectSpikes() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			Coordinate[] tria = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Coordinate[] spikeSquare = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 20),
+					new Coordinate(gridX0 + 15, gridX0 + 50), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Geometry triangle = SvUtil.sdiFactory.createPolygon(tria);
+			Geometry square = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 10, gridX0 + 20, gridY0 + 15, gridY0 + 20));
+
+			Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
+			svg.testPolygonSpikes(triangle, maxAngle);
+			svg.testPolygonSpikes(square, maxAngle);
+
+			svg.testPolygonSpikes(triangle, 44.9);
+			svg.testPolygonSpikes(square, 89.1);
+
+			try {
+				svg.testPolygonSpikes(triangle, 45.9);
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED))
+					fail("Spike was not detected!");
+			}
+			try {
+				svg.testPolygonSpikes(square, 91.9);
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED))
+					fail("Spike was not detected!");
+			}
+
+			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
+			// 20, 20 15, 10 15))]
+
+		} catch (Exception e) {
+			fail("Test failed with exception");
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testFixSpikes() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			Coordinate[] tria = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Coordinate[] spikeSquare = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 20),
+					new Coordinate(gridX0 + 15, gridX0 + 50), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Coordinate[] spikeSquareInner = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 20),
+					new Coordinate(gridX0 + 15, gridX0 + 11), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Geometry spikeSquareInnerG = SvUtil.sdiFactory.createPolygon(spikeSquareInner);
+			Geometry spikeSquareG = SvUtil.sdiFactory.createPolygon(spikeSquare);
+			Geometry triangle = SvUtil.sdiFactory.createPolygon(tria);
+
+			try {
+				svg.testPolygonSpikes(spikeSquareG, 45.0);
+				fail("spike was not detected");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED))
+					fail("Spike was not detected!");
+			}
+			try {
+				spikeSquareG = svg.fixPolygonSpikes(triangle, 46.0);
+				fail("spike fix did not fail");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_FIX_FAILED))
+					fail("Spike fix of triangles shall fail!");
+			}
+
+			try {
+				spikeSquareG = svg.fixPolygonSpikes(spikeSquareG, 45.0);
+			} catch (SvException e) {
+				fail("Spike was not fixed!");
+			}
+
+			try {
+				svg.testPolygonSpikes(spikeSquareG, 45.0);
+			} catch (SvException e) {
+				fail("Spike was not fixed!");
+			}
+
+			try {
+				svg.testPolygonSpikes(spikeSquareInnerG, 30.0);
+				fail("spike was not detected");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED))
+					fail("Spike fix of triangles shall fail!");
+			}
+			try {
+				spikeSquareInnerG = svg.fixPolygonSpikes(spikeSquareInnerG, 30.0);
+			} catch (SvException e) {
+				fail("Spike was not fixed!");
+			}
+			try {
+				svg.fixPolygonSpikes(spikeSquareInnerG, 30.0);
+			} catch (SvException e) {
+
+				fail("Spikes still exist!");
+			}
+
+			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
+			// 20, 20 15, 10 15))]
+
+		} catch (Exception e) {
+			fail("Test failed with exception");
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testMinVertexDistance() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			Coordinate[] spikeSquare = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 20),
+					new Coordinate(gridX0 + 20.3, gridX0 + 20.5), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Geometry spikeSquareG = SvUtil.sdiFactory.createPolygon(spikeSquare);
+
+			Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE,
+					Sv.DEFAULT_MIN_POINT_DISTANCE);
+			svg.testMinVertexDistance(spikeSquareG, minPointDistance);
+
+			try {
+				svg.testMinVertexDistance(spikeSquareG, 1000);
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR))
+					fail("Spike was not detected!");
+			}
+
+			Geometry fixed = svg.fixMinVertexDistance(spikeSquareG, 1000);
+			if (fixed.getCoordinates().length > 5)
+				fail("duplicate coordinate not removed");
+			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
+			// 20, 20 15, 10 15))]
+
+		} catch (Exception e) {
+			fail("Test failed with exception");
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomBuffer() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
+			Geometry square = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 5, gridX0 + 9.5, gridY0 + 15, gridY0 + 20));
+			// this is with default values and should not raise any exceptions
+			svg.testGeomDistance(square, TEST_LAYER_TYPE_ID, minPointDistance);
+
+			try {
+				// test with one meter distance
+				svg.testGeomDistance(square, TEST_LAYER_TYPE_ID, 1000);
+			} catch (SvException ex) {
+				if (!ex.getLabelCode().equals(Sv.Exceptions.SDI_GEOM_DISTANCE_ERR))
+					fail("Spike was not detected!");
+			}
+
+			// fix based on one meter distance
+			Geometry result = svg.fixGeomDistance(square, TEST_LAYER_TYPE_ID, 1000);
+			// we expect that half meter will be cutoff from 9.5 to 9
+			Geometry resultSquare = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 5, gridX0 + 9, gridY0 + 15, gridY0 + 20));
+
+			if (!result.equalsExact(resultSquare))
+				fail("Geometry was not cut off properly");
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomHole() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			Geometry hole = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 15, gridX0 + 17, gridY0 + 15, gridY0 + 17));
+
+			Set<Geometry> gg = svg.getRelatedGeometries(hole, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS, null, null,
+					false);
+			Geometry original = gg.iterator().next();
+			Double originalArea = original.getArea();
+			// this is with default values and should not raise any exceptions
+			Geometry result = svg.holeInPolygon(hole, TEST_LAYER_TYPE_ID, false);
+
+			if ((result.getArea() + hole.getArea()) != originalArea)
+				fail("Geometry was not cut off properly");
+			// fix based on one meter distance
+
+			// rebuild the tile, now replacing the first geometry with the result with hole
+			ArrayList<Geometry> geoms = testGeomsBase(gridX0, gridY0);
+			geoms.remove(0);
+			geoms.add(0, result);
+			SvSDITile layerTile = new SvTestTile(
+					new Envelope(gridX0, SvConf.getSdiGridSize() * 1000, gridY0, SvConf.getSdiGridSize() * 1000),
+					TEST_LAYER_TYPE_ID, geoms);
+			layerTile.tilelId = "0:0";
+			Cache<String, SvSDITile> newCacheBase = SvGeometry.layerCache.get(TEST_LAYER_TYPE_ID);
+			newCacheBase.put(layerTile.tilelId, layerTile);
+
+			// this should rebuild the polygon and close the hole
+			Geometry resultFill = svg.holeInPolygon(hole, TEST_LAYER_TYPE_ID, true);
+
+			if ((resultFill.getArea()) != originalArea)
+				fail("The hole was not filled properly");
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
