@@ -387,10 +387,19 @@ public class DbInit {
 		dbf4.setIsNull(true);
 		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_VALUE.toLowerCase());
 
-		DbDataField[] dbTableFields = new DbDataField[3];
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName(Sv.PARAM_TYPE);
+		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf5.setDbFieldScale(0);
+		dbf5.setDbFieldSize(30);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_TYPE.toLowerCase());
+
+		DbDataField[] dbTableFields = new DbDataField[4];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
 		dbTableFields[2] = dbf4;
+		dbTableFields[3] = dbf5;
 		dbt.setDbTableFields(dbTableFields);
 		return dbt;
 	}
@@ -5803,7 +5812,7 @@ public class DbInit {
 					}
 				}
 			} catch (Exception e) {
-				log4j.error("Exception while parsing ACLs",e );
+				log4j.error("Exception while parsing ACLs", e);
 			}
 
 			testRetval += saveMasterJson(

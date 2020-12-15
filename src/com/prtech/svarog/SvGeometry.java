@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.IOUtils;
@@ -39,15 +38,21 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.SvCharId;
+import com.vividsolutions.jts.algorithm.Angle;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
+import com.vividsolutions.jts.operation.polygonize.Polygonizer;
+import com.vividsolutions.jts.operation.union.UnaryUnionOp;
+import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
 import com.google.common.math.DoubleMath;
 
 /**
@@ -160,11 +165,11 @@ public class SvGeometry extends SvCore {
 	}
 
 	public static String getGeometryFieldName(Long objectType) {
-		return "GEOM";
+		return Sv.GEOM;
 	}
 
 	public static String getCentroidFieldName(Long objectType) {
-		return "CENTROID";
+		return Sv.CENTROID;
 	}
 
 	public static void setGeometry(DbDataObject dbo, Geometry geom) {
@@ -210,6 +215,13 @@ public class SvGeometry extends SvCore {
 		return grid;
 	}
 
+	/**
+	 * Method to build the gridIndex and populate the gridmap based on the grid
+	 * specified by the geometry collection
+	 * 
+	 * @param grid The geometry collection which represents the system grid
+	 * @return
+	 */
 	static boolean prepareGrid(GeometryCollection grid) {
 		Geometry gridItem = null;
 		gridIndex = new STRtree();
@@ -321,6 +333,152 @@ public class SvGeometry extends SvCore {
 			}
 		}
 		return geoms;
+	}
+
+	/**
+	 * Method to create a geometry from point selector over layer identified with
+	 * layerTypeId. The geometries found in the base layer shall be cut off from the
+	 * diff layer and the result will be provided back to the caller
+	 * 
+	 * @param point                The point from which we can select the source
+	 *                             geometries
+	 * @param layerTypeId          The layer from which we shall load the geometries
+	 * @param diffLayer            The target layer over which we should do
+	 *                             difference
+	 * @param allowMultiGeometries Flag to allow one point to select more than one
+	 *                             geometry
+	 * @return A set of resulting geometries
+	 * @throws SvException if allowMulti geometries is false, and the base layer has
+	 *                     more than one geometry intersecting with the point, a
+	 *                     "system.error.sdi.multi_geoms_returned" exception will be
+	 *                     raised
+	 */
+	public Set<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer, boolean allowMultiGeometries)
+			throws SvException {
+		Set<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, point));
+		Set<Geometry> result = new HashSet<>();
+		for (Geometry originalGeom : intersected) {
+			Set<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null, null,
+					false);
+			for (Geometry relatedGeom : related) {
+				originalGeom = originalGeom.difference(relatedGeom);
+			}
+			// if the difference resulted in multipolygon, we are interested only in the
+			// polygon which covers the point
+			if (originalGeom.getNumGeometries() > 1)
+				for (int i = 0; i < originalGeom.getNumGeometries(); i++) {
+					Geometry gp = originalGeom.getGeometryN(i);
+					if (gp.covers(point)) {
+						originalGeom = gp;
+						break;
+					}
+
+				}
+			result.add(originalGeom);
+		}
+		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	public Set<Geometry> splitGeometry(LineString line, Long layerTypeId, boolean allowMultiGeometries)
+			throws SvException {
+		if (!line.isSimple())
+			throw (new SvException("system.error.sdi.line_intersects_self", svCONST.systemUser, null, line));
+
+		Set<Geometry> intersected = getRelatedGeometries(line, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+		Iterator<Geometry> iterator = intersected.iterator();
+		while (iterator.hasNext()) {
+			Geometry findGeom = iterator.next();
+			if (!findGeom.disjoint(line.getStartPoint()) || !findGeom.disjoint(line.getEndPoint()))
+				iterator.remove();
+		}
+
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, line));
+
+		Set<Geometry> result = new HashSet<>();
+		for (Geometry originalGeom : intersected) {
+			Geometry[] geometries = new Geometry[] { originalGeom.getBoundary(), line };
+			GeometryCollection col = SvUtil.sdiFactory.createGeometryCollection(geometries);
+			Geometry union = UnaryUnionOp.union(col);
+			Polygonizer polygonizer = new Polygonizer();
+			polygonizer.add(union);
+			for (Polygon poly : (Collection<Polygon>) polygonizer.getPolygons()) {
+				poly.setUserData(originalGeom.getUserData());
+				result.add(poly);
+			}
+
+			// if the difference resulted in multipolygon, we are interested only in the
+			// polygon which covers the point
+
+		}
+		return result;
+	}
+
+	private void mergeGeometriesDbUpdate(Geometry first, ArrayList<Object> deletedGeometries, boolean autoCommit)
+			throws SvException {
+		// get the previous state of autocommit
+		boolean oldAutoCommit = this.getAutoCommit();
+		try (SvWriter svw = new SvWriter(this)) {
+			// set autocommit to false to ensure all deletes and saves are in single
+			// transaction
+			this.setAutoCommit(false);
+			DbDataObject dbo = null;
+			// delete the others
+			for (Object dbd : deletedGeometries) {
+				dbo = (DbDataObject) dbd;
+				svw.deleteObject(dbo);
+			}
+			// now save the first updated, geometry
+			dbo = (DbDataObject) first.getUserData();
+			SvGeometry.setGeometry(dbo, first);
+			this.saveGeometry(dbo);
+
+			if (autoCommit)
+				this.dbCommit();
+		} finally {
+			this.dbSetAutoCommit(oldAutoCommit);
+		}
+
+	}
+
+	@SuppressWarnings("unchecked")
+	public Geometry mergeGeometries(ArrayList<Point> points, Long layerTypeId, boolean allowMultiGeometries,
+			boolean preview, boolean autoCommit) throws SvException {
+		Geometry result = null;
+		Object userData = null;
+		ArrayList<Object> objectsToDelete = new ArrayList<>();
+		for (Point p : points) {
+			Set<Geometry> intersected = getRelatedGeometries(p, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+			Iterator<Geometry> iterator = intersected.iterator();
+			if (intersected.size() > 1 && !allowMultiGeometries)
+				throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, p));
+
+			if (result == null) {
+				if (!iterator.hasNext())
+					throw (new SvException("system.error.sdi.first_geometry_empty", svCONST.systemUser, null, p));
+				result = SvUtil.sdiFactory.createGeometry(iterator.next());
+				userData = result.getUserData();
+			}
+
+			while (iterator.hasNext()) {
+				Geometry g = iterator.next();
+				if (!objectsToDelete.contains(g.getUserData())) {
+					if (result.disjoint(g))
+						throw (new SvException("system.error.sdi.geometries_disjoint", svCONST.systemUser, null, p));
+					result = result.union(g);
+					objectsToDelete.add(g.getUserData());
+				}
+			}
+		}
+		result.setUserData(userData);
+		if (!preview) {
+
+		}
+
+		return result;
 	}
 
 	/**
@@ -821,12 +979,301 @@ public class SvGeometry extends SvCore {
 
 	}
 
+	/**
+	 * Test a polygonal geometry for spikes. A spike is considered angle between
+	 * vertices which is lower than a specified system parameter named
+	 * SDI.SPIKE_MAX_ANGLE. The unoriented smallest angle between two vectors must
+	 * not be lower than the system parameter
+	 * 
+	 * @param g        The geometry to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_detected" to signify
+	 *                     that the geometry has spike with angle less then maxAngle
+	 */
+	public void testPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
+		fixPolygonSpikes(g, maxAngle, true);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. A spike test is
+	 * specified as in {@link #testPolygonSpikes(Geometry, Double)}. This method
+	 * will remove the point forming the spike. If removing the point collapses the
+	 * geometry to a line, the method will throw exception
+	 * 
+	 * @param g        The geometry to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 */
+	public Geometry fixPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
+		return fixPolygonSpikes(g, maxAngle, false);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. Based on the test
+	 * only param it will either test or try to fix the spikes.
+	 * 
+	 * @param g        The geometry to be tested or fixed based on the testOnly
+	 *                 flag.
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @param testOnly if this param is set to true, the method will try to find
+	 *                 angles less then max angle and throw
+	 *                 "system.error.sdi.spike_detected"
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 *                     or "system.error.sdi.spike_detected" if spike was
+	 *                     detected via test only flag
+	 */
+	Geometry fixPolygonSpikes(Geometry g, Double maxAngle, boolean testOnly) throws SvException {
+
+		if (!(g instanceof Polygon || g instanceof MultiPolygon))
+			return g;
+
+		Polygon[] allPoly = new Polygon[g.getNumGeometries()];
+		for (int i = 0; i < g.getNumGeometries(); i++) {
+			Polygon p = (Polygon) g.getGeometryN(i);
+			Coordinate[] coords = p.getCoordinates();
+			ArrayList<Coordinate> currentPoly = new ArrayList<>(coords.length);
+			// add the zero point, becase we start the loop from the first tail
+			currentPoly.add(coords[0]);
+			for (int cc = 1; cc < coords.length; cc++) {
+				Coordinate tip1 = coords[cc - 1];
+				Coordinate tail = coords[cc];
+				int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
+				Coordinate tip2 = coords[tip2index];
+				double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
+				if (!(angle < maxAngle))
+					currentPoly.add(tail);
+				else if (testOnly)
+					throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
+
+			}
+			if (currentPoly.size() < 3)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
+
+			Polygon pDst = SvUtil.sdiFactory.createPolygon(currentPoly.toArray(new Coordinate[currentPoly.size()]));
+			if (pDst.getArea() < 1)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
+
+			allPoly[i] = pDst;
+		}
+		if (allPoly.length == 1)
+			return allPoly[0];
+		else
+			return SvUtil.sdiFactory.createMultiPolygon(allPoly);
+	}
+
+	/**
+	 * Method to test if the geometry has vertexes which are within tolerance
+	 * specified by minPointDistance
+	 * 
+	 * @param geom             The geometry to be validated
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!)
+	 * @throws SvException The method will raise
+	 *                     "system.error.sdi.vertex_min_dist_err" exception if the
+	 *                     geometry has points which can be collapsed into each
+	 *                     other within the tolerance
+	 * 
+	 */
+	public void testMinVertexDistance(Geometry geom, Integer minPointDistance) throws SvException {
+		minVertexDistance(geom, minPointDistance, true);
+	}
+
+	/**
+	 * Method to ensure that the geometry has no vertexes which are too close.
+	 * Public method to simplify the geometry and collapse points within tolerance
+	 * 
+	 * @param geom             The geometry to be simplified
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!)
+	 * @return The simplified geometry
+	 */
+	public Geometry fixMinVertexDistance(Geometry geom, Integer minPointDistance) throws SvException {
+		return minVertexDistance(geom, minPointDistance, false);
+	}
+
+	/**
+	 * Method to ensure that the geometry has no vertexes which are too close
+	 * 
+	 * @param geom             The geometry to be validated and/or fixed
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!). If the tolerance is 0, the test is
+	 *                         omitted
+	 * @param testOnly         If this method should fix the geometry or raise an
+	 *                         exception if the geometry has points within tolerance
+	 * @return The simplified geometry
+	 * @throws SvException If the flag testOnly is set, the method will raise
+	 *                     "system.error.sdi.vertex_min_dist_err" exception if the
+	 *                     geometry has been simplified
+	 * 
+	 */
+	Geometry minVertexDistance(Geometry geom, Integer minPointDistance, boolean testOnly) throws SvException {
+		if (minPointDistance == 0)
+			return geom;
+		double tolerance = minPointDistance / 1000.0;
+		Geometry g = TopologyPreservingSimplifier.simplify(geom, tolerance);
+		if (testOnly && !g.equalsExact(geom))
+			throw (new SvException(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR, instanceUser, null, null));
+		return g;
+
+	}
+
+	/**
+	 * Method to ensure that the geometry is not too close to another geometry. T
+	 * 
+	 * @param geom             The geometry to be tested for proximity
+	 * @param minPointDistance The distance between the geometry and another
+	 *                         geometry (in millimeters!!!). If the tolerance is 0,
+	 *                         the test is omitted
+	 * @param layerTypeId      The layer id which should be used to calculate the
+	 *                         distance
+	 * @throws SvException Underlying layer loading exception
+	 */
+	public Geometry fixGeomDistance(Geometry geom, Long layerTypeId, Integer distanceTolerance) throws SvException {
+		return minGeomDistance(geom, layerTypeId, distanceTolerance, false);
+	}
+
+	/**
+	 * Method to ensure that the geometry is not too close to another geometry. T
+	 * 
+	 * @param geom             The geometry to be tested for proximity
+	 * @param minPointDistance The distance between the geometry and another
+	 *                         geometry (in millimeters!!!). If the tolerance is 0,
+	 *                         the test is omitted
+	 * @param layerTypeId      The layer id which should be used to calculate the
+	 *                         distance
+	 * @throws SvException If the flag testOnly is set, the method will raise
+	 *                     "system.error.sdi.geom_min_dist_err" exception if the
+	 *                     geometry is too close to another geometry of the same
+	 *                     layer
+	 */
+	public void testGeomDistance(Geometry geom, Long layerTypeId, Integer distanceTolerance) throws SvException {
+		minGeomDistance(geom, layerTypeId, distanceTolerance, true);
+	}
+
+	/**
+	 * Method to ensure that the geometry has no vertexes which are too close. If
+	 * the flag test only is set to false, the original geometry will cut off to the
+	 * buffer of tolerance from the geometries in the target layer
+	 * 
+	 * @param geom             The geometry to be validated and/or fixed
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!). If the tolerance is 0, the test is
+	 *                         omitted
+	 * @param layerTypeId      The layer id which should be used to calculate the
+	 *                         distance
+	 * @param testOnly         If this method should fix the geometry or raise an
+	 *                         exception if the geometry has points within tolerance
+	 * @return The simplified geometry
+	 * @throws SvException If the flag testOnly is set, the method will raise
+	 *                     "system.error.sdi.geom_min_dist_err" exception if the
+	 *                     geometry is too close to another geometry of the same
+	 *                     layer
+	 */
+	Geometry minGeomDistance(Geometry geom, Long layerTypeId, Integer distanceTolerance, boolean testOnly)
+			throws SvException {
+		if (distanceTolerance.intValue() == 0)
+			return geom;
+		double tolerance = distanceTolerance / 1000.0;
+
+		Geometry buffGeom = geom.buffer(distanceTolerance);
+		buffGeom.setUserData(geom.getUserData());
+
+		Set<Geometry> neighbours = getRelatedGeometries(buffGeom, layerTypeId, SDIRelation.INTERSECTS, null, null,
+				true);
+		if (testOnly)
+			for (Geometry gg : neighbours) {
+				if (gg.disjoint(geom))
+					throw (new SvException(Sv.Exceptions.SDI_GEOM_DISTANCE_ERR, instanceUser, null, null));
+			}
+		else
+			for (Geometry gg : neighbours) {
+				Geometry neighbourBuff = gg.buffer(tolerance);
+				geom = geom.difference(neighbourBuff);
+			}
+
+		geom.setUserData(buffGeom.getUserData());
+		return geom;
+	}
+
+	/**
+	 * The method provides means to create/remove a hole from polygon. The polygon
+	 * is selected from the underlying layer identified via layerTypeId and assumes
+	 * that the underlying layer does not contain overlapping polygons.
+	 * 
+	 * @param hole        The geometry describing the hole
+	 * @param layerTypeId The layer from which we should get the polygon via
+	 *                    intersections
+	 * @param remove      Flag if we should remove a hole, or create a hole.
+	 * @return The modified polygon
+	 * @throws SvException
+	 */
+	public Geometry holeInPolygon(Geometry hole, Long layerTypeId, boolean remove) throws SvException {
+		Set<Geometry> result = innerPolygon(hole, layerTypeId, remove, false);
+		if (result != null && result.size() == 1)
+			return result.iterator().next();
+		else
+			return null;
+	}
+
+	/**
+	 * Method to perform filling of holes or cutting off holes from polygons.
+	 * 
+	 * @param geom                 The geometry of the hole (or cover)
+	 * @param layerTypeId          The layer from which we should get the base
+	 *                             polygon
+	 * @param operationFill        Flag to allow fill of hole or cutoff if false;
+	 * @param allowMultiGeometries Boolean flag to allow operation over multiple
+	 *                             overlapping geometries
+	 * @return Set of modified geometries
+	 * @throws SvException Any underlying exception
+	 */
+	Set<Geometry> innerPolygon(Geometry geom, Long layerTypeId, boolean operationFill, boolean allowMultiGeometries)
+			throws SvException {
+
+		Set<Geometry> intersected = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, null, null, true);
+
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, geom));
+
+		Set<Geometry> result = new HashSet<>();
+		for (Geometry g : intersected) {
+			Geometry r;
+			if (operationFill)
+				r = g.union(geom);
+			else
+				r = g.difference(geom);
+			r.setUserData(g.getUserData());
+			result.add(r);
+		}
+		return result;
+	}
+
+	/**
+	 * Method to prepare the geometry for saving to the database. 1. It tests if the
+	 * geometry is within the system boundaries 2. Calculates the centroid 3. Tests
+	 * the geometry for spikes 4. Tests the geometries for compliancy with minimal
+	 * distance
+	 * 
+	 * @param dbo
+	 * @throws SvException
+	 */
 	private void prepareGeometry(DbDataObject dbo) throws SvException {
 
 		// test if the geometry is in the system boundaries
 		verifyBounds(dbo);
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
+		//
+		Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
+		testPolygonSpikes(geom, maxAngle);
+
+		Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE, Sv.DEFAULT_MIN_POINT_DISTANCE);
+		minVertexDistance(geom, minPointDistance, true);
+
+		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
+		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
 
 		// if area is not set or we have configured to override
 		if (dbo.getVal("AREA") == null || SvConf.sdiOverrideGeomCalc)
@@ -839,15 +1286,6 @@ public class SvGeometry extends SvCore {
 		if (dbo.getVal("PERIMETER") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
-
-		// admUnitClass dbo.setVal("CENTROID", centroid);
-		// DISABLING as per https://192.168.100.130/prtech/svarog/issues/21
-		// TODO https://192.168.100.130/prtech/svarog/issues/21
-		/*
-		 * if (!dbo.getObject_type().equals(svCONST.OBJECT_TYPE_SDI_UNITS) ) {
-		 * DbDataObject admUnit = getAdmUnit(centroid);
-		 * dbo.setParent_id(admUnit.getObject_id()); }
-		 */
 
 	}
 
@@ -863,10 +1301,8 @@ public class SvGeometry extends SvCore {
 	 *                     allowNullGeometry set to false
 	 */
 	public void saveGeometry(DbDataArray dba, Boolean isBatch) throws SvException {
-		SvWriter svw = null;
-		try {
+		try (SvWriter svw = new SvWriter(this)) {
 
-			svw = new SvWriter(this);
 			svw.isInternal = true; // flag it as internal so can save SDI types
 			Geometry currentGeom = null;
 			for (DbDataObject dbo : dba.getItems()) {
@@ -895,9 +1331,6 @@ public class SvGeometry extends SvCore {
 			}
 
 			cacheCleanup(tileList);
-		} finally {
-			if (svw != null)
-				svw.release();
 		}
 	}
 
