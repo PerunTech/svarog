@@ -90,8 +90,8 @@ public class SvGeometryTest {
 
 		newCacheBase.put(layerTile.tilelId, layerTile);
 		newCacheSecond.put(layerTileSecond.tilelId, layerTileSecond);
-		cache = SvGeometry.layerCache.putIfAbsent(TEST_LAYER_TYPE_ID, newCacheBase);
-		cache = SvGeometry.layerCache.putIfAbsent(TEST_LAYER_SECOND_TYPE_ID, newCacheSecond);
+		cache = SvGeometry.layerCache.put(TEST_LAYER_TYPE_ID, newCacheBase);
+		cache = SvGeometry.layerCache.put(TEST_LAYER_SECOND_TYPE_ID, newCacheSecond);
 		assert (layerTile.getBorderGeometries().size() > 0);
 		assert (layerTile.getInternalGeometries().size() > 0);
 
@@ -383,7 +383,7 @@ public class SvGeometryTest {
 
 	@Test
 	public void testGeomSplit() throws SvException {
-
+		initTestSDI();
 		try (SvGeometry svg = new SvGeometry()) {
 			Geometry g2_1 = SvUtil.sdiFactory
 					.toGeometry(new Envelope(gridX0 + 10, gridX0 + 20, gridY0 + 10, gridY0 + 15));
