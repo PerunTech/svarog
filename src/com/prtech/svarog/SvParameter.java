@@ -15,11 +15,9 @@
 package com.prtech.svarog;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
@@ -29,7 +27,6 @@ import org.joda.time.format.DateTimeFormatter;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.prtech.svarog_common.DbDataArray;
-import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchExpression;
@@ -61,7 +58,9 @@ public class SvParameter extends SvCore {
 	 * 
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	static Cache<String, DbDataObject> initParamCache() {
+		@SuppressWarnings("rawtypes")
 		CacheBuilder builder = CacheBuilder.newBuilder();
 		builder = builder.maximumSize(Sv.DEFAULT_CACHE_SIZE);
 		builder = builder.expireAfterAccess(Sv.DEFAULT_CACHE_TTL, TimeUnit.MINUTES);
@@ -954,23 +953,23 @@ public class SvParameter extends SvCore {
 		setSysParamImpl(key, value, true);
 	}
 
-	public static void setSysParam(String key, DateTime value) throws Exception {
+	public static void setSysParam(String key, DateTime value) throws SvException {
 		setSysParamImpl(key, value, true);
 	}
 
-	public static void setSysParam(String key, Boolean value) throws Exception {
+	public static void setSysParam(String key, Boolean value) throws SvException {
 		setSysParamImpl(key, value, true);
 	}
 
-	public static void setSysParam(String key, Integer value) throws Exception {
+	public static void setSysParam(String key, Integer value) throws SvException {
 		setSysParamImpl(key, value, true);
 	}
 
-	public static void setSysParam(String key, Long value) throws Exception {
+	public static void setSysParam(String key, Long value) throws SvException {
 		setSysParamImpl(key, value, true);
 	}
 
-	public static void setSysParam(String key, Double value) throws Exception {
+	public static void setSysParam(String key, Double value) throws SvException {
 		setSysParamImpl(key, value, true);
 	}
 
