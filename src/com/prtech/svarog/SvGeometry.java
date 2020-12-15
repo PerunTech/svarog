@@ -44,7 +44,6 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
@@ -208,8 +207,7 @@ public class SvGeometry extends SvCore {
 				try {
 					is.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
 				}
 		}
 		return grid;
@@ -350,14 +348,14 @@ public class SvGeometry extends SvCore {
 	 * @return A set of resulting geometries
 	 * @throws SvException if allowMulti geometries is false, and the base layer has
 	 *                     more than one geometry intersecting with the point, a
-	 *                     "system.error.sdi.multi_geoms_returned" exception will be
+	 *                     Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND exception will be
 	 *                     raised
 	 */
 	public Set<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer, boolean allowMultiGeometries)
 			throws SvException {
 		Set<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
 		if (intersected.size() > 1 && !allowMultiGeometries)
-			throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, point));
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, point));
 		Set<Geometry> result = new HashSet<>();
 		for (Geometry originalGeom : intersected) {
 			Set<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null, null,
@@ -396,7 +394,7 @@ public class SvGeometry extends SvCore {
 		}
 
 		if (intersected.size() > 1 && !allowMultiGeometries)
-			throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, line));
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, line));
 
 		Set<Geometry> result = new HashSet<>();
 		for (Geometry originalGeom : intersected) {
@@ -444,30 +442,38 @@ public class SvGeometry extends SvCore {
 
 	}
 
-	@SuppressWarnings("unchecked")
-	public Geometry mergeGeometries(ArrayList<Point> points, Long layerTypeId, boolean allowMultiGeometries,
-			boolean preview, boolean autoCommit) throws SvException {
-		Geometry result = null;
+	Set<Geometry> getGeometryByPoint(Point p, Long layerTypeId, boolean allowMultiGeometries) throws SvException {
+		Set<Geometry> intersected = getRelatedGeometries(p, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+		Iterator<Geometry> iterator = intersected.iterator();
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, p));
+
+		if (!iterator.hasNext())
+			throw (new SvException(Sv.Exceptions.SDI_MERGE_GEOM_EMPTY, svCONST.systemUser, null, p));
+
+		return intersected;
+	}
+
+	public Geometry mergeGeometries(List<Point> points, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
+			boolean autoCommit) throws SvException {
+
 		Object userData = null;
 		ArrayList<Object> objectsToDelete = new ArrayList<>();
-		for (Point p : points) {
-			Set<Geometry> intersected = getRelatedGeometries(p, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
-			Iterator<Geometry> iterator = intersected.iterator();
-			if (intersected.size() > 1 && !allowMultiGeometries)
-				throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, p));
+		if (points.size() < 2)
+			throw (new SvException(Sv.Exceptions.SDI_MERGE_REQUIRES_2PLUS, svCONST.systemUser, null, points));
 
-			if (result == null) {
-				if (!iterator.hasNext())
-					throw (new SvException("system.error.sdi.first_geometry_empty", svCONST.systemUser, null, p));
-				result = SvUtil.sdiFactory.createGeometry(iterator.next());
-				userData = result.getUserData();
-			}
+		Geometry result = getGeometryByPoint(points.get(0), layerTypeId, allowMultiGeometries).iterator().next();
+
+		for (int i = 1; i < points.size(); i++) {
+			Iterator<Geometry> iterator = getGeometryByPoint(points.get(i), layerTypeId, allowMultiGeometries)
+					.iterator();
 
 			while (iterator.hasNext()) {
 				Geometry g = iterator.next();
+				if (result.disjoint(g))
+					throw (new SvException(Sv.Exceptions.SDI_MERGE_GEOM_DISJOINT, svCONST.systemUser, null, g));
+
 				if (!objectsToDelete.contains(g.getUserData())) {
-					if (result.disjoint(g))
-						throw (new SvException("system.error.sdi.geometries_disjoint", svCONST.systemUser, null, p));
 					result = result.union(g);
 					objectsToDelete.add(g.getUserData());
 				}
@@ -475,7 +481,7 @@ public class SvGeometry extends SvCore {
 		}
 		result.setUserData(userData);
 		if (!preview) {
-
+			mergeGeometriesDbUpdate(result, objectsToDelete, autoCommit);
 		}
 
 		return result;
@@ -1013,6 +1019,42 @@ public class SvGeometry extends SvCore {
 	 * Test a polygonal geometry for spikes and remove the spikes. Based on the test
 	 * only param it will either test or try to fix the spikes.
 	 * 
+	 * @param p        The polygon to be tested or fixed based on the testOnly flag.
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @param testOnly if this param is set to true, the method will try to find
+	 *                 angles less then max angle and throw
+	 *                 "system.error.sdi.spike_detected"
+	 * @return A list of coordinates which do not contain spikes
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 *                     or "system.error.sdi.spike_detected" if spike was
+	 *                     detected via test only flag
+	 */
+	public ArrayList<Coordinate> fixPolygonCoordinates(Polygon p, Double maxAngle, boolean testOnly)
+			throws SvException {
+		Coordinate[] coords = p.getCoordinates();
+		ArrayList<Coordinate> newCoordinates = new ArrayList<>(coords.length);
+		// add the zero point, becase we start the loop from the first tail
+		newCoordinates.add(coords[0]);
+		for (int cc = 1; cc < coords.length; cc++) {
+			Coordinate tip1 = coords[cc - 1];
+			Coordinate tail = coords[cc];
+			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
+			Coordinate tip2 = coords[tip2index];
+			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
+			if (angle >= maxAngle)
+				newCoordinates.add(tail);
+			else if (testOnly)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
+
+		}
+		return newCoordinates;
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. Based on the test
+	 * only param it will either test or try to fix the spikes.
+	 * 
 	 * @param g        The geometry to be tested or fixed based on the testOnly
 	 *                 flag.
 	 * @param maxAngle the maximum angle in degrees which is considered as spike
@@ -1032,26 +1074,14 @@ public class SvGeometry extends SvCore {
 		Polygon[] allPoly = new Polygon[g.getNumGeometries()];
 		for (int i = 0; i < g.getNumGeometries(); i++) {
 			Polygon p = (Polygon) g.getGeometryN(i);
-			Coordinate[] coords = p.getCoordinates();
-			ArrayList<Coordinate> currentPoly = new ArrayList<>(coords.length);
-			// add the zero point, becase we start the loop from the first tail
-			currentPoly.add(coords[0]);
-			for (int cc = 1; cc < coords.length; cc++) {
-				Coordinate tip1 = coords[cc - 1];
-				Coordinate tail = coords[cc];
-				int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
-				Coordinate tip2 = coords[tip2index];
-				double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
-				if (!(angle < maxAngle))
-					currentPoly.add(tail);
-				else if (testOnly)
-					throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
+			ArrayList<Coordinate> fixedCoordinates = fixPolygonCoordinates(p, maxAngle, testOnly);
 
-			}
-			if (currentPoly.size() < 3)
+			if (fixedCoordinates.size() < 3)
 				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
 
-			Polygon pDst = SvUtil.sdiFactory.createPolygon(currentPoly.toArray(new Coordinate[currentPoly.size()]));
+			Polygon pDst = SvUtil.sdiFactory
+					.createPolygon(fixedCoordinates.toArray(new Coordinate[fixedCoordinates.size()]));
+
 			if (pDst.getArea() < 1)
 				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
 
@@ -1177,11 +1207,14 @@ public class SvGeometry extends SvCore {
 			return geom;
 		double tolerance = distanceTolerance / 1000.0;
 
-		Geometry buffGeom = geom.buffer(distanceTolerance);
-		buffGeom.setUserData(geom.getUserData());
-
-		Set<Geometry> neighbours = getRelatedGeometries(buffGeom, layerTypeId, SDIRelation.INTERSECTS, null, null,
+		Geometry resultGeom = geom.buffer(distanceTolerance);
+		resultGeom.setUserData(geom.getUserData());
+		// find out which ones we are near by with a buffer
+		Set<Geometry> neighbours = getRelatedGeometries(resultGeom, layerTypeId, SDIRelation.INTERSECTS, null, null,
 				true);
+
+		// the result starts with the source geometry
+		resultGeom = geom;
 		if (testOnly)
 			for (Geometry gg : neighbours) {
 				if (gg.disjoint(geom))
@@ -1190,11 +1223,11 @@ public class SvGeometry extends SvCore {
 		else
 			for (Geometry gg : neighbours) {
 				Geometry neighbourBuff = gg.buffer(tolerance);
-				geom = geom.difference(neighbourBuff);
+				resultGeom = resultGeom.difference(neighbourBuff);
 			}
 
-		geom.setUserData(buffGeom.getUserData());
-		return geom;
+		resultGeom.setUserData(geom.getUserData());
+		return resultGeom;
 	}
 
 	/**
@@ -1235,7 +1268,7 @@ public class SvGeometry extends SvCore {
 		Set<Geometry> intersected = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, null, null, true);
 
 		if (intersected.size() > 1 && !allowMultiGeometries)
-			throw (new SvException("system.error.sdi.multi_geoms_returned", svCONST.systemUser, null, geom));
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, geom));
 
 		Set<Geometry> result = new HashSet<>();
 		for (Geometry g : intersected) {

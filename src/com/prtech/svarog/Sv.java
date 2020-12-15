@@ -19,14 +19,18 @@ public class Sv {
 		public static final String SDI_VERTEX_DISTANCE_ERR = "system.error.sdi.vertex_min_dist_err";
 		public static final String SDI_GEOM_DISTANCE_ERR = "system.error.sdi.geom_min_dist_err";
 		public static final String SDI_VERTEX_DIST_FIX_FAILED = "system.error.sdi.vertex_dist_fix_fail";
+		public static final String SDI_MULTIPLE_GEOMS_FOUND = "system.error.sdi.multi_geoms_found";
+		public static final String SDI_MERGE_REQUIRES_2PLUS = "system.error.sdi.merge_requires_2plus";
+		public static final String SDI_MERGE_GEOM_EMPTY = "system.error.sdi.geometry_empty";
+		public static final String SDI_MERGE_GEOM_DISJOINT = "system.error.sdi.geometries_disjoint";
 
 		private Exceptions() {
-		};
+		}
 
 	}
 
 	private Sv() {
-	};
+	}
 
 	public static final String Y2K_START_DATE = "2000-01-01T00:00:00";
 	public static final String CODE_LIST_ID = "CODE_LIST_ID";
