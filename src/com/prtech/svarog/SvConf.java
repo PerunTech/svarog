@@ -300,7 +300,7 @@ public class SvConf {
 	/**
 	 * SQL Timestamp version of the MAX DATE used for SQL queries
 	 */
-	public static final Timestamp MAX_DATE_SQL = getMaxDateTS();
+	static final Timestamp MAX_DATE_SQL = getMaxDateTS();
 
 	/**
 	 * The resource bundle containing all specific SQL Keywords for different RDBMS

@@ -353,7 +353,7 @@ public class SvarogInstall {
 	}
 
 	private static int updatePassword(CommandLine line) {
-
+		String screenText = "Password update. Username:";
 		ArrayList<String> userNPass = getUserPassFromCmd(line);
 		if (userNPass.isEmpty())
 			return -3;
@@ -370,14 +370,14 @@ public class SvarogInstall {
 			svs.createUser(userName, password, (String) user.getVal(Sv.FIRST_NAME), (String) user.getVal("last_name"),
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
-			writeToScreen("Password updated for user " + userName);
+			writeToScreen(screenText + userName);
 		} catch (SvException ex) {
-			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(Sv.ERROR + screenText + userName);
 			writeToScreen(((SvException) ex).getFormattedMessage());
 		} catch (Exception ex) {
-			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(Sv.ERROR + screenText + userName);
 			writeToScreen(UNEXPECTED_EX);
-			log4j.error("Error, password update for " + userName + " failed", ex);
+			log4j.error(Sv.ERROR + screenText + userName, ex);
 
 		}
 		return 0;
@@ -434,6 +434,7 @@ public class SvarogInstall {
 			return -3;
 		SvWriter svw = null;
 		SvSecurity svs = null;
+		String screenText = "User registration/update. Username:";
 		try {
 			svw = new SvWriter();
 			svw.switchUser(Sv.ADMIN);
@@ -442,15 +443,15 @@ public class SvarogInstall {
 				password = SvUtil.getMD5(password).toUpperCase();
 
 			svs.createUser(userName, password, firstName, surName, email, userPin, "", sidType, status, true);
-			writeToScreen("User " + userName + " successfully created/updated");
+			writeToScreen(screenText + userName + " successfully finished");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + userName + " can not be created/updated");
+			writeToScreen(Sv.ERROR + screenText + userName);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				log4j.error("Error, user " + userName + " can not be created/updated", ex);
+				log4j.error(Sv.ERROR + screenText + userName, ex);
 			}
 
 			returnStatus = -1;
@@ -464,6 +465,8 @@ public class SvarogInstall {
 	}
 
 	private static int updateGroup(CommandLine line) {
+		String screenText = "Group registration/update. Group name:";
+
 		int returnStatus = 0;
 		String groupName = line.getOptionValue("group");
 		if (groupName == null || groupName == "")
@@ -511,15 +514,15 @@ public class SvarogInstall {
 			groupDbo.setVal("group_security_type", securityType);
 			groupDbo.setVal("e_mail", email);
 			svw.saveObject(groupDbo);
-			writeToScreen("Group " + groupName + " successfully created/updated");
+			writeToScreen(screenText + groupName + " successfully finished");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + groupName + " can not be created/updated");
+			writeToScreen(Sv.ERROR + screenText + groupName);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				log4j.error("Error, user " + groupName + " can not be created/updated", ex);
+				log4j.error(Sv.ERROR + screenText + groupName, ex);
 			}
 			returnStatus = -1;
 		}
@@ -763,12 +766,12 @@ public class SvarogInstall {
 			writeToScreen("User " + user + " successfully " + groupOperation + " group: " + group);
 			returnStatus = 0;
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + user + " can not be " + groupOperation + " group:" + group);
+			writeToScreen(Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + groupOperation + " group:" + group);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				log4j.error("Error, user " + user + " can not be " + groupOperation + " group:" + group, ex);
+				log4j.error(Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + groupOperation + " group:" + group, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -825,17 +828,20 @@ public class SvarogInstall {
 				}
 				svs.dbCommit();
 			} else {
-				writeToScreen("Error, sid " + (isGroup ? group : user) + " can not be found");
+				writeToScreen("Error, sid " + (isGroup ? group : user) + Sv.CANNOT + " found");
 				returnStatus = -5;
 			}
 
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + user + " can not be " + permissionOperation + " permission:" + group);
+			writeToScreen(
+					Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + permissionOperation + " permission:" + group);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				log4j.error("Error, user " + user + " can not be " + permissionOperation + " permission:" + group, ex);
+				log4j.error(
+						Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + permissionOperation + " permission:" + group,
+						ex);
 			}
 			returnStatus = -1;
 		} finally {
