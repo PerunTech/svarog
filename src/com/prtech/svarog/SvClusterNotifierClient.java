@@ -53,17 +53,21 @@ public class SvClusterNotifierClient implements Runnable {
 	static private ZContext context = null;
 
 	/**
-	 * Flag if the client is running
+	 * Flag if the main client thread is running
 	 */
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	static final AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	/**
+	 * Flag if the notifier is in Active state or shutdown
+	 */
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
 
 	/**
 	 * ZMQ publisher socket used for publishing notifications to the cluster
 	 */
 	static ZMQ.Socket pubServerSock = null;
 	/**
-	 * ZMQ subscriber socket used for listening for notifications from the
-	 * cluster
+	 * ZMQ subscriber socket used for listening for notifications from the cluster
 	 */
 	static ZMQ.Socket subServerSock = null;
 
@@ -75,24 +79,24 @@ public class SvClusterNotifierClient implements Runnable {
 	/**
 	 * Timeout for receiving a message on the socket.
 	 */
-	static final int sockeReceiveTimeout = 500;
+	static final int socketReceiveTimeout = 500;
 
 	/**
-	 * Method to initialise the notifier client. The client uses the ip address
-	 * list and tries to connect the publisher and subscriber sockets to any of
-	 * the available addresses. If connection is successful, returns true. The
-	 * sockets connected on the next 2 ports above the heart beat port
+	 * Method to initialise the notifier client. The client uses the ip address list
+	 * and tries to connect the publisher and subscriber sockets to any of the
+	 * available addresses. If connection is successful, returns true. The sockets
+	 * connected on the next 2 ports above the heart beat port
 	 * 
-	 * @param ipAddressList
-	 *            List of ip addresses which is registered by the coordinator
-	 *            node
+	 * @param ipAddressList List of ip addresses which is registered by the
+	 *                      coordinator node
 	 * @return True if the client connected to the coordinator successfully
 	 */
 	static boolean initClient(String ipAddressList) {
-		if (isRunning.get()) {
-			log4j.error("Notifier client thread is already running. Shutdown first");
+		if (!isActive.compareAndSet(false, true)) {
+			log4j.debug("Notifier client is already active. Shutdown first");
 			return false;
 		}
+		boolean initSuccess = false;
 		// Socket to talk to clients
 		if (context == null)
 			context = new ZContext();
@@ -116,11 +120,18 @@ public class SvClusterNotifierClient implements Runnable {
 				subServerSock = subSock;
 				log4j.info("Notification publisher connected to host:" + ip[0] + ":" + publisherPort);
 			}
-			if (pubServerSock != null && subServerSock != null)
+			initSuccess = (pubServerSock != null && subServerSock != null);
+
+			if (initSuccess)
 				break;
 		}
-		subServerSock.setReceiveTimeOut(sockeReceiveTimeout);
-		return (pubServerSock != null && subServerSock != null);
+		if (initSuccess)
+			subServerSock.setReceiveTimeOut(socketReceiveTimeout);
+		else {
+			isActive.set(false);
+			log4j.error("Notifier client failed to connect/bind to required ports");
+		}
+		return initSuccess;
 	}
 
 	/**
@@ -132,11 +143,14 @@ public class SvClusterNotifierClient implements Runnable {
 			return;
 		}
 		try {
-			// do sleep until socket is able to close within timeout
-			Thread.sleep(sockeReceiveTimeout);
+			// do wait for the main thread to shutdown
+			while (isActive.get())
+				synchronized (isActive) {
+					isActive.wait();
+				}
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log4j.warn("Shutdown procedure raised exception", e);
+			Thread.currentThread().interrupt();
 		}
 		if (context != null) {
 			context.close();
@@ -154,8 +168,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a dirty array notification to the other nodes in the
 	 * cluster
 	 * 
-	 * @param dba
-	 *            The DbDataArray instance which should be published as dirty
+	 * @param dba The DbDataArray instance which should be published as dirty
 	 */
 	static public void publishDirtyArray(DbDataArray dba) {
 		publishDirtyArray(dba, pubServerSock);
@@ -165,13 +178,11 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a dirty array notification to the other nodes in the
 	 * cluster
 	 * 
-	 * @param dba
-	 *            The DbDataArray instance which should be published as dirty
-	 * @param socket
-	 *            The socket on which the dirty IDs should be sent (if the node
-	 *            is coordinator, it shall send on the proxy socket. If the node
-	 *            is worker, then it will publish on the publish socket of the
-	 *            NotifierClient
+	 * @param dba    The DbDataArray instance which should be published as dirty
+	 * @param socket The socket on which the dirty IDs should be sent (if the node
+	 *               is coordinator, it shall send on the proxy socket. If the node
+	 *               is worker, then it will publish on the publish socket of the
+	 *               NotifierClient
 	 * 
 	 */
 	static void publishDirtyArray(DbDataArray dba, ZMQ.Socket socket) {
@@ -194,10 +205,12 @@ public class SvClusterNotifierClient implements Runnable {
 					}
 					objectCount = 0;
 					currentType = dbo.getObjectType();
-					msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * (dba.size() - totalCount)));
+					msgBuffer = ByteBuffer.allocate(
+							SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * (dba.size() - totalCount)));
 					msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
 					msgBuffer.putLong(currentType);
 				}
+				assert (msgBuffer != null);
 				msgBuffer.putLong(dbo.getObjectId());
 				totalCount++;
 				objectCount++;
@@ -221,13 +234,11 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a dirty tiles notification to the other nodes in the
 	 * cluster
 	 * 
-	 * @param dba
-	 *            The DbDataArray instance which should be published as dirty
-	 * @param socket
-	 *            The socket on which the dirty IDs should be sent (if the node
-	 *            is coordinator, it shall send on the proxy socket. If the node
-	 *            is worker, then it will publish on the publish socket of the
-	 *            NotifierClient
+	 * @param dba    The DbDataArray instance which should be published as dirty
+	 * @param socket The socket on which the dirty IDs should be sent (if the node
+	 *               is coordinator, it shall send on the proxy socket. If the node
+	 *               is worker, then it will publish on the publish socket of the
+	 *               NotifierClient
 	 * 
 	 */
 	static void publishDirtyTileArray(List<SvSDITile> tiles) {
@@ -238,13 +249,11 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a dirty tiles notification to the other nodes in the
 	 * cluster
 	 * 
-	 * @param dba
-	 *            The DbDataArray instance which should be published as dirty
-	 * @param socket
-	 *            The socket on which the dirty IDs should be sent (if the node
-	 *            is coordinator, it shall send on the proxy socket. If the node
-	 *            is worker, then it will publish on the publish socket of the
-	 *            NotifierClient
+	 * @param dba    The DbDataArray instance which should be published as dirty
+	 * @param socket The socket on which the dirty IDs should be sent (if the node
+	 *               is coordinator, it shall send on the proxy socket. If the node
+	 *               is worker, then it will publish on the publish socket of the
+	 *               NotifierClient
 	 * 
 	 */
 	static void publishDirtyTileArray(List<SvSDITile> tiles, ZMQ.Socket socket) {
@@ -274,7 +283,8 @@ public class SvClusterNotifierClient implements Runnable {
 					// every message will have the message type, the tile type
 					// (long) and two integers for the cell multiplied by the
 					// number of tiles
-					msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (SvUtil.sizeof.INT * 2 * (tiles.size() - totalCount)));
+					msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG
+							+ (SvUtil.sizeof.INT * 2 * (tiles.size() - totalCount)));
 					msgBuffer.put(SvCluster.NOTE_DIRTY_TILE);
 					msgBuffer.putLong(currentType);
 				}
@@ -304,10 +314,8 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a dirty object notification to the other nodes in the
 	 * cluster
 	 * 
-	 * @param objectId
-	 *            The id of the dirty object
-	 * @param objectTypeId
-	 *            The type of the dirty object
+	 * @param objectId     The id of the dirty object
+	 * @param objectTypeId The type of the dirty object
 	 */
 	static public void publishDirtyObject(long objectId, long objectTypeId) {
 		if (pubServerSock != null) {
@@ -326,8 +334,7 @@ public class SvClusterNotifierClient implements Runnable {
 	/**
 	 * Method to publish a logoff notification to the other nodes in the cluster
 	 * 
-	 * @param sessionId
-	 *            String representation of the user session/token
+	 * @param sessionId String representation of the user session/token
 	 */
 	static public void publishLogoff(String sessionId) {
 		if (pubServerSock != null) {
@@ -347,8 +354,7 @@ public class SvClusterNotifierClient implements Runnable {
 	/**
 	 * Method to publish a logoff notification to the other nodes in the cluster
 	 * 
-	 * @param sessionId
-	 *            String representation of the user session/token
+	 * @param sessionId String representation of the user session/token
 	 */
 	static public void publishAck(Integer ackValue, byte successMsg) {
 		if (pubServerSock != null) {
@@ -366,16 +372,17 @@ public class SvClusterNotifierClient implements Runnable {
 	}
 
 	/**
-	 * Runnable method for running the main Notifier client thread. It will
-	 * receive messages from the subscriber socked, process them through the
-	 * processMessage method, the
+	 * Runnable method for running the main Notifier client thread. It will receive
+	 * messages from the subscriber socked, process them through the processMessage
+	 * method, the
 	 */
 	@Override
 	public void run() {
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("Notify subscriber thread is already running. Shutdown first");
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName()+ ".run() failed. Current status is active:"+isActive.get()+". Main server thread is running:"+isRunning.get());
 			return;
 		}
+
 		if (subServerSock != null) {
 			subServerSock.subscribe(ZMQ.SUBSCRIPTION_ALL);
 			log4j.info("Notify subscriber client started");
@@ -396,23 +403,24 @@ public class SvClusterNotifierClient implements Runnable {
 		} else
 			log4j.error("Subscriber socket not available, ensure proper initialisation");
 
-		// set the running flag to false
-		isRunning.compareAndSet(true, false);
+		// set the active flag to false and notify the waiting threads
+		isActive.set(false);
+		synchronized (isActive) {
+			isActive.notifyAll();
+		}
 	}
 
 	/**
 	 * Method for processing lock notification NOTE_LOCK_ACQUIRED
 	 * 
-	 * @param msgBuffer
-	 *            The buffer associated with the lock acquired message
+	 * @param msgBuffer The buffer associated with the lock acquired message
 	 * @return If the message was processed, return true
 	 */
 	private static boolean processLockAcquired(ByteBuffer msgBuffer) {
 		Long remoteNodeId = msgBuffer.getLong();
 		Integer ackValue = msgBuffer.getInt();
-		String lockKey = new String(
-				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG + SvUtil.sizeof.INT, msgBuffer.array().length),
-				ZMQ.CHARSET);
+		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG + SvUtil.sizeof.INT,
+				msgBuffer.array().length), ZMQ.CHARSET);
 		byte lockResult = SvCluster.MSG_FAIL;
 		// get the key then acquire, then update the hash
 		if (!remoteNodeId.equals(SvClusterClient.nodeId)) {
@@ -429,8 +437,7 @@ public class SvClusterNotifierClient implements Runnable {
 	/**
 	 * Method for processing lock notification NOTE_LOCK_ACQUIRED
 	 * 
-	 * @param msgBuffer
-	 *            The buffer associated with the lock acquired message
+	 * @param msgBuffer The buffer associated with the lock acquired message
 	 * @return If the message was processed, return true
 	 */
 	private static boolean processLockReleased(ByteBuffer msgBuffer) {
@@ -446,10 +453,10 @@ public class SvClusterNotifierClient implements Runnable {
 
 	/**
 	 * Method to process the notification messages. This method handles the
-	 * DIRTY_OBJECT and LOGOFF messages. Processing DIRTY_OBJECT: the method it
-	 * self calls the SvWriter.cacheCleanup to remove dirty objects from the
-	 * cache. Processing LOGOFF: the method it self calls the SvSecurity.logoff
-	 * to perform log-off.
+	 * DIRTY_OBJECT and LOGOFF messages. Processing DIRTY_OBJECT: the method it self
+	 * calls the SvWriter.cacheCleanup to remove dirty objects from the cache.
+	 * Processing LOGOFF: the method it self calls the SvSecurity.logoff to perform
+	 * log-off.
 	 * 
 	 * @param msgBuffer
 	 */
@@ -506,15 +513,12 @@ public class SvClusterNotifierClient implements Runnable {
 			UUID uuid = new UUID(mostSigBits, leastSigBits);
 			if (log4j.isDebugEnabled())
 				log4j.debug("Received logoff notification with token:" + uuid.toString());
-			SvSecurity svs = null;
-			try {
-				svs = new SvSecurity();
+
+			try (SvSecurity svs = new SvSecurity()) {
+
 				svs.logoff(uuid.toString());
 			} catch (SvException e) {
 				log4j.info("Logoff message (for token " + uuid.toString() + ") was not processed", e);
-			} finally {
-				if (svs != null)
-					svs.release();
 			}
 		}
 			break;

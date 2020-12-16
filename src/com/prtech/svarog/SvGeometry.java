@@ -20,10 +20,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.IOUtils;
 
@@ -35,15 +38,21 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.SvCharId;
+import com.vividsolutions.jts.algorithm.Angle;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
+import com.vividsolutions.jts.operation.polygonize.Polygonizer;
+import com.vividsolutions.jts.operation.union.UnaryUnionOp;
+import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
+import com.google.common.math.DoubleMath;
 
 /**
  * Class for handling all kinds of GIS information attached to the standard
@@ -56,53 +65,56 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
  */
 public class SvGeometry extends SvCore {
 
-	private static STRtree gridIndex = new STRtree();
+	/**
+	 * The main index of grid geometries.
+	 */
+	private static STRtree gridIndex = null;
 
+	/**
+	 * The envelope of the boundaries of the system
+	 */
 	private static Envelope systemBoundsEnvelope = null;
 
 	static private Map<String, Geometry> gridMap = new HashMap<String, Geometry>();
 
 	private static ArrayList<String> borderTiles = new ArrayList<String>();
+
 	static int maxYtile = 0;
 	static int maxXtile = 0;
 
-	static long admUnitClass = 0;
+	static AtomicBoolean isSDIInitalized = new AtomicBoolean(false);
 
-	static boolean allowBoundaryIntersect = false;
-	static private boolean isSDIInitalized = initSDI();
-
-	static private Map<Long, Cache<String, SvSDITile>> sdiCache = new ConcurrentHashMap<Long, Cache<String, SvSDITile>>();
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	static private Cache<String, SvSDITile> cacheConfig(DbDataObject objectdDescriptor) {
-		CacheBuilder builder = CacheBuilder.newBuilder();
-		if (objectdDescriptor != null) {
-			String cType = (String) objectdDescriptor.getVal("cache_type");
-
-			if (cType.equals("LRU") || cType.equals("LRU_TTL")) {
-				if (objectdDescriptor.getVal("cache_size") != null)
-					builder = builder.maximumSize((Long) objectdDescriptor.getVal("cache_size"));
-				else
-					builder = builder.maximumSize((Long) objectdDescriptor.getVal("cache_size"));
-
-			}
-
-			if (cType.equals("TTL") || cType.equals("LRU_TTL")) {
-				if (objectdDescriptor.getVal("cache_expiry") != null)
-					builder = builder.expireAfterAccess((Long) objectdDescriptor.getVal("cache_expiry"),
-							TimeUnit.MINUTES);
-				else
-					builder = builder.expireAfterAccess(10, TimeUnit.MINUTES);
-
-			}
-
-			// if (!cType.equals("PERM"))
-			// builder = builder.removalListener(onRemove);
-		} else {
-			builder = builder.expireAfterAccess(10, TimeUnit.MINUTES);
-			builder = builder.maximumSize(100);
+	static {
+		if (!isSDIInitalized()) {
+			GeometryCollection c = loadGridFromJson("conf/sdi/grid.json");
+			boolean initialised = prepareGrid(c);
+			isSDIInitalized.set(initialised);
 		}
-		return (Cache<String, SvSDITile>) builder.<String, SvSDITile>build();
+	}
+
+	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
+
+	static Cache<String, SvSDITile> getLayerCache(Long tileTypeId) {
+		Cache<String, SvSDITile> cache = null;
+		cache = layerCache.get(tileTypeId);
+		if (cache == null) {
+			DbDataObject dbt = null;
+			try {
+				if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
+					dbt = getDbt(tileTypeId);
+
+				@SuppressWarnings("unchecked")
+				CacheBuilder<String, SvSDITile> b = (CacheBuilder<String, SvSDITile>) DbCache.createBuilder(dbt);
+				Cache<String, SvSDITile> newCache = b.<String, SvSDITile>build();
+				cache = layerCache.putIfAbsent(tileTypeId, newCache);
+				cache = cache != null ? cache : newCache;
+			} catch (SvException ex) {
+				if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
+					log4j.warn("Tile type id: " + tileTypeId.toString()
+							+ " is not representing a valid system object in the svarog tables list");
+			}
+		}
+		return cache;
 	}
 
 	/**
@@ -144,103 +156,99 @@ public class SvGeometry extends SvCore {
 	}
 
 	public static Geometry getGeometry(DbDataObject dbo) {
-		return (Geometry) dbo.getVal(getGeometryFieldName(dbo.getObject_type()));
+		return (Geometry) dbo.getVal(getGeometryFieldName(dbo.getObjectType()));
 	}
 
 	public static Point getCentroid(DbDataObject dbo) {
-		return (Point) dbo.getVal(getCentroidFieldName(dbo.getObject_type()));
+		return (Point) dbo.getVal(getCentroidFieldName(dbo.getObjectType()));
 	}
 
 	public static String getGeometryFieldName(Long objectType) {
-		return "GEOM";
+		return Sv.GEOM;
 	}
 
 	public static String getCentroidFieldName(Long objectType) {
-		return "CENTROID";
+		return Sv.CENTROID;
 	}
 
 	public static void setGeometry(DbDataObject dbo, Geometry geom) {
-		dbo.setVal(getGeometryFieldName(dbo.getObject_type()), geom);
+		dbo.setVal(getGeometryFieldName(dbo.getObjectType()), geom);
 	}
 
 	public static void setCentroid(DbDataObject dbo, Point centroid) {
-		dbo.setVal(getCentroidFieldName(dbo.getObject_type()), centroid);
+		dbo.setVal(getCentroidFieldName(dbo.getObjectType()), centroid);
 	}
 
-	// private static Boolean initGrid = initGrid();
-	static boolean initSDI() {
-		try {
-			admUnitClass = Long.parseLong(SvConf.getParam("sys.gis.legal_sdi_unit_type"));
-
-		} catch (Exception e) {
-			log4j.error(
-					"Can't configure sdi unit legal type via config: sys.gis.legal_sdi_unit_type. Set default to 1");
-		}
-		allowBoundaryIntersect = SvConf.getParam("sys.gis.allow_boundary_intersect") != null
-				&& SvConf.getParam("sys.gis.allow_boundary_intersect").equalsIgnoreCase("TRUE");
+	/**
+	 * Method to initialise the system grid from a JSON file
+	 * 
+	 * @param gridFileName The filename containing the grid
+	 * @return collection of square geometries forming the system grid
+	 */
+	static GeometryCollection loadGridFromJson(String gridFileName) {
+		GeometryCollection grid = null;
 		if (log4j.isDebugEnabled())
-			log4j.trace("Loading base SDI grid from:./conf/sdi/grid.json");
+			log4j.trace("Loading base SDI grid from:" + gridFileName);
 		String geoJSONBounds = null;
 		InputStream is = null;
 		try {
-			is = SvGeometry.class.getClassLoader().getResourceAsStream("conf/sdi/grid.json");
-			if (is == null) {
-				String path = "./conf/sdi/grid.json";
-				is = new FileInputStream(path);
-			}
-			if (is != null) {
-				geoJSONBounds = IOUtils.toString(is);
-			}
-		} catch (IOException e) {
-			log4j.error("Failed loading base SDI grid from:./conf/sdi/grid.json", e);
-			return false;
+			String path = gridFileName;
+			is = new FileInputStream(path);
+			geoJSONBounds = IOUtils.toString(is);
+			GeoJsonReader jtsReader = new GeoJsonReader();
+			jtsReader.setUseFeatureType(true);
+			grid = (GeometryCollection) jtsReader.read(geoJSONBounds);
+			if (log4j.isDebugEnabled())
+				log4j.trace("Base SDI grid loaded:" + gridFileName);
+		} catch (Exception e) {
+			log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
 		} finally {
 			if (is != null)
 				try {
 					is.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
 				}
 		}
+		return grid;
+	}
 
-		GeoJsonReader jtsReader = new GeoJsonReader();
-		GeometryCollection grid = null;
+	/**
+	 * Method to build the gridIndex and populate the gridmap based on the grid
+	 * specified by the geometry collection
+	 * 
+	 * @param grid The geometry collection which represents the system grid
+	 * @return
+	 */
+	static boolean prepareGrid(GeometryCollection grid) {
 		Geometry gridItem = null;
+		gridIndex = new STRtree();
 		try {
-			jtsReader.setUseFeatureType(true);
-			grid = (GeometryCollection) jtsReader.read(geoJSONBounds);
-			if (grid != null) {
-				for (int i = 0; i < grid.getNumGeometries(); i++) {
-					gridItem = grid.getGeometryN(i);
-					String TileId = (String) gridItem.getUserData();
-					String[] baseId = TileId.split("-");
-					if (baseId[1] != null && baseId[1].equals("true"))
-						borderTiles.add(baseId[0]);
-					gridItem.setUserData(baseId[0]);
-					String[] tileColRow = baseId[0].split(":");
-					if (maxXtile < Integer.parseInt(tileColRow[0]))
-						maxXtile = Integer.parseInt(tileColRow[0]);
-					if (maxYtile < Integer.parseInt(tileColRow[1]))
-						maxYtile = Integer.parseInt(tileColRow[1]);
-					gridIndex.insert(gridItem.getEnvelopeInternal(), gridItem);
-					if (systemBoundsEnvelope == null)
-						systemBoundsEnvelope = new Envelope(gridItem.getEnvelopeInternal());
-					else
-						systemBoundsEnvelope.expandToInclude(gridItem.getEnvelopeInternal());
-					gridMap.put(baseId[0], gridItem);
-				}
+			for (int i = 0; i < grid.getNumGeometries(); i++) {
+				gridItem = grid.getGeometryN(i);
+				String TileId = (String) gridItem.getUserData();
+				String[] baseId = TileId.split("-");
+				if (baseId[1] != null && baseId[1].equals("true"))
+					borderTiles.add(baseId[0]);
+				gridItem.setUserData(baseId[0]);
+				String[] tileColRow = baseId[0].split(":");
+				if (maxXtile < Integer.parseInt(tileColRow[0]))
+					maxXtile = Integer.parseInt(tileColRow[0]);
+				if (maxYtile < Integer.parseInt(tileColRow[1]))
+					maxYtile = Integer.parseInt(tileColRow[1]);
+				gridIndex.insert(gridItem.getEnvelopeInternal(), gridItem);
+				if (systemBoundsEnvelope == null)
+					systemBoundsEnvelope = new Envelope(gridItem.getEnvelopeInternal());
+				else
+					systemBoundsEnvelope.expandToInclude(gridItem.getEnvelopeInternal());
+				gridMap.put(baseId[0], gridItem);
 			}
 		} catch (Exception e) {
-			log4j.error("Failed parsing JSON grid:./conf/sdi/grid.json", e);
+			log4j.error("Failed initialising system grid!", e);
 			return false;
 		}
-
 		gridIndex.build();
-		if (log4j.isDebugEnabled())
-			log4j.trace("Base SDI grid loaded:./conf/sdi/grid.json");
 		return true;
-
 	}
 
 	public static Map<String, Geometry> getGrid() {
@@ -274,7 +282,207 @@ public class SvGeometry extends SvCore {
 	 * @return List of {@link Geometry} objects
 	 */
 	public static List<Geometry> getTileGeometries(Envelope envelope) {
+		@SuppressWarnings("unchecked")
 		List<Geometry> result = gridIndex.query(envelope);
+		return result;
+	}
+
+	/**
+	 * Method to find all geometries from the layer identified with layerTypeId,
+	 * which have a spatial relation of type sdiRelation with Geometry specified by
+	 * the geom parameter
+	 * 
+	 * @param geom            The related geometry
+	 * @param layerTypeId     The layer which is test for relation
+	 * @param sdiRelation     The spatial relation
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal
+	 * @param excludeSelf     Flag if you want to exclude the test against self
+	 *                        (requires that both geometries have been saved to the
+	 *                        DB and have valid object Id)
+	 * @return A set of related geometries
+	 * @throws SvException Exception if raised by underlying methods
+	 */
+	public Set<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
+			SvCharId filterFieldName, Object filterValue, boolean excludeSelf) throws SvException {
+		HashSet<Geometry> geoms = new HashSet<>();
+		SvCharId objectIdField = new SvCharId(Sv.OBJECT_ID);
+		if (geom != null) {
+			DbDataObject userData = (DbDataObject) geom.getUserData();
+			Object geometryOid = userData != null ? userData.getObjectId() : null;
+			@SuppressWarnings("unchecked")
+			List<Geometry> gridItems = gridIndex.query(geom.getEnvelopeInternal());
+			for (Geometry gridGeom : gridItems) {
+				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
+				Set<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
+				for (Geometry g : relatedGeoms) {
+					// apply the filter by value
+					DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
+					if (SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue))
+						continue;
+					// exclude self if needed
+					if (excludeSelf && SvUtil.fieldMatchValue(relatedUserData, objectIdField, geometryOid))
+						continue;
+
+					if (!geoms.contains(g))
+						geoms.add(g);
+				}
+			}
+		}
+		return geoms;
+	}
+
+	/**
+	 * Method to create a geometry from point selector over layer identified with
+	 * layerTypeId. The geometries found in the base layer shall be cut off from the
+	 * diff layer and the result will be provided back to the caller
+	 * 
+	 * @param point                The point from which we can select the source
+	 *                             geometries
+	 * @param layerTypeId          The layer from which we shall load the geometries
+	 * @param diffLayer            The target layer over which we should do
+	 *                             difference
+	 * @param allowMultiGeometries Flag to allow one point to select more than one
+	 *                             geometry
+	 * @return A set of resulting geometries
+	 * @throws SvException if allowMulti geometries is false, and the base layer has
+	 *                     more than one geometry intersecting with the point, a
+	 *                     Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND exception will be
+	 *                     raised
+	 */
+	public Set<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer, boolean allowMultiGeometries)
+			throws SvException {
+		Set<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, point));
+		Set<Geometry> result = new HashSet<>();
+		for (Geometry originalGeom : intersected) {
+			Set<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null, null,
+					false);
+			for (Geometry relatedGeom : related) {
+				originalGeom = originalGeom.difference(relatedGeom);
+			}
+			// if the difference resulted in multipolygon, we are interested only in the
+			// polygon which covers the point
+			if (originalGeom.getNumGeometries() > 1)
+				for (int i = 0; i < originalGeom.getNumGeometries(); i++) {
+					Geometry gp = originalGeom.getGeometryN(i);
+					if (gp.covers(point)) {
+						originalGeom = gp;
+						break;
+					}
+
+				}
+			result.add(originalGeom);
+		}
+		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	public Set<Geometry> splitGeometry(LineString line, Long layerTypeId, boolean allowMultiGeometries)
+			throws SvException {
+		if (!line.isSimple())
+			throw (new SvException("system.error.sdi.line_intersects_self", svCONST.systemUser, null, line));
+
+		Set<Geometry> intersected = getRelatedGeometries(line, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+		Iterator<Geometry> iterator = intersected.iterator();
+		while (iterator.hasNext()) {
+			Geometry findGeom = iterator.next();
+			if (!findGeom.disjoint(line.getStartPoint()) || !findGeom.disjoint(line.getEndPoint()))
+				iterator.remove();
+		}
+
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, line));
+
+		Set<Geometry> result = new HashSet<>();
+		for (Geometry originalGeom : intersected) {
+			Geometry[] geometries = new Geometry[] { originalGeom.getBoundary(), line };
+			GeometryCollection col = SvUtil.sdiFactory.createGeometryCollection(geometries);
+			Geometry union = UnaryUnionOp.union(col);
+			Polygonizer polygonizer = new Polygonizer();
+			polygonizer.add(union);
+			for (Polygon poly : (Collection<Polygon>) polygonizer.getPolygons()) {
+				poly.setUserData(originalGeom.getUserData());
+				result.add(poly);
+			}
+
+			// if the difference resulted in multipolygon, we are interested only in the
+			// polygon which covers the point
+
+		}
+		return result;
+	}
+
+	private void mergeGeometriesDbUpdate(Geometry first, ArrayList<Object> deletedGeometries, boolean autoCommit)
+			throws SvException {
+		// get the previous state of autocommit
+		boolean oldAutoCommit = this.getAutoCommit();
+		try (SvWriter svw = new SvWriter(this)) {
+			// set autocommit to false to ensure all deletes and saves are in single
+			// transaction
+			this.setAutoCommit(false);
+			DbDataObject dbo = null;
+			// delete the others
+			for (Object dbd : deletedGeometries) {
+				dbo = (DbDataObject) dbd;
+				svw.deleteObject(dbo);
+			}
+			// now save the first updated, geometry
+			dbo = (DbDataObject) first.getUserData();
+			SvGeometry.setGeometry(dbo, first);
+			this.saveGeometry(dbo);
+
+			if (autoCommit)
+				this.dbCommit();
+		} finally {
+			this.dbSetAutoCommit(oldAutoCommit);
+		}
+
+	}
+
+	Set<Geometry> getGeometryByPoint(Point p, Long layerTypeId, boolean allowMultiGeometries) throws SvException {
+		Set<Geometry> intersected = getRelatedGeometries(p, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
+		Iterator<Geometry> iterator = intersected.iterator();
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, p));
+
+		if (!iterator.hasNext())
+			throw (new SvException(Sv.Exceptions.SDI_MERGE_GEOM_EMPTY, svCONST.systemUser, null, p));
+
+		return intersected;
+	}
+
+	public Geometry mergeGeometries(List<Point> points, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
+			boolean autoCommit) throws SvException {
+
+		Object userData = null;
+		ArrayList<Object> objectsToDelete = new ArrayList<>();
+		if (points.size() < 2)
+			throw (new SvException(Sv.Exceptions.SDI_MERGE_REQUIRES_2PLUS, svCONST.systemUser, null, points));
+
+		Geometry result = getGeometryByPoint(points.get(0), layerTypeId, allowMultiGeometries).iterator().next();
+
+		for (int i = 1; i < points.size(); i++) {
+			Iterator<Geometry> iterator = getGeometryByPoint(points.get(i), layerTypeId, allowMultiGeometries)
+					.iterator();
+
+			while (iterator.hasNext()) {
+				Geometry g = iterator.next();
+				if (result.disjoint(g))
+					throw (new SvException(Sv.Exceptions.SDI_MERGE_GEOM_DISJOINT, svCONST.systemUser, null, g));
+
+				if (!objectsToDelete.contains(g.getUserData())) {
+					result = result.union(g);
+					objectsToDelete.add(g.getUserData());
+				}
+			}
+		}
+		result.setUserData(userData);
+		if (!preview) {
+			mergeGeometriesDbUpdate(result, objectsToDelete, autoCommit);
+		}
 
 		return result;
 	}
@@ -286,9 +494,9 @@ public class SvGeometry extends SvCore {
 	 * @param layerTypeId the object id of the layer/object type from which to fetch
 	 *                    the geometries
 	 * @param bbox        The string representation of the bounding box
-	 * @return List of {@link Geometry} objects
+	 * @return Set of {@link Geometry} objects
 	 */
-	public ArrayList<Geometry> getGeometriesByBBOX(Long layerTypeId, String bbox) throws SvException {
+	public Set<Geometry> getGeometriesByBBOX(Long layerTypeId, String bbox) throws SvException {
 		Envelope envelope = parseBBox(bbox);
 		return getGeometries(layerTypeId, envelope);
 	}
@@ -300,17 +508,34 @@ public class SvGeometry extends SvCore {
 	 * @param layerTypeId the object id of the layer/object type from which to fetch
 	 *                    the geometries
 	 * @param envelope    The {@link Envelope} of the region we are interested in
+	 * @return Set of {@link Geometry} objects
+	 */
+	public Set<Geometry> getGeometries(Long typeId, Envelope envelope) throws SvException {
+		return getRelatedGeometries(SvUtil.sdiFactory.toGeometry(envelope), typeId, SDIRelation.INTERSECTS, null, null,
+				false);
+	}
+
+	/**
+	 * Method that returns the all geometries from a specific layer within a
+	 * bounding box
+	 * 
+	 * @param layerTypeId  the object id of the layer/object type from which to
+	 *                     fetch the geometries
+	 * @param selector     The {@link Geometry} which we want to use as selector
+	 * @param partialCover flag to notify if we want to include partially covered
 	 * @return List of {@link Geometry} objects
 	 */
-	public ArrayList<Geometry> getGeometries(Long typeId, Envelope envelope) throws SvException {
-		List<Geometry> result = gridIndex.query(envelope);
+	public ArrayList<Geometry> getGeometries(Long typeId, Geometry selector, boolean partialCover) throws SvException {
+		@SuppressWarnings("unchecked")
+		List<Geometry> result = gridIndex.query(selector.getEnvelopeInternal());
+		SDIRelation operator = partialCover ? SDIRelation.INTERSECTS : SDIRelation.COVEREDBY;
 		ArrayList<Geometry> geoms = new ArrayList<Geometry>();
 		for (Geometry tileGeom : result) {
 			SvSDITile tile = getTile(typeId, (String) tileGeom.getUserData(), null);
-			if (envelope.covers(tile.getEnvelope())) {
+			if (selector.covers(tileGeom)) {
 				geoms.addAll(tile.getInternalGeometries());
 			} else {
-				geoms.addAll(tile.getRelations(SvUtil.sdiFactory.toGeometry(envelope), SDIRelation.INTERSECTS, true));
+				geoms.addAll(tile.getRelations(selector, operator, true));
 			}
 		}
 		return geoms;
@@ -390,51 +615,37 @@ public class SvGeometry extends SvCore {
 	 * Method to calculate the difference of the input geometry against the list of
 	 * intersections
 	 * 
-	 * @param geom            The geometry which should used to calculate the
-	 *                        difference from.
-	 * @param intersections   The array of geometries which are intersecting with
-	 *                        the source geometry
-	 * @param filterFieldName The field name of the associated DbDataObject of the
-	 *                        layer geometry which should be filtered
-	 * @param filterValue     The which should be matched as equal
+	 * @param geom          The geometry which should used to calculate the
+	 *                      difference from.
+	 * @param intersections The set of geometries which are intersecting with the
+	 *                      source geometry
 	 * @return
 	 */
-	Geometry calcGeomDiff(Geometry geom, ArrayList<Geometry> intersections, SvCharId filterFieldName,
-			Object filterValue, boolean intersectTestOnly) {
+	Geometry calcGeomDiff(Geometry geom, Set<Geometry> intersections) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
-		for (Geometry relatedGeom : intersections) {
-			DbDataObject relatedUserData = ((DbDataObject) relatedGeom.getUserData());
-			if (filterFieldName != null && !filterValue.equals(relatedUserData.getVal(filterFieldName, true)))
-				continue;
+		Geometry result = geom;
 
-			if (userData == null
-					|| (userData != null && !userData.getObjectId().equals(relatedUserData.getObjectId()))) {
-				if (!intersectTestOnly)
-					geom = geom.difference(relatedGeom);
-				else {
-					return null;
-				}
-			}
-		}
-		geom.setUserData(userData);
-		return geom;
+		for (Geometry relatedGeom : intersections)
+			result = result.difference(relatedGeom);
+
+		if (result != null)
+			result.setUserData(userData);
+
+		return result;
 	}
 
 	private Geometry cutLayerFromGeomImpl(Geometry geom, Long layerTypeId, boolean testOnly, SvCharId filterFieldName,
 			Object filterValue) throws SvException {
-		if (geom == null)
-			return null;
-		Envelope envelope = geom.getEnvelopeInternal();
-		List<Geometry> result = gridIndex.query(envelope);
-		for (Geometry tileGeom : result) {
-			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
-			ArrayList<Geometry> intersections = tile.getRelations(geom, SDIRelation.INTERSECTS, false);
-			geom = calcGeomDiff(geom, intersections, filterFieldName, filterValue, testOnly);
-			// null geometry is returned only in case when we tested positive for intersections.
-			if (geom == null)
-				break;
-		}
-		return geom;
+		Geometry updatedGeometry = null;
+		Set<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, filterFieldName,
+				filterValue, true);
+
+		if (!testOnly)
+			updatedGeometry = calcGeomDiff(geom, intersections);
+		else
+			updatedGeometry = !intersections.isEmpty() ? geom : null;
+
+		return updatedGeometry;
 	}
 
 	public Collection<Geometry> cutGeomFromLayer(Geometry geom, Long layerTypeId) throws SvException {
@@ -455,48 +666,35 @@ public class SvGeometry extends SvCore {
 		return cutGeomFromLayerImpl(geom, layerTypeId, true, filterFieldName, filterValue) != null;
 	}
 
-	void calcLayerDiff(Geometry geom, ArrayList<Geometry> intersections, Map<Long, Geometry> updatedGeometries,
-			SvCharId filterFieldName, Object filterValue) {
+	Set<Geometry> calcLayerDiff(Geometry geom, Set<Geometry> intersections) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
-
+		HashSet<Geometry> updatedGeometries = new HashSet<>();
 		for (Geometry relatedGeom : intersections) {
 			DbDataObject relatedUserData = ((DbDataObject) relatedGeom.getUserData());
-			// apply the filter if not null
-			if (filterFieldName != null && !filterValue.equals(relatedUserData.getVal(filterFieldName, true)))
-				continue;
-			// if we haven't processed the geometry
-			if (!updatedGeometries.containsKey(relatedUserData.getObjectId())) {
-				if (userData == null
-						|| (userData != null && !userData.getObjectId().equals(relatedUserData.getObjectId()))) {
-					Geometry modifiedGeom = relatedGeom.difference(geom);
-					modifiedGeom.setUserData(relatedUserData);
-					updatedGeometries.put(relatedUserData.getObjectId(), modifiedGeom);
-				}
-
+			if (userData == null
+					|| (userData != null && !userData.getObjectId().equals(relatedUserData.getObjectId()))) {
+				Geometry modifiedGeom = relatedGeom.difference(geom);
+				modifiedGeom.setUserData(relatedUserData);
+				updatedGeometries.add(modifiedGeom);
 			}
+
 		}
+		return updatedGeometries;
 	}
 
 	Collection<Geometry> cutGeomFromLayerImpl(Geometry geom, Long layerTypeId, boolean testOnly,
 			SvCharId filterFieldName, Object filterValue) throws SvException {
 		if (geom == null)
 			return null;
-		boolean intersectionDetected = false;
-		Envelope envelope = geom.getEnvelopeInternal();
-		List<Geometry> result = gridIndex.query(envelope);
+		Set<Geometry> updatedGeometries = null;
+		Set<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, filterFieldName,
+				filterValue, true);
 
-		Map<Long, Geometry> updatedGeometries = new HashMap<>();
-		for (Geometry tileGeom : result) {
-			SvSDITile tile = getTile(layerTypeId, (String) tileGeom.getUserData(), null);
-			ArrayList<Geometry> intersections = tile.getRelations(geom, SDIRelation.INTERSECTS, false);
-			if (testOnly && intersections != null && intersections.size() > 0) {
-				intersectionDetected = true;
-				break;
-			} else
-				calcLayerDiff(geom, intersections, updatedGeometries, filterFieldName, filterValue);
-
-		}
-		return intersectionDetected ? updatedGeometries.values() : null;
+		if (!testOnly)
+			updatedGeometries = calcLayerDiff(geom, intersections);
+		else
+			updatedGeometries = !intersections.isEmpty() ? intersections : null;
+		return updatedGeometries;
 	}
 
 	/**
@@ -526,7 +724,7 @@ public class SvGeometry extends SvCore {
 			tileParams = new HashMap<String, Object>();
 
 		Envelope tileEnv = getTileEnvelope(tileTypeId, tileId, tileParams);
-		tileParams.put("ENVELOPE", tileEnv);
+		tileParams.put(Sv.ENVELOPE, tileEnv);
 		if (tileTypeId == svCONST.OBJECT_TYPE_SDI_GEOJSONFILE)
 			currentTile = new SvSDIJsonTile(tileTypeId, tileId, tileParams);
 		else
@@ -543,7 +741,7 @@ public class SvGeometry extends SvCore {
 	public static SvSDITile getSysBoundary() {
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		params.put("FILE_PATH", "conf/sdi/boundary.json");
-		return getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, "SYSBOUNDS", params);
+		return getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, Sv.SDI_SYSTEM_BOUNDARY, params);
 	}
 
 	/**
@@ -573,24 +771,7 @@ public class SvGeometry extends SvCore {
 	 * 
 	 */
 	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
-
-		Cache<String, SvSDITile> cache = null;
-		synchronized (sdiCache) {
-			cache = sdiCache.get(tileTypeId);
-			if (cache == null) {
-				DbDataObject dbt = null;
-				try {
-					dbt = getDbt(tileTypeId);
-				} catch (SvException ex) {
-					if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
-						log4j.warn("Tile type id: " + tileTypeId.toString()
-								+ " is not representing a valid system object in the svarog tables list");
-				}
-				cache = cacheConfig(dbt);
-				((ConcurrentHashMap<Long, Cache<String, SvSDITile>>) sdiCache).putIfAbsent(tileTypeId, cache);
-			}
-		}
-
+		Cache<String, SvSDITile> cache = getLayerCache(tileTypeId);
 		SvSDITile svTile = null;
 		synchronized (cache) {
 			svTile = cache.getIfPresent(tileId);
@@ -618,9 +799,10 @@ public class SvGeometry extends SvCore {
 		Point centroid = null;
 		centroid = (geom).getCentroid();
 		Coordinate cor = centroid.getCoordinate();
-		if (cor.x % 1 == 0)
+
+		if (DoubleMath.isMathematicalInteger(cor.x))
 			cor.x = cor.x + factorX;
-		if (cor.y % 1 == 0)
+		if (DoubleMath.isMathematicalInteger(cor.y))
 			cor.y = cor.y + factorY;
 		centroid = SvUtil.sdiFactory.createPoint(cor);
 
@@ -629,9 +811,9 @@ public class SvGeometry extends SvCore {
 				log4j.info("Geometry centroid " + centroid.toText() + "is out of the polygon:" + geom.toText());
 			centroid = geom.getInteriorPoint();
 			cor = centroid.getCoordinate();
-			if (cor.x % 1 == 0)
+			if (DoubleMath.isMathematicalInteger(cor.x))
 				cor.x = cor.x + factorX;
-			if (cor.y % 1 == 0)
+			if (DoubleMath.isMathematicalInteger(cor.y))
 				cor.y = cor.y + factorY;
 			centroid = SvUtil.sdiFactory.createPoint(cor);
 
@@ -642,9 +824,9 @@ public class SvGeometry extends SvCore {
 				// create a random point in the geometry envelope
 				cor.x = env.getMinX() + Math.random() * env.getWidth();
 				cor.y = env.getMinY() + Math.random() * env.getHeight();
-				if (cor.x % 1 == 0)
+				if (DoubleMath.isMathematicalInteger(cor.x))
 					cor.x = cor.x + factorX;
-				if (cor.y % 1 == 0)
+				if (DoubleMath.isMathematicalInteger(cor.y))
 					cor.y = cor.y + factorY;
 				centroid = SvUtil.sdiFactory.createPoint(cor);
 
@@ -762,7 +944,7 @@ public class SvGeometry extends SvCore {
 		if (tiles.size() < 1)
 			throw (new SvException("system.error.sdi.geometry_not_in_grid", this.instanceUser, dbo, null));
 
-		if (!allowBoundaryIntersect)
+		if (!SvConf.isIntersectSysBoundary())
 			for (Geometry tile : tiles) {
 				if (borderTiles.contains((String) tile.getUserData())) {
 					if (tile.covers(geom))
@@ -791,44 +973,352 @@ public class SvGeometry extends SvCore {
 	 *                     units
 	 */
 	public DbDataObject getAdmUnit(Point geom) throws SvException {
-		SvSDITile admTile = getSDIUnitBoundary(admUnitClass);
-		ArrayList<Geometry> units = admTile.getRelations(geom, SDIRelation.COVERS);
-		if (units.size() == 1)
-			return (DbDataObject) units.get(0).getUserData();
-		else if (units.size() > 1)
+		SvSDITile admTile = getSDIUnitBoundary(SvConf.getAdmUnitClass());
+		Set<Geometry> units = admTile.getRelations(geom, SDIRelation.COVERS);
+		if (units.size() == 1) {
+			Iterator<Geometry> i = units.iterator();
+			return (DbDataObject) i.next().getUserData();
+		} else if (units.size() > 1)
 			throw (new SvException("system.error.sdi.adm_bounds_overlaps", this.instanceUser, null, geom));
 		else
 			throw (new SvException("system.error.sdi.adm_bounds_not_found", this.instanceUser, null, geom));
 
 	}
 
+	/**
+	 * Test a polygonal geometry for spikes. A spike is considered angle between
+	 * vertices which is lower than a specified system parameter named
+	 * SDI.SPIKE_MAX_ANGLE. The unoriented smallest angle between two vectors must
+	 * not be lower than the system parameter
+	 * 
+	 * @param g        The geometry to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_detected" to signify
+	 *                     that the geometry has spike with angle less then maxAngle
+	 */
+	public void testPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
+		fixPolygonSpikes(g, maxAngle, true);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. A spike test is
+	 * specified as in {@link #testPolygonSpikes(Geometry, Double)}. This method
+	 * will remove the point forming the spike. If removing the point collapses the
+	 * geometry to a line, the method will throw exception
+	 * 
+	 * @param g        The geometry to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 */
+	public Geometry fixPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
+		return fixPolygonSpikes(g, maxAngle, false);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. Based on the test
+	 * only param it will either test or try to fix the spikes.
+	 * 
+	 * @param p        The polygon to be tested or fixed based on the testOnly flag.
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @param testOnly if this param is set to true, the method will try to find
+	 *                 angles less then max angle and throw
+	 *                 "system.error.sdi.spike_detected"
+	 * @return A list of coordinates which do not contain spikes
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 *                     or "system.error.sdi.spike_detected" if spike was
+	 *                     detected via test only flag
+	 */
+	public ArrayList<Coordinate> fixPolygonCoordinates(Polygon p, Double maxAngle, boolean testOnly)
+			throws SvException {
+		Coordinate[] coords = p.getCoordinates();
+		ArrayList<Coordinate> newCoordinates = new ArrayList<>(coords.length);
+		// add the zero point, becase we start the loop from the first tail
+		newCoordinates.add(coords[0]);
+		for (int cc = 1; cc < coords.length; cc++) {
+			Coordinate tip1 = coords[cc - 1];
+			Coordinate tail = coords[cc];
+			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
+			Coordinate tip2 = coords[tip2index];
+			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
+			if (angle >= maxAngle)
+				newCoordinates.add(tail);
+			else if (testOnly)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
+
+		}
+		return newCoordinates;
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. Based on the test
+	 * only param it will either test or try to fix the spikes.
+	 * 
+	 * @param g        The geometry to be tested or fixed based on the testOnly
+	 *                 flag.
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @param testOnly if this param is set to true, the method will try to find
+	 *                 angles less then max angle and throw
+	 *                 "system.error.sdi.spike_detected"
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 *                     or "system.error.sdi.spike_detected" if spike was
+	 *                     detected via test only flag
+	 */
+	Geometry fixPolygonSpikes(Geometry g, Double maxAngle, boolean testOnly) throws SvException {
+
+		if (!(g instanceof Polygon || g instanceof MultiPolygon))
+			return g;
+
+		Polygon[] allPoly = new Polygon[g.getNumGeometries()];
+		for (int i = 0; i < g.getNumGeometries(); i++) {
+			Polygon p = (Polygon) g.getGeometryN(i);
+			ArrayList<Coordinate> fixedCoordinates = fixPolygonCoordinates(p, maxAngle, testOnly);
+
+			if (fixedCoordinates.size() < 3)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
+
+			Polygon pDst = SvUtil.sdiFactory
+					.createPolygon(fixedCoordinates.toArray(new Coordinate[fixedCoordinates.size()]));
+
+			if (pDst.getArea() < 1)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
+
+			allPoly[i] = pDst;
+		}
+		if (allPoly.length == 1)
+			return allPoly[0];
+		else
+			return SvUtil.sdiFactory.createMultiPolygon(allPoly);
+	}
+
+	/**
+	 * Method to test if the geometry has vertexes which are within tolerance
+	 * specified by minPointDistance
+	 * 
+	 * @param geom             The geometry to be validated
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!)
+	 * @throws SvException The method will raise
+	 *                     "system.error.sdi.vertex_min_dist_err" exception if the
+	 *                     geometry has points which can be collapsed into each
+	 *                     other within the tolerance
+	 * 
+	 */
+	public void testMinVertexDistance(Geometry geom, Integer minPointDistance) throws SvException {
+		minVertexDistance(geom, minPointDistance, true);
+	}
+
+	/**
+	 * Method to ensure that the geometry has no vertexes which are too close.
+	 * Public method to simplify the geometry and collapse points within tolerance
+	 * 
+	 * @param geom             The geometry to be simplified
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!)
+	 * @return The simplified geometry
+	 */
+	public Geometry fixMinVertexDistance(Geometry geom, Integer minPointDistance) throws SvException {
+		return minVertexDistance(geom, minPointDistance, false);
+	}
+
+	/**
+	 * Method to ensure that the geometry has no vertexes which are too close
+	 * 
+	 * @param geom             The geometry to be validated and/or fixed
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!). If the tolerance is 0, the test is
+	 *                         omitted
+	 * @param testOnly         If this method should fix the geometry or raise an
+	 *                         exception if the geometry has points within tolerance
+	 * @return The simplified geometry
+	 * @throws SvException If the flag testOnly is set, the method will raise
+	 *                     "system.error.sdi.vertex_min_dist_err" exception if the
+	 *                     geometry has been simplified
+	 * 
+	 */
+	Geometry minVertexDistance(Geometry geom, Integer minPointDistance, boolean testOnly) throws SvException {
+		if (minPointDistance == 0)
+			return geom;
+		double tolerance = minPointDistance / 1000.0;
+		Geometry g = TopologyPreservingSimplifier.simplify(geom, tolerance);
+		if (testOnly && !g.equalsExact(geom))
+			throw (new SvException(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR, instanceUser, null, null));
+		return g;
+
+	}
+
+	/**
+	 * Method to ensure that the geometry is not too close to another geometry. T
+	 * 
+	 * @param geom             The geometry to be tested for proximity
+	 * @param minPointDistance The distance between the geometry and another
+	 *                         geometry (in millimeters!!!). If the tolerance is 0,
+	 *                         the test is omitted
+	 * @param layerTypeId      The layer id which should be used to calculate the
+	 *                         distance
+	 * @throws SvException Underlying layer loading exception
+	 */
+	public Geometry fixGeomDistance(Geometry geom, Long layerTypeId, Integer distanceTolerance) throws SvException {
+		return minGeomDistance(geom, layerTypeId, distanceTolerance, false);
+	}
+
+	/**
+	 * Method to ensure that the geometry is not too close to another geometry. T
+	 * 
+	 * @param geom             The geometry to be tested for proximity
+	 * @param minPointDistance The distance between the geometry and another
+	 *                         geometry (in millimeters!!!). If the tolerance is 0,
+	 *                         the test is omitted
+	 * @param layerTypeId      The layer id which should be used to calculate the
+	 *                         distance
+	 * @throws SvException If the flag testOnly is set, the method will raise
+	 *                     "system.error.sdi.geom_min_dist_err" exception if the
+	 *                     geometry is too close to another geometry of the same
+	 *                     layer
+	 */
+	public void testGeomDistance(Geometry geom, Long layerTypeId, Integer distanceTolerance) throws SvException {
+		minGeomDistance(geom, layerTypeId, distanceTolerance, true);
+	}
+
+	/**
+	 * Method to ensure that the geometry has no vertexes which are too close. If
+	 * the flag test only is set to false, the original geometry will cut off to the
+	 * buffer of tolerance from the geometries in the target layer
+	 * 
+	 * @param geom             The geometry to be validated and/or fixed
+	 * @param minPointDistance The distance between two points on the geometry (in
+	 *                         millimeters!!!). If the tolerance is 0, the test is
+	 *                         omitted
+	 * @param layerTypeId      The layer id which should be used to calculate the
+	 *                         distance
+	 * @param testOnly         If this method should fix the geometry or raise an
+	 *                         exception if the geometry has points within tolerance
+	 * @return The simplified geometry
+	 * @throws SvException If the flag testOnly is set, the method will raise
+	 *                     "system.error.sdi.geom_min_dist_err" exception if the
+	 *                     geometry is too close to another geometry of the same
+	 *                     layer
+	 */
+	Geometry minGeomDistance(Geometry geom, Long layerTypeId, Integer distanceTolerance, boolean testOnly)
+			throws SvException {
+		if (distanceTolerance.intValue() == 0)
+			return geom;
+		double tolerance = distanceTolerance / 1000.0;
+
+		Geometry resultGeom = geom.buffer(distanceTolerance);
+		resultGeom.setUserData(geom.getUserData());
+		// find out which ones we are near by with a buffer
+		Set<Geometry> neighbours = getRelatedGeometries(resultGeom, layerTypeId, SDIRelation.INTERSECTS, null, null,
+				true);
+
+		// the result starts with the source geometry
+		resultGeom = geom;
+		if (testOnly)
+			for (Geometry gg : neighbours) {
+				if (gg.disjoint(geom))
+					throw (new SvException(Sv.Exceptions.SDI_GEOM_DISTANCE_ERR, instanceUser, null, null));
+			}
+		else
+			for (Geometry gg : neighbours) {
+				Geometry neighbourBuff = gg.buffer(tolerance);
+				resultGeom = resultGeom.difference(neighbourBuff);
+			}
+
+		resultGeom.setUserData(geom.getUserData());
+		return resultGeom;
+	}
+
+	/**
+	 * The method provides means to create/remove a hole from polygon. The polygon
+	 * is selected from the underlying layer identified via layerTypeId and assumes
+	 * that the underlying layer does not contain overlapping polygons.
+	 * 
+	 * @param hole        The geometry describing the hole
+	 * @param layerTypeId The layer from which we should get the polygon via
+	 *                    intersections
+	 * @param remove      Flag if we should remove a hole, or create a hole.
+	 * @return The modified polygon
+	 * @throws SvException
+	 */
+	public Geometry holeInPolygon(Geometry hole, Long layerTypeId, boolean remove) throws SvException {
+		Set<Geometry> result = innerPolygon(hole, layerTypeId, remove, false);
+		if (result != null && result.size() == 1)
+			return result.iterator().next();
+		else
+			return null;
+	}
+
+	/**
+	 * Method to perform filling of holes or cutting off holes from polygons.
+	 * 
+	 * @param geom                 The geometry of the hole (or cover)
+	 * @param layerTypeId          The layer from which we should get the base
+	 *                             polygon
+	 * @param operationFill        Flag to allow fill of hole or cutoff if false;
+	 * @param allowMultiGeometries Boolean flag to allow operation over multiple
+	 *                             overlapping geometries
+	 * @return Set of modified geometries
+	 * @throws SvException Any underlying exception
+	 */
+	Set<Geometry> innerPolygon(Geometry geom, Long layerTypeId, boolean operationFill, boolean allowMultiGeometries)
+			throws SvException {
+
+		Set<Geometry> intersected = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, null, null, true);
+
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, geom));
+
+		Set<Geometry> result = new HashSet<>();
+		for (Geometry g : intersected) {
+			Geometry r;
+			if (operationFill)
+				r = g.union(geom);
+			else
+				r = g.difference(geom);
+			r.setUserData(g.getUserData());
+			result.add(r);
+		}
+		return result;
+	}
+
+	/**
+	 * Method to prepare the geometry for saving to the database. 1. It tests if the
+	 * geometry is within the system boundaries 2. Calculates the centroid 3. Tests
+	 * the geometry for spikes 4. Tests the geometries for compliancy with minimal
+	 * distance
+	 * 
+	 * @param dbo
+	 * @throws SvException
+	 */
 	private void prepareGeometry(DbDataObject dbo) throws SvException {
 
 		// test if the geometry is in the system boundaries
 		verifyBounds(dbo);
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
+		//
+		Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
+		testPolygonSpikes(geom, maxAngle);
+
+		Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE, Sv.DEFAULT_MIN_POINT_DISTANCE);
+		minVertexDistance(geom, minPointDistance, true);
+
+		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
+		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
 
 		// if area is not set or we have configured to override
 		if (dbo.getVal("AREA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA", geom.getArea());
 		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA_HA", geom.getArea() / 10000);
-		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
+		if (dbo.getVal("AREA_KM2") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA_KM2", geom.getArea() / 1000000); // needed for
 																// moemris
-		if (dbo.getVal("AREA_HA") == null || SvConf.sdiOverrideGeomCalc)
+		if (dbo.getVal("PERIMETER") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
-
-		// admUnitClass dbo.setVal("CENTROID", centroid);
-		// DISABLING as per https://192.168.100.130/prtech/svarog/issues/21
-		// TODO https://192.168.100.130/prtech/svarog/issues/21
-		/*
-		 * if (!dbo.getObject_type().equals(svCONST.OBJECT_TYPE_SDI_UNITS) ) {
-		 * DbDataObject admUnit = getAdmUnit(centroid);
-		 * dbo.setParent_id(admUnit.getObject_id()); }
-		 */
 
 	}
 
@@ -844,10 +1334,8 @@ public class SvGeometry extends SvCore {
 	 *                     allowNullGeometry set to false
 	 */
 	public void saveGeometry(DbDataArray dba, Boolean isBatch) throws SvException {
-		SvWriter svw = null;
-		try {
+		try (SvWriter svw = new SvWriter(this)) {
 
-			svw = new SvWriter(this);
 			svw.isInternal = true; // flag it as internal so can save SDI types
 			Geometry currentGeom = null;
 			for (DbDataObject dbo : dba.getItems()) {
@@ -876,9 +1364,6 @@ public class SvGeometry extends SvCore {
 			}
 
 			cacheCleanup(tileList);
-		} finally {
-			if (svw != null)
-				svw.release();
 		}
 	}
 
@@ -947,7 +1432,7 @@ public class SvGeometry extends SvCore {
 	}
 
 	public static boolean isSDIInitalized() {
-		return isSDIInitalized;
+		return isSDIInitalized.get();
 	}
 
 }

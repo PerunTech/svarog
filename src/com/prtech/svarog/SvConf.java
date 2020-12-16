@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -42,8 +41,9 @@ import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 
 /**
- * Main svarog configuration class. This class provides all base config as well
- * as plain database connections.
+ * Main svarog configuration class. This class provides all base configurations
+ * as well as plain database connections. The main two functionalities of this
+ * class are the
  * 
  * @author PR01
  *
@@ -51,7 +51,8 @@ import com.prtech.svarog_interfaces.ISvDatabaseIO;
 public class SvConf {
 	/**
 	 * Static block to give priority to the log4j2.xml file which resides in the
-	 * working directory.
+	 * working directory. If you want to use the standard log4j configuration, then
+	 * just remove the log4j2.xml file from the working dir
 	 */
 	static {
 		String path = "./log4j2.xml";
@@ -127,13 +128,9 @@ public class SvConf {
 	 */
 	private static int heartBeatTimeOut;
 
-	public static int getHeartBeatTimeOut() {
-		return heartBeatTimeOut;
-	}
+	private static long admUnitClass;
 
-	public static void setHeartBeatTimeOut(int heartBeatTimeOut) {
-		SvConf.heartBeatTimeOut = heartBeatTimeOut;
-	}
+	private static boolean intersectSysBoundary;
 
 	/**
 	 * Flag to mark if SDI is enabled
@@ -173,12 +170,6 @@ public class SvConf {
 	 * The internal static geometry handler instance
 	 */
 	private static ISvDatabaseIO dbHandler = null;
-
-	/**
-	 * String variable holding old style db type
-	 */
-	@Deprecated
-	private static String dbType;
 
 	/**
 	 * The connection type JDBC or JNDI
@@ -314,8 +305,9 @@ public class SvConf {
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
 	 * @return ISvDatabaseIO instance
+	 * @throws SvException 
 	 */
-	public static ISvDatabaseIO getDbHandler() {
+	public static ISvDatabaseIO getDbHandler() throws SvException {
 		if (dbHandler != null)
 			return dbHandler;
 		String dbHandlerClass = SvConf.getParam("conn.dbHandlerClass");
@@ -340,14 +332,17 @@ public class SvConf {
 			// e.printStackTrace();
 		}
 		if (dbHandler == null)
+		{
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
+			throw (new SvException("system.error.misconfigured_dbhandlerclass", svCONST.systemUser));
+		}
 		else {
 			sqlKw = dbHandler.getSQLKeyWordsBundle();
-			String srid = config.getProperty("sys.gis.default_srid");
-			if (srid != null) {
-				dbHandler.initSrid(srid.trim());
-				DbDataTable.initSrid(srid.trim());
-				DbDataField.initSrid(srid.trim());
+			if (getSDISrid() != null) {
+				dbHandler.initSrid(getSDISrid());
+				DbDataTable.initSrid(getSDISrid());
+				DbDataField.initSrid(getSDISrid());
+				// TODO fix srid
 			}
 		}
 
@@ -355,7 +350,10 @@ public class SvConf {
 	}
 
 	/**
-	 * Method to do the initial reading of the svarog.properties file
+	 * Method to do the initial reading of the svarog.properties file. It will try
+	 * to load the config file from the system property names "svarog.properties" if
+	 * it exists. If it doesn't it will try to load the file names
+	 * 'svarog.properties' from the current directory
 	 * 
 	 * @return Properties object
 	 */
@@ -365,21 +363,10 @@ public class SvConf {
 		InputStream props = null;
 		boolean hasErrors = true;
 		try {
-			URL propsUrl = SvConf.class.getClassLoader().getResource("svarog.properties");
-			if (propsUrl != null) {
-
-				log4j.info("Loading configuration from:" + propsUrl.getFile());
-				props = SvConf.class.getClassLoader().getResourceAsStream("svarog.properties");
-			}
-			if (props == null) {
-				String path = "./svarog.properties";
-				File pFile = new File(path);
-				if (pFile != null) {
-					log4j.info("Loading configuration from:" + pFile.getCanonicalPath());
-					props = SvConf.class.getClassLoader().getResourceAsStream("svarog.properties");
-				}
-				props = new FileInputStream(pFile);
-			}
+			String path = System.getProperties().getProperty(Sv.CONFIG_FILENAME, "./" + Sv.CONFIG_FILENAME);
+			File pFile = new File(path);
+			log4j.info("Loading configuration from:" + pFile.getCanonicalPath());
+			props = new FileInputStream(pFile);
 			log4j.info("Starting " + appName);
 			log4j.info("Version:" + appVersion);
 			log4j.info("Build:" + appBuild);
@@ -439,7 +426,6 @@ public class SvConf {
 			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
 			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
 
-			dbType = svDbType.toString();
 			if (svDbConnType.equals(SvDbConnType.JNDI)) {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
 				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
@@ -521,7 +507,7 @@ public class SvConf {
 			sdiGridSize = getProperty(mainProperties, "sys.gis.grid_size", 10);
 			sdiOverrideGeomCalc = getProperty(mainProperties, "sys.gis.override_user_area_perim", false);
 
-			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5) * 60 * 1000;
+			maxLockTimeout = getProperty(mainProperties, "sys.lock.max_wait_time", 5) * 60L * 1000L;
 			maxLockCount = getProperty(mainProperties, "sys.lock.max_count", 5000);
 			multiSelectSeparator = getProperty(mainProperties, "sys.codes.multiselect_separator", "");
 			sdiEnabled = getProperty(mainProperties, "sys.gis.enable_spatial", false);
@@ -535,6 +521,9 @@ public class SvConf {
 			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
 
 			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
+
+			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", 0);
+			intersectSysBoundary = getProperty(mainProperties, "sys.gis.allow_boundary_intersect", false);
 
 			// make sure we configure the service classes as well as system
 			// classes
@@ -749,10 +738,23 @@ public class SvConf {
 		if (sdiSrid == null) {
 			try {
 				String srid = config.getProperty("sys.gis.default_srid").trim();
-				if (srid != null && !srid.isEmpty() && !srid.equals(Sv.SQL_NULL))
+				if (srid == null || srid.isEmpty() || srid.equals(Sv.SQL_NULL)) {
+					switch (getDbType()) {
+					case POSTGRES:
+						srid = "0";
+						break;
+					case ORACLE:
+						srid = Sv.SQL_NULL;
+						break;
+					default:
+						srid = "0";
+					}
+				}
+
+				if (!srid.equals(Sv.SQL_NULL))
 					sdiSrid = Integer.toString(Integer.parseInt(srid));
 
-				if (srid != null && srid.equals(Sv.SQL_NULL)) {
+				if (srid.equals(Sv.SQL_NULL)) {
 					log4j.warn("SRID is set to NULL");
 					sdiSrid = srid;
 				}
@@ -1016,4 +1018,29 @@ public class SvConf {
 	public static void setOverrideTimeStamps(boolean overrideTimeStamps) {
 		SvConf.overrideTimeStamps = overrideTimeStamps;
 	}
+
+	public static int getHeartBeatTimeOut() {
+		return heartBeatTimeOut;
+	}
+
+	public static void setHeartBeatTimeOut(int heartBeatTimeOut) {
+		SvConf.heartBeatTimeOut = heartBeatTimeOut;
+	}
+
+	public static long getAdmUnitClass() {
+		return admUnitClass;
+	}
+
+	public static void setAdmUnitClass(long admUnitClass) {
+		SvConf.admUnitClass = admUnitClass;
+	}
+
+	public static boolean isIntersectSysBoundary() {
+		return intersectSysBoundary;
+	}
+
+	public static void setIntersectSysBoundary(boolean intersectSysBoundary) {
+		SvConf.intersectSysBoundary = intersectSysBoundary;
+	}
+
 }

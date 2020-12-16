@@ -30,14 +30,14 @@ public class SvClusterClient implements Runnable {
 	static long nodeId = SvCluster.getCoordinatorNode() != null ? SvCluster.getCoordinatorNode().getObjectId() : 0L;
 
 	/**
-	 * package visible variable to support turning off promotion for the purpose
-	 * of executing unit tests
+	 * package visible variable to support turning off promotion for the purpose of
+	 * executing unit tests
 	 */
 	static boolean forcePromotionOnShutDown = true;
 
 	/**
-	 * package visible variable to support turning off promotion for the purpose
-	 * of executing unit tests
+	 * package visible variable to support turning off promotion for the purpose of
+	 * executing unit tests
 	 */
 	static boolean rejoinOnFailedHeartBeat = false;
 
@@ -53,12 +53,12 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Flag if the client is running
 	 */
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	/**
 	 * Flag if the client has joined a cluster
 	 */
-	static AtomicBoolean isActive = new AtomicBoolean(false);
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
 
 	/**
 	 * Delimiter to be used for split of the address list
@@ -76,33 +76,31 @@ public class SvClusterClient implements Runnable {
 	static DateTime lastContact = DateTime.now();
 
 	/**
-	 * Timeout interval in milliseconds. If no contact is established within
-	 * timeout the node is dead
+	 * Timeout interval in milliseconds. If no contact is established within timeout
+	 * the node is dead
 	 */
 	static int heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
 
 	static String lastIpAddressList = null;
 
 	/**
-	 * Map of distributed locks as backup of the coordinator (this is updated
-	 * when we run as a normal worker)
+	 * Map of distributed locks as backup of the coordinator (this is updated when
+	 * we run as a normal worker)
 	 */
 	static final ConcurrentHashMap<String, SvCluster.DistributedLock> localDistributedLocks = new ConcurrentHashMap<String, SvCluster.DistributedLock>();
 	/**
-	 * Map of locks grouped by node as backup of the coordinator (this is
-	 * updated when we run as a normal worker)
+	 * Map of locks grouped by node as backup of the coordinator (this is updated
+	 * when we run as a normal worker)
 	 */
 	static final ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks = new ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>>();
 
 	/**
-	 * Standard method for initialising the client. It tries to connect to the
-	 * heart beat socked on any of the addresses in the list
+	 * Standard method for initialising the client. It tries to connect to the heart
+	 * beat socked on any of the addresses in the list
 	 * 
-	 * @param ipAddressList
-	 *            The list of IP addresses on which the heart beat server is
-	 *            available
-	 * @param hbInterval
-	 *            the interval between two heartbeats
+	 * @param ipAddressList The list of IP addresses on which the heart beat server
+	 *                      is available
+	 * @param hbInterval    the interval between two heartbeats
 	 * 
 	 * 
 	 * @return true if the client was initialised correctly
@@ -207,8 +205,7 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Method to send a newly created authentication token to the coordinator
 	 * 
-	 * @param dboToken
-	 *            The token which should be sent (in DbDataObject format)
+	 * @param dboToken The token which should be sent (in DbDataObject format)
 	 * @return True if the operation was successful
 	 */
 	static public boolean putToken(DbDataObject dboToken) {
@@ -236,9 +233,9 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Method to get a valid authentication token from the coordinator
 	 * 
-	 * @param token.error("Heartbeat
-	 *            timed out. Last contact was: "+lastContact.toString() String
-	 *            version of token UUID
+	 * @param token.error("Heartbeat timed out. Last contact was:
+	 *                               "+lastContact.toString() String version of
+	 *                               token UUID
 	 * @return Returns a DbDataObject version of the token
 	 */
 	static public DbDataObject getToken(String token) {
@@ -277,12 +274,11 @@ public class SvClusterClient implements Runnable {
 	}
 
 	/**
-	 * Method to refresh the authentication token on the coordinator node. This
-	 * is used to touch the objecto on the server in order to set the most
-	 * recently used time
+	 * Method to refresh the authentication token on the coordinator node. This is
+	 * used to touch the objecto on the server in order to set the most recently
+	 * used time
 	 * 
-	 * @param token
-	 *            String version of token UUID
+	 * @param token String version of token UUID
 	 * @return Returns a DbDataObject version of the token
 	 */
 	static public boolean refreshToken(String token) {
@@ -324,8 +320,7 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Method to acquire a distributed cluster wide lock from the coordinator
 	 * 
-	 * @param lockKey
-	 *            String version of token UUID
+	 * @param lockKey String version of token UUID
 	 * @return Returns a hashcode of the lock object
 	 */
 	static public int getLock(String lockKey) {
@@ -367,8 +362,7 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Method to release a distributed cluster wide lock from the coordinator
 	 * 
-	 * @param lockHash
-	 *            the hash code of the lock which was acquired with getLock
+	 * @param lockHash the hash code of the lock which was acquired with getLock
 	 * @return Returns true if the lock was released
 	 */
 	static public boolean releaseLock(int lockHash) {
@@ -395,39 +389,32 @@ public class SvClusterClient implements Runnable {
 	}
 
 	/**
-	 * Method to release a distributed lock. This is invoked when the
-	 * clusterServer processes releaseLock message. This method is also invoked
-	 * by the SvLock on the coordinator node.
+	 * Method to release a distributed lock. This is invoked when the clusterServer
+	 * processes releaseLock message. This method is also invoked by the SvLock on
+	 * the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param nodeId
-	 *            The node id which acquires the lock
+	 * @param lockHash The hash of the lock
+	 * @param nodeId   The node id which acquires the lock
 	 * 
-	 * @return The lock key if the lock was released with success, otherwise
-	 *         null
+	 * @return The lock key if the lock was released with success, otherwise null
 	 */
 	static String releaseDistributedLock(Integer lockHash) {
-		return SvCluster.releaseDistributedLock(lockHash, nodeId, localNodeLocks, localDistributedLocks,
-				SvLock.localSysLocks);
+		return SvCluster.releaseDistributedLock(lockHash, nodeId, localNodeLocks, SvLock.localSysLocks, true);
 
 	}
 
 	static String releaseDistributedLock(Integer lockHash, Long nodeId) {
-		return SvCluster.releaseDistributedLock(lockHash, nodeId, localNodeLocks, localDistributedLocks,
-				SvLock.localSysLocks);
+		return SvCluster.releaseDistributedLock(lockHash, nodeId, localNodeLocks, SvLock.localSysLocks, true);
 
 	}
 
 	/**
-	 * Method to update a distributed lock. This is invoked when the Notifier
-	 * client is processing lock acknowledgments and needs to update the list of
+	 * Method to update a distributed lock. This is invoked when the Notifier client
+	 * is processing lock acknowledgments and needs to update the list of
 	 * distributed locks by the SvLock on the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param lockKey
-	 *            The key of the lock
+	 * @param lockHash The hash of the lock
+	 * @param lockKey  The key of the lock
 	 * 
 	 * @return True if the lock was updated
 	 */
@@ -438,24 +425,22 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Method to clean up the distributed locks acquired by a node
 	 * 
-	 * @param nodeId
-	 *            The node for which the distributed locks shall be cleaned
+	 * @param nodeId The node for which the distributed locks shall be cleaned
 	 */
 	static void clusterCleanUp(Long nodeId) {
-		SvCluster.clusterCleanUp(nodeId, SvClusterClient.localNodeLocks, SvClusterClient.localDistributedLocks);
+		SvCluster.clusterCleanUp(nodeId, SvClusterClient.localNodeLocks, true);
 	}
 
 	/**
 	 * Method to get a distributed lock from the Cluster server
 	 * 
-	 * @param lockKey
-	 *            The string identifier of the lock
+	 * @param lockKey The string identifier of the lock
 	 * @return the hash code of the lock
 	 */
 	static ReentrantLock acquireDistributedLock(String lockKey, Long nodeId) {
 		Long[] extendedInfo = new Long[1];
 		ReentrantLock lck = SvCluster.acquireDistributedLock(lockKey, nodeId, extendedInfo, localNodeLocks,
-				localDistributedLocks, SvLock.localSysLocks);
+				SvLock.localSysLocks, true);
 		if (lck == null && log4j.isDebugEnabled())
 			log4j.debug("Lock not acquired! Lock requested by " + nodeId.toString() + " but held by node:"
 					+ Long.toString(extendedInfo[0]));
@@ -550,101 +535,109 @@ public class SvClusterClient implements Runnable {
 		return result;
 	}
 
+	private static void processHeartBeat(byte[] msg) {
+		ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
+		byte msgType = msgBuffer.get();
+		long dstNode = msgBuffer.getLong();
+		if (msgType != SvCluster.MSG_SUCCESS) {
+			log4j.error("Error receiving heartbeat from coordinator node");
+			if (!rejoinOnFailedHeartBeat)
+				shutdown(false);
+			else {
+				if (log4j.isDebugEnabled())
+					log4j.debug("Received failed heartbeat from coordinator. Trying to re-join");
+				joinCluster();
+			}
+		} else {
+			lastContact = DateTime.now();
+			if (log4j.isDebugEnabled()) {
+				log4j.debug("Received heartbeat from coordinator node with destination:" + Long.toString(dstNode));
+			}
+		}
+	}
+
+	private static void forcePromotion()
+	{
+		log4j.info("Restarting SvCluster node to force re-election of coordinator");
+		if (SvCluster.isRunning().get()) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Cluster is running, initiate shutdown");
+			SvCluster.shutdown();
+		}
+		// if shut down in progress, wait to finish.
+		while (SvCluster.getIsActive().get()) {
+			if (log4j.isDebugEnabled())
+				log4j.debug("Cluster is still active, waiting for it to shutdown");
+
+			try {
+				synchronized (SvCluster.isRunning()) {
+					SvCluster.isRunning().wait(heartBeatInterval);
+				}
+			} catch (InterruptedException e) {
+				log4j.error("Heart beat thread sleep raised exception! Cluster still not shutdown", e);
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+	private static void failOver() {
+		// if the last contact was more than the timeout in the
+		// past .. we consider the coordinator dead and
+		// shutdown this socket. we are up for new election
+		if (lastContact.withDurationAdded(heartBeatTimeOut, 1).isBeforeNow()) {
+			log4j.error("Heartbeat timed out. Max wait is:" + Integer.toString(heartBeatTimeOut)
+					+ ". Last contact was: " + lastContact.toString());
+
+			// don't sent part message to dead node
+			shutdown(false);
+			if (forcePromotionOnShutDown) {
+				forcePromotion();
+				// if we have active maintenance thread, just notify it, and it will initialise
+				// the cluster. Otherwise perform manual initialisation
+				if (!SvMaintenance.getMaintenanceInProgress().get()) {
+					if (SvMaintenance.maintenanceThread != null)
+						synchronized (SvMaintenance.maintenanceRunning) {
+							SvMaintenance.maintenanceRunning.notifyAll();
+						}
+					else
+						SvCluster.initCluster();
+				}
+			}
+		}
+	}
+
 	/**
 	 * Overriden run method to perform the actual heart beat
 	 */
 	@Override
 	public void run() {
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
 			return;
 		}
-		if (hbClientSock == null) {
-			log4j.error("Heartbeat socket not available, ensure proper initialisation");
-			return;
-		}
-		while (isRunning.get() && hbClientSock != null) {
-			synchronized (hbClientSock) {
-				ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-				msgBuffer.put(SvCluster.MSG_HEARTBEAT);
-				msgBuffer.putLong(nodeId);
-				byte[] msg = null;
-				if (isRunning.get()) {
+		while (isRunning.get()) {
+			try {
+				synchronized (hbClientSock) {
+					ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+					msgBuffer.put(SvCluster.MSG_HEARTBEAT);
+					msgBuffer.putLong(nodeId);
+					byte[] msg = null;
 					if (!hbClientSock.send(msgBuffer.array()))
 						log4j.error("Error sending message to coordinator node");
 					msg = hbClientSock.recv(0);
-				}
-				if (msg != null) {
-					msgBuffer = ByteBuffer.wrap(msg);
-					byte msgType = msgBuffer.get();
-					long dstNode = msgBuffer.getLong();
-					if (msgType != SvCluster.MSG_SUCCESS) {
-						log4j.error("Error receiving heartbeat from coordinator node");
-						if (!rejoinOnFailedHeartBeat)
-							shutdown(false);
-						else {
-							if (log4j.isDebugEnabled())
-								log4j.debug("Received failed heartbeat from coordinator. Trying to re-join");
-							joinCluster();
-						}
-					} else {
-						lastContact = DateTime.now();
-						if (log4j.isDebugEnabled()) {
-							log4j.debug("Received heartbeat from coordinator node with destination:"
-									+ Long.toString(dstNode));
-						}
-					}
-				} else { // if the last contact was more than the timeout in the
-							// past .. we consider the coordinator dead and
-							// shutdown
-							// this socket. we are up for new election
-					if (lastContact.withDurationAdded(heartBeatTimeOut, 1).isBeforeNow()) {
-						log4j.error("Heartbeat timed out. Max wait is:" + Integer.toString(heartBeatTimeOut)
-								+ ". Last contact was: " + lastContact.toString());
-						// don't sent part message to dead node
-						shutdown(false);
-						if (forcePromotionOnShutDown) {
-							log4j.info("Restarting SvCluster node to force re-election of coordinator");
-							if (SvCluster.isRunning().get()) {
-								if (log4j.isDebugEnabled())
-									log4j.debug("Cluster is running, initiate shutdown");
-								SvCluster.shutdown();
-							}
-							DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
-							// if shut down in progress, wait to finish.
-							while (tsTimeout.isAfterNow() && SvCluster.getIsActive().get()) {
-								if (log4j.isDebugEnabled())
-									log4j.debug("Cluster is still active, waiting for it to shutdown");
+					if (msg != null)
+						processHeartBeat(msg);
+					else
+						failOver();
 
-								try {
-									synchronized (SvCluster.isRunning()) {
-										SvCluster.isRunning().wait(heartBeatInterval);
-									}
-								} catch (InterruptedException e) {
-									tsTimeout = DateTime.now();
-									Thread.currentThread().interrupt();
-									log4j.error("Heart beat thread sleep raised exception! Cluster did not shutdown",
-											e);
-
-								}
-							}
-							if (!SvMaintenance.getMaintenanceInProgress().get()) {
-								if (SvMaintenance.maintenanceThread != null)
-									SvMaintenance.maintenanceThread.interrupt();
-								else
-									SvCluster.initCluster();
-							}
-						}
-						continue;
-					}
 				}
-			}
-			try {
-				Thread.sleep(heartBeatInterval);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				log4j.error("Heart beat thread sleep raised exception! Shutting down client", e);
-				shutdown();
+
+				synchronized (isRunning) {
+					isRunning.wait(heartBeatInterval);
+				}
+			} catch (Exception e) {
+				log4j.error("ClusterClient heart beat raised exception. Shutting down client", e);
+				shutdown(false);
 			}
 		}
 

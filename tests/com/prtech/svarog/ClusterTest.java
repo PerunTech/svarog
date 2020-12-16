@@ -2,9 +2,6 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,7 +14,7 @@ import org.junit.Test;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog_common.DboFactory;
+import com.prtech.svarog.*;
 
 public class ClusterTest {
 
@@ -34,6 +31,7 @@ public class ClusterTest {
 
 	}
 
+	@Test
 	public void promoteToCoordinator() {
 		System.out.print("Test promoteToCoordinator");
 		try {
@@ -67,8 +65,8 @@ public class ClusterTest {
 				fail("Lock was NOT present on the Cluster after acquiring");
 
 			Thread.sleep(2 * SvConf.getHeartBeatInterval());
-			SvCluster.shutdown();
 			SvConf.setClusterEnabled(true);
+			SvCluster.shutdown();
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 			boolean didWePromote = false;
 			while (tsTimeout.isAfterNow()) {
@@ -657,9 +655,9 @@ public class ClusterTest {
 		System.out.print("Test ClusterLogoffTest");
 		try {
 
-			
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
-			//this test fails often so lets ensure that the cluster is shutdown properly from the previous tests before doing anything else
+			// this test fails often so lets ensure that the cluster is shutdown properly
+			// from the previous tests before doing anything else
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 			SvCluster.shutdown();
 			// if shut down in progress, wait to finish.
@@ -852,7 +850,7 @@ public class ClusterTest {
 			SvClusterNotifierProxy.nodeAcks.put(999, nodes);
 
 			SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_ACQUIRED, 999, 666, lockKey);
-			if (!SvClusterNotifierProxy.waitForAck(nodes, 999, SvClusterClient.heartBeatTimeOut))
+			if (!SvClusterNotifierProxy.waitForAck(999, SvClusterClient.heartBeatTimeOut))
 				fail("Ack failed");
 
 		} catch (SvException e) {

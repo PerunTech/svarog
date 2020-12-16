@@ -357,19 +357,37 @@ public class SvParametersTest {
 	}
 
 	@Test
+	public void testSysParamInt() throws SvException {
+		try (SvParameter svp = new SvParameter()) {
+			String paramName = "TEST_PARAM_INT3";
+			Integer paramValue = 123;
+			Integer val = SvParameter.getSysParam(paramName, paramValue);
+			if (!val.equals(paramValue))
+				fail("Non existent param shall return null");
+
+			SvParameter.setSysParam(paramName, paramValue);
+			Integer retVal = (Integer) svp.getSysParam(paramName);
+			if (!retVal.equals(paramValue))
+				fail("Value returned is not the same");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	@Test
 	public void testSysParams() throws SvException {
 		try (SvParameter svp = new SvParameter()) {
 			String paramName = "TEST_PARAM";
 			String paramValue = "TEST_PARAM_VALUE";
-			String val = svp.getSysParam(paramName + DateTime.now().toString());
-			if (val != null)
+			String val = svp.getSysParam(paramName, paramValue);
+			if (!val.equals(paramValue))
 				fail("Non existent param shall return null");
 
 			svp.setSysParam(paramName, paramValue);
-			String retVal = svp.getSysParam(paramName);
+			String retVal = (String) svp.getSysParam(paramName);
 			if (!retVal.equals(paramValue))
 				fail("Value returned is not the same");
-
 		}
 	}
 }

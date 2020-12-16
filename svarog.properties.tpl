@@ -26,7 +26,7 @@ sys.defaultJSDateFormat=d/m/Y
 sys.defaultJSTimeFormat=H:i
 
 
-sys.gis.default_srid=6316
+sys.gis.default_srid=NULL
 sys.gis.geom_handler=POSTGIS
 sys.gis.grid_size=10
 sys.gis.tile_cache=100
@@ -34,6 +34,7 @@ sys.gis.precision_scale=1000
 sys.gis.allow_boundary_intersect=false
 sys.gis.legal_sdi_unit_type=1
 sys.gis.override_user_area_perim=false
+sys.gis.enable_spatial=true
 
 sys.codes.multiselect_separator=;
 

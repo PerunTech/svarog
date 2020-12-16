@@ -54,9 +54,9 @@ public class SvCluster extends SvCore {
 	static final String NODE_INFO = "node_info";
 
 	/**
-	 * Class to wrap the standard locks in order to support the distributed
-	 * locking of the svarog cluster. The key of the lock as well as the node
-	 * which holds the lock are the needed information
+	 * Class to wrap the standard locks in order to support the distributed locking
+	 * of the svarog cluster. The key of the lock as well as the node which holds
+	 * the lock are the needed information
 	 * 
 	 * @author ristepejov
 	 *
@@ -104,8 +104,8 @@ public class SvCluster extends SvCore {
 	 */
 	private static DbDataObject coordinatorNode = null;
 	/**
-	 * Reference to the current node descriptor. If the current node is
-	 * coordinator, the references should be equal.
+	 * Reference to the current node descriptor. If the current node is coordinator,
+	 * the references should be equal.
 	 */
 	// static DbDataObject currentNode = null;
 
@@ -118,7 +118,8 @@ public class SvCluster extends SvCore {
 	static private Thread notifierThread = null;
 
 	/**
-	 * Reference to the coordinator node
+	 * We need the autoStartClient flag to enable us to start cluster without
+	 * clients for the purpose of unit testing
 	 */
 	static boolean autoStartClient = true;
 
@@ -162,60 +163,45 @@ public class SvCluster extends SvCore {
 	/**
 	 * Method to perform coordinator promotion of the current node
 	 * 
-	 * @param svc
-	 *            A reference to an SvCore (the read/write of the nodes has to
-	 *            be in the same transaction)
+	 * @param svc A reference to an SvCore (the read/write of the nodes has to be in
+	 *            the same transaction)
 	 * @return True if the current node was promoted to coordinator
-	 * @throws SvException
-	 *             any underlying exception (except object not updateable, which
-	 *             would mean someone else got promoted in meantime)
+	 * @throws SvException any underlying exception (except object not updateable,
+	 *                     which would mean someone else got promoted in meantime)
 	 */
 	static boolean becomeCoordinator(SvCore svc) throws SvException {
-		SvWriter svw = null;
-		boolean success = true;
-		try {
-			svw = new SvWriter(svc);
+		try (SvWriter svw = new SvWriter(svc); SvReader svr = new SvReader(svc);) {
 			if (coordinatorNode == null) {
-				coordinatorNode = new DbDataObject(svCONST.OBJECT_TYPE_CLUSTER);
-				coordinatorNode.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
+				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 			}
 			coordinatorNode.setValuesMap(getCurrentNodeInfo().getValuesMap());
 			svw.isInternal = true;
 			svw.saveObject(coordinatorNode, true);
+			log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal(NODE_INFO));
 		} catch (SvException e) {
 			// if the object is not update-able, another node became
 			// coordinator and we should register a worker node
 			if (!e.getLabelCode().equals("system.error.obj_not_updateable"))
 				throw (e);
-			else
-				success = false;
-		} finally {
-			if (svw != null)
-				svw.release();
+			else {
+				// If we failed to promote lets try to refresh the coordinator node info
+				DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
+				coordinatorNode = null;
+				log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
+						+ coordinatorNode.getVal(NEXT_MAINTENANCE));
+			}
 		}
-
-		// If we failed to promote lets try to refresh the coordinator node info
-		if (!success) {
-			DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
-			coordinatorNode = null;
-			log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
-					+ coordinatorNode.getVal(NEXT_MAINTENANCE));
-		} else
-			log4j.info("The node promoted to coordinator: " + coordinatorNode.getVal(NODE_INFO));
-
-		return success;
+		return coordinatorNode != null;
 	}
 
 	/**
 	 * Method to perform resigning of coordinator
 	 * 
-	 * @param svc
-	 *            A reference to an SvCore (the read/write of the nodes has to
-	 *            be in the same transaction)
+	 * @param svc A reference to an SvCore (the read/write of the nodes has to be in
+	 *            the same transaction)
 	 * @return True if the current has resigned from the coordinator role
-	 * @throws SvException
-	 *             any underlying exception (except object not updateable, which
-	 *             would mean someone else got promoted in meantime)
+	 * @throws SvException any underlying exception (except object not updateable,
+	 *                     which would mean someone else got promoted in meantime)
 	 */
 	static boolean resignCoordinator() throws SvException {
 
@@ -255,13 +241,11 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to ensure the cluster clients have started and connected to the
-	 * hear beat address/port of the coordinator
+	 * Method to ensure the cluster clients have started and connected to the hear
+	 * beat address/port of the coordinator
 	 * 
-	 * @param hbAddress
-	 *            String list of available heartbeat end points
-	 * @return True if the client threads have started and connected with
-	 *         success
+	 * @param hbAddress String list of available heartbeat end points
+	 * @return True if the client threads have started and connected with success
 	 */
 	private static boolean startClients(String hbAddress) {
 		boolean initHb = false;
@@ -314,12 +298,12 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to initialise the Svarog Cluster. This method shall try to locate
-	 * a valid coordinator node, or become one if there isn't any. If it becomes
-	 * a coordinator then it will start the heart beat listener and the notifier
-	 * proxy servers. If the current node doesn't manage to become a coordinator
-	 * then it will start a Heart Beat client and notifier client and try to
-	 * connect to the coordinator
+	 * Method to initialise the Svarog Cluster. This method shall try to locate a
+	 * valid coordinator node, or become one if there isn't any. If it becomes a
+	 * coordinator then it will start the heart beat listener and the notifier proxy
+	 * servers. If the current node doesn't manage to become a coordinator then it
+	 * will start a Heart Beat client and notifier client and try to connect to the
+	 * coordinator
 	 * 
 	 * @return True if the cluster was properly initialised.
 	 */
@@ -378,14 +362,12 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to update a distributed lock. This is invoked when the Notifier
-	 * client is processing lock acknowledgments and needs to update the list of
+	 * Method to update a distributed lock. This is invoked when the Notifier client
+	 * is processing lock acknowledgments and needs to update the list of
 	 * distributed locks by the SvLock on the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param lockKey
-	 *            The key of the lock
+	 * @param lockHash The hash of the lock
+	 * @param lockKey  The key of the lock
 	 * 
 	 * @return True if the lock was updated
 	 */
@@ -399,11 +381,11 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to shutdown the Svarog cluster. The cluster shutdown will in turn:
-	 * 1. Check the current node is a cluster coordinator. 2. If we are a
-	 * cluster coordinator then we shall shutdown the SvClusterServer and
-	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall
-	 * shutdown the SvClusterClient and SvClusterNotifierClient
+	 * Method to shutdown the Svarog cluster. The cluster shutdown will in turn: 1.
+	 * Check the current node is a cluster coordinator. 2. If we are a cluster
+	 * coordinator then we shall shutdown the SvClusterServer and
+	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall shutdown
+	 * the SvClusterClient and SvClusterNotifierClient
 	 */
 
 	static void shutdown() {
@@ -434,8 +416,8 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Join the heart beat and notifier threads so we are sure that the clients
-	 * or servers have stopped
+	 * Join the heart beat and notifier threads so we are sure that the clients or
+	 * servers have stopped
 	 */
 	static void joinDaemonThreads() {
 		// just check if the join isn't invoked from the heartbeat or notifier.
@@ -461,11 +443,11 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to shutdown the Svarog cluster. The cluster shutdown will in turn:
-	 * 1. Check the current node is a cluster coordinator. 2. If we are a
-	 * cluster coordinator then we shall shutdown the SvClusterServer and
-	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall
-	 * shutdown the SvClusterClient and SvClusterNotifierClient
+	 * Method to shutdown the Svarog cluster. The cluster shutdown will in turn: 1.
+	 * Check the current node is a cluster coordinator. 2. If we are a cluster
+	 * coordinator then we shall shutdown the SvClusterServer and
+	 * SvClusterNotifierProxy 3. If we are not a coordinator then we shall shutdown
+	 * the SvClusterClient and SvClusterNotifierClient
 	 */
 	static void shutdown(boolean doMaintenance) {
 		if (!isRunning.compareAndSet(true, false)) {
@@ -498,25 +480,23 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to release a distributed lock. This is invoked when the
-	 * clusterServer processes releaseLock message. This method is also invoked
-	 * by the SvLock on the coordinator node.
+	 * Method to release a distributed lock. This is invoked when the clusterServer
+	 * processes releaseLock message. This method is also invoked by the SvLock on
+	 * the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param nodeId
-	 *            The node id which acquires the lock
-	 * @param nodeLocks
-	 *            The map of nodes which contains locks held by node
-	 * @param distributedLocks
-	 *            The map of distributed nodes in the cluster to be used for
-	 *            releasing the lock
+	 * @param lockHash         The hash of the lock
+	 * @param nodeId           The node id which acquires the lock
+	 * @param nodeLocks        The map of nodes which contains locks held by node
+	 * @param distributedLocks The map of distributed nodes in the cluster to be
+	 *                         used for releasing the lock
 	 * @return Null if the lock was NOT released, otherwise the lock key.
 	 */
 	static String releaseDistributedLock(Integer lockHash, long nodeId,
 			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks,
-			ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks,
-			LoadingCache<String, ReentrantLock> sysLocks) {
+			LoadingCache<String, ReentrantLock> sysLocks, boolean isLocal) {
+		ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks = isLocal
+				? SvClusterClient.localDistributedLocks
+				: SvClusterServer.distributedLocks;
 		boolean lockReleased = false;
 		CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = nodeLocks.get(nodeId);
 		SvCluster.DistributedLock currentLock = null;
@@ -541,31 +521,29 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to acquire a distributed lock from the svarog cluster (this is
-	 * server agnostic). It is called also by SvLock in order to synchronize
-	 * properly the distributed locks
+	 * Method to acquire a distributed lock from the svarog cluster (this is server
+	 * agnostic). It is called also by SvLock in order to synchronize properly the
+	 * distributed locks
 	 * 
-	 * @param lockKey
-	 *            The lock key which should be locked.
-	 * @param nodeId
-	 *            The id of the node which shall acquire the lock
-	 * @param extendedInfo
-	 *            The id of the node which already holds the lock (available
-	 *            only if the lock fails)
-	 * @param nodeLocks
-	 *            The map of nodes which contains locks held by node
-	 * @param distributedLocks
-	 *            The map of distributed nodes in the cluster to be used for
-	 *            releasing the lock
-	 * @return Instance of re-entrant lock if the lock was acquired. Otherwise
-	 *         null. If null the extendedInfo is populated with the node holding
-	 *         the lock
+	 * @param lockKey          The lock key which should be locked.
+	 * @param nodeId           The id of the node which shall acquire the lock
+	 * @param extendedInfo     The id of the node which already holds the lock
+	 *                         (available only if the lock fails)
+	 * @param nodeLocks        The map of nodes which contains locks held by node
+	 * @param distributedLocks The map of distributed nodes in the cluster to be
+	 *                         used for releasing the lock
+	 * @return Instance of re-entrant lock if the lock was acquired. Otherwise null.
+	 *         If null the extendedInfo is populated with the node holding the lock
 	 */
 
 	static ReentrantLock acquireDistributedLock(String lockKey, Long nodeId, Long[] extendedInfo,
 			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks,
-			ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks,
-			LoadingCache<String, ReentrantLock> sysLocks) {
+			LoadingCache<String, ReentrantLock> sysLocks, boolean isLocal) {
+
+		ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks = isLocal
+				? SvClusterClient.localDistributedLocks
+				: SvClusterServer.distributedLocks;
+
 		ReentrantLock lock = null;
 		SvCluster.DistributedLock dlock = null;
 
@@ -615,37 +593,35 @@ public class SvCluster extends SvCore {
 	/**
 	 * Method to clean up the distributed locks acquired by a node
 	 * 
-	 * @param nodeId
-	 *            The node for which the distributed locks shall be cleaned
+	 * @param nodeId The node for which the distributed locks shall be cleaned
 	 */
 	static void clusterCleanUp(Long nodeId,
-			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks,
-			ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks) {
-		{
-			CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = nodeLocks.get(nodeId);
-			if (nodeLock != null) {
-				for (SvCluster.DistributedLock dstLock : nodeLock) {
-					SvLock.releaseLock(dstLock.key, dstLock.lock);
-					synchronized (distributedLocks) {
-						distributedLocks.remove(dstLock.key, dstLock);
-					}
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks, boolean isLocal) {
+		ConcurrentHashMap<String, SvCluster.DistributedLock> distributedLocks = isLocal
+				? SvClusterClient.localDistributedLocks
+				: SvClusterServer.distributedLocks;
+
+		CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = nodeLocks.get(nodeId);
+		if (nodeLock != null) {
+			for (SvCluster.DistributedLock dstLock : nodeLock) {
+				SvLock.releaseLock(dstLock.key, dstLock.lock);
+				synchronized (distributedLocks) {
+					distributedLocks.remove(dstLock.key, dstLock);
 				}
-				nodeLocks.remove(nodeId);
 			}
+			nodeLocks.remove(nodeId);
 		}
+
 	}
 
 	/**
-	 * Method to migrate locks from one node to another. This is useful if the
-	 * node has lost a heart beat, then re-joined with a new node ID. In this
-	 * case we'll just migrate the locks from the old node id to the new one
+	 * Method to migrate locks from one node to another. This is useful if the node
+	 * has lost a heart beat, then re-joined with a new node ID. In this case we'll
+	 * just migrate the locks from the old node id to the new one
 	 * 
-	 * @param nodeId
-	 *            The node under which the locks shall be moved
-	 * @param oldNodeId
-	 *            The node from which the locks will be moved
-	 * @param nodeLocks
-	 *            The map fo locks which shall be used (Server or Client side)
+	 * @param nodeId    The node under which the locks shall be moved
+	 * @param oldNodeId The node from which the locks will be moved
+	 * @param nodeLocks The map fo locks which shall be used (Server or Client side)
 	 */
 	static void migrateLocks(Long nodeId, Long oldNodeId,
 			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> nodeLocks) {
@@ -661,16 +637,13 @@ public class SvCluster extends SvCore {
 	}
 
 	/**
-	 * Method to migrate locks from one node to another. This is useful if the
-	 * node has lost a heart beat, then re-joined with a new node ID. In this
-	 * case we'll just migrate the locks from the old node id to the new one
+	 * Method to migrate locks from one node to another. This is useful if the node
+	 * has lost a heart beat, then re-joined with a new node ID. In this case we'll
+	 * just migrate the locks from the old node id to the new one
 	 * 
-	 * @param nodeId
-	 *            The node under which the locks shall be moved
-	 * @param oldNodeId
-	 *            The node from which the locks will be moved
-	 * @param nodeLocks
-	 *            The map fo locks which shall be used (Server or Client side)
+	 * @param nodeId    The node under which the locks shall be moved
+	 * @param oldNodeId The node from which the locks will be moved
+	 * @param nodeLocks The map fo locks which shall be used (Server or Client side)
 	 */
 	static void copyLocalLocks(Long nodeId, Long oldNodeId,
 			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks) {

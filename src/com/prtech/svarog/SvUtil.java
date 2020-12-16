@@ -14,11 +14,9 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
-import java.awt.List;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,19 +32,22 @@ import java.util.Enumeration;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.SvCharId;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
 
 public class SvUtil {
 
-	public static PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
-	public static GeometryFactory sdiFactory = initFactory();
+	static final Logger log4j = SvConf.getLogger(SvUtil.class);
+
+	public static final PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
+	public static final GeometryFactory sdiFactory = initFactory();
 
 	/**
 	 * Public enum to provide information of Java Basic Datatypes in Bytes
@@ -69,8 +70,7 @@ public class SvUtil {
 	/***
 	 * Method for generating a MD5 hash from a string
 	 * 
-	 * @param pass
-	 *            The string from which a hash should be generated
+	 * @param pass The string from which a hash should be generated
 	 * @return The hash in string format
 	 */
 	public static String getMD5(String pass) {
@@ -81,7 +81,7 @@ public class SvUtil {
 			BigInteger i = new BigInteger(1, m.digest());
 			return String.format("%1$032X", i);
 		} catch (Exception ex) {
-			System.out.print("Error generating MD5. " + ex.getMessage() + "\n");
+			log4j.error("Error generating MD5. ", ex);
 		}
 		return "";
 	}
@@ -94,12 +94,34 @@ public class SvUtil {
 	}
 
 	/**
+	 * Method to match a given field name of a DbDataObject to a required value. The
+	 * filter value can be null, meaning it would match a dbo which has no field
+	 * set. If the dbo is null or the field name, it will return false.
+	 * 
+	 * @param dbo             The {@link DbDataObject} to whose field should be
+	 *                        matched
+	 * @param filterFieldName The name of the object field, as returned by
+	 *                        {@link DbDataObject} getVal method
+	 * @param filterValue     The value which we want to match
+	 * @return False if the value has not been matched or the input parameters were
+	 *         null (except filterValue)
+	 */
+	public static boolean fieldMatchValue(DbDataObject dbo, SvCharId filterFieldName, Object filterValue) {
+		if (dbo == null || filterFieldName == null)
+			return false;
+		Object fieldValue = dbo.getVal(filterFieldName, true);
+		if (fieldValue == null)
+			return false;
+		else
+			return fieldValue.equals(filterValue);
+	}
+
+	/**
 	 * Method for uppercasing an ASCII string. This method ONLY uppercases the
 	 * standard asci chars from a-z to A-Z. It doesn't perform ANSI/unicode
 	 * uppercase.
 	 * 
-	 * @param inStr
-	 *            The string to be uppercased
+	 * @param inStr The string to be uppercased
 	 * @return array of uppercased chars
 	 */
 	public static String svUpperCase(String inStr) {
@@ -124,8 +146,7 @@ public class SvUtil {
 	 * standard asci chars from a-z to A-Z. It doesn't perform ANSI/unicode
 	 * uppercase.
 	 * 
-	 * @param inStr
-	 *            The string to be uppercased
+	 * @param inStr The string to be uppercased
 	 * @return array of uppercased chars
 	 */
 	public static String svUpperCase(char[] inStr) {
@@ -184,10 +205,8 @@ public class SvUtil {
 	/**
 	 * Simple function for writing a string variable to a file
 	 * 
-	 * @param fileName
-	 *            the file to which the string should be written
-	 * @param strValue
-	 *            the String which should be written
+	 * @param fileName the file to which the string should be written
+	 * @param strValue the String which should be written
 	 */
 	public static void saveStringToFile(String fileName, String strValue) {
 		FileOutputStream fop = null;
@@ -215,22 +234,21 @@ public class SvUtil {
 			out.flush();
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			log4j.error("Error writing to file.", e);
 		} finally {
 			try {
 				if (fop != null) {
 					fop.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				log4j.error("Error writing to file.", e);
 			}
 
 			try {
 				if (out != null)
 					out.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				log4j.error("Error writing to file.", e);
 			}
 		}
 
@@ -239,12 +257,11 @@ public class SvUtil {
 	/**
 	 * Method to produce a string with list of IP addresses of the system
 	 * 
-	 * @param includHeartBeatPort
-	 *            If the flag is set, the heart beat port will be appended at
-	 *            the end of the ip delimited by colon
-	 * @param delimiter
-	 *            The string delimiter will be used to delimit ip addesses. The
-	 *            colon can not be used as IP delimiter
+	 * @param includHeartBeatPort If the flag is set, the heart beat port will be
+	 *                            appended at the end of the ip delimited by colon
+	 * @param delimiter           The string delimiter will be used to delimit ip
+	 *                            addesses. The colon can not be used as IP
+	 *                            delimiter
 	 * @return String of ip addresses concatenated with delimiter.
 	 * @throws UnknownHostException
 	 */
@@ -261,35 +278,35 @@ public class SvUtil {
 	}
 
 	/**
-	 * Returns an <code>InetAddress</code> object encapsulating what is most
-	 * likely the machine's LAN IP address.
+	 * Returns an <code>InetAddress</code> object encapsulating what is most likely
+	 * the machine's LAN IP address.
 	 * <p/>
 	 * This method is intended for use as a replacement of JDK method
-	 * <code>InetAddress.getLocalHost</code>, because that method is ambiguous
-	 * on Linux systems. Linux systems enumerate the loopback network interface
-	 * the same way as regular LAN network interfaces, but the JDK
-	 * <code>InetAddress.getLocalHost</code> method does not specify the
-	 * algorithm used to select the address returned under such circumstances,
-	 * and will often return the loopback address, which is not valid for
-	 * network communication. Details <a href=
+	 * <code>InetAddress.getLocalHost</code>, because that method is ambiguous on
+	 * Linux systems. Linux systems enumerate the loopback network interface the
+	 * same way as regular LAN network interfaces, but the JDK
+	 * <code>InetAddress.getLocalHost</code> method does not specify the algorithm
+	 * used to select the address returned under such circumstances, and will often
+	 * return the loopback address, which is not valid for network communication.
+	 * Details <a href=
 	 * "http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4665037">here</a>.
 	 * <p/>
-	 * This method will scan all IP addresses on all network interfaces on the
-	 * host machine to determine the IP address most likely to be the machine's
-	 * LAN address. If the machine has multiple IP addresses, this method will
-	 * prefer a site-local IP address (e.g. 192.168.x.x or 10.10.x.x, usually
-	 * IPv4) if the machine has one (and will return the first site-local
-	 * address if the machine has more than one), but if the machine does not
-	 * hold a site-local address, this method will return simply the first
-	 * non-loopback address found (IPv4 or IPv6).
+	 * This method will scan all IP addresses on all network interfaces on the host
+	 * machine to determine the IP address most likely to be the machine's LAN
+	 * address. If the machine has multiple IP addresses, this method will prefer a
+	 * site-local IP address (e.g. 192.168.x.x or 10.10.x.x, usually IPv4) if the
+	 * machine has one (and will return the first site-local address if the machine
+	 * has more than one), but if the machine does not hold a site-local address,
+	 * this method will return simply the first non-loopback address found (IPv4 or
+	 * IPv6).
 	 * <p/>
 	 * If this method cannot find a non-loopback address using this selection
 	 * algorithm, it will fall back to calling and returning the result of JDK
 	 * method <code>InetAddress.getLocalHost</code>.
 	 * <p/>
 	 *
-	 * @throws UnknownHostException
-	 *             If the LAN address of the machine cannot be found.
+	 * @throws UnknownHostException If the LAN address of the machine cannot be
+	 *                              found.
 	 */
 	static ArrayList<InetAddress> getLocalHostLANAddress() throws UnknownHostException {
 		ArrayList<InetAddress> addressList = new ArrayList<InetAddress>();
