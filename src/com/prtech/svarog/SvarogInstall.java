@@ -16,6 +16,7 @@
 package com.prtech.svarog;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -68,13 +69,14 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DboFactory;
-import com.prtech.svarog_common.IDbInit;
 import com.prtech.svarog_common.SvCharId;
 import com.prtech.svarog_interfaces.ISvConfiguration;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvConfiguration.UpdateType;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
 
 /**
  * Main class for managing Svarog installation and upgrades
@@ -147,16 +149,24 @@ public class SvarogInstall {
 	public static final String aclFile = "acl.json";
 	public static final String aclSidFile = "acl_sid.json";
 
+	static void writeToScreen(String message) {
+		Console console = System.console();
+		if (console != null) {
+			console.writer().println(message);
+		} else {
+			log4j.info(message);
+		}
+	}
+
 	/**
 	 * Main entry point of the svarog install Supported operations: JSON - will
 	 * generate the svarog JSON structutre MIGRATE_FILESTORE - provide means to
-	 * migrate file store data from DB to disk structure INSTALL - Install a
-	 * brand new svarog DB INSTALL_DROP - Use only for fast recreation of tables
-	 * when developing on Postgres UPGRADE - Upgrade the currently configured
-	 * svarog database
+	 * migrate file store data from DB to disk structure INSTALL - Install a brand
+	 * new svarog DB INSTALL_DROP - Use only for fast recreation of tables when
+	 * developing on Postgres UPGRADE - Upgrade the currently configured svarog
+	 * database
 	 * 
-	 * @param args
-	 *            Command line list of arguments
+	 * @param args Command line list of arguments
 	 */
 	public static int main(String[] args) {
 		CommandLineParser parser = new DefaultParser();
@@ -237,7 +247,6 @@ public class SvarogInstall {
 			if (conn != null)
 				errStatus = 0;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			log4j.info("Can't connect to target database. Check svarog.properties configuration.");
 			log4j.debug("Connection exception:", e);
 
@@ -266,18 +275,19 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to parse the system boundary in json format and generate the grid
-	 * of tiles for svarog SDI usage.
+	 * Method to parse the system boundary in json format and generate the grid of
+	 * tiles for svarog SDI usage.
 	 * 
 	 * @return -1 in case of system error.
 	 */
 	private static int generateGrid() {
-		String errorMessage = DbInit.generateGrid();
-		if (!errorMessage.equals("")) {
-			System.out.println("Error generating system tile grid. " + errorMessage);
+		Geometry boundary = DbInit.getSysBoundaryFromJson();
+		GeometryCollection grid = DbInit.generateGrid(boundary);
+		boolean result = DbInit.writeGrid(grid);
+		if (!result) {
+			log4j.error("Error generating system tile grid.");
 			return -1;
 		}
-
 		return 0;
 	}
 
@@ -287,7 +297,7 @@ public class SvarogInstall {
 		if (opt != null) {
 			retVal = getEntryFromCmd(optionName.toUpperCase(), opt.getDescription());
 		} else
-			System.out.println("Error: Option " + optionName + " doesn't exist!");
+			writeToScreen("Error: Option " + optionName + " doesn't exist!");
 		return retVal;
 	}
 
@@ -296,8 +306,8 @@ public class SvarogInstall {
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(System.in);
-			System.out.println("Please enter " + valueName + ", to " + valueDescription);
-			System.out.println(valueName + ":");
+			writeToScreen("Please enter " + valueName + ", to " + valueDescription);
+			writeToScreen(valueName + ":");
 			retVal = scanner.nextLine();
 		} finally {
 			if (scanner != null)
@@ -317,58 +327,59 @@ public class SvarogInstall {
 		return retVal.equalsIgnoreCase("Y");
 	}
 
-	private static int updatePassword(CommandLine line) {
-		int returnStatus = 0;
+	private static ArrayList<String> getUserPassFromCmd(CommandLine line) {
+		ArrayList<String> values = new ArrayList<>();
 		String userName = line.getOptionValue("user");
-		if (userName == null || userName == "")
+		if (userName == null || userName.isEmpty())
 			userName = getOptionFromCmd("user");
 
 		String password = line.getOptionValue("password");
-		if (password == null || password == "")
+		if (password == null || password.isEmpty())
 			password = getOptionFromCmd("password");
 
-		if (password != "") {
+		if (password != null && !password.isEmpty()) {
 			String passwordConfirm;
-			System.out.println("Please confirm the entered password.");
+			writeToScreen("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
 			if (!password.equals(passwordConfirm)) {
-				System.out.println("Passwords dont' match!");
-				return -3;
+				writeToScreen("Passwords dont' match!");
+			} else {
+				values.add(userName);
+				values.add(password);
 			}
 
 		}
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
-			svw = new SvWriter();
-			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
-			DbDataObject user = svs.getUser(userName);
+		return values;
+	}
 
+	private static int updatePassword(CommandLine line) {
+
+		ArrayList<String> userNPass = getUserPassFromCmd(line);
+		if (userNPass.isEmpty())
+			return -3;
+
+		String userName = userNPass.get(0);
+		String password = userNPass.get(1);
+
+		try (SvWriter svw = new SvWriter(); SvSecurity svs = new SvSecurity(svw);) {
+
+			DbDataObject user = svs.getUser(userName);
 			if (line.hasOption("p"))
 				password = SvUtil.getMD5(password).toUpperCase();
 
 			svs.createUser(userName, password, (String) user.getVal(Sv.FIRST_NAME), (String) user.getVal("last_name"),
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
-			System.out.println("Password updated for user " + userName);
-			returnStatus = 0;
+			writeToScreen("Password updated for user " + userName);
+		} catch (SvException ex) {
+			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(((SvException) ex).getFormattedMessage());
 		} catch (Exception ex) {
-			System.out.println("Error, password update for " + userName + " failed");
-			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
-			else {
-				System.out.println(UNEXPECTED_EX);
-				ex.printStackTrace();
-			}
-			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
+			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(UNEXPECTED_EX);
+			ex.printStackTrace();
 		}
-		return returnStatus;
+		return 0;
 	}
 
 	private static int updateUser(CommandLine line) {
@@ -404,21 +415,22 @@ public class SvarogInstall {
 		if (status == "")
 			status = null;
 
-		System.out.println("If you don't want to change the password, just hit enter");
+		writeToScreen("If you don't want to change the password, just hit enter");
 		String password = line.getOptionValue("password");
 		if (password == null || password == "")
 			password = getOptionFromCmd("password");
 
-		if (password != "") {
+		if (password != null && !password.isEmpty()) {
 			String passwordConfirm;
-			System.out.println("Please confirm the entered password.");
+			writeToScreen("Please confirm the entered password.");
 			passwordConfirm = getOptionFromCmd("password");
 			if (!password.equals(passwordConfirm)) {
-				System.out.println("Passwords dont' match!");
+				writeToScreen("Passwords dont' match!");
 				return -3;
 			}
 
-		}
+		} else
+			return -3;
 		SvWriter svw = null;
 		SvSecurity svs = null;
 		try {
@@ -429,14 +441,14 @@ public class SvarogInstall {
 				password = SvUtil.getMD5(password).toUpperCase();
 
 			svs.createUser(userName, password, firstName, surName, email, userPin, "", sidType, status, true);
-			System.out.println("User " + userName + " successfully created/updated");
+			writeToScreen("User " + userName + " successfully created/updated");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, user " + userName + " can not be created/updated");
+			writeToScreen("Error, user " + userName + " can not be created/updated");
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -474,12 +486,9 @@ public class SvarogInstall {
 		if (status == "")
 			status = null;
 
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter(); SvSecurity svs = new SvSecurity(svw);) {
+
 			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
 			DbDataObject groupDbo = null;
 			try {
 				groupDbo = svs.getSid(groupName, svCONST.OBJECT_TYPE_GROUP);
@@ -500,22 +509,17 @@ public class SvarogInstall {
 			groupDbo.setVal("group_security_type", securityType);
 			groupDbo.setVal("e_mail", email);
 			svw.saveObject(groupDbo);
-			System.out.println("Group " + groupName + " successfully created/updated");
+			writeToScreen("Group " + groupName + " successfully created/updated");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, user " + groupName + " can not be created/updated");
+			writeToScreen("Error, user " + groupName + " can not be created/updated");
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 	}
@@ -529,7 +533,7 @@ public class SvarogInstall {
 		if (exportFile == null || exportFile == "")
 			exportFile = getOptionFromCmd("export-group-cfg");
 
-		System.out.println("Exporting group " + group + " config to " + exportFile);
+		writeToScreen("Exporting group " + group + " config to " + exportFile);
 
 		int returnStatus = 0;
 		SvWriter svw = null;
@@ -545,14 +549,14 @@ public class SvarogInstall {
 			groupDbo.setVal(Sv.ACLS, acls);
 			SvUtil.saveStringToFile(exportFile, groupDbo.toJson().toString());
 			returnStatus = 0;
-			System.out.println("Successfully exported " + group + " config to " + exportFile);
+			writeToScreen("Successfully exported " + group + " config to " + exportFile);
 
 		} catch (Exception ex) {
-			System.out.println("Error, can not get user groups for user " + group);
+			writeToScreen("Error, can not get user groups for user " + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -574,7 +578,7 @@ public class SvarogInstall {
 			svr = new SvReader(svw);
 			DbDataObject oldAcl = null;
 			for (DbDataObject acl : aclList.getItems()) {
-				oldAcl = svr.getObjectByUnqConfId((String) acl.getVal("label_code"),
+				oldAcl = svr.getObjectByUnqConfId((String) acl.getVal(Sv.LABEL_CODE),
 						SvCore.getDbt(acl.getObjectType()));
 				if (oldAcl == null) {
 					acl.setObjectId(0L);
@@ -622,21 +626,18 @@ public class SvarogInstall {
 			return -1;
 
 		int returnStatus = 0;
-		SvWriter svw = null;
-		SvSecurity svs = null;
 		String group = "UNKNOWN";
-		try {
+		try (SvWriter svw = new SvWriter(); SvSecurity svs = new SvSecurity(svw)) {
 			DbDataObject dbo = new DbDataObject();
 			DbDataObject groupDbo = null;
 			dbo.fromJson(jObj);
 			DbDataArray acls = (DbDataArray) dbo.getVal(Sv.ACLS);
 			group = (String) dbo.getVal(Sv.GROUP_NAME);
-			System.out.println("Importing group " + group + " config from " + importFile);
+			writeToScreen("Importing group " + group + " config from " + importFile);
 
-			svw = new SvWriter();
 			svw.switchUser(Sv.ADMIN);
+			svs.switchUser(Sv.ADMIN);
 			svw.setAutoCommit(false);
-			svs = new SvSecurity(svw);
 			try {
 				groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
 			} catch (SvException sv) {
@@ -668,22 +669,17 @@ public class SvarogInstall {
 			upgradeACLS(dbo, acls, svw);
 			svw.dbCommit();
 			returnStatus = 0;
-			System.out.println("Successfully imported " + group + " config from " + importFile);
+			writeToScreen("Successfully imported " + group + " config from " + importFile);
 
 		} catch (Exception ex) {
-			System.out.println("Error, can not get user groups for user " + group);
+			writeToScreen("Error, can not get user groups for user " + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 
@@ -708,23 +704,23 @@ public class SvarogInstall {
 				printDefault = " has configured a default group:" + defaultGroup.get(0).getVal("GROUP_NAME");
 
 			}
-			System.out.println("User " + user + printDefault);
+			writeToScreen("User " + user + printDefault);
 
 			defaultGroup = svw.getAllUserGroups(userDbo, false);
-			System.out.println("User " + user + " is member of the following groups:");
-			System.out.println("----------");
+			writeToScreen("User " + user + " is member of the following groups:");
+			writeToScreen("----------");
 			for (DbDataObject dbg : defaultGroup.getItems()) {
-				System.out.println((String) dbg.getVal("GROUP_NAME"));
+				writeToScreen((String) dbg.getVal("GROUP_NAME"));
 			}
-			System.out.println("Total of " + defaultGroup.size() + " groups associated to the user");
+			writeToScreen("Total of " + defaultGroup.size() + " groups associated to the user");
 
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, can not get user groups for user " + user);
+			writeToScreen("Error, can not get user groups for user " + user);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -762,14 +758,14 @@ public class SvarogInstall {
 				svs.removeUserFromGroup(userDbo, groupDbo);
 			else
 				svs.addUserToGroup(userDbo, groupDbo, isDefaultGroup);
-			System.out.println("User " + user + " successfully " + groupOperation + " group: " + group);
+			writeToScreen("User " + user + " successfully " + groupOperation + " group: " + group);
 			returnStatus = 0;
 		} catch (Exception ex) {
-			System.out.println("Error, user " + user + " can not be " + groupOperation + " group:" + group);
+			writeToScreen("Error, user " + user + " can not be " + groupOperation + " group:" + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -784,7 +780,7 @@ public class SvarogInstall {
 
 	private static int updatePermissions(CommandLine line) {
 		if (!line.hasOption("permissions")) {
-			System.out.println("Error: Missing --permissions parameter. " + "In order to grant or revoke permissions, "
+			writeToScreen("Error: Missing --permissions parameter. " + "In order to grant or revoke permissions, "
 					+ "the --permissions parameter must be set");
 			return -4;
 		}
@@ -792,10 +788,10 @@ public class SvarogInstall {
 		String group = line.getOptionValue("group");
 		Boolean isGroup = false;
 		if (group != null) {
-			System.out.println("Setting permissions for group:" + group);
+			writeToScreen("Setting permissions for group:" + group);
 			isGroup = true;
 		} else if (user != null)
-			System.out.println("Setting permissions for user:" + user);
+			writeToScreen("Setting permissions for user:" + user);
 
 		String permissionMask = line.getOptionValue("permissions");
 		boolean isGrant = line.hasOption("g");
@@ -819,24 +815,24 @@ public class SvarogInstall {
 			if (sid != null) {
 				for (DbDataObject perm : permissions.getItems()) {
 					if (isGrant)
-						svs.grantPermission(sid, (String) perm.getVal("LABEL_CODE"));
+						svs.grantPermission(sid, (String) perm.getVal(Sv.LABEL_CODE));
 					else
-						svs.revokePermission(sid, (String) perm.getVal("LABEL_CODE"));
-					System.out.println("User " + user + " successfully " + permissionOperation + " permission: "
-							+ (String) perm.getVal("LABEL_CODE"));
+						svs.revokePermission(sid, (String) perm.getVal(Sv.LABEL_CODE));
+					writeToScreen("User " + user + " successfully " + permissionOperation + " permission: "
+							+ (String) perm.getVal(Sv.LABEL_CODE));
 				}
 				svs.dbCommit();
 			} else {
-				System.out.println("Error, sid " + (isGroup ? group : user) + " can not be found");
+				writeToScreen("Error, sid " + (isGroup ? group : user) + " can not be found");
 				returnStatus = -5;
 			}
 
 		} catch (Exception ex) {
-			System.out.println("Error, user " + user + " can not be " + permissionOperation + " permission:" + group);
+			writeToScreen("Error, user " + user + " can not be " + permissionOperation + " permission:" + group);
 			if (ex instanceof SvException)
-				System.out.println(((SvException) ex).getFormattedMessage());
+				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
-				System.out.println(UNEXPECTED_EX);
+				writeToScreen(UNEXPECTED_EX);
 				ex.printStackTrace();
 			}
 			returnStatus = -1;
@@ -923,19 +919,18 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to validate the command line and ensure that compatible options
-	 * are set
+	 * Method to validate the command line and ensure that compatible options are
+	 * set
 	 * 
-	 * @param line
-	 *            The command line which is subject of parsing.
+	 * @param line The command line which is subject of parsing.
 	 * @return True if the command line is valid
 	 */
 	private static boolean validateCommandLine(CommandLine line) {
 		ArrayList<Option> opts = getCoreOpts(line);
 		if (opts.size() == 0)
-			System.out.println("No core options set. You must set at ONLY one of the core options:");
+			writeToScreen("No core options set. You must set at ONLY one of the core options:");
 		else if (opts.size() > 1)
-			System.out.println("More than one core option set. You must set ONLY one of the core options:");
+			writeToScreen("More than one core option set. You must set ONLY one of the core options:");
 		if (opts.size() != 1) {
 			HelpFormatter formatter = new HelpFormatter();
 			Options options = new Options();
@@ -1063,8 +1058,8 @@ public class SvarogInstall {
 		grantGroup.addOption(opt);
 		options.addOptionGroup(grantGroup);
 
-		opt = Option.builder().longOpt("permissions")
-				.desc("identify a permission set for granting and revoking. Use % as wildcard. Example SVAROG%.READ would grant read permission to SVAROV tables")
+		opt = Option.builder().longOpt("permissions").desc(
+				"identify a permission set for granting and revoking. Use % as wildcard. Example SVAROG%.READ would grant read permission to SVAROV tables")
 				.hasArg().argName("MASK").build();
 
 		options.addOption(opt);
@@ -1126,8 +1121,8 @@ public class SvarogInstall {
 
 		options.addOption(opt);
 
-		opt = Option.builder().longOpt("sid_type")
-				.desc("assign user type or group type to the user/group. Values must be INTERNAL or EXTERNAL for user and USERS or ADMINISTRATORS for groups")
+		opt = Option.builder().longOpt("sid_type").desc(
+				"assign user type or group type to the user/group. Values must be INTERNAL or EXTERNAL for user and USERS or ADMINISTRATORS for groups")
 				.hasArg().argName("E-MAIL").build();
 
 		options.addOption(opt);
@@ -1219,13 +1214,10 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to sort an array of ISvConfiguration objects by different update
-	 * types
+	 * Method to sort an array of ISvConfiguration objects by different update types
 	 * 
-	 * @param cfgs
-	 *            The array of ISvConfiguration objects
-	 * @param updateType
-	 *            The specific update type to be used for sorting
+	 * @param cfgs       The array of ISvConfiguration objects
+	 * @param updateType The specific update type to be used for sorting
 	 * @return The sorted ArrayList
 	 */
 	static ArrayList<ISvConfiguration> getSortedCfgs(ArrayList<ISvConfiguration> cfgs,
@@ -1253,7 +1245,6 @@ public class SvarogInstall {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	static void executeConfiguration(ISvConfiguration.UpdateType updateType) throws Exception {
 		Connection conn = null;
 		String schema = null;
@@ -1318,8 +1309,8 @@ public class SvarogInstall {
 
 		/*
 		 * (if (!(firstInstall ^ isSvarogInstalled())) { log4j.error("Svarog " +
-		 * operation + " failed! In-database config is " + (isSvarogInstalled()
-		 * ? "valid" : "invalid") + "!"); return -2; }
+		 * operation + " failed! In-database config is " + (isSvarogInstalled() ?
+		 * "valid" : "invalid") + "!"); return -2; }
 		 */
 		if (!isSvarogInstalled() && labelsOnly) {
 			log4j.error("Svarog " + operation + " failed! In-database config is "
@@ -1333,7 +1324,7 @@ public class SvarogInstall {
 			Connection conn = null;
 			try {
 				conn = SvConf.getDBConnection();
-				String before = SvCore.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
+				String before = SvConf.getDbHandler().beforeInstall(conn, SvConf.getDefaultSchema());
 				log4j.info("Svarog DbHandler pre-upgrade:" + before);
 			} finally {
 				if (conn != null)
@@ -1386,7 +1377,7 @@ public class SvarogInstall {
 
 			try {
 				conn = SvConf.getDBConnection();
-				String after = SvCore.getDbHandler().afterInstall(conn, SvConf.getDefaultSchema());
+				String after = SvConf.getDbHandler().afterInstall(conn, SvConf.getDefaultSchema());
 				log4j.info("Svarog DbHandler post-upgrade:" + after);
 			} finally {
 				if (conn != null)
@@ -1414,16 +1405,15 @@ public class SvarogInstall {
 	 * Method to provide file migration from one filestore to another
 	 */
 	public static void migrateDbFileStore() {
-		// TODO this needs to be properly refactored
 		Connection conn = null;
 		PreparedStatement st = null;
 		ResultSet rs = null;
-		try {
+		try (SvFileStore fs = new SvFileStore();) {
 			conn = SvConf.getDBConnection();
 			st = conn.prepareStatement(
 					"select * from " + SvConf.getParam("filestore.table") + " where dbms_lob.getlength(data)>1");
 			rs = st.executeQuery();
-			SvFileStore fs = new SvFileStore();
+
 			byte[] data = null;
 			Long fileId = 0L;
 			while (rs.next()) {
@@ -1459,16 +1449,14 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * The method installObject is used to install the default system
-	 * configuration from the JSON configuration to the target DB. It uses the
-	 * predefined object_id values from the JSON config files
+	 * The method installObject is used to install the default system configuration
+	 * from the JSON configuration to the target DB. It uses the predefined
+	 * object_id values from the JSON config files
 	 * 
-	 * @param jsonObject
-	 *            The JSON object which should be installed.
-	 * @param dbu
-	 *            SvWriter instance to be used for installing objects
-	 * @throws SvException
-	 *             If the saveObject method raised an exception, just forward it
+	 * @param jsonObject The JSON object which should be installed.
+	 * @param dbu        SvWriter instance to be used for installing objects
+	 * @throws SvException If the saveObject method raised an exception, just
+	 *                     forward it
 	 */
 	static void installObject(JsonObject jsonObject, SvWriter dbu) throws SvException {
 
@@ -1495,8 +1483,7 @@ public class SvarogInstall {
 	/**
 	 * Method to get the list of fields in the repo table
 	 * 
-	 * @param conn
-	 *            The JDBC connection to be used for query execution
+	 * @param conn The JDBC connection to be used for query execution
 	 * @return A map containing the DbDataFields of the repo table
 	 */
 	static LinkedHashMap<String, DbDataField> getRepoFieldListFromDb(Connection conn) {
@@ -1572,14 +1559,12 @@ public class SvarogInstall {
 				try {
 					st.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					log4j.error("Can't release drop constraint statement:" + tableName, e);
 				}
 			if (st1 != null)
 				try {
 					st1.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					log4j.error("Can't release drop index statement:" + tableName, e);
 				}
 
@@ -1614,17 +1599,13 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to fetch the list of indexes which exist for a specific database
-	 * table
+	 * Method to fetch the list of indexes which exist for a specific database table
 	 * 
-	 * @param conn
-	 *            JDBC Connection to be used
-	 * @param tableName
-	 *            The table for which the fields should be fetched
-	 * @param schemaName
-	 *            The database schema in which the table resides
-	 * @return A map containing field name as key and DbDataField object
-	 *         describing the field it self
+	 * @param conn       JDBC Connection to be used
+	 * @param tableName  The table for which the fields should be fetched
+	 * @param schemaName The database schema in which the table resides
+	 * @return A map containing field name as key and DbDataField object describing
+	 *         the field it self
 	 */
 	static HashMap<String, String> getIndexListFromDb(Connection conn, String tableName, String schemaName) {
 		HashMap<String, String> params = new HashMap<String, String>();
@@ -1662,14 +1643,11 @@ public class SvarogInstall {
 	/**
 	 * Method to fetch the fields/columns which exist in the database table
 	 * 
-	 * @param conn
-	 *            JDBC Connection to be used
-	 * @param tableName
-	 *            The table for which the fields should be fetched
-	 * @param schemaName
-	 *            The database schema in which the table resides
-	 * @return A map containing field name as key and DbDataField object
-	 *         describing the field it self
+	 * @param conn       JDBC Connection to be used
+	 * @param tableName  The table for which the fields should be fetched
+	 * @param schemaName The database schema in which the table resides
+	 * @return A map containing field name as key and DbDataField object describing
+	 *         the field it self
 	 */
 	static LinkedHashMap<String, DbDataField> getFieldListFromDb(Connection conn, String tableName, String schemaName) {
 		HashMap<String, String> params = new HashMap<String, String>();
@@ -1714,14 +1692,12 @@ public class SvarogInstall {
 	 * The method updateTableBase, updates the table structure in the target
 	 * Database according to the configuration object DbDataTable
 	 * 
-	 * @param dbDataTable
-	 *            The DbDataTable object based on which you want to create the
-	 *            table in the DB
-	 * @param fieldsInDb
-	 *            A map containing the fiels indexed by name for the specific
-	 *            table
-	 * @param conn
-	 *            The JDBC connection which should be used for query execution
+	 * @param dbDataTable The DbDataTable object based on which you want to create
+	 *                    the table in the DB
+	 * @param fieldsInDb  A map containing the fiels indexed by name for the
+	 *                    specific table
+	 * @param conn        The JDBC connection which should be used for query
+	 *                    execution
 	 * @return True/False if the table has been created with success
 	 */
 	synchronized static Boolean updateTableBase(DbDataTable dbDataTable, HashMap<String, DbDataField> fieldsInDb,
@@ -1795,7 +1771,7 @@ public class SvarogInstall {
 
 					String dropStr = "begin "
 							+ "for c1 in ( select * from ALL_OBJECTS WHERE  upper(OWNER)=upper('{SCHEMA}') and "
-							+ "object_type<>'INDEX' and object_type<>'LOB' and object_type<>'TYPE' and object_type<>'PROCEDURE') "
+							+ "object_type<>'INDEX' and object_type<>'LOB' and object_type<>'TYPE' and object_type<>'PROCEDURE' and secondary='N') "
 							+ "loop " + "execute immediate 'DROP '||c1.object_type||' '||c1.owner||'.'||c1.object_name;"
 							+ "end loop;" + "end;";
 					st.execute(dropStr.replace("{SCHEMA}", SvConf.getDefaultSchema()));
@@ -1847,13 +1823,11 @@ public class SvarogInstall {
 	static ArrayList<DbDataTable> readTablesFromConf() {
 		String confPath = SvConf.getConfPath() + masterDbtPath;
 		InputStream flst = null;
-		ArrayList<DbDataTable> dbTables = null;
+		ArrayList<DbDataTable> dbTables = new ArrayList<>();
 		try {
 			// init the table configs
 			flst = new FileInputStream(new File(confPath + fileListName));
 			String[] texFiles = IOUtils.toString(flst, "UTF-8").split("\n");
-
-			dbTables = new ArrayList<DbDataTable>();
 
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].endsWith(".json")) {
@@ -1957,12 +1931,9 @@ public class SvarogInstall {
 	/**
 	 * Method to refresh the view for the specific DataTable descriptor
 	 * 
-	 * @param dbt
-	 *            The DbDataTable descriptor object
-	 * @param conn
-	 *            The JDBC connection to used for refreshing the view
-	 * @return True if the view has been refreshed successfully. Otherwise
-	 *         false.
+	 * @param dbt  The DbDataTable descriptor object
+	 * @param conn The JDBC connection to used for refreshing the view
+	 * @return True if the view has been refreshed successfully. Otherwise false.
 	 */
 	static Boolean refreshView(DbDataTable dbt, Connection conn) {
 		// no view refresh for the repo!
@@ -1995,18 +1966,14 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * The method orchestrates creation of database tables with their
-	 * appropriate indices, sequences and other constraints
+	 * The method orchestrates creation of database tables with their appropriate
+	 * indices, sequences and other constraints
 	 * 
-	 * @param dbt
-	 *            The data table object which is used to describe the table
-	 * @param conn
-	 *            The JDBC connection to be used for executing queries against
-	 *            the DB
-	 * @return True, if the creation of the table was successful, otherwhise
-	 *         false.
-	 * @throws Exception
-	 *             Raise any exception which occured
+	 * @param dbt  The data table object which is used to describe the table
+	 * @param conn The JDBC connection to be used for executing queries against the
+	 *             DB
+	 * @return True, if the creation of the table was successful, otherwhise false.
+	 * @throws Exception Raise any exception which occured
 	 */
 	public static Boolean createTable(DbDataTable dbt, Connection conn) throws Exception {
 		Boolean retval = false;
@@ -2102,10 +2069,8 @@ public class SvarogInstall {
 	/**
 	 * Method for loading a DbDataTable from a JSON configuration file
 	 * 
-	 * @param pathToJson
-	 *            The path to the JSON configuration table
-	 * @param repoTable
-	 *            Name of the repo table
+	 * @param pathToJson The path to the JSON configuration table
+	 * @param repoTable  Name of the repo table
 	 * @return The DbDataTable instance if the JSON is valid, otherwise null
 	 */
 	static DbDataTable getDbtFromJson(String pathToJson, String repoTable) {
@@ -2146,12 +2111,9 @@ public class SvarogInstall {
 	 * Method which creates a DB table based on a JSON file, containing a
 	 * DbDataTable object
 	 * 
-	 * @param dbt
-	 *            The table descriptor to be used as configuration
-	 * @param newTableName
-	 *            The new table name (if renaming of the object is needed)
-	 * @param conn
-	 *            The JDBC connection to be used for executing the queries
+	 * @param dbt          The table descriptor to be used as configuration
+	 * @param newTableName The new table name (if renaming of the object is needed)
+	 * @param conn         The JDBC connection to be used for executing the queries
 	 * @return If the table has been created successfully it returns true.
 	 */
 	static Boolean createTableFromJson(DbDataTable dbt, String newTableName, Connection conn) {
@@ -2174,11 +2136,9 @@ public class SvarogInstall {
 	 * The method createTableBase, creates a basic table structure in the target
 	 * Database based on the configuration object DbDataTable
 	 * 
-	 * @param dbDataTable
-	 *            The DbDataTable object based on which you want to create the
-	 *            table in the DB
-	 * @param conn
-	 *            The JDBC connection to be used for executing the queries
+	 * @param dbDataTable The DbDataTable object based on which you want to create
+	 *                    the table in the DB
+	 * @param conn        The JDBC connection to be used for executing the queries
 	 * @return True/False if the table has been created with success
 	 */
 
@@ -2206,14 +2166,10 @@ public class SvarogInstall {
 	/**
 	 * Method which creates a new sequence in the DB
 	 * 
-	 * @param seqName
-	 *            The name of the sequence
-	 * @param increment
-	 *            The incrementing value when the sequence is incremented
-	 * @param startsFrom
-	 *            The starting value from the sequence starts
-	 * @param conn
-	 *            The JDBC connection to be used for executing the queries
+	 * @param seqName    The name of the sequence
+	 * @param increment  The incrementing value when the sequence is incremented
+	 * @param startsFrom The starting value from the sequence starts
+	 * @param conn       The JDBC connection to be used for executing the queries
 	 * @return True or False if the creation was successful
 	 */
 	static synchronized Boolean createSequence(String seqName, Integer increment, Long startsFrom, Connection conn) {
@@ -2230,13 +2186,11 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * A method to check if the object specified by objectName exists in the
-	 * default schema
+	 * A method to check if the object specified by objectName exists in the default
+	 * schema
 	 * 
-	 * @param objectName
-	 *            The name of the object to be checked for existence
-	 * @param conn
-	 *            The JDBC connection to be used for executing the queries
+	 * @param objectName The name of the object to be checked for existence
+	 * @param conn       The JDBC connection to be used for executing the queries
 	 * @return True/false if the object exists in the database
 	 */
 	static synchronized Boolean dbObjectExists(String objectName, Connection conn) {
@@ -2274,15 +2228,12 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * A method to check if the columnName parameter is already used as a column
-	 * be the table tableName
+	 * A method to check if the columnName parameter is already used as a column be
+	 * the table tableName
 	 * 
-	 * @param columnName
-	 *            The name of the column
-	 * @param tableName
-	 *            The name of the table
-	 * @param conn
-	 *            The JDBC Connection to be used for executing queries.
+	 * @param columnName The name of the column
+	 * @param tableName  The name of the table
+	 * @param conn       The JDBC Connection to be used for executing queries.
 	 * @return True/false if the column exists in the specified table
 	 */
 	static synchronized Boolean tableColumnExists(String columnName, String tableName, Connection conn,
@@ -2324,14 +2275,10 @@ public class SvarogInstall {
 	/**
 	 * Method that creates a new index object in the target DB
 	 * 
-	 * @param idxName
-	 *            Name of the index
-	 * @param columnList
-	 *            List of column names split by a comma
-	 * @param tableName
-	 *            Name of the table on which the index is created
-	 * @param conn
-	 *            The JDBC connection to be used for executing the queries
+	 * @param idxName    Name of the index
+	 * @param columnList List of column names split by a comma
+	 * @param tableName  Name of the table on which the index is created
+	 * @param conn       The JDBC connection to be used for executing the queries
 	 * @return True/false if the index creation was successful
 	 */
 	static synchronized Boolean createIndex(String idxName, String columnList, String tableName, Connection conn) {
@@ -2343,17 +2290,12 @@ public class SvarogInstall {
 	/**
 	 * Method that creates a new index object in the target DB
 	 * 
-	 * @param idxName
-	 *            Name of the index
-	 * @param columnList
-	 *            List of column names split by a comma
-	 * @param tableName
-	 *            Name of the table on which the index is created
-	 * @param extendedOptions
-	 *            Additional parameter used in the index creation (see the
-	 *            create_index.sql script for more info)
-	 * @param conn
-	 *            the JDBC connection to be used for query execution
+	 * @param idxName         Name of the index
+	 * @param columnList      List of column names split by a comma
+	 * @param tableName       Name of the table on which the index is created
+	 * @param extendedOptions Additional parameter used in the index creation (see
+	 *                        the create_index.sql script for more info)
+	 * @param conn            the JDBC connection to be used for query execution
 	 * @return True/false if the index creation was successful
 	 */
 	static synchronized Boolean createIndex(String idxName, String columnList, String extendedOptions, String tableName,
@@ -2373,17 +2315,12 @@ public class SvarogInstall {
 	/**
 	 * Method that creates a new index object in the target DB
 	 * 
-	 * @param idxName
-	 *            Name of the index
-	 * @param columnName
-	 *            The column on which the index should be created
-	 * @param sysEnvelope
-	 *            The system boundary Envelope
+	 * @param idxName     Name of the index
+	 * @param columnName  The column on which the index should be created
+	 * @param sysEnvelope The system boundary Envelope
 	 * 
-	 * @param tableName
-	 *            Name of the table on which the index is created
-	 * @param conn
-	 *            the JDBC connection to be used for query execution
+	 * @param tableName   Name of the table on which the index is created
+	 * @param conn        the JDBC connection to be used for query execution
 	 * @return True/false if the creation was successful
 	 */
 	static synchronized Boolean createSpatialIndex(String idxName, String columnName, Envelope sysEnvelope,
@@ -2428,36 +2365,32 @@ public class SvarogInstall {
 	 * statements are separated by a colon (;) in the script. The script can be
 	 * parameterized by using parameters specified by a single word text between
 	 * curved brackets, like {PARAM}. The parameteres are initialized from the
-	 * "params" HashMap. This method allows a script to return a result set in
-	 * the resultSet array. If one needs to get the result set from a script,
-	 * then it needs also to pass an instance of empty prepared statement array
-	 * which will return also the prepared statement object which was used to
-	 * obtain the result set
+	 * "params" HashMap. This method allows a script to return a result set in the
+	 * resultSet array. If one needs to get the result set from a script, then it
+	 * needs also to pass an instance of empty prepared statement array which will
+	 * return also the prepared statement object which was used to obtain the result
+	 * set
 	 * 
-	 * @param scriptName
-	 *            The name of the file containing the script. It is expected
-	 *            that it resides in the "sql" sub-folder.
-	 * @param params
-	 *            A HashMap containing the parameters which should be
-	 *            substituted in the script.
-	 * @param returnsResultSet
-	 *            Flag to mark if the script execution should return a result
-	 *            set
-	 * @param resultSet
-	 *            array of ResultSet objects which were generated by the script
-	 *            execution
-	 * @param prepStatement
-	 *            array of PreparedStatement objects which were generated by the
-	 *            script execution
-	 * @param conn
-	 *            the JDBC connection to be used for query execution
+	 * @param scriptName       The name of the file containing the script. It is
+	 *                         expected that it resides in the "sql" sub-folder.
+	 * @param params           A HashMap containing the parameters which should be
+	 *                         substituted in the script.
+	 * @param returnsResultSet Flag to mark if the script execution should return a
+	 *                         result set
+	 * @param resultSet        array of ResultSet objects which were generated by
+	 *                         the script execution
+	 * @param prepStatement    array of PreparedStatement objects which were
+	 *                         generated by the script execution
+	 * @param conn             the JDBC connection to be used for query execution
 	 * @return Returns true if the script was executed with success.
 	 */
 	static Boolean executeDbScript(String scriptName, HashMap<String, String> params, Connection conn,
 			Boolean returnsResultSet, ResultSet[] resultSet, PreparedStatement[] prepStatement) {
 		Boolean retval = false;
-		if (returnsResultSet && resultSet == null && prepStatement == null)
+		if (returnsResultSet && (resultSet == null || prepStatement == null)) {
 			log4j.error("Can't store resultsets in null object!");
+			return false;
+		}
 
 		log4j.debug("executeDbScript() for " + scriptName + " started.");
 
@@ -2528,14 +2461,11 @@ public class SvarogInstall {
 	 * Overloaded version of executeDbScript targeted at running DDL or other
 	 * scripts which don't return value or result set
 	 * 
-	 * @param scriptName
-	 *            The name of the file containing the script. It is expected
-	 *            that it resides in the "sql/DATABASE_NAME/" sub-folder.
-	 * @param params
-	 *            A HashMap containing the parameters which should be
-	 *            substituted in the script.
-	 * @param conn
-	 *            The SQL Connection to be used for execution of the script
+	 * @param scriptName The name of the file containing the script. It is expected
+	 *                   that it resides in the "sql/DATABASE_NAME/" sub-folder.
+	 * @param params     A HashMap containing the parameters which should be
+	 *                   substituted in the script.
+	 * @param conn       The SQL Connection to be used for execution of the script
 	 * @return True/false depending if the script execution was a success or not
 	 */
 	static Boolean executeDbScript(String scriptName, HashMap<String, String> params, Connection conn) {
@@ -2545,16 +2475,12 @@ public class SvarogInstall {
 	/**
 	 * Overloaded method to check if a config object should be upgraded.
 	 * 
-	 * @param oldDbo
-	 *            The old version of the config object
-	 * @param newDbo
-	 *            The new version of the config object
-	 * @param dboFields
-	 *            The list of fields applicable for the object type of the two
-	 *            objects subject to comparison
-	 * @param avoidParentComparison
-	 *            If true, the method will not compare the parent_id's of
-	 *            objects
+	 * @param oldDbo                The old version of the config object
+	 * @param newDbo                The new version of the config object
+	 * @param dboFields             The list of fields applicable for the object
+	 *                              type of the two objects subject to comparison
+	 * @param avoidParentComparison If true, the method will not compare the
+	 *                              parent_id's of objects
 	 * @return True if upgrade is needed else false
 	 */
 	public static boolean shouldUpgradeConfig(DbDataObject oldDbo, DbDataObject newDbo, DbDataArray dboFields,
@@ -2632,13 +2558,10 @@ public class SvarogInstall {
 	 * Overloaded method to check if a config object should be upgraded. This
 	 * version strictly compares parent config object change
 	 * 
-	 * @param oldDbo
-	 *            The old version of the config object
-	 * @param newDbo
-	 *            The new version of the config object
-	 * @param dboFields
-	 *            The list of fields applicable for the object type of the two
-	 *            objects subject to comparison
+	 * @param oldDbo    The old version of the config object
+	 * @param newDbo    The new version of the config object
+	 * @param dboFields The list of fields applicable for the object type of the two
+	 *                  objects subject to comparison
 	 * @return True if upgrade is needed else false
 	 */
 	static boolean shouldUpgradeConfig(DbDataObject oldDbo, DbDataObject newDbo, DbDataArray dboFields) {
@@ -2648,18 +2571,14 @@ public class SvarogInstall {
 	/**
 	 * Method to perform upgrade of the link types in the system
 	 * 
-	 * @param dba
-	 *            Array list of link types to be upgraded
+	 * @param dba Array list of link types to be upgraded
 	 * @return If successful, true else false
-	 * @throws SvException
-	 *             Re-raised SvException
+	 * @throws SvException Re-raised SvException
 	 */
 	static Boolean upgradeLinkTypes(DbDataArray dba) throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
-			svr = new SvReader();
-			svw = new SvWriter();
+
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr)) {
+
 			svw.isInternal = true;
 			DbDataArray toSave = new DbDataArray();
 			DbDataArray existingTypes = null;
@@ -2706,11 +2625,6 @@ public class SvarogInstall {
 
 			}
 			svw.saveObject(toSave);
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svw != null)
-				svw.release();
 		}
 		return true;
 	}
@@ -2718,13 +2632,10 @@ public class SvarogInstall {
 	/**
 	 * Method for upgrading Link configurations
 	 * 
-	 * @param upgradeFile
-	 *            The file to be used for the upgrade
-	 * @param allNonProcessed
-	 *            List of all non processed objects to which we add whatever
-	 *            object we didn't process
-	 * @throws SvException
-	 *             Any underlying exception
+	 * @param upgradeFile     The file to be used for the upgrade
+	 * @param allNonProcessed List of all non processed objects to which we add
+	 *                        whatever object we didn't process
+	 * @throws SvException Any underlying exception
 	 */
 	static void upgradeLinkCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
 		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
@@ -2739,13 +2650,10 @@ public class SvarogInstall {
 	/**
 	 * Method for upgrading Object configurations
 	 * 
-	 * @param upgradeFile
-	 *            The file to be used for the upgrade
-	 * @param allNonProcessed
-	 *            List of all non processed objects to which we add whatever
-	 *            object we didn't process
-	 * @throws SvException
-	 *             Any underlying exception
+	 * @param upgradeFile     The file to be used for the upgrade
+	 * @param allNonProcessed List of all non processed objects to which we add
+	 *                        whatever object we didn't process
+	 * @throws SvException Any underlying exception
 	 */
 	static void upgradeObjectCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
 		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
@@ -2769,13 +2677,10 @@ public class SvarogInstall {
 	/**
 	 * Method for upgrading ACL configurations
 	 * 
-	 * @param upgradeFile
-	 *            The file to be used for the upgrade
-	 * @param allNonProcessed
-	 *            List of all non processed objects to which we add whatever
-	 *            object we didn't process
-	 * @throws SvException
-	 *             Any underlying exception
+	 * @param upgradeFile     The file to be used for the upgrade
+	 * @param allNonProcessed List of all non processed objects to which we add
+	 *                        whatever object we didn't process
+	 * @throws SvException Any underlying exception
 	 */
 	static void upgradeAclCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
 		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
@@ -2796,13 +2701,10 @@ public class SvarogInstall {
 	/**
 	 * Method for upgrading SID to ACL configurations
 	 * 
-	 * @param upgradeFile
-	 *            The file to be used for the upgrade
-	 * @param allNonProcessed
-	 *            List of all non processed objects to which we add whatever
-	 *            object we didn't process
-	 * @throws SvException
-	 *             Any underlying exception
+	 * @param upgradeFile     The file to be used for the upgrade
+	 * @param allNonProcessed List of all non processed objects to which we add
+	 *                        whatever object we didn't process
+	 * @throws SvException Any underlying exception
 	 */
 	static void upgradeSidAclCfg(String upgradeFile, DbDataArray allNonProcessed) throws SvException {
 		DbDataArray allObjects = getDbArrayFromFile(upgradeFile);
@@ -2912,26 +2814,22 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to perform initial Local install such users, groups and the
-	 * initial cluster record
+	 * Method to perform initial Local install such users, groups and the initial
+	 * cluster record
 	 * 
 	 * @return True if there was no error
-	 * @throws SvException
-	 *             Raised exception from SvWriter
+	 * @throws SvException Raised exception from SvWriter
 	 */
 	static Boolean installLocalData(DbDataArray nonProcessed) throws SvException {
 		log4j.info("Install of system locales started");
 
-		SvWriter svw = null;
-		SvLink svl = null;
 		DbDataArray localUsers = getDbArrayFromFile(SvConf.getConfPath() + masterRecordsPath + usersFile);
-		try {
-			svw = new SvWriter();
-			svl = new SvLink(svw);
+		try (SvWriter svw = new SvWriter(); SvLink svl = new SvLink(svw);) {
+
 			svw.isInternal = true;
 			svw.saveObject(localUsers, false);
 			DbDataArray users = extractType(localUsers, svCONST.OBJECT_TYPE_USER, false);
-			DbDataObject defaultUserGroupLink = svl.getLinkType("USER_DEFAULT_GROUP", svCONST.OBJECT_TYPE_USER,
+			DbDataObject defaultUserGroupLink = SvCore.getLinkType("USER_DEFAULT_GROUP", svCONST.OBJECT_TYPE_USER,
 					svCONST.OBJECT_TYPE_GROUP);
 			for (DbDataObject user : users.getItems()) {
 				svl.linkObjects(user.getObjectId(), svCONST.SID_ADMINISTRATORS, defaultUserGroupLink.getObjectId(),
@@ -2952,11 +2850,6 @@ public class SvarogInstall {
 				svw.saveObject(cluster);
 
 			svw.dbCommit();
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svl != null)
-				svl.release();
 		}
 		return true;
 	}
@@ -2965,21 +2858,15 @@ public class SvarogInstall {
 	 * Method to perform initial Locale install
 	 * 
 	 * @return True if there was no error
-	 * @throws SvException
-	 *             Raised exception from SvWriter
+	 * @throws SvException Raised exception from SvWriter
 	 */
 	static Boolean installLocales() throws SvException {
 		log4j.info("Install of system locales started");
 
-		SvWriter svw = null;
 		DbDataArray locales = getLocaleList();
-		try {
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter()) {
 			svw.saveObject(locales);
 			svw.dbCommit();
-		} finally {
-			if (svw != null)
-				svw.release();
 		}
 		return true;
 	}
@@ -2987,11 +2874,9 @@ public class SvarogInstall {
 	/**
 	 * Method to upgrade the svarog label list according to the latest upgrade
 	 * 
-	 * @param filePath
-	 *            The path to the labels upgrade file
+	 * @param filePath The path to the labels upgrade file
 	 * @return False if the upgrade failed, otherwise true
-	 * @throws SvException
-	 *             Any exception raised during the upgrade of the labels
+	 * @throws SvException Any exception raised during the upgrade of the labels
 	 */
 	static Boolean upgradeLabels(String filePath) throws SvException {
 
@@ -3016,18 +2901,15 @@ public class SvarogInstall {
 
 				DbDataObject dboLocale = locales.getItemByIdx(locale);
 
-				SvWriter svw = null;
-				SvReader svr = null;
 				DbDataArray labelsFieldList = SvCore.getFields(svCONST.OBJECT_TYPE_LABEL);
 				labelsFieldList.rebuildIndex("FIELD_NAME");
-				try {
-					svr = new SvReader();
-					svw = new SvWriter(svr);
+				try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
+
 					DbSearchCriterion dbs = new DbSearchCriterion("LOCALE_ID", DbCompareOperand.EQUAL, locale);
 
 					DbDataArray existingLabels = svr.getObjects(dbs, svCONST.OBJECT_TYPE_LABEL, null, 0, 0);
 					if (existingLabels != null)
-						existingLabels.rebuildIndex("LABEL_CODE", true);
+						existingLabels.rebuildIndex(Sv.LABEL_CODE.toString(), true);
 
 					svw.setAutoCommit(false);
 					if (isSvarogInstalled() && existingLabels.size() > 0) {
@@ -3035,7 +2917,7 @@ public class SvarogInstall {
 							if (!dboLabel.getParentId().equals(dboLocale.getObjectId()))
 								dboLabel.setParentId(dboLocale.getObjectId());
 
-							String labelCode = (String) dboLabel.getVal("LABEL_CODE");
+							String labelCode = (String) dboLabel.getVal(Sv.LABEL_CODE);
 							DbDataObject existingDbo = null;
 							if (existingLabels != null)
 								existingDbo = existingLabels.getItemByIdx(labelCode);
@@ -3061,12 +2943,6 @@ public class SvarogInstall {
 					}
 
 					svw.dbCommit();
-				} finally {
-					if (svw != null)
-						svw.release();
-					if (svr != null)
-						svr.release();
-
 				}
 			} else
 				log4j.warn("No labels to install/upgrade found in:" + filePath);
@@ -3264,25 +3140,18 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Recursively called method to upgrade all codes with their respective
-	 * children
+	 * Recursively called method to upgrade all codes with their respective children
 	 * 
-	 * @param newCodes
-	 *            The new set of codes which should be available after upgrade
-	 * @param oldCodes
-	 *            The old set of codes which was available prior upgrade
-	 * @param newParentId
-	 *            The parent Id of the code for which the upgrade is run
-	 * @param oldParentId
-	 *            If the parent id is different in the new set, this would
-	 *            include the new parent id
-	 * @param dbu
-	 *            DbUtil instance to be used for supporting funcationalities
-	 * @param dboFields
-	 *            The list of fields of the codes object
-	 * @throws SvException
-	 *             Any SvExceptin raised during the method execution is reaised
-	 *             up
+	 * @param newCodes    The new set of codes which should be available after
+	 *                    upgrade
+	 * @param oldCodes    The old set of codes which was available prior upgrade
+	 * @param newParentId The parent Id of the code for which the upgrade is run
+	 * @param oldParentId If the parent id is different in the new set, this would
+	 *                    include the new parent id
+	 * @param dbu         DbUtil instance to be used for supporting funcationalities
+	 * @param dboFields   The list of fields of the codes object
+	 * @throws SvException Any SvExceptin raised during the method execution is
+	 *                     reaised up
 	 */
 	static void upgradeCode(DbDataArray newCodes, DbDataArray oldCodes, Long newParentId, Long oldParentId,
 			SvWriter dbu, DbDataArray dboFields) throws SvException {
@@ -3332,18 +3201,15 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to upgrade the svarog system codes to the latest version available
-	 * in the master file containing Codes
+	 * Method to upgrade the svarog system codes to the latest version available in
+	 * the master file containing Codes
 	 * 
-	 * @param upgradeFile
-	 *            the path to the file subject of upgrade
-	 * @throws SvException
-	 *             Any raised exception is re-raised as SvException
+	 * @param upgradeFile the path to the file subject of upgrade
+	 * @throws SvException Any raised exception is re-raised as SvException
 	 */
 	static void upgradeCodes(String upgradeFile) throws SvException {
-		SvWriter dbu = null;
-		try {
-			dbu = new SvWriter();
+		try (SvWriter dbu = new SvWriter();) {
+
 			dbu.dbSetAutoCommit(false);
 			log4j.info("Processing code " + operation + ": " + upgradeFile);
 
@@ -3374,10 +3240,7 @@ public class SvarogInstall {
 			dbu.dbCommit();
 
 		} catch (IOException e) {
-			throw (new SvException("system.error.upgrade_no_records_conf", dbu.instanceUser, null, upgradeFile, e));
-		} finally {
-			if (dbu != null)
-				dbu.release();
+			throw (new SvException("system.error.upgrade_no_records_conf", svCONST.systemUser, null, upgradeFile, e));
 		}
 		log4j.info("Finished " + operation + " using records file: " + upgradeFile);
 
@@ -3386,71 +3249,66 @@ public class SvarogInstall {
 	/**
 	 * A method to upgrade the svarog link types according to a JSON config file
 	 * 
-	 * @param linkTypes
-	 *            DbDataArray holding the link types
-	 * @throws SvException
-	 *             static void upgradeTypeCfg(DbDataArray linkTypes) throws
-	 *             SvException { // default upgrade file "conf/records/40.
-	 *             master_records.json" SvWriter dbu = null; SvReader svr =
-	 *             null; try { // init the table configs
+	 * @param linkTypes DbDataArray holding the link types
+	 * @throws SvException static void upgradeTypeCfg(DbDataArray linkTypes) throws
+	 *                     SvException { // default upgrade file "conf/records/40.
+	 *                     master_records.json" SvWriter dbu = null; SvReader svr =
+	 *                     null; try { // init the table configs
 	 * 
-	 *             log4j.info("Processing base table upgrades: " + upgradeFile);
-	 *             dbu = new SvWriter(); dbu.initSvCore(true); dbu.isInternal =
-	 *             true; dbu.dbSetAutoCommit(false); svr = new SvReader(dbu);
+	 *                     log4j.info("Processing base table upgrades: " +
+	 *                     upgradeFile); dbu = new SvWriter(); dbu.initSvCore(true);
+	 *                     dbu.isInternal = true; dbu.dbSetAutoCommit(false); svr =
+	 *                     new SvReader(dbu);
 	 * 
 	 * 
-	 *             DbQueryObject query = new DbQueryObject(SvCore.repoDbt,
-	 *             SvCore.repoDbtFields,
-	 *             SvCore.getDbt(svCONST.OBJECT_TYPE_LINK_TYPE),
-	 *             SvCore.getFields(svCONST.OBJECT_TYPE_LINK_TYPE), null, null,
-	 *             null);
+	 *                     DbQueryObject query = new DbQueryObject(SvCore.repoDbt,
+	 *                     SvCore.repoDbtFields,
+	 *                     SvCore.getDbt(svCONST.OBJECT_TYPE_LINK_TYPE),
+	 *                     SvCore.getFields(svCONST.OBJECT_TYPE_LINK_TYPE), null,
+	 *                     null, null);
 	 * 
-	 *             DbDataArray dbLinkTypes = dbu.getObjects(query, 0, 0);
+	 *                     DbDataArray dbLinkTypes = dbu.getObjects(query, 0, 0);
 	 * 
-	 *             Boolean updateRequired = true; Long existingPkid = 0L; Long
-	 *             existingOID = 0L;
+	 *                     Boolean updateRequired = true; Long existingPkid = 0L;
+	 *                     Long existingOID = 0L;
 	 * 
-	 *             // dbTablesUpgrade.rebuildIndex("OBJECT_ID"); for
-	 *             (DbDataObject dboUpgrade : dbTablesUpgrade.getItems()) {
-	 *             DbDataObject existingTbl = dbTables.getItemByIdx((String)
-	 *             dboUpgrade.getVal("TABLE_NAME"), 0L); updateRequired = true;
+	 *                     // dbTablesUpgrade.rebuildIndex("OBJECT_ID"); for
+	 *                     (DbDataObject dboUpgrade : dbTablesUpgrade.getItems()) {
+	 *                     DbDataObject existingTbl = dbTables.getItemByIdx((String)
+	 *                     dboUpgrade.getVal("TABLE_NAME"), 0L); updateRequired =
+	 *                     true;
 	 * 
-	 *             if (existingTbl != null) { existingPkid =
-	 *             existingTbl.getPkid(); existingOID =
-	 *             existingTbl.getObjectId(); updateRequired =
-	 *             shouldUpgradeConfig(existingTbl, dboUpgrade, tableFields);
-	 *             dboUpgrade.setPkid(existingPkid);
-	 *             dboUpgrade.setObjectId(existingOID); //
-	 *             dboUpgrade.setPkid(existingTbl.getPkid()); //
-	 *             dboUpgrade.setObjectId(existingTbl.getObjectId()); } if
-	 *             (updateRequired) { dbu.saveObject(dboUpgrade, false);
-	 *             log4j.info( "Successful upgrade of object: " +
-	 *             dboUpgrade.toJson()); } }
+	 *                     if (existingTbl != null) { existingPkid =
+	 *                     existingTbl.getPkid(); existingOID =
+	 *                     existingTbl.getObjectId(); updateRequired =
+	 *                     shouldUpgradeConfig(existingTbl, dboUpgrade,
+	 *                     tableFields); dboUpgrade.setPkid(existingPkid);
+	 *                     dboUpgrade.setObjectId(existingOID); //
+	 *                     dboUpgrade.setPkid(existingTbl.getPkid()); //
+	 *                     dboUpgrade.setObjectId(existingTbl.getObjectId()); } if
+	 *                     (updateRequired) { dbu.saveObject(dboUpgrade, false);
+	 *                     log4j.info( "Successful upgrade of object: " +
+	 *                     dboUpgrade.toJson()); } }
 	 * 
-	 *             dbu.dbCommit(); } catch (IOException e) { throw (new
-	 *             SvException("system.error.upgrade_no_records_conf",
-	 *             dbu.instanceUser, null, linkTypes, e)); } finally { if (svr
-	 *             != null) svr.release(); if (dbu != null) dbu.release(); }
-	 *             log4j.info( "Upgrade finished using records file: "
-	 *             +linkTypes); }
+	 *                     dbu.dbCommit(); } catch (IOException e) { throw (new
+	 *                     SvException("system.error.upgrade_no_records_conf",
+	 *                     dbu.instanceUser, null, linkTypes, e)); } finally { if
+	 *                     (svr != null) svr.release(); if (dbu != null)
+	 *                     dbu.release(); } log4j.info( "Upgrade finished using
+	 *                     records file: " +linkTypes); }
 	 */
 
 	/**
-	 * Method to delete all svarog fields which aren't found in the upgraded
-	 * table structure
+	 * Method to delete all svarog fields which aren't found in the upgraded table
+	 * structure
 	 * 
-	 * @param dbu
-	 *            the SvWriter instance to be used for saving to the DB
-	 * @param tblUpgrade
-	 *            The descriptor of the table which is upgraded
-	 * @param fieldsUpgrade
-	 *            List of fields which are upgraded (as property of the table)
-	 * @param dbTbl
-	 *            The descriptor of the existing table in the system
-	 * @param dbFields
-	 *            List of field descriptors already existing in the system
-	 * @throws SvException
-	 *             If any exception occurs, raise it.
+	 * @param dbu           the SvWriter instance to be used for saving to the DB
+	 * @param tblUpgrade    The descriptor of the table which is upgraded
+	 * @param fieldsUpgrade List of fields which are upgraded (as property of the
+	 *                      table)
+	 * @param dbTbl         The descriptor of the existing table in the system
+	 * @param dbFields      List of field descriptors already existing in the system
+	 * @throws SvException If any exception occurs, raise it.
 	 */
 	static void deleteRedundantFields(SvWriter dbu, DbDataObject tblUpgrade, DbDataArray fieldsUpgrade,
 			DbDataObject dbTbl, DbDataArray dbFields) throws SvException {
@@ -3527,13 +3385,10 @@ public class SvarogInstall {
 	 * Method to prepare a JSON configuration file for use and load it into a
 	 * DbDataArray
 	 * 
-	 * @param filePath
-	 *            The path to the configuration file
-	 * @return DbDataArray holding all configuration objects loaded from the
-	 *         file
-	 * @throws SvException
-	 *             if exception was raised during parsing the JSON file it is
-	 *             re-raised as SvException
+	 * @param filePath The path to the configuration file
+	 * @return DbDataArray holding all configuration objects loaded from the file
+	 * @throws SvException if exception was raised during parsing the JSON file it
+	 *                     is re-raised as SvException
 	 */
 	static DbDataArray getDbArrayFromFile(String filePath) throws SvException {
 		DbDataArray retArr = null;
@@ -3576,13 +3431,10 @@ public class SvarogInstall {
 	/**
 	 * Method to extract only objects of certain type from the input array
 	 * 
-	 * @param sourceArray
-	 *            The source array from which we should extract objects
-	 * @param objectType
-	 *            The id of the object type which should be extracted
-	 * @param removeFromSource
-	 *            Flag to mark if the extracted object should be removed from
-	 *            the source array
+	 * @param sourceArray      The source array from which we should extract objects
+	 * @param objectType       The id of the object type which should be extracted
+	 * @param removeFromSource Flag to mark if the extracted object should be
+	 *                         removed from the source array
 	 * @return DbDataArray containing the extracted objects
 	 */
 	static DbDataArray extractType(DbDataArray sourceArray, Long objectType, boolean removeFromSource) {
@@ -3603,25 +3455,18 @@ public class SvarogInstall {
 	/**
 	 * Method to upgrade a single DBT configuration
 	 * 
-	 * @param svw
-	 *            The SvWriter instance to be used for db operations
-	 * @param dbtUpgrade
-	 *            The DBT object which is upgraded
-	 * @param dbTablesUpgrade
-	 *            The list of new DBT objects (needed for dependency search
-	 * @param dbTables
-	 *            The list of DBTs already installed in the DB
-	 * @param tableFields
-	 *            The fields of the object type subject of upgrade
-	 * @param dbFieldsUpgrade
-	 *            The new fields for the dbtUpgrade
-	 * @param dbFields
-	 *            The old fields for of dbtOld
-	 * @param listOfUpgraded
-	 *            The list of Tables for which the upgrade was already executed
+	 * @param svw             The SvWriter instance to be used for db operations
+	 * @param dbtUpgrade      The DBT object which is upgraded
+	 * @param dbTablesUpgrade The list of new DBT objects (needed for dependency
+	 *                        search
+	 * @param dbTables        The list of DBTs already installed in the DB
+	 * @param tableFields     The fields of the object type subject of upgrade
+	 * @param dbFieldsUpgrade The new fields for the dbtUpgrade
+	 * @param dbFields        The old fields for of dbtOld
+	 * @param listOfUpgraded  The list of Tables for which the upgrade was already
+	 *                        executed
 	 * 
-	 * @throws SvException
-	 *             Re-throw any underlying exception
+	 * @throws SvException Re-throw any underlying exception
 	 * 
 	 */
 	static void upgradeDbt(SvWriter svw, DbDataObject dbtUpgrade, DbDataArray dbTablesUpgrade, DbDataArray dbTables,
@@ -3722,28 +3567,20 @@ public class SvarogInstall {
 	/**
 	 * Method to ensure the table's parent is upgraded in proper order.
 	 * 
-	 * @param svw
-	 *            The SvWriter instance to be used for db operations
-	 * @param dbtUpgrade
-	 *            The DBT object which is upgraded
-	 * @param dbTablesUpgrade
-	 *            The list of new DBT objects (needed for dependency search
-	 * @param dbTables
-	 *            The list of DBTs already installed in the DB
-	 * @param tableFields
-	 *            The fields of the object type subject of upgrade
-	 * @param dbFieldsUpgrade
-	 *            The new fields for the dbtUpgrade
-	 * @param dbFields
-	 *            The old fields for of dbtOld
-	 * @param listOfUpgraded
-	 *            The list of Tables for which the upgrade was already executed
-	 * @param isParent
-	 *            If the dependency if of type parent or denormalised if false
-	 * @param fieldName
-	 *            the field name used for dereferencing the relation
-	 * @throws SvException
-	 *             Re-throw any underlying exception
+	 * @param svw             The SvWriter instance to be used for db operations
+	 * @param dbtUpgrade      The DBT object which is upgraded
+	 * @param dbTablesUpgrade The list of new DBT objects (needed for dependency
+	 *                        search
+	 * @param dbTables        The list of DBTs already installed in the DB
+	 * @param tableFields     The fields of the object type subject of upgrade
+	 * @param dbFieldsUpgrade The new fields for the dbtUpgrade
+	 * @param dbFields        The old fields for of dbtOld
+	 * @param listOfUpgraded  The list of Tables for which the upgrade was already
+	 *                        executed
+	 * @param isParent        If the dependency if of type parent or denormalised if
+	 *                        false
+	 * @param fieldName       the field name used for dereferencing the relation
+	 * @throws SvException Re-throw any underlying exception
 	 */
 	static void derefenceDependency(SvWriter svw, DbDataObject dbtUpgrade, DbDataArray dbTablesUpgrade,
 			DbDataArray dbTables, DbDataArray tableFields, DbDataArray dbFieldsUpgrade, DbDataArray dbFields,
@@ -3790,17 +3627,14 @@ public class SvarogInstall {
 	/**
 	 * Method to upgrade the base svarog configuration of Tables/Fields
 	 * 
-	 * @param dbTablesUpgrade
-	 *            The array of table descriptors subject of upgrade
-	 * @param dbFieldsUpgrade
-	 *            The array of associated field descriptors subject of upgrade
-	 * @throws SvException
-	 *             Re-raised SvException from the process
+	 * @param dbTablesUpgrade The array of table descriptors subject of upgrade
+	 * @param dbFieldsUpgrade The array of associated field descriptors subject of
+	 *                        upgrade
+	 * @throws SvException Re-raised SvException from the process
 	 */
 	@SuppressWarnings("unused")
 	static void upgradeObjectCfg(DbDataArray dbTablesUpgrade, DbDataArray dbFieldsUpgrade) throws SvException {
 		// TODO this sausage must be refactored!!!
-		boolean parentNotFound = false;
 		Boolean updateRequired = true;
 		Long existingPkid = 0L;
 		Long existingOID = 0L;
@@ -3863,25 +3697,17 @@ public class SvarogInstall {
 			}
 			dbu.dbCommit();
 		}
-		if (parentNotFound)
-			log4j.info(
-					"Some objects were not properly updated due to missing parent table. You should re-run the upgrade to ensure any out-of order upgrades are applied");
-
 	}
 
 	/**
 	 * Method to perform upgrade of the fields in the svarog platform
 	 * 
-	 * @param dbTablesUpgrade
-	 *            The configuration of the tables which coming from the JSON and
-	 *            should be applied to the DB
-	 * @param dbFieldsUpgrade
-	 *            The configuration of the field which coming from the JSON and
-	 *            should be applied to the DB
-	 * @param dbTables
-	 *            The configuration of the tables which exists in the DB
-	 * @param dbFields
-	 *            The configuration of the fields which exists in the DB
+	 * @param dbTablesUpgrade The configuration of the tables which coming from the
+	 *                        JSON and should be applied to the DB
+	 * @param dbFieldsUpgrade The configuration of the field which coming from the
+	 *                        JSON and should be applied to the DB
+	 * @param dbTables        The configuration of the tables which exists in the DB
+	 * @param dbFields        The configuration of the fields which exists in the DB
 	 * @throws SvException
 	 */
 	static void upgradeObjectFields(String parentTableName, DbDataArray dbTablesUpgrade, DbDataArray dbFieldsUpgrade,
@@ -3916,11 +3742,9 @@ public class SvarogInstall {
 				return;
 			}
 			DbDataObject existingField = null;
-			if (fieldDbParent != null) {
-				existingField = dbFields.getItemByIdx((String) dboUpgrade.getVal("FIELD_NAME"),
-						fieldDbParent.getObjectId());
-			} else
-				log4j.info("Install of new field:" + dboUpgrade.getVal("FIELD_NAME"));
+
+			existingField = dbFields.getItemByIdx((String) dboUpgrade.getVal("FIELD_NAME"),
+					fieldDbParent.getObjectId());
 
 			if (dboUpgrade.getVal("CODE_LIST_MNEMONIC") != null) {
 				// sync ids of the code lists in the db
@@ -4057,10 +3881,8 @@ public class SvarogInstall {
 	 * Method to upgrade the system ACLs according to the array holding new and
 	 * updated ACLs
 	 * 
-	 * @param dbAclUpgrade
-	 *            The array of new and updated ACLs
-	 * @throws SvException
-	 *             Forward any raised exception
+	 * @param dbAclUpgrade The array of new and updated ACLs
+	 * @throws SvException Forward any raised exception
 	 */
 	static void upgradeAcl(DbDataArray dbAclUpgrade) throws SvException {
 		try (SvWriter dbu = new SvWriter(); SvReader svr = new SvReader(dbu)) {
@@ -4076,9 +3898,9 @@ public class SvarogInstall {
 					SvCore.getDbt(svCONST.OBJECT_TYPE_ACL), SvCore.getFields(svCONST.OBJECT_TYPE_ACL), null, null,
 					null);
 
-			dbAclUpgrade.rebuildIndex("LABEL_CODE", true);
+			dbAclUpgrade.rebuildIndex(Sv.LABEL_CODE.toString(), true);
 			DbDataArray dbAcls = dbu.getObjects(query, 0, 0);
-			dbAcls.rebuildIndex("LABEL_CODE", true);
+			dbAcls.rebuildIndex(Sv.LABEL_CODE.toString(), true);
 
 			// Iterator<DbDataObject> iteratorAcl =
 			// dbAcls.getItems().iterator();
@@ -4119,7 +3941,7 @@ public class SvarogInstall {
 			aclFields.rebuildIndex("FIELD_NAME");
 			while (iteratorAclUpgrade.hasNext()) {
 				DbDataObject acl = iteratorAclUpgrade.next();
-				DbDataObject oldAcl = dbAcls.getItemByIdx((String) acl.getVal("LABEL_CODE"));
+				DbDataObject oldAcl = dbAcls.getItemByIdx((String) acl.getVal(Sv.LABEL_CODE));
 				if (oldAcl != null) {
 					acl.setObjectId(oldAcl.getObjectId());
 					acl.setPkid(oldAcl.getPkid());
@@ -4139,19 +3961,16 @@ public class SvarogInstall {
 	/**
 	 * A method that converts a InputStream into a String.
 	 * 
-	 * @param is
-	 *            InputStream. The InputStream we want converted into String.
+	 * @param is InputStream. The InputStream we want converted into String.
 	 * @return The converted String
 	 * 
-	 * @throws IOException
-	 *             IO exception if the file hasn't been found
+	 * @throws IOException IO exception if the file hasn't been found
 	 */
 	public static String convertStreamToString(InputStream is) throws IOException {
 		/*
-		 * To convert the InputStream to String we use the Reader.read(char[]
-		 * buffer) method. We iterate until the Reader return -1 which means
-		 * there's no more data to read. We use the StringWriter class to
-		 * produce the string.
+		 * To convert the InputStream to String we use the Reader.read(char[] buffer)
+		 * method. We iterate until the Reader return -1 which means there's no more
+		 * data to read. We use the StringWriter class to produce the string.
 		 */
 		if (is != null) {
 			Writer writer = new StringWriter();
@@ -4175,8 +3994,7 @@ public class SvarogInstall {
 	/**
 	 * Method which reads a file and returns the content as byte array
 	 * 
-	 * @param file
-	 *            The File object which should be read
+	 * @param file The File object which should be read
 	 * @return The content of the file (byte[])
 	 */
 	public static byte[] getBytesFromFile(File file) {
@@ -4216,8 +4034,7 @@ public class SvarogInstall {
 	/**
 	 * Method which reads a file and returns the content as char array
 	 * 
-	 * @param file
-	 *            The File object which should be read
+	 * @param file The File object which should be read
 	 * @return The content of the file (char[])
 	 */
 	public static char[] getStringFromFile(File file) {
@@ -4250,7 +4067,7 @@ public class SvarogInstall {
 
 			return bytes;
 		} catch (Exception ex) {
-			System.out.println(ex.getMessage());
+			log4j.error("Error reading file.", ex);
 		}
 		return null;
 	}
@@ -4258,10 +4075,8 @@ public class SvarogInstall {
 	/**
 	 * Method to split a string into ArrayList according to separator
 	 * 
-	 * @param stringArray
-	 *            The string to be split into list
-	 * @param separator
-	 *            The separator to be used for splitting
+	 * @param stringArray The string to be split into list
+	 * @param separator   The separator to be used for splitting
 	 * @return The list of strings resulting from the split
 	 */
 	public static List<String> stringToList(String stringArray, String separator) {
@@ -4279,11 +4094,10 @@ public class SvarogInstall {
 	}
 
 	/**
-	 * Method to get the existing configuration object from the Database based
-	 * on JSON Object
+	 * Method to get the existing configuration object from the Database based on
+	 * JSON Object
 	 * 
-	 * @param dbo
-	 *            The DbDataObject coming from JSON config
+	 * @param dbo The DbDataObject coming from JSON config
 	 * @return The Configuration DbDataObject coming from the Database
 	 */
 	@SuppressWarnings("unused")
@@ -4299,8 +4113,7 @@ public class SvarogInstall {
 	/**
 	 * Check if an object descriptor is a config object or not
 	 * 
-	 * @param dbo
-	 *            The object descriptor to be checked
+	 * @param dbo The object descriptor to be checked
 	 * @return True if the object is of configuration type
 	 */
 	Boolean isConfigObject(DbDataObject dbo) {
@@ -4321,7 +4134,7 @@ public class SvarogInstall {
 			DbDataObject parentForm, SvCore parentCore) throws SvException {
 		DbDataObject dboFieldType = new DbDataObject(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
 		dboFieldType.setVal("FIELD_TYPE", fieldType);
-		dboFieldType.setVal("LABEL_CODE", fieldLabelCode);
+		dboFieldType.setVal(Sv.LABEL_CODE, fieldLabelCode);
 		dboFieldType.setVal("IS_NULL", fieldIsNull);
 		registerFormFieldType(dboFieldType, parentForm, parentCore);
 		//
@@ -4332,7 +4145,7 @@ public class SvarogInstall {
 
 		DbDataObject dboFieldType = null;
 		boolean linkExists = false;
-		String fieldLabelCode = (String) fieldTypeDbo.getVal("LABEL_CODE");
+		String fieldLabelCode = (String) fieldTypeDbo.getVal(Sv.LABEL_CODE);
 		try (SvReader svr = new SvReader(parentCore); SvWriter svw = new SvWriter(svr); SvLink svl = new SvLink(svr)) {
 
 			svw.setAutoCommit(false);
@@ -4345,13 +4158,13 @@ public class SvarogInstall {
 
 			// if no forms fields exists, then please create it
 			if (formFields != null) {
-				formFields.rebuildIndex("LABEL_CODE", true);
+				formFields.rebuildIndex(Sv.LABEL_CODE.toString(), true);
 				dboFieldType = formFields.getItemByIdx(fieldLabelCode);
 			}
 
 			if (dboFieldType == null) {
 				DbDataArray flds = svr.getObjects(
-						new DbSearchCriterion("LABEL_CODE", DbCompareOperand.EQUAL, fieldLabelCode),
+						new DbSearchCriterion(Sv.LABEL_CODE.toString(), DbCompareOperand.EQUAL, fieldLabelCode),
 						svCONST.OBJECT_TYPE_FORM_FIELD_TYPE, null, 0, 0);
 
 				if (flds.size() < 1) {
@@ -4367,16 +4180,15 @@ public class SvarogInstall {
 						svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
 				svl.linkObjects(parentForm.getObjectId(), dboFieldType.getObjectId(), dbl.getObjectId(), "");
 			}
-		} 
+		}
 
 	}
 
 	static DbDataObject registerLinkType(String linkType, Long objType1, Long objType2, String linkDescription)
 			throws SvException {
 		DbDataObject dblink = null;
-		try (SvWriter svw = new SvWriter()){
-			
-			
+		try (SvWriter svw = new SvWriter()) {
+
 			dblink = SvCore.getLinkType(linkType, objType1, objType2);
 			if (dblink == null) {
 				dblink = new DbDataObject();
@@ -4389,21 +4201,18 @@ public class SvarogInstall {
 				// we must re-init the core to catch the link type change
 				SvCore.initSvCore(true);
 			}
-		} 
+		}
 		return dblink;
 	}
 
 	static DbDataObject getFormType(String formLabel, String formCategory, boolean multiEntry, boolean autoInstance,
 			boolean mandatoryValue, boolean createIfNotExists) throws SvException {
 		DbDataObject dboFormType = null;
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
-			svr = new SvReader();
-			svw = new SvWriter(svr);
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
 
 			// try to load the form config
-			DbDataArray res = svr.getObjects(new DbSearchCriterion("LABEL_CODE", DbCompareOperand.EQUAL, formLabel),
+			DbDataArray res = svr.getObjects(
+					new DbSearchCriterion(Sv.LABEL_CODE.toString(), DbCompareOperand.EQUAL, formLabel),
 					svCONST.OBJECT_TYPE_FORM_TYPE, null, 0, 0);
 
 			// if the config exists, load it
@@ -4418,16 +4227,11 @@ public class SvarogInstall {
 					dboFormType.setVal("MULTI_ENTRY", multiEntry);
 					dboFormType.setVal("AUTOINSTANCE_SINGLE", autoInstance);
 					dboFormType.setVal("MANDATORY_BASE_VALUE", mandatoryValue);
-					dboFormType.setVal("LABEL_CODE", formLabel);
+					dboFormType.setVal(Sv.LABEL_CODE, formLabel);
 					svw.saveObject(dboFormType);
 					SvCore.initSvCore(true);
 				}
 			}
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
 		}
 		return dboFormType;
 

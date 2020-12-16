@@ -9,9 +9,28 @@ import com.prtech.svarog_common.SvCharId;
  *
  */
 public class Sv {
+	public class Exceptions {
+
+		/**
+		 * Different exception type constants
+		 */
+		public static final String SDI_SPIKE_DETECTED = "system.error.sdi.spike_detected";
+		public static final String SDI_SPIKE_FIX_FAILED = "system.error.sdi.spike_fix_fail";
+		public static final String SDI_VERTEX_DISTANCE_ERR = "system.error.sdi.vertex_min_dist_err";
+		public static final String SDI_GEOM_DISTANCE_ERR = "system.error.sdi.geom_min_dist_err";
+		public static final String SDI_VERTEX_DIST_FIX_FAILED = "system.error.sdi.vertex_dist_fix_fail";
+		public static final String SDI_MULTIPLE_GEOMS_FOUND = "system.error.sdi.multi_geoms_found";
+		public static final String SDI_MERGE_REQUIRES_2PLUS = "system.error.sdi.merge_requires_2plus";
+		public static final String SDI_MERGE_GEOM_EMPTY = "system.error.sdi.geometry_empty";
+		public static final String SDI_MERGE_GEOM_DISJOINT = "system.error.sdi.geometries_disjoint";
+
+		private Exceptions() {
+		}
+
+	}
 
 	private Sv() {
-	};
+	}
 
 	public static final String Y2K_START_DATE = "2000-01-01T00:00:00";
 	public static final String CODE_LIST_ID = "CODE_LIST_ID";
@@ -100,7 +119,7 @@ public class Sv {
 	public static final String ORDER_BY = "ORDER BY";
 	public static final String LIMIT_OFFSET = "LIMIT_OFFSET";
 	public static final String OFFSET = "{OFFSET}";
-	public static final String LIMIT= "{LIMIT}";
+	public static final String LIMIT = "{LIMIT}";
 	public static final String OR = "OR";
 	public static final SvCharId USER_NAME = new SvCharId("USER_NAME");
 	public static final SvCharId ACL_CONFIG_UNQ = new SvCharId("acl_config_unq");
@@ -111,7 +130,7 @@ public class Sv {
 	public static final String BOOLEAN = "BOOLEAN";
 	public static final String TEXT = "TEXT";
 	public static final String ZERO = "0";
-	public static final SvCharId CONFIG_RELATION_TYPE =new SvCharId("CONFIG_RELATION_TYPE");
+	public static final SvCharId CONFIG_RELATION_TYPE = new SvCharId("CONFIG_RELATION_TYPE");
 	public static final SvCharId CONFIG_RELATION = new SvCharId("CONFIG_RELATION");
 	public static final SvCharId CONFIG_TYPE = new SvCharId("CONFIG_TYPE");
 	public static final SvCharId IS_CONFIG_TABLE = new SvCharId("is_config_table");
@@ -122,5 +141,26 @@ public class Sv {
 	public static final long DEFAULT_CACHE_TTL = 10;
 	public static final String SYS_PARAMS = "SYS_PARAMS";
 	public static final String USCORE = "_";
+	public static final String CONFIG_FILENAME = "svarog.properties";
+	public static final String LRU = "LRU";
+	public static final String LRU_TTL = "LRU_TTL";
+	public static final String TTL = "TTL";
+	public static final String CODE_VALUE = "CODE_VALUE";
+	public static final String TABLE = "TABLE";
+	public static final String CACHE_SIZE = "CACHE_SIZE";
+	public static final String CACHE_EXPIRY = "CACHE_EXPIRY";
+	public static final String SDI_SYSTEM_BOUNDARY = "SDI_SYSTEM_BOUNDARY";
+	public static final String ENVELOPE = "ENVELOPE";
+	public static final String PERM = "PERM";
+	public static final String GEOM = "GEOM";
+	public static final String PARAM_TYPE = "PARAM_TYPE";
+	public static final String SDI_SPIKE_MAX_ANGLE = "SDI_SPIKE_MAX_ANGLE";
+	public static final Double DEFAULT_SPIKE_MAX_ANGLE = 0.0;
+
+	public static final String SDI_MIN_POINT_DISTANCE = "SDI_MIN_POINT_DISTANCE";
+	public static final Integer DEFAULT_MIN_POINT_DISTANCE = 0;
+
+	public static final String SDI_MIN_GEOM_DISTANCE = "SDI_MIN_GEOM_DISTANCE";
+	public static final Integer DEFAULT_MIN_GEOM_DISTANCE = 0;
 
 }

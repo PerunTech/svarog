@@ -27,6 +27,8 @@ public class SvConfigurationImpl implements ISvConfiguration {
 			throws SvException {
 		String errorMsg = "";
 		String sqlDrop = "ALTER TABLE " + schema + "." + tableName + " DROP COLUMN " + columnName;
+
+		DbDataObject user = svc != null ? svc.getInstanceUser() : svCONST.systemUser;
 		// ALTER TABLE table_name DROP COLUMN column_name;
 		if (SvarogInstall.tableColumnExists(columnName, tableName, conn, schema)) {
 			PreparedStatement ps = null;
@@ -46,9 +48,9 @@ public class SvConfigurationImpl implements ISvConfiguration {
 				ps.execute();
 				errorMsg = "Successfully dropped column:" + columnName + " from table: " + tableName;
 			} catch (SQLException e) {
-				throw (new SvException("sys.err.drop_column", svc.getInstanceUser(), null, sqlDrop, e));
+				throw (new SvException("sys.err.drop_column", user, null, sqlDrop, e));
 			} finally {
-				SvCore.closeResource(ps, svc.getInstanceUser());
+				SvCore.closeResource(ps, user);
 			}
 		}
 
@@ -57,14 +59,15 @@ public class SvConfigurationImpl implements ISvConfiguration {
 	}
 
 	void deleteRedundantDbt(ISvCore svc, Long objectId) {
-		try (SvWriter svr = new SvWriter((SvCore) svc);) {
-			DbDataObject dbo104 = SvCore.getDbt(objectId);
-			svr.deleteObject(dbo104, true);
-		} catch (SvException ex) {
-			if (!ex.getLabelCode().equals("system.error.no_dbt_found")) {
-				log4j.error("Error deleting reduntand dbt with id:" + objectId, ex);
+		if (svc != null)
+			try (SvWriter svr = new SvWriter((SvCore) svc);) {
+				DbDataObject dbo104 = SvCore.getDbt(objectId);
+				svr.deleteObject(dbo104, true);
+			} catch (SvException ex) {
+				if (!ex.getLabelCode().equals("system.error.no_dbt_found")) {
+					log4j.error("Error deleting reduntand dbt with id:" + objectId, ex);
+				}
 			}
-		}
 
 	}
 

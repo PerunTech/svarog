@@ -45,15 +45,29 @@ public class SvClusterNotifierProxy implements Runnable {
 
 	static private ZContext context = null;
 
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	/**
+	 * Flag if the main thread is running
+	 */
+	static final AtomicBoolean isRunning = new AtomicBoolean(false);
+
+	/**
+	 * Flag if the notifier is in Active state or shutdown
+	 */
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
 
 	static ZMQ.Socket pubServerSock = null;
 	static ZMQ.Socket subServerSock = null;
-	static ZMQ.Socket localListener = null;
 
+	/**
+	 * Main proxy server initalisation. It requires that the current state of the
+	 * proxy is not active (isActive=false). After the active check this method will
+	 * create the main ZMQ context as well as the XSUB/XPUB sockets.
+	 * 
+	 * @return True if the server proxy was initialised correctly
+	 */
 	static boolean initServer() {
-		if (isRunning.get()) {
-			log4j.error("Notifier thread is already running. Shutdown first");
+		if (!isActive.compareAndSet(false, true)) {
+			log4j.debug("Notifier proxy is already running. Shutdown first");
 			return false;
 		}
 		if (context == null)
@@ -62,7 +76,6 @@ public class SvClusterNotifierProxy implements Runnable {
 
 		ZMQ.Socket subSock = context.createSocket(SocketType.XSUB);
 		ZMQ.Socket pubSock = context.createSocket(SocketType.XPUB);
-		localListener = context.createSocket(SocketType.PUB);
 		try {
 
 			if (subSock.bind("tcp://*:" + subscriberPort))
@@ -75,110 +88,40 @@ public class SvClusterNotifierProxy implements Runnable {
 			log4j.error("The node can't bind socket on ports:" + Integer.toString(subscriberPort) + ", "
 					+ Integer.toString(publisherPort), e);
 		}
-		if (subSock == null)
+		if (subServerSock == null)
 			log4j.error("Notification subscriber socket can't bind on port:" + subscriberPort);
 		else
-			subSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
+			subServerSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 
-		if (pubSock == null)
+		if (pubServerSock == null)
 			log4j.error("Notification publisher socket can't bind on port:" + publisherPort);
 
 		boolean result = (subSock != null && pubSock != null);
 		if (!result) {
 			context.close();
 			context = null;
-			subServerSock = pubServerSock = localListener = null;
+			subServerSock = pubServerSock = null;
+			isActive.set(false);
+			log4j.error("Notifier proxy failed to connect/bind to required ports");
 		}
 		return result;
 
 	}
 
 	/**
-	 * If the notifier thread is running, try to set it to false. If it fails
-	 * just return, otherwise close the context so we can clean exit the
-	 * ZMQ.proxy
-	 */
-	static public void shutdown() {
-		if (!isRunning.compareAndSet(true, false)) {
-			log4j.error("Notifier thread is not running. Run the notifier thread first");
-			return;
-		}
-		try {
-			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
-		} catch (InterruptedException e) {
-			log4j.error("Notifier shutdown interrupted", e);
-		}
-		if (context != null) {
-			context.close();
-			context = null;
-			log4j.info("Notifier Proxy is shut down");
-		}
-		// notify the maintenance thread
-		if (SvMaintenance.maintenanceThread != null)
-			synchronized (SvMaintenance.maintenanceThread) {
-				SvMaintenance.maintenanceThread.notifyAll();
-			}
-
-	}
-
-	/**
-	 * Method to publish a lock action to the cluster. The action type is the
-	 * message type which should be NOTE_LOCK_ACQUIRED or NOTE_LOCK_RELEASED
-	 * 
-	 * @param actionType
-	 *            Acquired or Relesead (SvCluster.NOTE_LOCK_ACQUIRED or
-	 *            SvCluster.NOTE_LOCK_RELEASED)
-	 * @param hashCode
-	 *            The hash code of the lock
-	 * @param nodeId
-	 *            The node which has performed the action
-	 * @param lockKey
-	 *            The text id of the lock
-	 */
-
-	static public void publishLockAction(byte actionType, int hashCode, long nodeId, String lockKey) {
-		if (pubServerSock != null) {
-			byte[] key = null;
-			key = lockKey.getBytes(ZMQ.CHARSET);
-			// allocate one byte for message type, one long for node Id and the
-			// rest for the token
-			ByteBuffer msgBuffer = ByteBuffer.allocate(
-					SvUtil.sizeof.BYTE + SvUtil.sizeof.INT + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
-			msgBuffer.put(actionType);
-			msgBuffer.putLong(nodeId);
-			msgBuffer.putInt(hashCode);
-			msgBuffer.put(key);
-			if (log4j.isDebugEnabled())
-				log4j.debug("Broadcast lock action " + Byte.toString(actionType) + " notification with key:" + lockKey
-						+ " and node:" + Long.toString(nodeId));
-			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
-				log4j.error("Error publishing message to cluster");
-		}
-	}
-
-	static public void publishDirtyArray(DbDataArray dba) {
-		SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
-	}
-
-	static public void publishDirtyTileArray(List<SvSDITile> dba) {
-		SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
-	}
-
-	/**
-	 * Overriden runnable method to execute the Notifier Proxy in a separate
-	 * thread. This method basically proxies messages to provide pass through of
-	 * published notifications from one node to other nodes in the cluster. If
-	 * the flag process notification is set, in that case the messages are
-	 * processed on the current node via the NotifierClient.processMessage
-	 * method
+	 * Overriden runnable method to execute the Notifier Proxy in a separate thread.
+	 * This method basically proxies messages to provide pass through of published
+	 * notifications from one node to other nodes in the cluster. If the flag
+	 * process notification is set, in that case the messages are processed on the
+	 * current node via the NotifierClient.processMessage method
 	 */
 	@Override
 	public void run() {
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("NotifierProxy is already running. Shutdown first");
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName()+ ".run() failed. Current status is active:"+isActive.get()+". Main server thread is running:"+isRunning.get());
 			return;
 		}
+		
 		if (subServerSock != null && pubServerSock != null) {
 			byte[] subs = new byte[1];
 			subs[0] = 1;
@@ -219,15 +162,57 @@ public class SvClusterNotifierProxy implements Runnable {
 			}
 		} else
 			log4j.error("Pub/Sub sockets not available, ensure proper initialisation");
+
+		// set the active flag to false and notify the waiting threads
+		isActive.set(false);
+		synchronized (isActive) {
+			isActive.notifyAll();
+		}
+	}
+
+	/**
+	 * Method to shutdown the proxy thread. If the notifier thread is running, try
+	 * to set it to false. If the thread is not running just return. After that
+	 * check if the server is active, if yes, wait for it until it performs a clean
+	 * shutdown. After the main thread has shutdown, close the context so we can
+	 * clean exit the ZMQ.proxy
+	 */
+	static public void shutdown() {
+		if (!isRunning.compareAndSet(true, false)) {
+			log4j.error("Notifier thread is not running. Run the notifier thread first");
+			return;
+		}
+		try {
+			// do wait for the main thread to shutdown
+			while (isActive.get())
+				synchronized (isActive) {
+					isActive.wait();
+				}
+
+		} catch (InterruptedException e) {
+			log4j.error("Notifier shutdown interrupted", e);
+			Thread.currentThread().interrupt();
+		}
+		if (context != null) {
+			context.close();
+			context = null;
+			subServerSock = pubServerSock = null;
+			log4j.info("Notifier Proxy is shut down");
+		}
+		// notify the maintenance thread
+		if (SvMaintenance.maintenanceThread != null)
+			synchronized (SvMaintenance.maintenanceThread) {
+				SvMaintenance.maintenanceThread.notifyAll();
+			}
+
 	}
 
 	/**
 	 * Method to process messages on the server side.
 	 * 
-	 * @param msgBuffer
-	 *            The message buffer to be processed.
-	 * @return If the message should be proxied to the cluster or its for
-	 *         internal use only
+	 * @param msgBuffer The message buffer to be processed.
+	 * @return If the message should be proxied to the cluster or its for internal
+	 *         use only
 	 */
 	private boolean serverProcessMsg(ByteBuffer msgBuffer) {
 		// TODO Auto-generated method stub
@@ -244,8 +229,7 @@ public class SvClusterNotifierProxy implements Runnable {
 	/**
 	 * Method for processing acknowledgments from the coordinator
 	 * 
-	 * @param msgBuffer
-	 *            The acknowledgement buffer
+	 * @param msgBuffer The acknowledgement buffer
 	 * @return True if the message should be forwarded to the cluster
 	 */
 	private boolean processAckNote(ByteBuffer msgBuffer) {
@@ -260,7 +244,7 @@ public class SvClusterNotifierProxy implements Runnable {
 			if (ackResult == SvCluster.MSG_FAIL) {
 				nodeAcks.remove(ackValue);
 				synchronized (nodes) {
-					nodes.notify();
+					nodes.notifyAll();
 				}
 			} else {
 				nodes.remove(nodeId);
@@ -268,7 +252,7 @@ public class SvClusterNotifierProxy implements Runnable {
 					nodeAcks.remove(ackValue);
 					log4j.debug("Interrupting client lock thread for lock:" + Integer.toString(ackValue) + "");
 					synchronized (nodes) {
-						nodes.notify();
+						nodes.notifyAll();
 					}
 				}
 			}
@@ -280,17 +264,15 @@ public class SvClusterNotifierProxy implements Runnable {
 	/**
 	 * Method which awaits for MSG_ACK from set of nodes.
 	 * 
-	 * @param nodes
-	 *            The set of nodes from which we shall wait for acknowledgment
-	 * @param ackValue
-	 *            The value which is acknowledged by the nodes
-	 * @param timeout
-	 *            Milliseconds to wait for ackowledgement
+	 * @param nodes    The set of nodes from which we shall wait for acknowledgment
+	 * @param ackValue The value which is acknowledged by the nodes
+	 * @param timeout  Milliseconds to wait for ackowledgement
 	 * @return true if the value has been acknowledged, false if the timeout has
 	 *         been reached
 	 * @throws SvException
 	 */
-	public static boolean waitForAck(Set<Long> nodes, int ackValue, long timeout) {
+	public static boolean waitForAck(int ackValue, long timeout) {
+		Set<Long> nodes = nodeAcks.get(ackValue);
 		if (log4j.isDebugEnabled())
 			log4j.debug("Waiting ack on " + nodes.toString() + ". Nodes which should respond:"
 					+ Integer.toString(nodes.size()) + "");
@@ -308,6 +290,45 @@ public class SvClusterNotifierProxy implements Runnable {
 		}
 
 		return nodes.size() == 0;
+	}
+
+	/**
+	 * Method to publish a lock action to the cluster. The action type is the
+	 * message type which should be NOTE_LOCK_ACQUIRED or NOTE_LOCK_RELEASED
+	 * 
+	 * @param actionType Acquired or Relesead (SvCluster.NOTE_LOCK_ACQUIRED or
+	 *                   SvCluster.NOTE_LOCK_RELEASED)
+	 * @param hashCode   The hash code of the lock
+	 * @param nodeId     The node which has performed the action
+	 * @param lockKey    The text id of the lock
+	 */
+
+	static public void publishLockAction(byte actionType, int hashCode, long nodeId, String lockKey) {
+		if (pubServerSock != null) {
+			byte[] key = null;
+			key = lockKey.getBytes(ZMQ.CHARSET);
+			// allocate one byte for message type, one long for node Id and the
+			// rest for the token
+			ByteBuffer msgBuffer = ByteBuffer.allocate(
+					SvUtil.sizeof.BYTE + SvUtil.sizeof.INT + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
+			msgBuffer.put(actionType);
+			msgBuffer.putLong(nodeId);
+			msgBuffer.putInt(hashCode);
+			msgBuffer.put(key);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Broadcast lock action " + Byte.toString(actionType) + " notification with key:" + lockKey
+						+ " and node:" + Long.toString(nodeId));
+			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				log4j.error("Error publishing message to cluster");
+		}
+	}
+
+	static public void publishDirtyArray(DbDataArray dba) {
+		SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
+	}
+
+	static public void publishDirtyTileArray(List<SvSDITile> dba) {
+		SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
 	}
 
 }

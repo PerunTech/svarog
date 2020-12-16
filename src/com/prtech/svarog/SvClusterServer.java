@@ -74,11 +74,27 @@ public class SvClusterServer implements Runnable {
 
 	static DateTime lastGCTime = DateTime.now();
 
-	static AtomicBoolean isRunning = new AtomicBoolean(false);
+	/**
+	 * Flag if the main thread is running
+	 */
+	static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+	/**
+	 * Flag if the server is in Active state or shutdown
+	 */
+	static final AtomicBoolean isActive = new AtomicBoolean(false);
+
+	/**
+	 * Main Cluster server initalisation. It requires that the current state of the
+	 * server is not active (isActive=false). After the active check this method
+	 * will create the main ZMQ context as well as the REP socket for heart beat
+	 * messages.
+	 * 
+	 * @return True if the server proxy was initialised correctly
+	 */
 	static boolean initServer() {
-		if (isRunning.get()) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
+		if (!isActive.compareAndSet(false, true)) {
+			log4j.debug("Heartbeat thread is already running. Shutdown first");
 			return false;
 		}
 		if (context == null)
@@ -93,24 +109,37 @@ public class SvClusterServer implements Runnable {
 		} catch (Exception e) {
 			log4j.error("The node can't bind socket on port range:" + SvConf.getHeartBeatPort(), e);
 		}
-		if (hbServerSock == null)
-			log4j.info("Heartbeat socket bind on port:" + SvConf.getHeartBeatPort());
-		else
+		if (hbServerSock == null) {
+			isActive.set(false);
+			log4j.error("Heartbeat socket failed to bind to required ports:" + SvConf.getHeartBeatPort());
+		} else
 			hbServerSock.setReceiveTimeOut(SvCluster.SOCKET_RECV_TIMEOUT);
 		// start the internal hearbeat client
 		return (hbServerSock != null);
 	}
 
+	/**
+	 * Method to shutdown the main heart beat server. If the heart-beat thread is
+	 * running, try to set it to false. If the thread is not running just return.
+	 * After that check if the server is active, if yes, wait for it until it
+	 * performs a clean shutdown. After the main thread has shutdown, close the
+	 * context so we can clean exit the ZMQ.proxy
+	 */
 	static public void shutdown() {
 		if (!isRunning.compareAndSet(true, false)) {
 			log4j.error("Heartbeat thread is not running. Run the heartbeat thread first");
 			return;
 		}
 		try {
-			// do sleep until socket is able to close within timeout
-			Thread.sleep(SvCluster.SOCKET_RECV_TIMEOUT);
+			// do wait for the main thread to shutdown
+			while (isActive.get())
+				synchronized (isActive) {
+					isActive.wait();
+				}
+
 		} catch (InterruptedException e) {
-			log4j.error("Shutdown interrupted", e);
+			log4j.error("Heart-beat shutdown interrupted", e);
+			Thread.currentThread().interrupt();
 		}
 		if (context != null) {
 			context.close();
@@ -124,16 +153,64 @@ public class SvClusterServer implements Runnable {
 
 	}
 
+	@Override
+	public void run() {
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
+			return;
+		}
+		// make sure we promote any locks if we got promoted from Worker to
+		// Coordinator
+		promoteLocalLocks();
+
+		lastGCTime = DateTime.now();
+		log4j.info("Heartbeat server started");
+		while (isRunning.get()) {
+			byte[] msg = hbServerSock.recv(0);
+			if (msg != null) {
+				ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
+				byte msgType = msgBuffer.get();
+				long nodeId = msgBuffer.getLong();
+				int sockFlag;
+				if (msgType == SvCluster.MSG_JOIN) {
+					Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
+					sockFlag = ZMQ.SNDMORE;
+					while (iterator.hasNext()) {
+						ByteBuffer b = iterator.next();
+						if (!iterator.hasNext())
+							sockFlag = 0;
+						if (!hbServerSock.send(b.array(), sockFlag))
+							log4j.error("Error sending message to node:" + Long.toString(nodeId));
+					}
+				} else {
+					byte[] response = processMessage(msgType, nodeId, msgBuffer);
+					if (!hbServerSock.send(response))
+						log4j.error("Error sending message to node:" + Long.toString(nodeId));
+				}
+			} else
+				clusterMaintenance();
+
+		}
+		// make sure we clear the locks on shutdown
+		clearDistributedLocks();
+		log4j.info("Heartbeat server shut down");
+
+		// set the active flag to false and notify the waiting threads
+		isActive.set(false);
+		synchronized (isActive) {
+			isActive.notifyAll();
+		}
+
+	}
+
 	/**
-	 * Method to handle Authentication messages between the cluster nodes and
-	 * the coordinator
+	 * Method to handle Authentication messages between the cluster nodes and the
+	 * coordinator
 	 * 
-	 * @param msgType
-	 *            The received message type (TOKEN GET/PUT/SET)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The received message type (TOKEN GET/PUT/SET)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processAuthentication(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -150,7 +227,8 @@ public class SvClusterServer implements Runnable {
 			}
 			// allocate one byte for message type, one long for node Id and the
 			// rest for the token
-			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (token != null ? token.length : 0));
+			respBuffer = ByteBuffer
+					.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (token != null ? token.length : 0));
 			if (token != null) {
 				respBuffer.put(SvCluster.MSG_SUCCESS);
 				respBuffer.putLong(nodeId);
@@ -160,7 +238,8 @@ public class SvClusterServer implements Runnable {
 			break;
 		case SvCluster.MSG_AUTH_TOKEN_PUT:
 			String strToken = new String(
-					Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
+					Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
+					ZMQ.CHARSET);
 			DbDataObject svTokenIn = new DbDataObject();
 			Gson g = new Gson();
 			svTokenIn.fromSimpleJson(g.fromJson(strToken, JsonObject.class));
@@ -183,54 +262,90 @@ public class SvClusterServer implements Runnable {
 				respBuffer.put(SvCluster.MSG_FAIL);
 			respBuffer.putLong(nodeId);
 			break;
+		default:
+			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+			respBuffer.put(SvCluster.MSG_FAIL);
+			respBuffer.putLong(nodeId);
 		}
 
 		return respBuffer;
 	}
 
 	/**
-	 * Method to handle JOIN messages between the cluster nodes and the
-	 * coordinator
+	 * This method assumes that the buffer is a valid JOIN message, which contains a
+	 * message type as first byte then a byte array containing a valid JSON string
+	 * coming from the registering node
 	 * 
-	 * @param msgType
-	 *            The received message type (join or part)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
-	 * @return A response message buffer
+	 * @param msgBuffer The byte buffer which holds the valid join message with JSON
+	 *                  string in it.
+	 * @return Null if the registration failed, or a valid node descriptor
+	 */
+	DbDataObject registerNode(ByteBuffer msgBuffer) {
+		DbDataObject node = null;
+
+		synchronized (SvClusterServer.isRunning) {
+			try (SvWriter svw = new SvWriter()) {
+				// get the string, starting from byte 1 + sizeof(LONG). The first byte is the
+				// message type, the second is the node id
+				String nodeInfo = new String(
+						Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
+						ZMQ.CHARSET);
+
+				// get our local node descriptor as starting point
+				DbDataObject tempNode = SvCluster.getCurrentNodeInfo();
+
+				// replace our local node info with the info coming from the remote node
+				tempNode.setVal("node_info", nodeInfo);
+				// parse the info to get the IP of the remote node
+				Gson g = new Gson();
+				JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
+				String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
+				tempNode.setVal("local_ip", remoteIp);
+
+				// finally save and register in the hearbeats map
+				svw.saveObject(tempNode, true);
+				nodeHeartBeats.put(tempNode.getObjectId(), DateTime.now());
+
+				// all done so we return the new node descriptor
+				node = tempNode;
+			} catch (SvException e) {
+				log4j.error("Svarog failed to save the node in DB!", e);
+			} catch (Exception e) {
+				log4j.error("Malformatted join message", e);
+			}
+		}
+		return node;
+	}
+
+	/**
+	 * Method to handle JOIN messages between the cluster nodes and the coordinator.
+	 * The node sense a join message with the node info, and receives back a buffer
+	 * containing the list of available distributed locks on the cluster
+	 * 
+	 * @param nodeId    The node which sent the message. In case of re-join this is
+	 *                  the old node id from which we should migrate the existing
+	 *                  locks
+	 * @param msgBuffer The rest of the message buffer, which contains the node info
+	 *                  in JSON format
+	 * @return A response message buffer containing a list of all distributed locks
+	 *         held on the server
 	 */
 	private List<ByteBuffer> processJoin(long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		List<ByteBuffer> response = new ArrayList<ByteBuffer>();
-		String nodeInfo = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
-				ZMQ.CHARSET);
-		SvWriter svw = null;
-		DbDataObject node = null;
-		synchronized (SvClusterServer.isRunning) {
-			try {
-				node = SvCluster.getCurrentNodeInfo();
-				node.setVal("node_info", nodeInfo);
-				Gson g = new Gson();
-				JsonObject j = g.fromJson(nodeInfo, JsonObject.class);
-				String remoteIp = j.has("ip") ? j.get("ip").getAsString() : "0";
-				node.setVal("local_ip", remoteIp);
-				svw = new SvWriter();
-				svw.saveObject(node, true);
-				nodeHeartBeats.put(node.getObjectId(), DateTime.now());
-			} catch (SvException e) {
-				log4j.error("Error registering new node in db!", e);
-			} finally {
-				if (svw != null)
-					svw.release();
-			}
-		}
+		// the join message carries a JSON in the body, which contains info about the
+		// joining node, hence we use the message to register the node in the database
+		// and get the node descriptor
+		DbDataObject node = registerNode(msgBuffer);
 
+		// if the node was successfully registered we prepare the list of distributed
+		// locks to send
 		if (node != null && node.getObjectId() > 0L) {
-			// migrate server locks from old ID to new node id
+			// If the joining node has Re-joined and had existing cluster locks owned, then
+			// we need to migrate server locks from old ID to new node id
 			SvCluster.migrateLocks(node.getObjectId(), nodeId, nodeLocks);
-			// promote local local locks to the server and confirm them
 
+			// now prepare the response with all distributed locks
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			respBuffer.putLong(node.getObjectId());
 			response.add(respBuffer);
@@ -240,8 +355,9 @@ public class SvClusterServer implements Runnable {
 					byte[] key = null;
 					key = entry.getKey().getBytes(ZMQ.CHARSET);
 					// allocate one byte for message type, one long for node Id
-					// and the rest for the token
-					respBuffer = ByteBuffer.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
+					// and the rest for the hash of the lock
+					respBuffer = ByteBuffer
+							.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
 					respBuffer.putLong(entry.getValue().nodeId);
 					respBuffer.putInt(entry.getValue().lockHash);
 					respBuffer.put(key);
@@ -249,6 +365,7 @@ public class SvClusterServer implements Runnable {
 				}
 			}
 		} else {
+			// the node was not registered properly, we shall respond with failure message
 			respBuffer.put(SvCluster.MSG_FAIL);
 			respBuffer.putLong(0L);
 			response.add(respBuffer);
@@ -260,42 +377,33 @@ public class SvClusterServer implements Runnable {
 	 * Method to handle JOIN/PART messages between the cluster nodes and the
 	 * coordinator
 	 * 
-	 * @param msgType
-	 *            The received message type (join or part)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The received message type (join or part)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processPart(byte msgType, long nodeId, ByteBuffer msgBuffer) {
 		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-		{
-			respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-			respBuffer.put(SvCluster.MSG_SUCCESS);
-			respBuffer.putLong(nodeId);
-			nodeHeartBeats.remove(nodeId);
-			clusterCleanUp(nodeId);
-			if (SvMaintenance.maintenanceThread != null && !SvMaintenance.getMaintenanceInProgress().get())
-				if (SvarogDaemon.osgiFramework != null)
-					SvMaintenance.maintenanceThread.interrupt();
-				else
-					synchronized (SvMaintenance.maintenanceThread) {
-						SvMaintenance.maintenanceThread.notifyAll();
-					}
-		}
+		respBuffer.put(SvCluster.MSG_SUCCESS);
+		respBuffer.putLong(nodeId);
+		nodeHeartBeats.remove(nodeId);
+		clusterCleanUp(nodeId);
+		if (SvMaintenance.maintenanceThread != null && !SvMaintenance.getMaintenanceInProgress().get())
+			if (SvarogDaemon.osgiFramework != null)
+				SvMaintenance.maintenanceThread.interrupt();
+			else
+				synchronized (SvMaintenance.maintenanceThread) {
+					SvMaintenance.maintenanceThread.notifyAll();
+				}
 		return respBuffer;
 	}
 
 	/**
 	 * Method to process a standard heart beat message from a node.
 	 * 
-	 * @param msgType
-	 *            The type of message (in this case only HEARTBEAT)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message (in this case only HEARTBEAT)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processHeartBeat(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -310,41 +418,33 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to release a distributed lock. This is invoked when the
-	 * clusterServer processes releaseLock message. This method is also invoked
-	 * by the SvLock on the coordinator node.
+	 * Method to release a distributed lock. This is invoked when the clusterServer
+	 * processes releaseLock message. This method is also invoked by the SvLock on
+	 * the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param nodeId
-	 *            The node id which acquires the lock
+	 * @param lockHash The hash of the lock
+	 * @param nodeId   The node id which acquires the lock
 	 * 
-	 * @return The lock key if the lock was released with success, otherwise
-	 *         null
+	 * @return The lock key if the lock was released with success, otherwise null
 	 */
 	static String releaseDistributedLock(Integer lockHash, Long nodeId) {
-		return SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
+		return SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, null, false);
 
 	}
 
 	/**
 	 * Method to process a standard heart beat message from a node.
 	 * 
-	 * @param msgType
-	 *            The type of message (in this case only LOCK_RELEASE)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message (in this case only LOCK_RELEASE)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		Integer lockHash = msgBuffer.getInt();
-
 		// unlock the lock using the server lists of locks
-		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, distributedLocks, null);
-		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, null, false);
+		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
 		if (lockKey != null) {
 			respBuffer.put(SvCluster.MSG_SUCCESS);
 			// send a broadcast that the lock was acquired
@@ -359,14 +459,12 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to get a distributed lock from the Cluster server
 	 * 
-	 * @param lockKey
-	 *            The string identifier of the lock
+	 * @param lockKey The string identifier of the lock
 	 * @return the hash code of the lock
 	 */
 	static int getDistributedLock(String lockKey, Long nodeId) {
 		Long[] extendedInfo = new Long[1];
-		ReentrantLock lck = SvCluster.acquireDistributedLock(lockKey, nodeId, extendedInfo, nodeLocks, distributedLocks,
-				null);
+		ReentrantLock lck = SvCluster.acquireDistributedLock(lockKey, nodeId, extendedInfo, nodeLocks, null, false);
 		if (lck == null && log4j.isDebugEnabled())
 			log4j.debug("Lock not acquired! Lock is held by node:" + Long.toString(extendedInfo[0]));
 		return lck != null ? lck.hashCode() : 0;
@@ -375,25 +473,22 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to process a lock request message from a node.
 	 * 
-	 * @param msgType
-	 *            The type of message (in this case only lock)
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message (in this case only lock)
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
-		ByteBuffer respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length),
-				ZMQ.CHARSET);
+
+		String lockKey = new String(
+				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
 		Long[] extNodeInfo = new Long[1];
 
 		// acquire the lock using the server side lists
-		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, distributedLocks,
-				null);
+		ReentrantLock lock = SvCluster.acquireDistributedLock(lockKey, nodeId, extNodeInfo, nodeLocks, null, false);
 
-		respBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (lock == null ? SvUtil.sizeof.LONG : SvUtil.sizeof.INT));
+		ByteBuffer respBuffer = ByteBuffer.allocate(
+				SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (lock == null ? SvUtil.sizeof.LONG : SvUtil.sizeof.INT));
 		if (lock == null)
 			respBuffer.put(SvCluster.MSG_FAIL);
 		else {
@@ -403,7 +498,7 @@ public class SvClusterServer implements Runnable {
 			nodes.addAll(nodeHeartBeats.keySet());
 			SvClusterNotifierProxy.nodeAcks.put(lock.hashCode(), nodes);
 			SvClusterNotifierProxy.publishLockAction(SvCluster.NOTE_LOCK_ACQUIRED, lock.hashCode(), nodeId, lockKey);
-			if (!SvClusterNotifierProxy.waitForAck(nodes, lock.hashCode(), heartBeatTimeOut))
+			if (!SvClusterNotifierProxy.waitForAck(lock.hashCode(), heartBeatTimeOut))
 				lockResult = SvCluster.MSG_FAIL;
 
 			respBuffer.put(lockResult);
@@ -426,12 +521,9 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to process cluster wide messages
 	 * 
-	 * @param msgType
-	 *            The type of message
-	 * @param nodeId
-	 *            The node which sent the message
-	 * @param msgBuffer
-	 *            The rest of the message buffer
+	 * @param msgType   The type of message
+	 * @param nodeId    The node which sent the message
+	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
 	 */
 	private byte[] processMessage(byte msgType, long nodeId, ByteBuffer msgBuffer) {
@@ -468,7 +560,8 @@ public class SvClusterServer implements Runnable {
 				respBuffer.put(SvCluster.MSG_UNKNOWN);
 			}
 		if (log4j.isDebugEnabled())
-			log4j.debug("Response to node " + nodeId + " was " + respBuffer.get(0));
+			log4j.debug("Response to node " + nodeId + " was " + Byte.toString(respBuffer.get(0)));
+
 		return respBuffer.array();
 
 	}
@@ -485,64 +578,11 @@ public class SvClusterServer implements Runnable {
 				CopyOnWriteArrayList<DistributedLock> myLocks = entry.getValue();
 				if (myLocks != null)
 					for (DistributedLock d : myLocks) {
-						int lockHash = SvClusterServer.getDistributedLock(d.key, d.nodeId);
+						SvClusterServer.getDistributedLock(d.key, d.nodeId);
 						SvClusterServer.updateDistributedLock(d.key, d.lockHash);
 					}
 			}
 		}
-
-	}
-
-	@Override
-	public void run() {
-
-		if (!isRunning.compareAndSet(false, true)) {
-			log4j.error("Heartbeat thread is already running. Shutdown first");
-			return;
-		}
-		// TODO Auto-generated method stub
-		// lets try to bind our heart beat socket.
-		if (hbServerSock == null) {
-			log4j.error("Heartbeat socket not available, ensure proper initialisation");
-			return;
-		}
-		// make sure we promote any locks if we got promoted from Worker to
-		// Coordinator
-		promoteLocalLocks();
-
-		lastGCTime = DateTime.now();
-		log4j.info("Heartbeat server started");
-		while (isRunning.get()) {
-			byte[] msg = hbServerSock.recv(0);
-			if (msg != null) {
-				ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
-				byte msgType = msgBuffer.get();
-				long nodeId = msgBuffer.getLong();
-				int sockFlag;
-				if (msgType == SvCluster.MSG_JOIN) {
-					Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
-					sockFlag = ZMQ.SNDMORE;
-					while (iterator.hasNext()) {
-						ByteBuffer b = iterator.next();
-
-						if (!iterator.hasNext())
-							sockFlag = 0;
-						if (!hbServerSock.send(b.array(), sockFlag))
-							log4j.error("Error sending message to node:" + Long.toString(nodeId));
-					}
-				} else {
-					byte[] response = processMessage(msgType, nodeId, msgBuffer);
-					if (!hbServerSock.send(response))
-						log4j.error("Error sending message to node:" + Long.toString(nodeId));
-				}
-			} else
-				clusterMaintenance();
-
-		}
-		// make sure we clear the locks on shutdown
-		clearDistributedLocks();
-		log4j.info("Heartbeat server shut down");
-		// the result of the binding is the status
 
 	}
 
@@ -559,11 +599,11 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to perform maintenance of the cluster list. The map with
-	 * heartbeats from the nodes of the cluster is evaluated to check if any of
-	 * the nodes hasn't sent a heart beat within the Heart Beat Timeout
-	 * interval. The nodes which haven't sent a heartbeat within the timeout,
-	 * are removed from the cluster and their locks are removed
+	 * Method to perform maintenance of the cluster list. The map with heartbeats
+	 * from the nodes of the cluster is evaluated to check if any of the nodes
+	 * hasn't sent a heart beat within the Heart Beat Timeout interval. The nodes
+	 * which haven't sent a heartbeat within the timeout, are removed from the
+	 * cluster and their locks are removed
 	 */
 	private void clusterMaintenance() {
 		DateTime tsTimeout = lastGCTime.withDurationAdded(heartBeatTimeOut, 1);
@@ -602,14 +642,12 @@ public class SvClusterServer implements Runnable {
 	}
 
 	/**
-	 * Method to update a distributed lock. This is invoked when the Notifier
-	 * client is processing lock acknowledgments and needs to update the list of
+	 * Method to update a distributed lock. This is invoked when the Notifier client
+	 * is processing lock acknowledgments and needs to update the list of
 	 * distributed locks by the SvLock on the coordinator node.
 	 * 
-	 * @param lockHash
-	 *            The hash of the lock
-	 * @param lockKey
-	 *            The key of the lock
+	 * @param lockHash The hash of the lock
+	 * @param lockKey  The key of the lock
 	 * 
 	 * @return True if the lock was updated
 	 */
@@ -620,11 +658,10 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Method to clean up the distributed locks acquired by a node
 	 * 
-	 * @param nodeId
-	 *            The node for which the distributed locks shall be cleaned
+	 * @param nodeId The node for which the distributed locks shall be cleaned
 	 */
 	static void clusterCleanUp(Long nodeId) {
-		SvCluster.clusterCleanUp(nodeId, SvClusterServer.nodeLocks, SvClusterServer.distributedLocks);
+		SvCluster.clusterCleanUp(nodeId, SvClusterServer.nodeLocks, false);
 	}
 
 }

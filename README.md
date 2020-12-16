@@ -72,4 +72,4 @@ The method `DbDataArray.getDistinctValuesPerColumns` no more accepts a `SvReader
 	$mvn exec:java@osgi -P PostgreSQL
 	
 	
-6. Unzip the osgi-bundles-defaults.zip archive into the directory osgi-bundles (or the directory you configured in your svarog.properties file) and restart the svarog osgi container. Now you can see the standard felix admin console at http://localhost:8080/system/console.
+6. Unzip the osgi-bundles-defaults.zip (Download from https://github.com/PerunTech/svarog/blob/83fa485dc0f0141a3b18de1dea609865ae0ab671/osgi-bundles-default.zip) archive into the directory osgi-bundles (or the directory you configured in your svarog.properties file) and restart the svarog osgi container. Now you can see the standard felix admin console at http://localhost:8080/system/console.

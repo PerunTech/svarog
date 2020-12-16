@@ -11,8 +11,10 @@
 /osgi-bundles/
 /osgi-cache/
 /osgi-bundles-default.zip
-/conf/
+/conf/config
+/conf/records
 /sv_batch_fs/
 /svarog_filestore/
 /bin/
 /svarog.properties
+/svarog.properties.bkp

@@ -371,8 +371,9 @@ public class DbQueryObject extends DbQuery {
 	 * @param dbt
 	 *            The config object for the object type
 	 * @return A string containing list of fields split by comma
+	 * @throws SvException 
 	 */
-	StringBuilder getFieldList(String repoPrefix, String tblPrefix, Boolean includeGeometries) {
+	StringBuilder getFieldList(String repoPrefix, String tblPrefix, Boolean includeGeometries) throws SvException {
 		StringBuilder retval = null;
 		String finalPrefix = (sqlTablePrefix != null) ? sqlTablePrefix : tblPrefix;
 
@@ -395,9 +396,10 @@ public class DbQueryObject extends DbQuery {
 	 * @param dbt
 	 *            The config object for the object type
 	 * @return A string containing list of fields split by comma
+	 * @throws SvException 
 	 */
 	public StringBuilder getFieldList(String sqlTblAlias, DbDataArray repoFields, DbDataArray dbtFields,
-			Boolean includeGeometries) {
+			Boolean includeGeometries) throws SvException {
 		return getFieldList(sqlTblAlias, repoFields, dbtFields, includeGeometries, true);
 	}
 
@@ -409,9 +411,10 @@ public class DbQueryObject extends DbQuery {
 	 * @param dbt
 	 *            The config object for the object type
 	 * @return A string containing list of fields split by comma
+	 * @throws SvException 
 	 */
 	public StringBuilder getFieldList(String sqlTblAlias, DbDataArray repoFields, DbDataArray dbtFields,
-			Boolean includeGeometries, boolean useColumnPrefix) {
+			Boolean includeGeometries, boolean useColumnPrefix) throws SvException {
 		ResourceBundle sqlKw = SvConf.getSqlkw();
 		StringBuilder retval = new StringBuilder(400);
 		String tmpAlias = sqlTblAlias.length() > 0 ? sqlTblAlias + "." : "";
@@ -479,11 +482,11 @@ public class DbQueryObject extends DbQuery {
 				+ ".meta_pkid=" + tblPrefix + ".pkid";
 	}
 
-	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries) {
+	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries) throws SvException {
 		return getTableSql(repoPrefix, tblPrefix, includeGeometries, sqlTablePrefix);
 	}
 
-	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries, String resultSetPrefix) {
+	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries, String resultSetPrefix) throws SvException {
 
 		StringBuilder retval = new StringBuilder(400);
 		String finalRepoPrefix = repoPrefix == null || repoPrefix.equals("") ? null : repoPrefix;
