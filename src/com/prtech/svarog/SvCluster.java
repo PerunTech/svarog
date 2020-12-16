@@ -62,10 +62,28 @@ public class SvCluster extends SvCore {
 	 *
 	 */
 	static class DistributedLock {
-		public String key;
-		public Long nodeId;
-		public ReentrantLock lock;
-		public int lockHash;
+		private String key;
+		private Long nodeId;
+		private ReentrantLock lock;
+		private int lockHash;
+		
+		public String getKey() {
+			return key;
+		}
+
+		public Long getNodeId() {
+			return nodeId;
+		}
+
+		public ReentrantLock getLock() {
+			return lock;
+		}
+
+		public int getLockHash() {
+			return lockHash;
+		}
+
+
 
 		DistributedLock(String key, Long nodeId, ReentrantLock lock, int lockHash) {
 			this.nodeId = nodeId;
@@ -144,7 +162,7 @@ public class SvCluster extends SvCore {
 		cNode.setVal(PART_TIME, SvConf.MAX_DATE);
 		cNode.setVal(LAST_MAINTENANCE, new DateTime());
 		cNode.setVal(NEXT_MAINTENANCE, new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval()));
-		String localIp = "0.0.0.0:" + SvConf.getHeartBeatPort();
+		String localIp = "*:" + SvConf.getHeartBeatPort();
 		try {
 			localIp = SvUtil.getIpAdresses(true, IP_ADDR_DELIMITER);
 		} catch (UnknownHostException e) {

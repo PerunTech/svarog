@@ -253,8 +253,7 @@ public class SvWriter extends SvCore {
 				throw (new SvException("system.error.obj_not_updateable", instanceUser, dba, null));
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
-			throw (new SvException("system.error.sql_err", instanceUser, dba, null));
+			throw (new SvException("system.error.sql_err", instanceUser, dba, null, e));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -326,7 +325,7 @@ public class SvWriter extends SvCore {
 	 * @param objectFields The list of fields which we plan to insert
 	 * @param oldPKID      The old PKID of the object in case of update
 	 * @return
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
 			Boolean hasPKID) throws SvException {
@@ -571,7 +570,6 @@ public class SvWriter extends SvCore {
 				throw (new SvException("system.error.batch_size_err", instanceUser, dba, dbt));
 
 		} catch (SQLException ex) {
-			ex.printStackTrace();
 			throw (new SvException("system.error.reposave_err", instanceUser, null, dba, ex));
 		} finally {
 			closeResource((AutoCloseable) rsGenKeys, instanceUser);
@@ -642,7 +640,7 @@ public class SvWriter extends SvCore {
 	 * @param conn           SQL Connection to be used for execution of the SQL
 	 *                       statements.
 	 * @throws SQLException
-	 * @throws SvException 
+	 * @throws SvException
 	 * @throws Exception
 	 */
 	void addRepoBatch(DbDataObject dbt, DbDataObject dbo, Boolean withMetaUpdate, Object[] repoObjects,
@@ -699,8 +697,7 @@ public class SvWriter extends SvCore {
 					oldTrxIsolation = conn.getTransactionIsolation();
 					conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.error("Transaction isolation level can not be set to TRANSACTION_READ_UNCOMMITTED", e);
 				}
 		}
 		return internalReader.dbGetConn();
@@ -774,9 +771,7 @@ public class SvWriter extends SvCore {
 						dba.toSimpleJson().toString() + strb.toString()));
 			}
 		} catch (SQLException ex) {
-			ex.printStackTrace();
-			throw (new SvException("system.error.sql_statement_err", instanceUser, dba, sqlStrB.toString(),
-					ex.getCause()));
+			throw (new SvException("system.error.sql_statement_err", instanceUser, dba, sqlStrB.toString(), ex));
 		} finally {
 			closeResource((AutoCloseable) rs, svCONST.systemUser);
 			closeResource((AutoCloseable) ps, svCONST.systemUser);
@@ -1822,11 +1817,8 @@ public class SvWriter extends SvCore {
 			if (dbarr != null && dbarr.getItems().size() > 0)
 				this.saveObject(dbarr, true, false);
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbarr, null));
-		} catch (Exception e) {
-			e.printStackTrace();
-
-		} finally {
+			throw (new SvException("system.error.sql_err", instanceUser, dbarr, null, e ));
+		}  finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
 		}

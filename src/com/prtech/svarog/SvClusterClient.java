@@ -151,6 +151,45 @@ public class SvClusterClient implements Runnable {
 	}
 
 	/**
+	 * Overriden run method to perform the actual heart beat
+	 */
+	@Override
+	public void run() {
+		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
+			return;
+		}
+		while (isRunning.get()) {
+			try {
+				synchronized (hbClientSock) {
+					ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+					msgBuffer.put(SvCluster.MSG_HEARTBEAT);
+					msgBuffer.putLong(nodeId);
+					byte[] msg = null;
+					if (!hbClientSock.send(msgBuffer.array()))
+						log4j.error("Error sending message to coordinator node");
+					msg = hbClientSock.recv(0);
+					if (msg != null)
+						processHeartBeat(msg);
+					else
+						failOver();
+
+				}
+			} catch (Exception e) {
+				log4j.error("ClusterClient heart beat raised exception. Shutting down client", e);
+				shutdown(false);
+			}
+		}
+		// set the active flag to false and notify the waiting threads
+		isActive.set(false);
+		synchronized (isActive) {
+			isActive.notifyAll();
+		}
+
+	}
+
+	/**
 	 * Override to have default shutdown
 	 */
 	static public void shutdown() {
@@ -158,42 +197,58 @@ public class SvClusterClient implements Runnable {
 	}
 
 	/**
+	 * Method to ensure clean exit from the cluster by sending a part message and
+	 * waiting for response
+	 */
+	static void partCluster() {
+		synchronized (hbClientSock) {
+			try {
+				ByteBuffer partBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
+				partBuffer.put(SvCluster.MSG_PART);
+				partBuffer.putLong(nodeId);
+				byte[] msgPart = null;
+				if (!hbClientSock.send(partBuffer.array()))
+					log4j.error("Error sending part message to coordinator node");
+
+				msgPart = hbClientSock.recv(0);
+				if (msgPart != null)
+					partBuffer = ByteBuffer.wrap(msgPart);
+				if (msgPart != null && partBuffer.get() != SvCluster.MSG_SUCCESS && partBuffer.getLong() != nodeId) {
+					log4j.error("Failed to perform a clean exit from the cluster");
+				}
+			} catch (Exception e) {
+				log4j.error("Error sending part cluster message", e);
+			}
+		}
+	}
+
+	/**
 	 * Shuts down the heart beat and closes the ZMQ context
 	 */
 	static void shutdown(boolean shouldPart) {
 		if (!isRunning.compareAndSet(true, false)) {
-			log4j.error("Heartbeat thread is not running. Run the thread first");
+			log4j.warn("Clieant thread is not running. Can't shut down inactive client");
 			return;
 		}
+		if (context != null) {
+			if (shouldPart)
+				partCluster();
 
-		if (context != null)
-			synchronized (hbClientSock) {
-				if (shouldPart) {
-					try {
-						ByteBuffer partBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-						partBuffer.put(SvCluster.MSG_PART);
-						partBuffer.putLong(nodeId);
-						byte[] msgPart = null;
-						if (!hbClientSock.send(partBuffer.array()))
-							log4j.error("Error sending part message to coordinator node");
-
-						msgPart = hbClientSock.recv(0);
-						if (msgPart != null)
-							partBuffer = ByteBuffer.wrap(msgPart);
-						if (msgPart != null && partBuffer.get() != SvCluster.MSG_SUCCESS
-								&& partBuffer.getLong() != nodeId) {
-							log4j.error("Failed to perform a clean exit from the cluster");
-						}
-					} catch (Exception e) {
-						log4j.error("Error sending part cluster message", e);
-					}
+			context.close();
+			context = null;
+			log4j.info("Heartbeat client shutdown");
+		}
+		try {
+			// do wait for the main thread to shutdown
+			while (isActive.get())
+				synchronized (isActive) {
+					isActive.wait();
 				}
-				context.close();
-				context = null;
-				log4j.info("Heartbeat client shutdown");
-			}
-		// mark the client as in-active
-		isActive.set(false);
+
+		} catch (InterruptedException e) {
+			log4j.error("Heart-beat shutdown interrupted", e);
+			Thread.currentThread().interrupt();
+		}
 		// notify the maintenance thread
 		if (SvMaintenance.maintenanceThread != null)
 			synchronized (SvMaintenance.maintenanceThread) {
@@ -556,8 +611,7 @@ public class SvClusterClient implements Runnable {
 		}
 	}
 
-	private static void forcePromotion()
-	{
+	private static void forcePromotion() {
 		log4j.info("Restarting SvCluster node to force re-election of coordinator");
 		if (SvCluster.isRunning().get()) {
 			if (log4j.isDebugEnabled())
@@ -579,6 +633,7 @@ public class SvClusterClient implements Runnable {
 			}
 		}
 	}
+
 	private static void failOver() {
 		// if the last contact was more than the timeout in the
 		// past .. we consider the coordinator dead and
@@ -603,44 +658,6 @@ public class SvClusterClient implements Runnable {
 				}
 			}
 		}
-	}
-
-	/**
-	 * Overriden run method to perform the actual heart beat
-	 */
-	@Override
-	public void run() {
-		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
-			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
-					+ ". Main server thread is running:" + isRunning.get());
-			return;
-		}
-		while (isRunning.get()) {
-			try {
-				synchronized (hbClientSock) {
-					ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG);
-					msgBuffer.put(SvCluster.MSG_HEARTBEAT);
-					msgBuffer.putLong(nodeId);
-					byte[] msg = null;
-					if (!hbClientSock.send(msgBuffer.array()))
-						log4j.error("Error sending message to coordinator node");
-					msg = hbClientSock.recv(0);
-					if (msg != null)
-						processHeartBeat(msg);
-					else
-						failOver();
-
-				}
-
-				synchronized (isRunning) {
-					isRunning.wait(heartBeatInterval);
-				}
-			} catch (Exception e) {
-				log4j.error("ClusterClient heart beat raised exception. Shutting down client", e);
-				shutdown(false);
-			}
-		}
-
 	}
 
 }

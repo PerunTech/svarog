@@ -76,7 +76,7 @@ public class SvLock {
 				if (distributedLocks.containsKey(removal.getKey())) {
 					DistributedLock dlock = distributedLocks.remove(removal.getKey());
 					if (dlock != null) {
-						CopyOnWriteArrayList<DistributedLock> locks = nodeLocks.get(dlock.nodeId);
+						CopyOnWriteArrayList<DistributedLock> locks = nodeLocks.get(dlock.getNodeId());
 						if (locks != null)
 							locks.remove(dlock);
 					}
@@ -96,11 +96,9 @@ public class SvLock {
 	/**
 	 * Method to get a lock for a specific key
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
-	 * @param isBlocking
-	 *            Should the thread block on locking or just fail if it isn't
-	 *            able to lock it
+	 * @param key        The key to identify the lock with
+	 * @param isBlocking Should the thread block on locking or just fail if it isn't
+	 *                   able to lock it
 	 * @return true if the lock has been acquired
 	 */
 	@Deprecated
@@ -116,8 +114,7 @@ public class SvLock {
 	/**
 	 * Method to get a lock for a specific key
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
+	 * @param key The key to identify the lock with
 	 * @return true if the lock has been acquired
 	 */
 	@Deprecated
@@ -128,13 +125,10 @@ public class SvLock {
 	/**
 	 * Method to get a lock for a specific key
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
-	 * @param isBlocking
-	 *            Should the thread block on locking or just fail if it isn't
-	 *            able to lock it
-	 * @param timeout
-	 *            Timeout in mili-seconds to acquire the lock
+	 * @param key        The key to identify the lock with
+	 * @param isBlocking Should the thread block on locking or just fail if it isn't
+	 *                   able to lock it
+	 * @param timeout    Timeout in mili-seconds to acquire the lock
 	 * @return Instance of ReentrantLock, mapped to the System Locks using the
 	 *         requested key
 	 * 
@@ -182,14 +176,12 @@ public class SvLock {
 	/**
 	 * Method to release the lock with Key used as ID and a lock reference
 	 * 
-	 * @param key
-	 *            The key to unlock
-	 * @param lock
-	 *            The lock reference acquired from
-	 *            {@link #getLock(String, Boolean, long)}
-	 * @param alwaysUnlock
-	 *            If this parameter is true, the method will unlock the key even
-	 *            if the lock is not matched in the System Locks hashmap
+	 * @param key          The key to unlock
+	 * @param lock         The lock reference acquired from
+	 *                     {@link #getLock(String, Boolean, long)}
+	 * @param alwaysUnlock If this parameter is true, the method will unlock the key
+	 *                     even if the lock is not matched in the System Locks
+	 *                     hashmap
 	 */
 	public static boolean releaseLock(String key, ReentrantLock lock, boolean alwaysUnlock) {
 		return releaseLock(key, lock, alwaysUnlock, sysLocks);
@@ -228,14 +220,12 @@ public class SvLock {
 
 	/**
 	 * Method to release the lock with Key used as ID and a lock reference. This
-	 * method will not unlock the lock if the Lock reference isn't matched to
-	 * the one in the System Locks map
+	 * method will not unlock the lock if the Lock reference isn't matched to the
+	 * one in the System Locks map
 	 * 
-	 * @param key
-	 *            The key to unlock
-	 * @param lock
-	 *            The lock reference acquired from
-	 *            {@link #getLock(String, Boolean, long)}
+	 * @param key  The key to unlock
+	 * @param lock The lock reference acquired from
+	 *             {@link #getLock(String, Boolean, long)}
 	 */
 	public static boolean releaseLock(String key, ReentrantLock lock) {
 		return releaseLock(key, lock, false);
@@ -245,13 +235,12 @@ public class SvLock {
 	 * Method to release the lock with Key used as ID. This method will ALWAYS
 	 * unlock the key.
 	 * 
-	 * WARNING: This method allows you to create a bug, in which one thread
-	 * acquires the lock and another one tries to unlock it, thus raising
-	 * exception. If you are using this method, refactor your code to use
+	 * WARNING: This method allows you to create a bug, in which one thread acquires
+	 * the lock and another one tries to unlock it, thus raising exception. If you
+	 * are using this method, refactor your code to use
 	 * {@link #releaseLock(String, ReentrantLock)}
 	 * 
-	 * @param key
-	 *            The key to unlock
+	 * @param key The key to unlock
 	 */
 	@Deprecated
 	public static void releaseLock(String key) {
@@ -262,10 +251,9 @@ public class SvLock {
 	 * Method to get a cluster wide, distributed lock for a specific key in the
 	 * Svarog cluster. The distributed locks are by default non-blocking.
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
-	 * @return hash code of the acquired lock. If the value is 0, the lock
-	 *         wasn't acquired
+	 * @param key The key to identify the lock with
+	 * @return hash code of the acquired lock. If the value is 0, the lock wasn't
+	 *         acquired
 	 * 
 	 */
 	public static int getDistributedLock(String lockKey) {
@@ -275,19 +263,15 @@ public class SvLock {
 	}
 
 	/**
-	 * Implementation method to get a cluster wide, distributed lock for a
-	 * specific key in the Svarog cluster. The distributed locks are by default
-	 * non-blocking.
+	 * Implementation method to get a cluster wide, distributed lock for a specific
+	 * key in the Svarog cluster. The distributed locks are by default non-blocking.
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
-	 * @param isCoordinator
-	 *            Flag if the lock is to be acquired by a worker or coordinator
-	 *            node
-	 * @param nodeId
-	 *            The node under which this lock shall be registered
-	 * @return hash code of the acquired lock. If the value is 0, the lock
-	 *         wasn't acquired
+	 * @param key           The key to identify the lock with
+	 * @param isCoordinator Flag if the lock is to be acquired by a worker or
+	 *                      coordinator node
+	 * @param nodeId        The node under which this lock shall be registered
+	 * @return hash code of the acquired lock. If the value is 0, the lock wasn't
+	 *         acquired
 	 * 
 	 */
 	static int getDistributedLockImpl(String lockKey, boolean isCoordinator, Long nodeId) {
@@ -336,8 +320,7 @@ public class SvLock {
 	 * Method to get a cluster wide, distributed lock for a specific key in the
 	 * Svarog cluster. The distributed locks are by default non-blocking.
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
+	 * @param key The key to identify the lock with
 	 * @return False if the lock wasn't acquired
 	 * 
 	 */
@@ -347,15 +330,12 @@ public class SvLock {
 	}
 
 	/**
-	 * Implementation method to get a cluster wide, distributed lock for a
-	 * specific key in the Svarog cluster. The distributed locks are by default
-	 * non-blocking.
+	 * Implementation method to get a cluster wide, distributed lock for a specific
+	 * key in the Svarog cluster. The distributed locks are by default non-blocking.
 	 * 
-	 * @param key
-	 *            The key to identify the lock with
-	 * @param isCoordinator
-	 *            Flag if the lock is to be acquired by a worker or coordinator
-	 *            node
+	 * @param key           The key to identify the lock with
+	 * @param isCoordinator Flag if the lock is to be acquired by a worker or
+	 *                      coordinator node
 	 * @return False if the lock wasn't acquired
 	 * 
 	 */

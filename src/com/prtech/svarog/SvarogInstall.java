@@ -179,7 +179,7 @@ public class SvarogInstall {
 				runConfigurationTest = true;
 			// if the flag -d or --daemon has been set, simply return the status
 			if (line.hasOption("dm")) {
-				return SvarogDaemon.svarogDaemonStatus;
+				return SvarogDaemon.getDaemonStatus();
 			} else // if the help option is set, just print help and do nothing
 			if (line.hasOption("h")) {
 				// print the value of block-size
@@ -377,7 +377,8 @@ public class SvarogInstall {
 		} catch (Exception ex) {
 			writeToScreen("Error, password update for " + userName + " failed");
 			writeToScreen(UNEXPECTED_EX);
-			ex.printStackTrace();
+			log4j.error("Error, password update for " + userName + " failed", ex);
+
 		}
 		return 0;
 	}
@@ -449,8 +450,9 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, user " + userName + " can not be created/updated", ex);
 			}
+
 			returnStatus = -1;
 		} finally {
 			if (svw != null)
@@ -517,7 +519,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, user " + groupName + " can not be created/updated", ex);
 			}
 			returnStatus = -1;
 		}
@@ -557,7 +559,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, can not get user groups for user " + group, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -677,7 +679,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, can not get user groups for user " + group, ex);
 			}
 			returnStatus = -1;
 		}
@@ -721,7 +723,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, can not get user groups for user " + user, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -766,7 +768,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, user " + user + " can not be " + groupOperation + " group:" + group, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -833,7 +835,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, user " + user + " can not be " + permissionOperation + " permission:" + group, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -1422,7 +1424,7 @@ public class SvarogInstall {
 				fs.fileSystemSaveByte(fileId, data);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			log4j.error("Error migrating filestore", e);
 		} finally {
 
 			try {
@@ -1726,8 +1728,7 @@ public class SvarogInstall {
 			}
 
 		} catch (Exception e) {
-			log4j.error("Error creating table:" + dbDataTable.getDbTableName());
-			e.printStackTrace();
+			log4j.error("Error creating table:" + dbDataTable.getDbTableName(), e);
 			retval = false;
 		}
 		return retval;
@@ -1787,8 +1788,7 @@ public class SvarogInstall {
 			// SvCore.initCfgObjectsBase();
 			return true;
 		} catch (Exception e) {
-			log4j.error("Can't clean the DB schema");
-			e.printStackTrace();
+			log4j.error("Can't clean the DB schema", e);
 		} finally {
 			try {
 				if (rs != null)
@@ -1838,8 +1838,7 @@ public class SvarogInstall {
 			}
 		} catch (Exception e2) {
 			log4j.error("Error reading config from folder " + confPath
-					+ ", check if all objects are present and properly set");
-			e2.printStackTrace();
+					+ ", check if all objects are present and properly set", e2);
 
 		} finally {
 			if (flst != null) {
@@ -1911,8 +1910,7 @@ public class SvarogInstall {
 			log4j.info("Svarog core " + operation + " finished.");
 
 		} catch (Exception e2) {
-			log4j.error("Error creating master repo, check if all objects are present and properly set");
-			e2.printStackTrace();
+			log4j.error("Error creating master repo, check if all objects are present and properly set", e2);
 			return false;
 		} finally {
 			if (conn != null)
@@ -2094,14 +2092,12 @@ public class SvarogInstall {
 			dbt.fromJson(jobj);
 		} catch (Exception e) {
 			log4j.error("Can't get DbDataTable for" + pathToJson, e);
-			e.printStackTrace();
 		} finally {
 			if (fis != null)
 				try {
 					fis.close();
 				} catch (IOException e) {
-					log4j.error("Can't close input stream for:" + pathToJson);
-					e.printStackTrace();
+					log4j.error("Can't close input stream for:" + pathToJson, e);
 				}
 		}
 		return dbt;
@@ -2156,8 +2152,7 @@ public class SvarogInstall {
 
 			return executeDbScript("create_table.sql", params, conn);
 		} catch (Exception e) {
-			log4j.error("Error creating table:" + dbDataTable.getDbTableName());
-			e.printStackTrace();
+			log4j.error("Error creating table:" + dbDataTable.getDbTableName(), e);
 		}
 
 		return false;
@@ -2807,7 +2802,6 @@ public class SvarogInstall {
 			log4j.error("Upgrade failed!", e);
 			if (e instanceof SvException)
 				log4j.error(((SvException) e).getFormattedMessage());
-			e.printStackTrace();
 			return false;
 		}
 		return true;
@@ -3352,8 +3346,7 @@ public class SvarogInstall {
 
 					sysLocales = locales;
 				} catch (IOException e) {
-					log4j.error("Error loading locale list");
-					e.printStackTrace();
+					log4j.error("Error loading locale list", e);
 					sysLocales = null;
 				}
 			} else {
@@ -3371,7 +3364,6 @@ public class SvarogInstall {
 
 				} catch (SvException e) {
 					log4j.error("Repo seems valid, but system locales aren't loaded", e);
-					e.printStackTrace();
 				} finally {
 					if (svr != null)
 						svr.release();
@@ -4279,7 +4271,7 @@ public class SvarogInstall {
 			conn = SvConf.getDBConnection();
 			retval = SvarogInstall.createTable(dbt, conn);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log4j.error("Failed initialising file store!", e);
 			retval = false;
 		} finally
 

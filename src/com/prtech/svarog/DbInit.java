@@ -5487,7 +5487,7 @@ public class DbInit {
 			String json = gson.toJson(obj);
 			SvUtil.saveStringToFile(jsonFilePath, json);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log4j.error("Failed streaming a DbDataTable to JSON file", e);
 			return ("Failed streaming a DbDataTable to JSON file");
 		}
 		return "";
@@ -5824,7 +5824,7 @@ public class DbInit {
 
 		} catch (Exception e) {
 			testRetval = "Error generating labels!";
-			e.printStackTrace();
+			log4j.error(testRetval, e);
 		}
 		updateFileLists();
 		return testRetval;
@@ -5859,8 +5859,7 @@ public class DbInit {
 					if (iStr != null)
 						iStr.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.trace("Error closing stream", e);
 				}
 			}
 		}
@@ -5977,7 +5976,7 @@ public class DbInit {
 
 		} catch (Exception e) {
 			testRetval = "Error generating labels!";
-			e.printStackTrace();
+			log4j.trace("Error generating labels!", e);
 		}
 		updateFileLists();
 		// if (!testRetval.equals(""))
@@ -6320,7 +6319,7 @@ public class DbInit {
 		dblPrint.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
 		dblPrint.setObjectType(svCONST.OBJECT_TYPE_CLUSTER);
 		dblPrint.setStatus(svCONST.STATUS_VALID);
-		dblPrint.setVal("LOCAL_IP", "0.0.0.0");
+		dblPrint.setVal("LOCAL_IP", "");
 		dblPrint.setVal("NODE_INFO", "N/A");
 		dblPrint.setVal("join_time", new DateTime());
 		dblPrint.setVal("part_time", new DateTime());
@@ -6636,8 +6635,7 @@ public class DbInit {
 				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
 			}
 		} catch (Exception e1) {
-			log4j.error("Error loading codes from custom jar:" + jarPath);
-			e1.printStackTrace();
+			log4j.error("Error loading codes from custom jar:" + jarPath, e1);
 			return;
 		}
 
@@ -6778,7 +6776,7 @@ public class DbInit {
 					is.close();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.trace("Error closing stream", e);
 				}
 		}
 		return geo;

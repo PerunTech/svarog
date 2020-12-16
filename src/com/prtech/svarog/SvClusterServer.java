@@ -351,15 +351,15 @@ public class SvClusterServer implements Runnable {
 			response.add(respBuffer);
 
 			for (Entry<String, DistributedLock> entry : SvClusterServer.distributedLocks.entrySet()) {
-				if (!entry.getValue().nodeId.equals(node.getObjectId())) {
+				if (!entry.getValue().getNodeId().equals(node.getObjectId())) {
 					byte[] key = null;
 					key = entry.getKey().getBytes(ZMQ.CHARSET);
 					// allocate one byte for message type, one long for node Id
 					// and the rest for the hash of the lock
 					respBuffer = ByteBuffer
 							.allocate(SvUtil.sizeof.LONG + SvUtil.sizeof.INT + (key != null ? key.length : 0));
-					respBuffer.putLong(entry.getValue().nodeId);
-					respBuffer.putInt(entry.getValue().lockHash);
+					respBuffer.putLong(entry.getValue().getNodeId());
+					respBuffer.putInt(entry.getValue().getLockHash());
 					respBuffer.put(key);
 					response.add(respBuffer);
 				}
@@ -578,8 +578,8 @@ public class SvClusterServer implements Runnable {
 				CopyOnWriteArrayList<DistributedLock> myLocks = entry.getValue();
 				if (myLocks != null)
 					for (DistributedLock d : myLocks) {
-						SvClusterServer.getDistributedLock(d.key, d.nodeId);
-						SvClusterServer.updateDistributedLock(d.key, d.lockHash);
+						SvClusterServer.getDistributedLock(d.getKey(), d.getNodeId());
+						SvClusterServer.updateDistributedLock(d.getKey(), d.getLockHash());
 					}
 			}
 		}
@@ -591,7 +591,7 @@ public class SvClusterServer implements Runnable {
 	 */
 	private void clearDistributedLocks() {
 		for (Entry<String, DistributedLock> entry : SvClusterServer.distributedLocks.entrySet())
-			SvLock.releaseLock(entry.getValue().key, entry.getValue().lock);
+			SvLock.releaseLock(entry.getValue().getKey(), entry.getValue().getLock());
 
 		SvClusterServer.nodeLocks.clear();
 		SvClusterServer.distributedLocks.clear();
