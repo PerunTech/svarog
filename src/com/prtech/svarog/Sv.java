@@ -23,6 +23,7 @@ public class Sv {
 		public static final String SDI_MERGE_REQUIRES_2PLUS = "system.error.sdi.merge_requires_2plus";
 		public static final String SDI_MERGE_GEOM_EMPTY = "system.error.sdi.geometry_empty";
 		public static final String SDI_MERGE_GEOM_DISJOINT = "system.error.sdi.geometries_disjoint";
+		public static final String SQL_ERR = "system.error.sql_err";
 
 		private Exceptions() {
 		}
@@ -162,5 +163,8 @@ public class Sv {
 
 	public static final String SDI_MIN_GEOM_DISTANCE = "SDI_MIN_GEOM_DISTANCE";
 	public static final Integer DEFAULT_MIN_GEOM_DISTANCE = 0;
+	public static final String ERROR = "ERROR:";
+	public static final String USER_NAME_LABEL = "User name ";
+	public static final String CANNOT = " can not be ";
 
 }

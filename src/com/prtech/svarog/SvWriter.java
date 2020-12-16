@@ -253,7 +253,7 @@ public class SvWriter extends SvCore {
 				throw (new SvException("system.error.obj_not_updateable", instanceUser, dba, null));
 			}
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dba, null, e));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dba, null, e));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -916,7 +916,7 @@ public class SvWriter extends SvCore {
 		} catch (BatchUpdateException e) {
 			throw (new SvException("system.error.batch_err", instanceUser, arrayToSave, dbt, e.getNextException()));
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, arrayToSave, dbt, e));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, arrayToSave, dbt, e));
 		} catch (Exception e) {
 			if (e instanceof SvException)
 				throw ((SvException) e);
@@ -1322,7 +1322,7 @@ public class SvWriter extends SvCore {
 				// dbo.getObjectType());
 			}
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbo, null, e));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbo, null, e));
 		} finally {
 			closeResource((AutoCloseable) ps, instanceUser);
 		}
@@ -1817,7 +1817,7 @@ public class SvWriter extends SvCore {
 			if (dbarr != null && dbarr.getItems().size() > 0)
 				this.saveObject(dbarr, true, false);
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbarr, null, e ));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbarr, null, e ));
 		}  finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -1867,7 +1867,7 @@ public class SvWriter extends SvCore {
 			}
 
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbo, null));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbo, null));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);

@@ -5823,7 +5823,7 @@ public class DbInit {
 					arrAclSid, true);
 
 		} catch (Exception e) {
-			testRetval = "Error generating labels!";
+			testRetval = "Error generating ACLs!";
 			log4j.error(testRetval, e);
 		}
 		updateFileLists();
@@ -5976,7 +5976,7 @@ public class DbInit {
 
 		} catch (Exception e) {
 			testRetval = "Error generating labels!";
-			log4j.trace("Error generating labels!", e);
+			log4j.trace(testRetval, e);
 		}
 		updateFileLists();
 		// if (!testRetval.equals(""))
