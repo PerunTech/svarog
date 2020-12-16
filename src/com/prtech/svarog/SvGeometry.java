@@ -964,19 +964,34 @@ public class SvGeometry extends SvCore {
 			throw (new SvException("system.error.sdi.geometry_not_in_grid", this.instanceUser, null, geom));
 
 		if (!SvConf.isIntersectSysBoundary())
-			for (Geometry tile : tiles) {
-				if (borderTiles.contains((String) tile.getUserData())) {
-					if (tile.covers(geom))
-						continue;
-					else if (tile.intersects(geom)) {
-						SvSDITile sysbounds = getSysBoundary();
-						if (sysbounds.getRelations(geom, SDIRelation.COVERS).size() < 0)
-							throw (new SvException("system.error.sdi.geometry_crosses_sysbounds", this.instanceUser,
-									null, geom));
-					}
+			testBoundaryIntersection(geom, tiles);
+
+	}
+
+	/**
+	 * Method to test if the geometry in question, points outside of the system
+	 * boundary
+	 * 
+	 * @param geom  The geometry under test
+	 * @param tiles The list of tile geometries which intersect with the target
+	 *              geometry
+	 * @throws SvException SvException of type
+	 *                     "system.error.sdi.geometry_crosses_sysbounds" is thrown
+	 *                     if the geometry has points out of boundary
+	 */
+	void testBoundaryIntersection(Geometry geom, List<Geometry> tiles) throws SvException {
+		for (Geometry tile : tiles) {
+			if (borderTiles.contains((String) tile.getUserData())) {
+				if (tile.covers(geom))
+					continue;
+				else if (tile.intersects(geom)) {
+					SvSDITile sysbounds = getSysBoundary();
+					if (sysbounds.getRelations(geom, SDIRelation.COVERS).size() < 0)
+						throw (new SvException("system.error.sdi.geometry_crosses_sysbounds", this.instanceUser, null,
+								geom));
 				}
 			}
-
+		}
 	}
 
 	/**
