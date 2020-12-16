@@ -855,6 +855,16 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
+	 * Method to return the currently configured ISvDatabaseIO instance
+	 * 
+	 * @return ISvDatabaseIO instance
+	 * @throws SvException
+	 */
+	public static ISvDatabaseIO getDbHandler() throws SvException {
+		return SvConf.getDbHandler();
+	}
+
+	/**
 	 * Method to check if the master repo table exists as a basic data table in the
 	 * DB
 	 * 
