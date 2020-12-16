@@ -75,7 +75,7 @@ public class SvSDIJsonTile extends SvSDITile {
 					is.close();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.error("Failed JSON. Can't close stream", e);
 				}
 		}
 

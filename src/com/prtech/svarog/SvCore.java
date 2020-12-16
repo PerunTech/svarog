@@ -949,7 +949,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			try {
 				currPath = currDir.getCanonicalPath();
 			} catch (IOException e1) {
-				e1.printStackTrace();
+				log4j.error("Can't get current working directory", e);
 			}
 			log4j.error("Can't load master repo json config in folder:" + currPath, e);
 			return false;
@@ -958,7 +958,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					log4j.error("Can't close file stream for loading master repo", e);
 				}
 		}
 		try {
@@ -989,7 +989,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					fis.close();
 				} catch (IOException e) {
 					log4j.error("Can't close stream. Errgh something bad happened?", e);
-					e.printStackTrace();
 				}
 		}
 		return true;

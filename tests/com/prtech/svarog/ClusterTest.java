@@ -196,6 +196,7 @@ public class ClusterTest {
 			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
 			SvClusterClient.heartBeatTimeOut = 1000;
 			SvClusterClient.heartBeatInterval = 1000;
+
 			// we turn off the promotion to allow testing of failure
 			SvClusterClient.forcePromotionOnShutDown = false;
 			SvClusterClient.initClient(ipAddressList);
@@ -659,6 +660,12 @@ public class ClusterTest {
 			// this test fails often so lets ensure that the cluster is shutdown properly
 			// from the previous tests before doing anything else
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
+			// shutdown the clients if running
+			if (SvClusterClient.isRunning.get())
+				SvClusterClient.shutdown();
+			if (SvClusterNotifierClient.isRunning.get())
+				SvClusterNotifierClient.shutdown();
+			// shutdown the main cluster
 			SvCluster.shutdown();
 			// if shut down in progress, wait to finish.
 			while (tsTimeout.isAfterNow() && SvCluster.getIsActive().get()) {
@@ -982,7 +989,7 @@ public class ClusterTest {
 		boolean lockFound = false;
 		boolean result = false;
 		SvCluster.DistributedLock dld = SvClusterServer.distributedLocks.get(lockKey);
-		if (dld != null && dld.nodeId.equals(nodeId))
+		if (dld != null && dld.getNodeId().equals(nodeId))
 			lockFound = true;
 
 		result = !(present ^ lockFound);
@@ -992,7 +999,7 @@ public class ClusterTest {
 				CopyOnWriteArrayList<SvCluster.DistributedLock> dlocks = SvClusterServer.nodeLocks.get(nodeId);
 				if (dlocks != null)
 					for (SvCluster.DistributedLock d : dlocks)
-						if (d.lock.hashCode() == lockHash)
+						if (d.getLock().hashCode() == lockHash)
 							lockFound = true;
 			}
 			result = !(present ^ lockFound);

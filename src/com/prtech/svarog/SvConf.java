@@ -280,6 +280,18 @@ public class SvConf {
 	}
 
 	/**
+	 * Method to set the maximum record validity. With certain databases which
+	 * understand timezones, it is necessary to tweak this date so the database can
+	 * work on servers with different timezones by using the config param
+	 * sys.force_timezone
+	 * 
+	 * @return the maximum date time for the specific time zone
+	 */
+	private static Timestamp getMaxDateTS() {
+		return new Timestamp(getMaxDate().getMillis());
+	}
+
+	/**
 	 * Final field representing the Maximum date time value used in Svarog. Includes
 	 * time zone
 	 */
@@ -288,7 +300,7 @@ public class SvConf {
 	/**
 	 * SQL Timestamp version of the MAX DATE used for SQL queries
 	 */
-	public static final Timestamp MAX_DATE_SQL = new Timestamp(MAX_DATE.getMillis());
+	public static final Timestamp MAX_DATE_SQL = getMaxDateTS();
 
 	/**
 	 * The resource bundle containing all specific SQL Keywords for different RDBMS
@@ -305,7 +317,7 @@ public class SvConf {
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
 	 * @return ISvDatabaseIO instance
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	public static ISvDatabaseIO getDbHandler() throws SvException {
 		if (dbHandler != null)
@@ -331,12 +343,10 @@ public class SvConf {
 			log4j.error("Can't find Database Handler named: " + SvConf.getParam("conn.dbHandlerClass"));
 			// e.printStackTrace();
 		}
-		if (dbHandler == null)
-		{
+		if (dbHandler == null) {
 			log4j.error("Can't load Database Handler Handler named:" + SvConf.getParam("conn.dbHandlerClass"));
 			throw (new SvException("system.error.misconfigured_dbhandlerclass", svCONST.systemUser));
-		}
-		else {
+		} else {
 			sqlKw = dbHandler.getSQLKeyWordsBundle();
 			if (getSDISrid() != null) {
 				dbHandler.initSrid(getSDISrid());
