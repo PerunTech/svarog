@@ -937,27 +937,61 @@ public class SvGeometry extends SvCore {
 	 */
 	public void verifyBounds(DbDataObject dbo) throws SvException {
 		Geometry geom = SvGeometry.getGeometry(dbo);
+		verifyBounds(geom);
+	}
+
+	/**
+	 * Method to execute basic verifications on the geometry 1. Verifies if the
+	 * geometry is valid 2. Verified that the geometry intersects at least one grid
+	 * tile 3. If the intersecting tile is a border tile then test if the geometry
+	 * intersects the system boundary
+	 * 
+	 * @param dbo The {@link DbDataObject} containing at least GEOMETRY column.
+	 * @throws SvException If the geometry is not valid throws
+	 *                     "system.error.sdi.invalid_geom". If the geometry is
+	 *                     outside of the system grid then
+	 *                     "system.error.sdi.geometry_not_in_grid" is thrown. If the
+	 *                     geometry intersects the system boundary and svarog is not
+	 *                     configured to allow system boundary intersections then
+	 *                     "system.error.sdi.geometry_crosses_sysbounds" is thrown.
+	 */
+	public void verifyBounds(Geometry geom) throws SvException {
 		if (!geom.isValid())
-			throw (new SvException("system.error.sdi.invalid_geom", this.instanceUser, dbo, null));
+			throw (new SvException("system.error.sdi.invalid_geom", this.instanceUser, null, geom));
 
 		List<Geometry> tiles = getTileGeometries(geom.getEnvelopeInternal());
 		if (tiles.size() < 1)
-			throw (new SvException("system.error.sdi.geometry_not_in_grid", this.instanceUser, dbo, null));
+			throw (new SvException("system.error.sdi.geometry_not_in_grid", this.instanceUser, null, geom));
 
 		if (!SvConf.isIntersectSysBoundary())
-			for (Geometry tile : tiles) {
-				if (borderTiles.contains((String) tile.getUserData())) {
-					if (tile.covers(geom))
-						continue;
-					else if (tile.intersects(geom)) {
-						SvSDITile sysbounds = getSysBoundary();
-						if (sysbounds.getRelations(geom, SDIRelation.COVERS).size() < 0)
-							throw (new SvException("system.error.sdi.geometry_crosses_sysbounds", this.instanceUser,
-									dbo, null));
-					}
+			testBoundaryIntersection(geom, tiles);
+
+	}
+
+	/**
+	 * Method to test if the geometry in question, points outside of the system
+	 * boundary
+	 * 
+	 * @param geom  The geometry under test
+	 * @param tiles The list of tile geometries which intersect with the target
+	 *              geometry
+	 * @throws SvException SvException of type
+	 *                     "system.error.sdi.geometry_crosses_sysbounds" is thrown
+	 *                     if the geometry has points out of boundary
+	 */
+	void testBoundaryIntersection(Geometry geom, List<Geometry> tiles) throws SvException {
+		for (Geometry tile : tiles) {
+			if (borderTiles.contains((String) tile.getUserData())) {
+				if (tile.covers(geom))
+					continue;
+				else if (tile.intersects(geom)) {
+					SvSDITile sysbounds = getSysBoundary();
+					if (sysbounds.getRelations(geom, SDIRelation.COVERS).size() < 0)
+						throw (new SvException("system.error.sdi.geometry_crosses_sysbounds", this.instanceUser, null,
+								geom));
 				}
 			}
-
+		}
 	}
 
 	/**
@@ -1030,8 +1064,7 @@ public class SvGeometry extends SvCore {
 	 *                     or "system.error.sdi.spike_detected" if spike was
 	 *                     detected via test only flag
 	 */
-	public ArrayList<Coordinate> fixPolygonCoordinates(Polygon p, Double maxAngle, boolean testOnly)
-			throws SvException {
+	public List<Coordinate> fixPolygonCoordinates(Polygon p, Double maxAngle, boolean testOnly) throws SvException {
 		Coordinate[] coords = p.getCoordinates();
 		ArrayList<Coordinate> newCoordinates = new ArrayList<>(coords.length);
 		// add the zero point, becase we start the loop from the first tail
@@ -1074,7 +1107,7 @@ public class SvGeometry extends SvCore {
 		Polygon[] allPoly = new Polygon[g.getNumGeometries()];
 		for (int i = 0; i < g.getNumGeometries(); i++) {
 			Polygon p = (Polygon) g.getGeometryN(i);
-			ArrayList<Coordinate> fixedCoordinates = fixPolygonCoordinates(p, maxAngle, testOnly);
+			List<Coordinate> fixedCoordinates = fixPolygonCoordinates(p, maxAngle, testOnly);
 
 			if (fixedCoordinates.size() < 3)
 				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
