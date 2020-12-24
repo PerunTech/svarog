@@ -2,6 +2,9 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -14,7 +17,7 @@ import org.junit.Test;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog.*;
+import com.prtech.svarog_common.DboFactory;
 
 public class ClusterTest {
 
@@ -31,7 +34,6 @@ public class ClusterTest {
 
 	}
 
-	@Test
 	public void promoteToCoordinator() {
 		System.out.print("Test promoteToCoordinator");
 		try {
@@ -65,8 +67,8 @@ public class ClusterTest {
 				fail("Lock was NOT present on the Cluster after acquiring");
 
 			Thread.sleep(2 * SvConf.getHeartBeatInterval());
-			SvConf.setClusterEnabled(true);
 			SvCluster.shutdown();
+			SvConf.setClusterEnabled(true);
 			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
 			boolean didWePromote = false;
 			while (tsTimeout.isAfterNow()) {
@@ -196,7 +198,6 @@ public class ClusterTest {
 			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
 			SvClusterClient.heartBeatTimeOut = 1000;
 			SvClusterClient.heartBeatInterval = 1000;
-
 			// we turn off the promotion to allow testing of failure
 			SvClusterClient.forcePromotionOnShutDown = false;
 			SvClusterClient.initClient(ipAddressList);
@@ -657,29 +658,9 @@ public class ClusterTest {
 		try {
 
 			SvClusterClient.heartBeatTimeOut = SvConf.getHeartBeatTimeOut();
-			// this test fails often so lets ensure that the cluster is shutdown properly
-			// from the previous tests before doing anything else
-			DateTime tsTimeout = DateTime.now().withDurationAdded(SvConf.getHeartBeatTimeOut(), 1);
-			// shutdown the clients if running
-			if (SvClusterClient.isRunning.get())
-				SvClusterClient.shutdown();
-			if (SvClusterNotifierClient.isRunning.get())
-				SvClusterNotifierClient.shutdown();
-			// shutdown the main cluster
-			SvCluster.shutdown();
-			// if shut down in progress, wait to finish.
-			while (tsTimeout.isAfterNow() && SvCluster.getIsActive().get()) {
-				try {
-					synchronized (SvCluster.isRunning()) {
-						SvCluster.isRunning().wait(SvConf.getHeartBeatInterval());
-					}
-				} catch (InterruptedException e) {
-					tsTimeout = DateTime.now();
-					Thread.currentThread().interrupt();
-
-				}
-			}
 			SvCore.initSvCore();
+			SvClusterClient.shutdown(false);
+			SvClusterNotifierClient.shutdown();
 			SvClusterNotifierProxy.processNotification = true;
 			SvCluster.autoStartClient = false;
 			SvCluster.initCluster();
@@ -696,9 +677,11 @@ public class ClusterTest {
 			// sleep to let the heartbeat start
 			Thread.sleep(500);
 
+			// validate a random token and see if the validation fails
+			DbDataObject token = null;
+
 			// get a new token from the roles test
 			String newToken = SvarogRolesTest.getUserToken(false);
-
 			// get the Dbo representation
 			DbDataObject localToken = DbCache.getObject(newToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
 

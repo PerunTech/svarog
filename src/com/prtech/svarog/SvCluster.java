@@ -66,7 +66,7 @@ public class SvCluster extends SvCore {
 		private Long nodeId;
 		private ReentrantLock lock;
 		private int lockHash;
-		
+
 		public String getKey() {
 			return key;
 		}
@@ -82,8 +82,6 @@ public class SvCluster extends SvCore {
 		public int getLockHash() {
 			return lockHash;
 		}
-
-
 
 		DistributedLock(String key, Long nodeId, ReentrantLock lock, int lockHash) {
 			this.nodeId = nodeId;
@@ -543,13 +541,12 @@ public class SvCluster extends SvCore {
 	 * agnostic). It is called also by SvLock in order to synchronize properly the
 	 * distributed locks
 	 * 
-	 * @param lockKey          The lock key which should be locked.
-	 * @param nodeId           The id of the node which shall acquire the lock
-	 * @param extendedInfo     The id of the node which already holds the lock
-	 *                         (available only if the lock fails)
-	 * @param nodeLocks        The map of nodes which contains locks held by node
-	 * @param distributedLocks The map of distributed nodes in the cluster to be
-	 *                         used for releasing the lock
+	 * @param lockKey      The lock key which should be locked.
+	 * @param nodeId       The id of the node which shall acquire the lock
+	 * @param extendedInfo The id of the node which already holds the lock
+	 *                     (available only if the lock fails)
+	 * @param nodeLocks    The map of nodes which contains locks held by node
+	 * @param sysLocks     The cache containing all system locks
 	 * @return Instance of re-entrant lock if the lock was acquired. Otherwise null.
 	 *         If null the extendedInfo is populated with the node holding the lock
 	 */

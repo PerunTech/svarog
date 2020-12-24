@@ -379,9 +379,37 @@ public class SvGeometry extends SvCore {
 		return result;
 	}
 
-	@SuppressWarnings("unchecked")
-	public Set<Geometry> splitGeometry(LineString line, Long layerTypeId, boolean allowMultiGeometries)
+	private void splitGeometryDbUpdate(Set<Geometry> newGeometries, Set<Geometry> deletedGeometries, boolean autoCommit)
 			throws SvException {
+		// get the previous state of autocommit
+		boolean oldAutoCommit = this.getAutoCommit();
+		try (SvWriter svw = new SvWriter(this)) {
+			// set autocommit to false to ensure all deletes and saves are in single
+			// transaction
+			this.setAutoCommit(false);
+			DbDataObject dbo = null;
+			// delete the others
+			for (Geometry g : deletedGeometries) {
+				dbo = (DbDataObject) g.getUserData();
+				svw.deleteObject(dbo);
+			}
+			for (Geometry g : newGeometries) {
+				dbo = (DbDataObject) g.getUserData();
+				SvGeometry.setGeometry(dbo, g);
+				this.saveGeometry(dbo);
+			}
+
+			if (autoCommit)
+				this.dbCommit();
+		} finally {
+			this.dbSetAutoCommit(oldAutoCommit);
+		}
+
+	}
+
+	@SuppressWarnings("unchecked")
+	public Set<Geometry> splitGeometry(LineString line, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
+			boolean autoCommit) throws SvException {
 		if (!line.isSimple())
 			throw (new SvException("system.error.sdi.line_intersects_self", svCONST.systemUser, null, line));
 
@@ -407,10 +435,9 @@ public class SvGeometry extends SvCore {
 				poly.setUserData(originalGeom.getUserData());
 				result.add(poly);
 			}
-
-			// if the difference resulted in multipolygon, we are interested only in the
-			// polygon which covers the point
-
+		}
+		if (!preview) {
+			splitGeometryDbUpdate(result, intersected, autoCommit);
 		}
 		return result;
 	}
@@ -1331,15 +1358,15 @@ public class SvGeometry extends SvCore {
 		verifyBounds(dbo);
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
-		//
-		Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
-		testPolygonSpikes(geom, maxAngle);
+
+		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
+		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
 
 		Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE, Sv.DEFAULT_MIN_POINT_DISTANCE);
 		minVertexDistance(geom, minPointDistance, true);
 
-		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
-		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
+		Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
+		testPolygonSpikes(geom, maxAngle);
 
 		// if area is not set or we have configured to override
 		if (dbo.getVal("AREA") == null || SvConf.sdiOverrideGeomCalc)
