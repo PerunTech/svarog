@@ -6319,7 +6319,7 @@ public class DbInit {
 		dblPrint.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
 		dblPrint.setObjectType(svCONST.OBJECT_TYPE_CLUSTER);
 		dblPrint.setStatus(svCONST.STATUS_VALID);
-		dblPrint.setVal("LOCAL_IP", "");
+		dblPrint.setVal("LOCAL_IP", "*");
 		dblPrint.setVal("NODE_INFO", "N/A");
 		dblPrint.setVal("join_time", new DateTime());
 		dblPrint.setVal("part_time", new DateTime());
