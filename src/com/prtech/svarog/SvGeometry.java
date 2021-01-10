@@ -484,7 +484,6 @@ public class SvGeometry extends SvCore {
 	public Geometry mergeGeometries(List<Point> points, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
 			boolean autoCommit) throws SvException {
 
-		Object userData = null;
 		ArrayList<Object> objectsToDelete = new ArrayList<>();
 		if (points.size() < 2)
 			throw (new SvException(Sv.Exceptions.SDI_MERGE_REQUIRES_2PLUS, svCONST.systemUser, null, points));
@@ -506,7 +505,7 @@ public class SvGeometry extends SvCore {
 				}
 			}
 		}
-		result.setUserData(userData);
+
 		if (!preview) {
 			mergeGeometriesDbUpdate(result, objectsToDelete, autoCommit);
 		}

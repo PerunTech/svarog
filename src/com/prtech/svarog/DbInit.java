@@ -2774,7 +2774,7 @@ public class DbInit {
 			dbf2.setDbFieldSize(18);
 			dbf2.setDbFieldScale(0);
 			dbf2.setIsNull(false);
-			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE);
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.Link.LINK_TYPE);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -2918,7 +2918,7 @@ public class DbInit {
 			dbt.setIsSystemTable(true);
 			dbt.setObjectId(svCONST.OBJECT_TYPE_LINK_TYPE);
 			dbt.setIsRepoTable(false);
-			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE);
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.Link.LINK_TYPE);
 			dbt.setUse_cache(true);
 			dbt.setCacheType("PERM");
 			dbt.setIsConfigTable(false);
@@ -2942,7 +2942,7 @@ public class DbInit {
 			dbf2.setIsUnique(true);
 			dbf2.setUnique_level("TABLE");
 			dbf2.setCode_list_user_code("LINK_TYPE");
-			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE);
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.Link.LINK_TYPE);
 
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
@@ -2950,7 +2950,7 @@ public class DbInit {
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(200);
 			dbf2_1.setIsNull(false);
-			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.LINK_TYPE_DESCRIPTION);
+			dbf2_1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.Link.LINK_TYPE_DESCRIPTION);
 
 			// f3
 			DbDataField dbf3 = new DbDataField();
@@ -4351,7 +4351,97 @@ public class DbInit {
 			return dbt;
 		}
 	}
+	private static DbDataTable getMasterSDIGrid() {
+		
+			DbDataTable dbt = new DbDataTable();
+			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_grid");
 
+			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+			dbt.setIsSystemTable(true);
+			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_UNITS);
+			dbt.setIsRepoTable(false);
+			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_grid");
+			dbt.setUse_cache(true);
+			dbt.setCacheType(Sv.LRU_TTL);
+			dbt.setIsConfigTable(false);
+			
+
+			// f1
+			DbDataField dbf1 = new DbDataField();
+			dbf1.setDbFieldName("PKID");
+			dbf1.setIsPrimaryKey(true);
+			dbf1.setDbFieldType(DbFieldType.NUMERIC);
+			dbf1.setDbFieldSize(18);
+			dbf1.setDbFieldScale(0);
+			dbf1.setIsNull(false);
+			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+			// f2
+			DbDataField dbf2 = new DbDataField();
+			dbf2.setDbFieldName("GRID_NAME");
+			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+			dbf2.setDbFieldSize(100);
+			dbf2.setIsNull(false);
+			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_name");
+			dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
+
+			// f2
+			DbDataField dbf3 = new DbDataField();
+			dbf3.setDbFieldName("GRIDTILE_ID");
+			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+			dbf3.setDbFieldSize(100);
+			dbf3.setIsNull(true);
+			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_id");
+
+			// f4
+			DbDataField dbf4 = new DbDataField();
+			dbf4.setDbFieldName("AREA");
+			dbf4.setDbFieldType(DbFieldType.NUMERIC);
+			dbf4.setDbFieldSize(18);
+			dbf4.setDbFieldScale(2);
+			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_area");
+
+			// f5
+			DbDataField dbf5 = new DbDataField();
+			dbf5.setDbFieldName("PERIMETER");
+			dbf5.setDbFieldType(DbFieldType.NUMERIC);
+			dbf5.setDbFieldSize(18);
+			dbf5.setDbFieldScale(2);
+			dbf5.setIsNull(true);
+			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_perimeter");
+
+			DbDataField dbf7 = new DbDataField();
+			dbf7.setDbFieldName(Sv.CENTROID);
+			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
+			dbf7.setIsNull(true);
+			dbf7.setGeometryType("POINT");
+			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
+			dbf7.setIndexName("cent_idx");
+			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
+
+			DbDataField dbf8 = new DbDataField();
+			dbf8.setDbFieldName("GEOM");
+			dbf8.setDbFieldType(DbFieldType.GEOMETRY);
+			dbf8.setIsNull(true);
+			dbf8.setGeometryType("MULTIPOLYGON");
+			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
+			dbf8.setIndexName("geom_idx");
+			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
+
+
+			dbt.setDbTableFields(new DbDataField[7]);
+			dbt.getDbTableFields()[0] = dbf1;
+			dbt.getDbTableFields()[1] = dbf2;
+			dbt.getDbTableFields()[2] = dbf3;
+			dbt.getDbTableFields()[3] = dbf4;
+			dbt.getDbTableFields()[4] = dbf5;
+			dbt.getDbTableFields()[5] = dbf7;
+			dbt.getDbTableFields()[6] = dbf8;
+
+			return dbt;
+		}
+	
 	private static DbDataTable getMasterSDIUnits() {
 		{
 			DbDataTable dbt = new DbDataTable();
@@ -5368,6 +5458,9 @@ public class DbInit {
 			dbtList.add(addSortOrder(dbtt));
 			dbtt = getMasterSDIService();
 			dbtList.add(addSortOrder(dbtt));
+			dbtt = getMasterSDIGrid();
+			dbtList.add(addSortOrder(dbtt));
+			
 		} else
 			log4j.info("Spatial Data is disabled. User paramater sys.gis.enable_spatial to set it");
 		dbtt = getMasterNotes();
@@ -6204,21 +6297,21 @@ public class DbInit {
 		DbDataObject dblFormParent = new DbDataObject();
 		dblFormParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFormParent.setStatus(svCONST.STATUS_VALID);
-		dblFormParent.setVal("LINK_TYPE", "FORM_TYPE_PARENT");
-		dblFormParent.setVal(Sv.LINK_TYPE_DESCRIPTION,
+		dblFormParent.setVal(Sv.Link.LINK_TYPE, "FORM_TYPE_PARENT");
+		dblFormParent.setVal(Sv.Link.LINK_TYPE_DESCRIPTION,
 				"Link from form type to svarog object types, to signify which objects can have a form attached");
-		dblFormParent.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_FORM_TYPE);
-		dblFormParent.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_TABLE);
+		dblFormParent.setVal(Sv.Link.LINK_OBJ_TYPE_1, svCONST.OBJECT_TYPE_FORM_TYPE);
+		dblFormParent.setVal(Sv.Link.LINK_OBJ_TYPE_2, svCONST.OBJECT_TYPE_TABLE);
 		defaultObjests.addDataItem(dblFormParent);
 
 		DbDataObject dblFFieldParent = new DbDataObject();
 		dblFFieldParent.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
 		dblFFieldParent.setStatus(svCONST.STATUS_VALID);
-		dblFFieldParent.setVal(Sv.LINK_TYPE_DESCRIPTION,
+		dblFFieldParent.setVal(Sv.Link.LINK_TYPE_DESCRIPTION,
 				"Link between form field and form type to signify which fields should be shown on a form");
-		dblFFieldParent.setVal("LINK_TYPE", "FORM_FIELD_LINK");
-		dblFFieldParent.setVal("LINK_OBJ_TYPE_1", svCONST.OBJECT_TYPE_FORM_TYPE);
-		dblFFieldParent.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
+		dblFFieldParent.setVal(Sv.Link.LINK_TYPE, "FORM_FIELD_LINK");
+		dblFFieldParent.setVal(Sv.Link.LINK_OBJ_TYPE_1, svCONST.OBJECT_TYPE_FORM_TYPE);
+		dblFFieldParent.setVal(Sv.Link.LINK_OBJ_TYPE_2, svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
 		defaultObjests.addDataItem(dblFFieldParent);
 
 		// BATCH EXECUTION ENGINE LINKS
@@ -6657,11 +6750,11 @@ public class DbInit {
 			Boolean deferSecurity, SvWriter svw) throws SvException {
 		DbDataObject dboLinkType = new DbDataObject();
 		dboLinkType.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
-		dboLinkType.setVal(Sv.LINK_TYPE, linkType);
-		dboLinkType.setVal(Sv.LINK_TYPE_DESCRIPTION, linkDesc);
-		dboLinkType.setVal("link_obj_type_1", objectTypeId1);
-		dboLinkType.setVal("link_obj_type_2", objectTypeId2);
-		dboLinkType.setVal("defer_security", deferSecurity);
+		dboLinkType.setVal(Sv.Link.LINK_TYPE, linkType);
+		dboLinkType.setVal(Sv.Link.LINK_TYPE_DESCRIPTION, linkDesc);
+		dboLinkType.setVal(Sv.Link.LINK_OBJ_TYPE_1, objectTypeId1);
+		dboLinkType.setVal(Sv.Link.LINK_OBJ_TYPE_2, objectTypeId2);
+		dboLinkType.setVal(Sv.Link.DEFER_SECURITY, deferSecurity);
 		svw.saveObject(dboLinkType);
 		svw.dbCommit();
 		SvCore.initSvCore(true);
@@ -6782,7 +6875,7 @@ public class DbInit {
 		return geo;
 	}
 
-	static GeometryCollection generateGrid(Geometry geo) {
+	static GeometryCollection generateGrid(Geometry geo, int gridSize) {
 		assert (geo != null);
 		Envelope env = geo.getEnvelopeInternal();
 
@@ -6807,8 +6900,8 @@ public class DbInit {
 
 			Boolean isFinished = false;
 			while (!isFinished) {
-				currentGridItem = new Envelope(currentMaxX, currentMaxX + SvConf.getSdiGridSize() * 1000, currentMinY,
-						currentMinY + SvConf.getSdiGridSize() * 1000);
+				currentGridItem = new Envelope(currentMaxX, currentMaxX + gridSize * 1000, currentMinY,
+						currentMinY + gridSize * 1000);
 				currentMinY = currentGridItem.getMinY();
 				currentMaxX = currentGridItem.getMaxX();
 

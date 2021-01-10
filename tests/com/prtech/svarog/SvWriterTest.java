@@ -116,4 +116,75 @@ public class SvWriterTest {
 		}
 
 	}
+
+	@Test
+	public void testDelete() {
+
+		try (SvSecurity svs = new SvSecurity();
+				SvReader svr = new SvReader();
+				SvWriter svw = new SvWriter(svr);
+				SvNote svn = new SvNote(svr);
+				SvLink svl = new SvLink(svr)) {
+
+			svw.setAutoCommit(false);
+			svn.setAutoCommit(false);
+			svl.setAutoCommit(false);
+			String noteID = "TEST123";
+			String token = SvarogRolesTest.getUserToken(true);
+			DbDataObject dboToken = DbCache.getObject(token, svCONST.OBJECT_TYPE_SECURITY_LOG);
+			Long oid = dboToken.getObjectId();
+			svn.setNote(oid, noteID, noteID);
+
+			String noteText = svn.getNote(oid, noteID);
+			if (noteText == null || noteText.isEmpty())
+				fail("Note failed");
+			DbDataObject user = svs.getUser("ADMIN");
+
+			DbDataObject dbl = SvCore.getLinkType("LINK_NOTIFICATION_USER", svCONST.OBJECT_TYPE_SECURITY_LOG,
+					svCONST.OBJECT_TYPE_USER);
+
+			if (dbl == null) {
+				dbl = new DbDataObject(svCONST.OBJECT_TYPE_LINK_TYPE);
+				dbl.setVal(Sv.Link.LINK_TYPE, "LINK_NOTIFICATION_USER");
+				dbl.setVal(Sv.Link.LINK_OBJ_TYPE_1, svCONST.OBJECT_TYPE_SECURITY_LOG);
+				dbl.setVal(Sv.Link.LINK_OBJ_TYPE_2, svCONST.OBJECT_TYPE_USER);
+				dbl.setVal(Sv.Link.LINK_TYPE_DESCRIPTION, "Bla bla");
+				svw.saveObject(dbl);
+				DbCache.addObject(dbl);
+			}
+			svl.linkObjects(dboToken.getObjectId(), user.getObjectId(), dbl.getObjectId(), "");
+			DbDataArray dba = new DbDataArray();
+			dba.add(dboToken);
+
+			DbDataArray linkedObj = svr.getObjectsByLinkedId(oid, dbl, null, null, null);
+			if (linkedObj.size() < 1)
+				fail("no linked objects found");
+
+			linkedObj = svr.getObjectsByLinkedId(user.getObjectId(), (Long) dbl.getVal("link_obj_type_2"), dbl,
+					(Long) dbl.getVal("link_obj_type_1"), true, null, null, null);
+			if (linkedObj.size() < 1)
+				fail("no linked objects found");
+
+			svw.deleteImpl(dba, true, true, null, null);
+
+			noteText = svn.getNote(oid, noteID);
+			if (noteText != null && !noteText.isEmpty())
+				fail("Note failed");
+
+			linkedObj = svr.getObjectsByLinkedId(oid, dbl, null, null, null);
+			if (linkedObj.size() > 1)
+				fail("linked objects not deleted");
+
+			linkedObj = svr.getObjectsByLinkedId(user.getObjectId(), (Long) dbl.getVal("link_obj_type_2"), dbl,
+					(Long) dbl.getVal("link_obj_type_1"), true, null, null, null);
+			if (linkedObj.size() > 1)
+				fail("linked objects not deleted");
+			svw.dbRollback();
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail("Test failed with exception" + e.getFormattedMessage());
+		}
+	}
+
 }

@@ -1169,7 +1169,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 						dbt.setVal("config_type", searchDbt);
 						DbDataArray searchList = null;
 						searchList = dbt.getVal("config_relation_type").equals(Sv.FIELD) ? fields : searchList;
-						searchList = dbt.getVal("config_relation_type").equals(Sv.LINK) ? fields : searchList;
+						searchList = dbt.getVal("config_relation_type").equals(Sv.Link.LINK) ? fields : searchList;
 						if (searchList != null && dbt.getVal("config_relation_id") != null) {
 							for (DbDataObject searchField : searchList.getItems()) {
 								if (searchField.getObjectId().equals(dbt.getVal("config_relation_id"))) {
@@ -1414,9 +1414,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 				for (DbDataObject dbo : linkTypes.getItems()) {
 					DboFactory.makeDboReadOnly(dbo);
-					String type = (String) dbo.getVal(Sv.LINK_TYPE);
-					String uqVals = type + "." + dbo.getVal(Sv.LINK_OBJ_TYPE_1).toString() + "."
-							+ dbo.getVal(Sv.LINK_OBJ_TYPE_2).toString();
+					String type = (String) dbo.getVal(Sv.Link.LINK_TYPE);
+					String uqVals = type + "." + dbo.getVal(Sv.Link.LINK_OBJ_TYPE_1).toString() + "."
+							+ dbo.getVal(Sv.Link.LINK_OBJ_TYPE_2).toString();
 					DbCache.addObject(dbo, uqVals, true);
 					if (type != null && type.equals(Sv.POA))
 						poaDbLinkTypes.addDataItem(dbo);
@@ -1933,8 +1933,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				DbDataObject dbt = ((DbQueryObject) query).getDbt();
 				Long objectType = dbt.getObjectId();
 				for (DbDataObject dbc : poaDbLinkTypes.getItems()) {
-					if (((Long) dbc.getVal(Sv.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
-							&& objectType.equals((Long) dbc.getVal(Sv.LINK_OBJ_TYPE_2))) {
+					if (((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
+							&& objectType.equals((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_2))) {
 						DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
 						DbQueryExpression dqe = new DbQueryExpression();
 						DbQueryObject dqo = new DbQueryObject(usersDbt,
