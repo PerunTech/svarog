@@ -64,7 +64,7 @@ public class SvGeometryTest {
 		boundGeom.add(SvUtil.sdiFactory.toGeometry(boundaryEnv));
 
 		// generate and prepare fake grid
-		GeometryCollection grid = DbInit.generateGrid(boundGeom.get(0));
+		GeometryCollection grid = DbInit.generateGrid(boundGeom.get(0), SvConf.getSdiGridSize());
 		SvGeometry.prepareGrid(grid);
 
 		// add the fake boundary as system boundary
@@ -302,6 +302,15 @@ public class SvGeometryTest {
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
+
+		WKTReader wkr = new WKTReader();
+		String polyHole = "POLYGON ((30 30, 30 40, 40 40, 40 30, 30 30), (35 35, 37 35, 37 37, 35 37, 35 35))";
+		try {
+			g.add(wkr.read(polyHole));
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return g;
 	}
 
@@ -309,6 +318,7 @@ public class SvGeometryTest {
 		ArrayList<Geometry> g = new ArrayList<>();
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 25, x1 + 27, y1 + 20, y1 + 30)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
+		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 35, x1 + 40, y1 + 30, y1 + 40)));
 		return g;
 	}
 
@@ -337,6 +347,26 @@ public class SvGeometryTest {
 			Geometry g1 = copied.iterator().next();
 			Geometry g2 = intersected.iterator().next();
 			if (!g1.equalsExact(g2))
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomFromPointFullCopyWithHole() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Point point = SvUtil.sdiFactory.createPoint(new Coordinate(32, 32));
+
+			Set<Geometry> copied = svg.geometryFromPoint(point, TEST_LAYER_TYPE_ID, TEST_LAYER_SECOND_TYPE_ID, false);
+
+			Set<Geometry> intersected = svg.getRelatedGeometries(point, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS,
+					null, null, false);
+			Geometry g1 = copied.iterator().next();
+			Geometry g2 = intersected.iterator().next();
+			if (g1.getArea()!=(50.0))
 				fail("Test did not return a copy of geometry");
 
 		}
@@ -647,4 +677,5 @@ public class SvGeometryTest {
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
+
 }

@@ -9,7 +9,7 @@ import com.prtech.svarog_common.SvCharId;
  *
  */
 public class Sv {
-	public class Exceptions {
+	public static class Exceptions {
 
 		/**
 		 * Different exception type constants
@@ -24,8 +24,30 @@ public class Sv {
 		public static final String SDI_MERGE_GEOM_EMPTY = "system.error.sdi.geometry_empty";
 		public static final String SDI_MERGE_GEOM_DISJOINT = "system.error.sdi.geometries_disjoint";
 		public static final String SQL_ERR = "system.error.sql_err";
+		public static final String NULL_OBJECT = "system.error.null_object";
+		public static final String MULTI_TYPES_NOT_ALLOWED = "system.error.multi_types_not_allowed";
+		public static final String OBJECT_NOT_PERSISTENT = "system.error.object_not_persistent";
+		public static final String OBJECT_NOT_FOUND = "system.error.object_not_found";
+		public static final String OBJECT_COUNT_ERROR = "system.error.wrong_row_count_update";
 
 		private Exceptions() {
+		}
+
+	}
+
+	public static class Link {
+
+		/**
+		 * Different exception type constants
+		 */
+		public static final SvCharId LINK_TYPE = new SvCharId("link_type");
+		public static final String LINK_TYPE_DESCRIPTION = "link_type_description";
+		public static final String LINK = "LINK";
+		public static final SvCharId LINK_OBJ_TYPE_1 = new SvCharId("link_obj_type_1");
+		public static final SvCharId LINK_OBJ_TYPE_2 = new SvCharId("link_obj_type_2");
+		public static final SvCharId DEFER_SECURITY = new SvCharId("DEFER_SECURITY");
+
+		private Link() {
 		}
 
 	}
@@ -55,8 +77,6 @@ public class Sv {
 	public static final String TABLE_META_PKID = "table_meta_pkid";
 	public static final String LABEL_CODE_LC = "label_code";
 	public static final String IS_VISIBLE_UI = "is_visible_ui";
-	public static final SvCharId LINK_TYPE = new SvCharId("link_type");
-	public static final String LINK_TYPE_DESCRIPTION = "link_type_description";
 	public static final String E_MAIL = "e_mail";
 	public static final String ACL_OBJECT_ID = "acl_object_id";
 	public static final String ACL_OBJECT_TYPE = "acl_object_type";
@@ -103,12 +123,9 @@ public class Sv {
 	public static final String INIT = "<init>";
 	public static final SvCharId SCHEMA = new SvCharId("SCHEMA");
 	public static final String FIELD = "FIELD";
-	public static final String LINK = "LINK";
 	public static final SvCharId CONFIG_TYPE_ID = new SvCharId("config_type_id");
 	public static final SvCharId REPO_TABLE = new SvCharId("REPO_TABLE");
 	public static final String POA = "POA";
-	public static final SvCharId LINK_OBJ_TYPE_1 = new SvCharId("link_obj_type_1");
-	public static final SvCharId LINK_OBJ_TYPE_2 = new SvCharId("link_obj_type_2");
 	public static final String V = "V";
 	public static final SvCharId LAST_REFRESH = new SvCharId("last_refresh");
 	public static final String USER_DEFAULT_GROUP = "USER_DEFAULT_GROUP";

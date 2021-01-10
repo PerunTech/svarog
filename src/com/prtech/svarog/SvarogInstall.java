@@ -282,7 +282,7 @@ public class SvarogInstall {
 	 */
 	private static int generateGrid() {
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
-		GeometryCollection grid = DbInit.generateGrid(boundary);
+		GeometryCollection grid = DbInit.generateGrid(boundary, SvConf.getSdiGridSize());
 		boolean result = DbInit.writeGrid(grid);
 		if (!result) {
 			log4j.error("Error generating system tile grid.");

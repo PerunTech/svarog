@@ -406,11 +406,21 @@ public class DbCache {
 	 */
 	static void removeObjectSupport(DbDataObject dbo) {
 		if (dbo != null) {
-			DbCacheTable tbl = cacheStorage.get(dbo.getObjectType());
-			if (tbl != null)
-				tbl.removeObjectSupport(dbo);
+			removeObjectSupport(dbo.getParentId(), dbo.getObjectType());
 		}
 
+	}
+
+	/**
+	 * Method for removing supporting object information such as parent/child
+	 * relationships which are cached
+	 * 
+	 * @param dbo The object whose parent list should be removed
+	 */
+	static void removeObjectSupport(Long parentId, Long objectType) {
+		DbCacheTable tbl = cacheStorage.get(objectType);
+		if (tbl != null)
+			tbl.removeObjectSupport(parentId);
 	}
 
 	/**
