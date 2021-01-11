@@ -4351,97 +4351,95 @@ public class DbInit {
 			return dbt;
 		}
 	}
+
 	private static DbDataTable getMasterSDIGrid() {
-		
-			DbDataTable dbt = new DbDataTable();
-			dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_grid");
 
-			dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
-			dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
-			dbt.setIsSystemTable(true);
-			dbt.setObjectId(svCONST.OBJECT_TYPE_SDI_UNITS);
-			dbt.setIsRepoTable(false);
-			dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_grid");
-			dbt.setUse_cache(true);
-			dbt.setCacheType(Sv.LRU_TTL);
-			dbt.setIsConfigTable(false);
-			
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_sdi_grid");
 
-			// f1
-			DbDataField dbf1 = new DbDataField();
-			dbf1.setDbFieldName("PKID");
-			dbf1.setIsPrimaryKey(true);
-			dbf1.setDbFieldType(DbFieldType.NUMERIC);
-			dbf1.setDbFieldSize(18);
-			dbf1.setDbFieldScale(0);
-			dbf1.setIsNull(false);
-			dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+		dbt.setDbRepoName(Sv.REPO_TABLE_NAME + "_sdi");
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbt.setIsSystemTable(true);
+		dbt.setIsRepoTable(false);
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_grid");
+		dbt.setUse_cache(true);
+		dbt.setCacheType(Sv.LRU_TTL);
+		dbt.setIsConfigTable(false);
 
-			// f2
-			DbDataField dbf2 = new DbDataField();
-			dbf2.setDbFieldName("GRID_NAME");
-			dbf2.setDbFieldType(DbFieldType.NVARCHAR);
-			dbf2.setDbFieldSize(100);
-			dbf2.setIsNull(false);
-			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_name");
-			dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
 
-			// f2
-			DbDataField dbf3 = new DbDataField();
-			dbf3.setDbFieldName("GRIDTILE_ID");
-			dbf3.setDbFieldType(DbFieldType.NVARCHAR);
-			dbf3.setDbFieldSize(100);
-			dbf3.setIsNull(true);
-			dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_id");
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName("GRID_NAME");
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(100);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_name");
+		dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
 
-			// f4
-			DbDataField dbf4 = new DbDataField();
-			dbf4.setDbFieldName("AREA");
-			dbf4.setDbFieldType(DbFieldType.NUMERIC);
-			dbf4.setDbFieldSize(18);
-			dbf4.setDbFieldScale(2);
-			dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_area");
+		// f2
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName("GRIDTILE_ID");
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(100);
+		dbf3.setIsNull(true);
+		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_id");
 
-			// f5
-			DbDataField dbf5 = new DbDataField();
-			dbf5.setDbFieldName("PERIMETER");
-			dbf5.setDbFieldType(DbFieldType.NUMERIC);
-			dbf5.setDbFieldSize(18);
-			dbf5.setDbFieldScale(2);
-			dbf5.setIsNull(true);
-			dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_perimeter");
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("AREA");
+		dbf4.setDbFieldType(DbFieldType.NUMERIC);
+		dbf4.setDbFieldSize(18);
+		dbf4.setDbFieldScale(2);
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_area");
 
-			DbDataField dbf7 = new DbDataField();
-			dbf7.setDbFieldName(Sv.CENTROID);
-			dbf7.setDbFieldType(DbFieldType.GEOMETRY);
-			dbf7.setIsNull(true);
-			dbf7.setGeometryType("POINT");
-			dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
-			dbf7.setIndexName("cent_idx");
-			dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
+		// f5
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName("PERIMETER");
+		dbf5.setDbFieldType(DbFieldType.NUMERIC);
+		dbf5.setDbFieldSize(18);
+		dbf5.setDbFieldScale(2);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_perimeter");
 
-			DbDataField dbf8 = new DbDataField();
-			dbf8.setDbFieldName("GEOM");
-			dbf8.setDbFieldType(DbFieldType.GEOMETRY);
-			dbf8.setIsNull(true);
-			dbf8.setGeometryType("MULTIPOLYGON");
-			dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
-			dbf8.setIndexName("geom_idx");
-			dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName(Sv.CENTROID);
+		dbf7.setDbFieldType(DbFieldType.GEOMETRY);
+		dbf7.setIsNull(true);
+		dbf7.setGeometryType("POINT");
+		dbf7.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
+		dbf7.setIndexName("cent_idx");
+		dbf7.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CENTROID.toLowerCase());
 
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName("GEOM");
+		dbf8.setDbFieldType(DbFieldType.GEOMETRY);
+		dbf8.setIsNull(true);
+		dbf8.setGeometryType("MULTIPOLYGON");
+		dbf8.setGeometrySrid(SvConf.getParam("sys.gis.default_srid"));
+		dbf8.setIndexName("geom_idx");
+		dbf8.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY.toLowerCase());
 
-			dbt.setDbTableFields(new DbDataField[7]);
-			dbt.getDbTableFields()[0] = dbf1;
-			dbt.getDbTableFields()[1] = dbf2;
-			dbt.getDbTableFields()[2] = dbf3;
-			dbt.getDbTableFields()[3] = dbf4;
-			dbt.getDbTableFields()[4] = dbf5;
-			dbt.getDbTableFields()[5] = dbf7;
-			dbt.getDbTableFields()[6] = dbf8;
+		dbt.setDbTableFields(new DbDataField[7]);
+		dbt.getDbTableFields()[0] = dbf1;
+		dbt.getDbTableFields()[1] = dbf2;
+		dbt.getDbTableFields()[2] = dbf3;
+		dbt.getDbTableFields()[3] = dbf4;
+		dbt.getDbTableFields()[4] = dbf5;
+		dbt.getDbTableFields()[5] = dbf7;
+		dbt.getDbTableFields()[6] = dbf8;
 
-			return dbt;
-		}
-	
+		return dbt;
+	}
+
 	private static DbDataTable getMasterSDIUnits() {
 		{
 			DbDataTable dbt = new DbDataTable();
@@ -5460,7 +5458,7 @@ public class DbInit {
 			dbtList.add(addSortOrder(dbtt));
 			dbtt = getMasterSDIGrid();
 			dbtList.add(addSortOrder(dbtt));
-			
+
 		} else
 			log4j.info("Spatial Data is disabled. User paramater sys.gis.enable_spatial to set it");
 		dbtt = getMasterNotes();
