@@ -64,6 +64,7 @@ public class SvWriterTest {
 		SvSecurity svs = null;
 		try {
 			String token = SvarogRolesTest.getUserToken(true);
+			String token2 = SvarogRolesTest.getUserToken(false);
 
 			SvConf.setOverrideTimeStamps(false);
 			svw = new SvWriter(token);
@@ -85,7 +86,7 @@ public class SvWriterTest {
 				fail("exception was not thrown!!!");
 			} catch (SvException e) {
 				if (!e.getLabelCode().equals("system.error.obj_not_updateable"))
-					fail("test raised wrong exception!");
+					fail("test raised wrong exception!" + e.getLabelCode());
 			}
 			// now lets set this class as system class, then set internal and
 			// save again
@@ -154,7 +155,7 @@ public class SvWriterTest {
 			}
 			svl.linkObjects(dboToken.getObjectId(), user.getObjectId(), dbl.getObjectId(), "");
 			DbDataArray dba = new DbDataArray();
-			dba.add(dboToken);
+			dba.addDataItem(dboToken);
 
 			DbDataArray linkedObj = svr.getObjectsByLinkedId(oid, dbl, null, null, null);
 			if (linkedObj.size() < 1)

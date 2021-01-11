@@ -230,26 +230,26 @@ public class SvWriter extends SvCore {
 	void bindObjectId(PreparedStatement ps, DbDataArray dba, boolean includingChildren, boolean includingLinks,
 			ArrayList<Long> linkTypes) throws SQLException {
 		int paramPos = 1;
-		for (DbDataObject dbo : dba) {
+		for (DbDataObject dbo : dba.getItems()) {
 			ps.setLong(paramPos, dbo.getPkid());
 			paramPos++;
 		}
-		for (DbDataObject dbo : dba) {
+		for (DbDataObject dbo : dba.getItems()) {
 			ps.setLong(paramPos, dbo.getObjectId());
 			paramPos++;
 		}
 
 		if (includingChildren)
-			for (DbDataObject dbo : dba) {
+			for (DbDataObject dbo : dba.getItems()) {
 				ps.setLong(paramPos, dbo.getObjectId());
 				paramPos++;
 			}
 		if (includingLinks) {
-			for (DbDataObject dbo : dba) {
+			for (DbDataObject dbo : dba.getItems()) {
 				ps.setLong(paramPos, dbo.getObjectId());
 				paramPos++;
 			}
-			for (DbDataObject dbo : dba) {
+			for (DbDataObject dbo : dba.getItems()) {
 				ps.setLong(paramPos, dbo.getObjectId());
 				paramPos++;
 			}
@@ -310,7 +310,12 @@ public class SvWriter extends SvCore {
 				// currentStatus = rs.getString("status");
 				// check if the user still has privileges over the object
 			}
+			if (!isInternal) {
+				for (DbDataObject dbo : dba.getItems())
+					if (!oldRepoData.containsKey(dbo.getObjectId()))
+						throw (new SvException(Sv.Exceptions.OBJECT_NOT_UPDATEABLE, instanceUser, dbo, null));
 
+			}
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dba, null, e));
 		} finally {
@@ -1431,7 +1436,7 @@ public class SvWriter extends SvCore {
 			// if an existing object is updated, make sure the object
 			// can still be updated and was not changed in mean time
 			HashMap<Long, Object[]> repoData = getRepoData(dbt, dba, deleteChildren, deleteLinks, linkTypes);
-			for (DbDataObject dbo : dba) {
+			for (DbDataObject dbo : dba.getItems()) {
 				if (!repoData.containsKey(dbo.getObjectId()))
 					throw (new SvException(Sv.Exceptions.OBJECT_NOT_FOUND, instanceUser, dbo, null));
 

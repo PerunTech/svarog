@@ -29,6 +29,7 @@ public class Sv {
 		public static final String OBJECT_NOT_PERSISTENT = "system.error.object_not_persistent";
 		public static final String OBJECT_NOT_FOUND = "system.error.object_not_found";
 		public static final String OBJECT_COUNT_ERROR = "system.error.wrong_row_count_update";
+		public static final String OBJECT_NOT_UPDATEABLE = "system.error.obj_not_updateable";
 
 		private Exceptions() {
 		}
