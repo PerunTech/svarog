@@ -199,13 +199,15 @@ public class SvWriter extends SvCore {
 		strSQL.append(strParam);
 		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE) ");
 		if (includingChildren) {
-			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM svarog WHERE ");
+			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
+					+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE ");
 			strSQL.append(" PARENT_ID in (");
 			strSQL.append(strParam);
 			strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
 		}
 		if (includingLinks) {
-			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM VSVAROG_LINK WHERE ");
+			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
+					+ dbt.getVal("schema") + "." + "VSVAROG_LINK WHERE ");
 			strSQL.append(" (LINK_OBJ_ID_1 in (");
 			strSQL.append(strParam);
 			strSQL.append(") OR ");
