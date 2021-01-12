@@ -56,7 +56,6 @@ public class SvGeometryTest {
 
 	@BeforeClass
 	static public void initTestSDI() throws SvException {
-		SvGeometry.isSDIInitalized.set(true);
 		// create a fake boundary with about 10x10 grid cells
 		Envelope boundaryEnv = new Envelope(gridX0, 10 * SvConf.getSdiGridSize() * 1000, gridY0,
 				10 * SvConf.getSdiGridSize() * 1000);
@@ -64,8 +63,11 @@ public class SvGeometryTest {
 		boundGeom.add(SvUtil.sdiFactory.toGeometry(boundaryEnv));
 
 		// generate and prepare fake grid
-		GeometryCollection grid = DbInit.generateGrid(boundGeom.get(0), SvConf.getSdiGridSize());
-		SvGeometry.prepareGrid(grid);
+		DbDataObject gridDbt = SvCore.getDbtByName(Sv.SDI_GRID);
+		GeometryCollection grid = SvGrid.generateGrid(boundGeom.get(0), SvConf.getSdiGridSize());
+		Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(gridDbt.getObjectId());
+		SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
+		gridCache .put(Sv.SDI_SYSGRID, svg);
 
 		// add the fake boundary as system boundary
 		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
@@ -232,7 +234,7 @@ public class SvGeometryTest {
 		try (SvGeometry svg = new SvGeometry();) {
 			GeometryFactory gf = SvUtil.sdiFactory;
 			Point point = gf.createPoint(new Coordinate(100, 100));
-			System.out.println("Max tile:" + svg.getMaxXtile() + ":" + svg.getMaxYtile());
+			System.out.println("Max tile:" + svg.getSysGrid().getMaxXtile() + ":" + svg.getSysGrid().getMaxYtile());
 
 			List<Geometry> gcl = SvGeometry.getTileGeometries(point.getEnvelopeInternal());
 			if (gcl == null)
@@ -284,7 +286,7 @@ public class SvGeometryTest {
 	public void testGetTileNotExist() {
 		try {
 			GeometryFactory gf = SvUtil.sdiFactory;
-			System.out.println("Max tile:" + SvGeometry.getMaxXtile() + ":" + SvGeometry.getMaxYtile());
+			System.out.println("Max tile:" + SvGeometry.getSysGrid().getMaxXtile() + ":" + SvGeometry.getSysGrid().getMaxYtile());
 
 			Point point = gf.createPoint(new Coordinate(7469568, 4530337));
 			List<Geometry> gcl = SvGeometry.getTileGeometries(point.getEnvelopeInternal());

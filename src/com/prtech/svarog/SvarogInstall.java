@@ -269,7 +269,7 @@ public class SvarogInstall {
 	private static int validateInstall() {
 		int errStatus = canConnectToDb();
 		if (SvConf.isSdiEnabled())
-			if (!SvGeometry.isSDIInitalized())
+			if (SvGeometry.getSysGrid().getGridMap().size() < 1)
 				errStatus = -3;
 		return errStatus;
 	}
@@ -282,8 +282,8 @@ public class SvarogInstall {
 	 */
 	private static int generateGrid() {
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
-		GeometryCollection grid = DbInit.generateGrid(boundary, SvConf.getSdiGridSize());
-		boolean result = DbInit.writeGrid(grid);
+		GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize());
+		boolean result = SvGrid.saveGridToMasterFile(grid);
 		if (!result) {
 			log4j.error("Error generating system tile grid.");
 			return -1;

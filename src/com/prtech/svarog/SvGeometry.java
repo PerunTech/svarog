@@ -65,34 +65,19 @@ import com.google.common.math.DoubleMath;
  */
 public class SvGeometry extends SvCore {
 
-	/**
-	 * The main index of grid geometries.
-	 */
-	private static STRtree gridIndex = null;
-
-	/**
-	 * The envelope of the boundaries of the system
-	 */
-	private static Envelope systemBoundsEnvelope = null;
-
-	static private Map<String, Geometry> gridMap = new HashMap<String, Geometry>();
-
-	private static ArrayList<String> borderTiles = new ArrayList<String>();
-
-	static int maxYtile = 0;
-	static int maxXtile = 0;
-
-	static AtomicBoolean isSDIInitalized = new AtomicBoolean(false);
-
-	static {
-		if (!isSDIInitalized()) {
-			GeometryCollection c = loadGridFromJson("conf/sdi/grid.json");
-			boolean initialised = prepareGrid(c);
-			isSDIInitalized.set(initialised);
-		}
-	}
-
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
+
+	static SvGrid getSysGrid() {
+		DbDataObject grid = SvCore.getDbtByName(Sv.SDI_GRID);
+		Cache<String, SvSDITile> cache = getLayerCache(grid.getObjectId());
+		SvGrid svg = (SvGrid) cache.getIfPresent(Sv.SDI_SYSGRID);
+		if (svg == null) {
+			GeometryCollection c = SvGrid.loadGridFromJson("conf/sdi/grid.json");
+			svg = new SvGrid(c, Sv.SDI_SYSGRID);
+			cache.put(Sv.SDI_SYSGRID, svg);
+		}
+		return svg;
+	}
 
 	static Cache<String, SvSDITile> getLayerCache(Long tileTypeId) {
 		Cache<String, SvSDITile> cache = null;
@@ -179,80 +164,8 @@ public class SvGeometry extends SvCore {
 		dbo.setVal(getCentroidFieldName(dbo.getObjectType()), centroid);
 	}
 
-	/**
-	 * Method to initialise the system grid from a JSON file
-	 * 
-	 * @param gridFileName The filename containing the grid
-	 * @return collection of square geometries forming the system grid
-	 */
-	static GeometryCollection loadGridFromJson(String gridFileName) {
-		GeometryCollection grid = null;
-		if (log4j.isDebugEnabled())
-			log4j.trace("Loading base SDI grid from:" + gridFileName);
-		String geoJSONBounds = null;
-		InputStream is = null;
-		try {
-			String path = gridFileName;
-			is = new FileInputStream(path);
-			geoJSONBounds = IOUtils.toString(is);
-			GeoJsonReader jtsReader = new GeoJsonReader();
-			jtsReader.setUseFeatureType(true);
-			grid = (GeometryCollection) jtsReader.read(geoJSONBounds);
-			if (log4j.isDebugEnabled())
-				log4j.trace("Base SDI grid loaded:" + gridFileName);
-		} catch (Exception e) {
-			log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
-		} finally {
-			if (is != null)
-				try {
-					is.close();
-				} catch (IOException e) {
-					log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
-				}
-		}
-		return grid;
-	}
-
-	/**
-	 * Method to build the gridIndex and populate the gridmap based on the grid
-	 * specified by the geometry collection
-	 * 
-	 * @param grid The geometry collection which represents the system grid
-	 * @return
-	 */
-	static boolean prepareGrid(GeometryCollection grid) {
-		Geometry gridItem = null;
-		gridIndex = new STRtree();
-		try {
-			for (int i = 0; i < grid.getNumGeometries(); i++) {
-				gridItem = grid.getGeometryN(i);
-				String TileId = (String) gridItem.getUserData();
-				String[] baseId = TileId.split("-");
-				if (baseId[1] != null && baseId[1].equals("true"))
-					borderTiles.add(baseId[0]);
-				gridItem.setUserData(baseId[0]);
-				String[] tileColRow = baseId[0].split(":");
-				if (maxXtile < Integer.parseInt(tileColRow[0]))
-					maxXtile = Integer.parseInt(tileColRow[0]);
-				if (maxYtile < Integer.parseInt(tileColRow[1]))
-					maxYtile = Integer.parseInt(tileColRow[1]);
-				gridIndex.insert(gridItem.getEnvelopeInternal(), gridItem);
-				if (systemBoundsEnvelope == null)
-					systemBoundsEnvelope = new Envelope(gridItem.getEnvelopeInternal());
-				else
-					systemBoundsEnvelope.expandToInclude(gridItem.getEnvelopeInternal());
-				gridMap.put(baseId[0], gridItem);
-			}
-		} catch (Exception e) {
-			log4j.error("Failed initialising system grid!", e);
-			return false;
-		}
-		gridIndex.build();
-		return true;
-	}
-
 	public static Map<String, Geometry> getGrid() {
-		return gridMap;
+		return getSysGrid().getGridMap();
 	}
 
 	/**
@@ -264,7 +177,7 @@ public class SvGeometry extends SvCore {
 	 */
 	public static Geometry getTileGeometry(Point point) throws SvException {
 		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(point.getEnvelopeInternal());
+		List<Geometry> result = getSysGrid().getGridIndex().query(point.getEnvelopeInternal());
 		if (result.size() == 0)
 			return null;
 		else if (result.size() == 1)
@@ -283,7 +196,7 @@ public class SvGeometry extends SvCore {
 	 */
 	public static List<Geometry> getTileGeometries(Envelope envelope) {
 		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(envelope);
+		List<Geometry> result = getSysGrid().getGridIndex().query(envelope);
 		return result;
 	}
 
@@ -312,7 +225,7 @@ public class SvGeometry extends SvCore {
 			DbDataObject userData = (DbDataObject) geom.getUserData();
 			Object geometryOid = userData != null ? userData.getObjectId() : null;
 			@SuppressWarnings("unchecked")
-			List<Geometry> gridItems = gridIndex.query(geom.getEnvelopeInternal());
+			List<Geometry> gridItems = getSysGrid().getGridIndex().query(geom.getEnvelopeInternal());
 			for (Geometry gridGeom : gridItems) {
 				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
 				Set<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
@@ -553,7 +466,7 @@ public class SvGeometry extends SvCore {
 	 */
 	public ArrayList<Geometry> getGeometries(Long typeId, Geometry selector, boolean partialCover) throws SvException {
 		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(selector.getEnvelopeInternal());
+		List<Geometry> result = getSysGrid().getGridIndex().query(selector.getEnvelopeInternal());
 		SDIRelation operator = partialCover ? SDIRelation.INTERSECTS : SDIRelation.COVEREDBY;
 		ArrayList<Geometry> geoms = new ArrayList<Geometry>();
 		for (Geometry tileGeom : result) {
@@ -735,11 +648,11 @@ public class SvGeometry extends SvCore {
 		Envelope envl = null;
 		// if the tileId is found in the grid map, it means we are fetching
 		// a grid based tile
-		if (gridMap.containsKey(tileId)) {
-			Geometry geom = gridMap.get(tileId);
+		if (getSysGrid().getGridMap().containsKey(tileId)) {
+			Geometry geom = getSysGrid().getGridMap().get(tileId);
 			envl = geom.getEnvelopeInternal();
 		} else
-			envl = systemBoundsEnvelope;
+			envl = getSysGrid().getGridEnvelope();
 
 		return envl;
 	}
@@ -870,22 +783,6 @@ public class SvGeometry extends SvCore {
 
 	}
 
-	public static int getMaxYtile() {
-		return maxYtile;
-	}
-
-	public static void setMaxYtile(int maxYtile) {
-		SvGeometry.maxYtile = maxYtile;
-	}
-
-	public static int getMaxXtile() {
-		return maxXtile;
-	}
-
-	public static void setMaxXtile(int maxXtile) {
-		SvGeometry.maxXtile = maxXtile;
-	}
-
 	//////////////////////////////////////////////////////////////////////////
 	// Instance specific methods and variables
 	//////////////////////////////////////////////////////////////////////////
@@ -1007,7 +904,7 @@ public class SvGeometry extends SvCore {
 	 */
 	void testBoundaryIntersection(Geometry geom, List<Geometry> tiles) throws SvException {
 		for (Geometry tile : tiles) {
-			if (borderTiles.contains((String) tile.getUserData())) {
+			if (getSysGrid().getBorderTiles().contains((String) tile.getUserData())) {
 				if (tile.covers(geom))
 					continue;
 				else if (tile.intersects(geom)) {
@@ -1490,8 +1387,5 @@ public class SvGeometry extends SvCore {
 			this.allowNullGeometry = allowNullGeometry;
 	}
 
-	public static boolean isSDIInitalized() {
-		return isSDIInitalized.get();
-	}
 
 }

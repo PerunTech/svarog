@@ -175,7 +175,7 @@ public class Sv {
 	public static final String PARAM_TYPE = "PARAM_TYPE";
 	public static final String SDI_SPIKE_MAX_ANGLE = "SDI_SPIKE_MAX_ANGLE";
 	public static final Double DEFAULT_SPIKE_MAX_ANGLE = 0.0;
-
+	public static final String SDI_SYSGRID = "SDI_SYSGRID";
 	public static final String SDI_MIN_POINT_DISTANCE = "SDI_MIN_POINT_DISTANCE";
 	public static final Integer DEFAULT_MIN_POINT_DISTANCE = 0;
 
@@ -184,5 +184,6 @@ public class Sv {
 	public static final String ERROR = "ERROR:";
 	public static final String USER_NAME_LABEL = "User name ";
 	public static final String CANNOT = " can not be ";
+	public static final String SDI_GRID = "SDI_GRID";
 
 }
