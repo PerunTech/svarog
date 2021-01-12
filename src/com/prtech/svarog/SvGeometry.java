@@ -68,9 +68,9 @@ public class SvGeometry extends SvCore {
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 
 	static SvGrid getSysGrid() {
-		DbDataObject grid = SvCore.getDbtByName(Sv.SDI_GRID);
-		Cache<String, SvSDITile> cache = getLayerCache(grid.getObjectId());
-		SvGrid svg = (SvGrid) cache.getIfPresent(Sv.SDI_SYSGRID);
+		SvGrid svg = null;
+		Cache<String, SvSDITile> cache = getLayerCache(svCONST.OBJECT_TYPE_GRID);
+		svg = (SvGrid) cache.getIfPresent(Sv.SDI_SYSGRID);
 		if (svg == null) {
 			GeometryCollection c = SvGrid.loadGridFromJson("conf/sdi/grid.json");
 			svg = new SvGrid(c, Sv.SDI_SYSGRID);
@@ -85,7 +85,8 @@ public class SvGeometry extends SvCore {
 		if (cache == null) {
 			DbDataObject dbt = null;
 			try {
-				if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
+				if (!(tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE)
+						|| tileTypeId.equals(svCONST.OBJECT_TYPE_GRID)))
 					dbt = getDbt(tileTypeId);
 
 				@SuppressWarnings("unchecked")
@@ -1386,6 +1387,5 @@ public class SvGeometry extends SvCore {
 		if (this.hasPermission(svCONST.NULL_GEOMETRY_ACL))
 			this.allowNullGeometry = allowNullGeometry;
 	}
-
 
 }
