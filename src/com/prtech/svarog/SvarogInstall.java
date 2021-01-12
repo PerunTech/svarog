@@ -268,9 +268,11 @@ public class SvarogInstall {
 	 */
 	private static int validateInstall() {
 		int errStatus = canConnectToDb();
-		if (SvConf.isSdiEnabled())
-			if (SvGeometry.getSysGrid().getGridMap().size() < 1)
+		if (SvConf.isSdiEnabled()) {
+			GeometryCollection c = SvGrid.loadGridFromJson("conf/sdi/grid.json");
+			if (c == null)
 				errStatus = -3;
+		}
 		return errStatus;
 	}
 

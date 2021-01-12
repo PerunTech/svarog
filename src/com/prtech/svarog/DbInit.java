@@ -4365,8 +4365,10 @@ public class DbInit {
 		dbt.setIsRepoTable(false);
 		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "sdi_grid");
 		dbt.setUse_cache(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_GRID);
 		dbt.setCacheType(Sv.LRU_TTL);
-		dbt.setIsConfigTable(false);
+		dbt.setIsConfigTable(true);
+		dbt.setConfigColumnName("GRID_NAME");
 
 		// f1
 		DbDataField dbf1 = new DbDataField();
@@ -4384,6 +4386,7 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
+		dbf2.setIsUnique(true);
 		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "unit_name");
 		dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
 
@@ -6874,8 +6877,6 @@ public class DbInit {
 		}
 		return geo;
 	}
-
-
 
 	private static String getClassName(Enumeration<JarEntry> e) {
 		JarEntry je = e.nextElement();
