@@ -413,6 +413,8 @@ public class DbInit {
 		dbt.setIsSystemTable(true);
 		dbt.setObjectId(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
 		dbt.setIsRepoTable(false);
+		dbt.setIsConfigTable(true);
+		dbt.setConfigColumnName(Sv.LABEL_CODE.toString());
 		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "executor_pack");
 		dbt.setUse_cache(false);
 
@@ -6873,85 +6875,7 @@ public class DbInit {
 		return geo;
 	}
 
-	static GeometryCollection generateGrid(Geometry geo, int gridSize) {
-		assert (geo != null);
-		Envelope env = geo.getEnvelopeInternal();
 
-		log4j.info("Generating Tiles for system boundary with SRID:" + geo.getSRID() + ", area:" + geo.getArea()
-				+ ", and envelope:" + env.toString());
-		int row = 0;
-		int col = 0;
-		GeometryCollection gcl = null;
-		try {
-
-			env.expandBy(10);
-
-			Envelope envGrid = new Envelope(java.lang.Math.round(env.getMinX()), java.lang.Math.round(env.getMaxX()),
-					java.lang.Math.round(env.getMinY()), java.lang.Math.round(env.getMaxY()));
-
-			ArrayList<Geometry> gridList = new ArrayList<Geometry>();
-			Envelope currentGridItem = null;
-
-			Geometry polygon = null;
-			double currentMinY = envGrid.getMinY();
-			double currentMaxX = envGrid.getMinX();
-
-			Boolean isFinished = false;
-			while (!isFinished) {
-				currentGridItem = new Envelope(currentMaxX, currentMaxX + gridSize * 1000, currentMinY,
-						currentMinY + gridSize * 1000);
-				currentMinY = currentGridItem.getMinY();
-				currentMaxX = currentGridItem.getMaxX();
-
-				polygon = SvUtil.sdiFactory.toGeometry(currentGridItem);
-				if (!polygon.disjoint(geo)) {
-					if (polygon.getArea() > 1) {
-						polygon.setUserData(row + ":" + col + "-" + (!polygon.within(geo)));
-						gridList.add(polygon);
-					}
-				}
-				col++;
-				if (currentMaxX > envGrid.getMaxX()) {
-					currentMinY = currentGridItem.getMaxY();
-					currentMaxX = envGrid.getMinX();
-					row++;
-					col = 0;
-					if (currentMinY > envGrid.getMaxY())
-						isFinished = true;
-				}
-
-			}
-			Geometry[] garr = new Geometry[gridList.size()];
-			gridList.toArray(garr);
-			gcl = SvUtil.sdiFactory.createGeometryCollection(garr);
-
-		} catch (Exception e) {
-			log4j.error("Error generating grid", e);
-		}
-		return gcl;
-
-	}
-
-	static boolean writeGrid(GeometryCollection gcl) {
-		try {
-			String jtsJson = null;
-			GeoJsonWriter jtsWriter = new GeoJsonWriter();
-			jtsWriter.setUseFeatureType(true);
-			if (SvConf.getSDISrid().equals(Sv.SQL_NULL))
-				jtsWriter.setEncodeCRS(false);
-			jtsJson = jtsWriter.write(gcl);
-			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile,
-					jtsJson);
-			log4j.info("Number of tiles written:" + gcl.getNumGeometries());
-			log4j.info("Generating Tiles finished successfully (" + SvConf.getConfPath() + SvarogInstall.masterSDIPath
-					+ SvarogInstall.sdiGridFile + ")");
-			return true;
-		} catch (Exception e) {
-			log4j.error("Error saving grid to file:" + SvConf.getConfPath() + SvarogInstall.masterSDIPath
-					+ SvarogInstall.sdiGridFile, e);
-		}
-		return false;
-	}
 
 	private static String getClassName(Enumeration<JarEntry> e) {
 		JarEntry je = e.nextElement();
