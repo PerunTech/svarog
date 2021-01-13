@@ -98,18 +98,18 @@ public class DbCacheTable {
 			}
 
 		}
-		objHistoryCache = (Cache<Long, DbDataObject>) builder.<Long, DbDataObject> build();
+		objHistoryCache = (Cache<Long, DbDataObject>) builder.<Long, DbDataObject>build();
 		objLinkedIdCache = (Cache<String, ConcurrentHashMap<String, CopyOnWriteArrayList<Long>>>) builder
-				.<String, ConcurrentHashMap<String, CopyOnWriteArrayList<Long>>> build();
-		objHistoryDateCache = (Cache<String, Long>) builder.<String, Long> build();
+				.<String, ConcurrentHashMap<String, CopyOnWriteArrayList<Long>>>build();
+		objHistoryDateCache = (Cache<String, Long>) builder.<String, Long>build();
 		objParentIdCache = (Cache<String, CopyOnWriteArrayList<Long>>) builder
-				.<String, CopyOnWriteArrayList<Long>> build();
-		objKeyCache = (Cache<String, DbDataObject>) builder.<String, DbDataObject> build();
+				.<String, CopyOnWriteArrayList<Long>>build();
+		objKeyCache = (Cache<String, DbDataObject>) builder.<String, DbDataObject>build();
 
 		if (!cType.equals("PERM"))
 			builder = builder.removalListener(onRemove);
 
-		objCache = (Cache<Long, DbDataObject>) builder.<Long, DbDataObject> build();
+		objCache = (Cache<Long, DbDataObject>) builder.<Long, DbDataObject>build();
 	}
 
 	DbCacheTable(String[] uqFields, String unqLevel) {
@@ -120,12 +120,10 @@ public class DbCacheTable {
 	/**
 	 * Construct a DbCacheTable based on the object
 	 * 
-	 * @param objectHeader
-	 *            DbDataObject describing the type of objects which will be
-	 *            cached (OBJECT_TYPE_TABLE)
-	 * @param objectProperties
-	 *            Array of DbDataObject. Each describing the fields of the
-	 *            object (OBJECT_TYPE_FIELD)
+	 * @param objectHeader     DbDataObject describing the type of objects which
+	 *                         will be cached (OBJECT_TYPE_TABLE)
+	 * @param objectProperties Array of DbDataObject. Each describing the fields of
+	 *                         the object (OBJECT_TYPE_FIELD)
 	 */
 	DbCacheTable(DbDataObject objectdDescriptor, DbDataArray objectProperties) {
 		cacheConfig(objectdDescriptor);
@@ -206,21 +204,17 @@ public class DbCacheTable {
 	}
 
 	/**
-	 * Method to fetch a list of objects from the cache based on a link type
-	 * which are linked to a specific object id. This version supports use of
-	 * reference date for fetching stored object versions from the past.
+	 * Method to fetch a list of objects from the cache based on a link type which
+	 * are linked to a specific object id. This version supports use of reference
+	 * date for fetching stored object versions from the past.
 	 * 
-	 * @param LinkObjectId
-	 *            The Id of the object to which the list of linked objects is
-	 *            related
-	 * @param linkObjectTypeId
-	 *            The type of the left hand side object
-	 * @param dbLinkId
-	 *            The id of the link type which describes the relation
-	 * @param linkStatus
-	 *            The status of the link
-	 * @param refDate
-	 *            The reference date for which we want to get the object list
+	 * @param LinkObjectId     The Id of the object to which the list of linked
+	 *                         objects is related
+	 * @param linkObjectTypeId The type of the left hand side object
+	 * @param dbLinkId         The id of the link type which describes the relation
+	 * @param linkStatus       The status of the link
+	 * @param refDate          The reference date for which we want to get the
+	 *                         object list
 	 * @return
 	 */
 	DbDataArray getObjectsByLinkedId(Long LinkObjectId, Long linkObjectTypeId, Long dbLinkId, String linkStatus,
@@ -258,22 +252,18 @@ public class DbCacheTable {
 	}
 
 	/**
-	 * Overrided version for backwards compatibility, which doesn't add parent
-	 * data
+	 * Overrided version for backwards compatibility, which doesn't add parent data
 	 * 
-	 * @param obj
-	 *            Object to be cached
+	 * @param obj Object to be cached
 	 */
 	void addObject(DbDataObject obj) {
 		objCache.put(obj.getObject_id(), obj);
 	}
 
 	/**
-	 * Overrided version for backwards compatibility, which doesn't add parent
-	 * data
+	 * Overrided version for backwards compatibility, which doesn't add parent data
 	 * 
-	 * @param obj
-	 *            Object to be cached
+	 * @param obj Object to be cached
 	 */
 	void addObject(DbDataObject obj, String key) {
 		objCache.put(obj.getObject_id(), obj);
@@ -282,11 +272,9 @@ public class DbCacheTable {
 	}
 
 	/**
-	 * Overrided version for backwards compatibility, which doesn't add parent
-	 * data
+	 * Overrided version for backwards compatibility, which doesn't add parent data
 	 * 
-	 * @param obj
-	 *            Object to be cached
+	 * @param obj Object to be cached
 	 */
 	DbDataObject getObject(String key) {
 		return objKeyCache.getIfPresent(key);
@@ -338,15 +326,13 @@ public class DbCacheTable {
 
 	/**
 	 * Method to invalidate the old parent list in case the item was previously
-	 * cached. The method checks if the version (PKID) of the object has
-	 * changed. If it was changed and there is old version in the cache make
-	 * sure that we remove the parent list of object IDs.
+	 * cached. The method checks if the version (PKID) of the object has changed. If
+	 * it was changed and there is old version in the cache make sure that we remove
+	 * the parent list of object IDs.
 	 * 
-	 * @param dbo
-	 *            The new version of the object
-	 * @param oldDbo
-	 *            The old version of the object. If there is no old version,
-	 *            null is acceptable
+	 * @param dbo    The new version of the object
+	 * @param oldDbo The old version of the object. If there is no old version, null
+	 *               is acceptable
 	 */
 	void updateObjectMetadata(DbDataObject dbo, DbDataObject oldDbo) {
 		if (oldDbo != null && oldDbo.getPkid() != dbo.getPkid()) {
@@ -359,21 +345,17 @@ public class DbCacheTable {
 	}
 
 	/**
-	 * Method to update the list of children according to a parent, or according
-	 * to a list of linked objects as well
+	 * Method to update the list of children according to a parent, or according to
+	 * a list of linked objects as well
 	 * 
-	 * @param children
-	 *            The list object IDs of the children (or linked objects)
-	 * @param childrenDbArray
-	 *            The new list of objects which
-	 * @param parentId
-	 *            The parent Id for which we want to cache the children. If its
-	 *            a linked list then its null
-	 * @param objectTypeId
-	 *            The object type (we use it to make sure that we don't cache
-	 *            wrong object types)
-	 * @param isHistorical
-	 *            Flag to signify if the list is current or historical
+	 * @param children        The list object IDs of the children (or linked
+	 *                        objects)
+	 * @param childrenDbArray The new list of objects which
+	 * @param parentId        The parent Id for which we want to cache the children.
+	 *                        If its a linked list then its null
+	 * @param objectTypeId    The object type (we use it to make sure that we don't
+	 *                        cache wrong object types)
+	 * @param isHistorical    Flag to signify if the list is current or historical
 	 */
 	private void updateChildList(CopyOnWriteArrayList<Long> children, DbDataArray childrenDbArray, Long parentId,
 			Long objectTypeId, boolean isHistorical, boolean executeParentChecks) {
@@ -421,14 +403,13 @@ public class DbCacheTable {
 	}
 
 	/**
-	 * Method to invalidate the current link cache. This method will not
-	 * invalidate historical cache
+	 * Method to invalidate the current link cache. This method will not invalidate
+	 * historical cache
 	 * 
-	 * @param LinkObjectId
-	 *            The left hand side object id to which objects are linked via
-	 *            specific link type
-	 * @param dbLinkId
-	 *            The Id of the link type which should be used for invalidation
+	 * @param LinkObjectId The left hand side object id to which objects are linked
+	 *                     via specific link type
+	 * @param dbLinkId     The Id of the link type which should be used for
+	 *                     invalidation
 	 */
 	void invalidateLinkCache(Long LinkObjectId, Long dbLinkId) {
 		String lstId = LinkObjectId.toString() + dbLinkId.toString() + CURRENT_TIME;
@@ -439,17 +420,12 @@ public class DbCacheTable {
 	 * Method for adding array of objects linked to a specific Object ID by the
 	 * specified LinkId/Status.
 	 * 
-	 * @param objects
-	 *            The array of DbDataObjects to be added to the cache
-	 * @param LinkObjectId
-	 *            The id of the object to which the content of "objects" is
-	 *            linked
-	 * @param linkObjectTypeId
-	 *            The type of the left hand side object
-	 * @param dbLinkId
-	 *            The id of link type which is used for linking
-	 * @param linkStatus
-	 *            The status of the link
+	 * @param objects          The array of DbDataObjects to be added to the cache
+	 * @param LinkObjectId     The id of the object to which the content of
+	 *                         "objects" is linked
+	 * @param linkObjectTypeId The type of the left hand side object
+	 * @param dbLinkId         The id of link type which is used for linking
+	 * @param linkStatus       The status of the link
 	 */
 	void addArrayByLinkedId(DbDataArray objects, Long LinkObjectId, Long linkObjectTypeId, Long dbLinkId,
 			String linkStatus) {
@@ -461,19 +437,13 @@ public class DbCacheTable {
 	 * specified LinkId/Status. This version enables usage of reference date in
 	 * order to speed up frequent fetching of data from the past
 	 * 
-	 * @param objects
-	 *            The array of DbDataObjects to be added to the cache
-	 * @param LinkObjectId
-	 *            The id of the object to which the content of "objects" is
-	 *            linked
-	 * @param linkObjectTypeId
-	 *            The type of the left hand side object
-	 * @param dbLinkId
-	 *            The id of link type which is used for linking
-	 * @param linkStatus
-	 *            The status of the link
-	 * @param refDate
-	 *            The reference date for which the list should cached
+	 * @param objects          The array of DbDataObjects to be added to the cache
+	 * @param LinkObjectId     The id of the object to which the content of
+	 *                         "objects" is linked
+	 * @param linkObjectTypeId The type of the left hand side object
+	 * @param dbLinkId         The id of link type which is used for linking
+	 * @param linkStatus       The status of the link
+	 * @param refDate          The reference date for which the list should cached
 	 */
 	void addArrayByLinkedId(DbDataArray objects, Long LinkObjectId, Long linkObjectTypeId, Long dbLinkId,
 			String linkStatus, DateTime refDate) {
@@ -531,10 +501,8 @@ public class DbCacheTable {
 	/**
 	 * Methog to sort the index by PARENT_ID according to a key name
 	 * 
-	 * @param parentId
-	 *            Id of the parent which should be sorted
-	 * @param keyName
-	 *            KeyName according to which the comparison should be done
+	 * @param parentId Id of the parent which should be sorted
+	 * @param keyName  KeyName according to which the comparison should be done
 	 */
 	synchronized void sortParentIdx(Long parentId, String keyName, Class<?> objType) {
 		String parentListId = parentId.toString() + CURRENT_TIME;
@@ -568,12 +536,16 @@ public class DbCacheTable {
 
 	void removeObjectSupport(DbDataObject dbo) {
 		if (dbo != null) {
-			synchronized (objParentIdCache) {
-				String parentListId = dbo.getParentId().toString() + CURRENT_TIME;
-				objParentIdCache.invalidate(parentListId);
-
-			}
+			removeObjectSupport(dbo.getParentId());
 		}
 
+	}
+
+	void removeObjectSupport(Long parentId) {
+		synchronized (objParentIdCache) {
+			String parentListId = parentId.toString() + CURRENT_TIME;
+			objParentIdCache.invalidate(parentListId);
+
+		}
 	}
 }

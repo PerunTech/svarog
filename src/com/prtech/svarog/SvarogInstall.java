@@ -179,7 +179,7 @@ public class SvarogInstall {
 				runConfigurationTest = true;
 			// if the flag -d or --daemon has been set, simply return the status
 			if (line.hasOption("dm")) {
-				return SvarogDaemon.svarogDaemonStatus;
+				return SvarogDaemon.getDaemonStatus();
 			} else // if the help option is set, just print help and do nothing
 			if (line.hasOption("h")) {
 				// print the value of block-size
@@ -190,7 +190,7 @@ public class SvarogInstall {
 					if (line.hasOption("j"))
 						returnStatus = generateJsonCfg();
 					else if (line.hasOption("gd"))
-						returnStatus = generateGrid();
+						returnStatus = upgradeGrid();
 					else if (line.hasOption("i")) {
 						returnStatus = validateInstall();
 						if (returnStatus == 0 && line.hasOption("d"))
@@ -268,9 +268,20 @@ public class SvarogInstall {
 	 */
 	private static int validateInstall() {
 		int errStatus = canConnectToDb();
-		if (SvConf.isSdiEnabled())
-			if (!SvGeometry.isSDIInitalized())
+		if (SvConf.isSdiEnabled() && isSvarogInstalled()) {
+			SvSDITile c = null;
+			try {
+				c = SvGeometry.getSysBoundary();
+				Set<Geometry> gs = c.getInternalGeometries();
+				GeometryCollection gc = c.getInternalGeomCollection();
+				if (gs.size() > 0 && gc.getArea() > 1)
+					errStatus = 0;
+			} catch (SvException e) {
+				log4j.debug("System boundary is invalid:", e);
+			}
+			if (c == null)
 				errStatus = -3;
+		}
 		return errStatus;
 	}
 
@@ -280,11 +291,16 @@ public class SvarogInstall {
 	 * 
 	 * @return -1 in case of system error.
 	 */
-	private static int generateGrid() {
+	private static int upgradeGrid() {
+		if (!SvConf.isSdiEnabled()) {
+			log4j.error(
+					"SDI is not enabled, can't generate grid. Enable SDI via svarog.properties parameter \"sys.gis.enable_spatial\"");
+			return -1;
+		}
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
-		GeometryCollection grid = DbInit.generateGrid(boundary);
-		boolean result = DbInit.writeGrid(grid);
-		if (!result) {
+		GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize());
+		boolean gridExists = SvGrid.saveGridToDatabase(grid, Sv.SDI_SYSGRID);
+		if (!gridExists) {
 			log4j.error("Error generating system tile grid.");
 			return -1;
 		}
@@ -353,7 +369,7 @@ public class SvarogInstall {
 	}
 
 	private static int updatePassword(CommandLine line) {
-
+		String screenText = "Password update. Username:";
 		ArrayList<String> userNPass = getUserPassFromCmd(line);
 		if (userNPass.isEmpty())
 			return -3;
@@ -370,14 +386,15 @@ public class SvarogInstall {
 			svs.createUser(userName, password, (String) user.getVal(Sv.FIRST_NAME), (String) user.getVal("last_name"),
 					(String) user.getVal("e_mail"), (String) user.getVal("pin"), (String) user.getVal("tax_id"),
 					(String) user.getVal("user_type"), user.getStatus(), true);
-			writeToScreen("Password updated for user " + userName);
+			writeToScreen(screenText + userName);
 		} catch (SvException ex) {
-			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(Sv.ERROR + screenText + userName);
 			writeToScreen(((SvException) ex).getFormattedMessage());
 		} catch (Exception ex) {
-			writeToScreen("Error, password update for " + userName + " failed");
+			writeToScreen(Sv.ERROR + screenText + userName);
 			writeToScreen(UNEXPECTED_EX);
-			ex.printStackTrace();
+			log4j.error(Sv.ERROR + screenText + userName, ex);
+
 		}
 		return 0;
 	}
@@ -433,6 +450,7 @@ public class SvarogInstall {
 			return -3;
 		SvWriter svw = null;
 		SvSecurity svs = null;
+		String screenText = "User registration/update. Username:";
 		try {
 			svw = new SvWriter();
 			svw.switchUser(Sv.ADMIN);
@@ -441,16 +459,17 @@ public class SvarogInstall {
 				password = SvUtil.getMD5(password).toUpperCase();
 
 			svs.createUser(userName, password, firstName, surName, email, userPin, "", sidType, status, true);
-			writeToScreen("User " + userName + " successfully created/updated");
+			writeToScreen(screenText + userName + " successfully finished");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + userName + " can not be created/updated");
+			writeToScreen(Sv.ERROR + screenText + userName);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error(Sv.ERROR + screenText + userName, ex);
 			}
+
 			returnStatus = -1;
 		} finally {
 			if (svw != null)
@@ -462,6 +481,8 @@ public class SvarogInstall {
 	}
 
 	private static int updateGroup(CommandLine line) {
+		String screenText = "Group registration/update. Group name:";
+
 		int returnStatus = 0;
 		String groupName = line.getOptionValue("group");
 		if (groupName == null || groupName == "")
@@ -509,15 +530,15 @@ public class SvarogInstall {
 			groupDbo.setVal("group_security_type", securityType);
 			groupDbo.setVal("e_mail", email);
 			svw.saveObject(groupDbo);
-			writeToScreen("Group " + groupName + " successfully created/updated");
+			writeToScreen(screenText + groupName + " successfully finished");
 			returnStatus = 0;
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + groupName + " can not be created/updated");
+			writeToScreen(Sv.ERROR + screenText + groupName);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error(Sv.ERROR + screenText + groupName, ex);
 			}
 			returnStatus = -1;
 		}
@@ -557,7 +578,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, can not get user groups for user " + group, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -677,7 +698,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, can not get user groups for user " + group, ex);
 			}
 			returnStatus = -1;
 		}
@@ -721,7 +742,7 @@ public class SvarogInstall {
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error("Error, can not get user groups for user " + user, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -761,12 +782,12 @@ public class SvarogInstall {
 			writeToScreen("User " + user + " successfully " + groupOperation + " group: " + group);
 			returnStatus = 0;
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + user + " can not be " + groupOperation + " group:" + group);
+			writeToScreen(Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + groupOperation + " group:" + group);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error(Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + groupOperation + " group:" + group, ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -823,17 +844,20 @@ public class SvarogInstall {
 				}
 				svs.dbCommit();
 			} else {
-				writeToScreen("Error, sid " + (isGroup ? group : user) + " can not be found");
+				writeToScreen("Error, sid " + (isGroup ? group : user) + Sv.CANNOT + " found");
 				returnStatus = -5;
 			}
 
 		} catch (Exception ex) {
-			writeToScreen("Error, user " + user + " can not be " + permissionOperation + " permission:" + group);
+			writeToScreen(
+					Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + permissionOperation + " permission:" + group);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
 			else {
 				writeToScreen(UNEXPECTED_EX);
-				ex.printStackTrace();
+				log4j.error(
+						Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + permissionOperation + " permission:" + group,
+						ex);
 			}
 			returnStatus = -1;
 		} finally {
@@ -1359,12 +1383,19 @@ public class SvarogInstall {
 				log4j.error("Svarog master records " + operation + " failed");
 				return -2;
 			}
+			if (upgradeGrid() != 0) {
+				log4j.error("Svarog grid upgrade failed");
+				return -2;
+			}
+
 			// finally create the file store if it is initial install
-			if (!isSvarogInstalled())
-				if (!initFileStore()) {
-					log4j.error("Initialising the svarog file store failed");
-					return -2;
+			if (!isSvarogInstalled()) {
+				int result = initFileStore() ? 0 : -1;
+				if (result != 0) {
+					log4j.error("Post-install initialising  of file store failed");
+					return result;
 				}
+			}
 
 			executeConfiguration(ISvConfiguration.UpdateType.FINAL);
 
@@ -1422,7 +1453,7 @@ public class SvarogInstall {
 				fs.fileSystemSaveByte(fileId, data);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			log4j.error("Error migrating filestore", e);
 		} finally {
 
 			try {
@@ -1726,8 +1757,7 @@ public class SvarogInstall {
 			}
 
 		} catch (Exception e) {
-			log4j.error("Error creating table:" + dbDataTable.getDbTableName());
-			e.printStackTrace();
+			log4j.error("Error creating table:" + dbDataTable.getDbTableName(), e);
 			retval = false;
 		}
 		return retval;
@@ -1787,8 +1817,7 @@ public class SvarogInstall {
 			// SvCore.initCfgObjectsBase();
 			return true;
 		} catch (Exception e) {
-			log4j.error("Can't clean the DB schema");
-			e.printStackTrace();
+			log4j.error("Can't clean the DB schema", e);
 		} finally {
 			try {
 				if (rs != null)
@@ -1838,8 +1867,7 @@ public class SvarogInstall {
 			}
 		} catch (Exception e2) {
 			log4j.error("Error reading config from folder " + confPath
-					+ ", check if all objects are present and properly set");
-			e2.printStackTrace();
+					+ ", check if all objects are present and properly set", e2);
 
 		} finally {
 			if (flst != null) {
@@ -1911,8 +1939,7 @@ public class SvarogInstall {
 			log4j.info("Svarog core " + operation + " finished.");
 
 		} catch (Exception e2) {
-			log4j.error("Error creating master repo, check if all objects are present and properly set");
-			e2.printStackTrace();
+			log4j.error("Error creating master repo, check if all objects are present and properly set", e2);
 			return false;
 		} finally {
 			if (conn != null)
@@ -2029,8 +2056,8 @@ public class SvarogInstall {
 						if (!dbObjectExists(idxDbName, conn)) {
 							// for spatial indexes MSSQL needs the system
 							// bounding box
-							retval = createSpatialIndex(idxDbName, columns,
-									SvGeometry.getTileEnvelope(0L, "DUMMY", null), dbt.getDbTableName(), conn);
+							retval = createSpatialIndex(idxDbName, columns, SvGeometry.getSysBoundary().getEnvelope(),
+									dbt.getDbTableName(), conn);
 							if (!retval)
 								break;
 						}
@@ -2094,14 +2121,12 @@ public class SvarogInstall {
 			dbt.fromJson(jobj);
 		} catch (Exception e) {
 			log4j.error("Can't get DbDataTable for" + pathToJson, e);
-			e.printStackTrace();
 		} finally {
 			if (fis != null)
 				try {
 					fis.close();
 				} catch (IOException e) {
-					log4j.error("Can't close input stream for:" + pathToJson);
-					e.printStackTrace();
+					log4j.error("Can't close input stream for:" + pathToJson, e);
 				}
 		}
 		return dbt;
@@ -2156,8 +2181,7 @@ public class SvarogInstall {
 
 			return executeDbScript("create_table.sql", params, conn);
 		} catch (Exception e) {
-			log4j.error("Error creating table:" + dbDataTable.getDbTableName());
-			e.printStackTrace();
+			log4j.error("Error creating table:" + dbDataTable.getDbTableName(), e);
 		}
 
 		return false;
@@ -2807,7 +2831,6 @@ public class SvarogInstall {
 			log4j.error("Upgrade failed!", e);
 			if (e instanceof SvException)
 				log4j.error(((SvException) e).getFormattedMessage());
-			e.printStackTrace();
 			return false;
 		}
 		return true;
@@ -3352,8 +3375,7 @@ public class SvarogInstall {
 
 					sysLocales = locales;
 				} catch (IOException e) {
-					log4j.error("Error loading locale list");
-					e.printStackTrace();
+					log4j.error("Error loading locale list", e);
 					sysLocales = null;
 				}
 			} else {
@@ -3371,7 +3393,6 @@ public class SvarogInstall {
 
 				} catch (SvException e) {
 					log4j.error("Repo seems valid, but system locales aren't loaded", e);
-					e.printStackTrace();
 				} finally {
 					if (svr != null)
 						svr.release();
@@ -4279,7 +4300,7 @@ public class SvarogInstall {
 			conn = SvConf.getDBConnection();
 			retval = SvarogInstall.createTable(dbt, conn);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log4j.error("Failed initialising file store!", e);
 			retval = false;
 		} finally
 

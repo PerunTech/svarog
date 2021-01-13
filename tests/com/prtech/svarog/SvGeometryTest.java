@@ -56,7 +56,6 @@ public class SvGeometryTest {
 
 	@BeforeClass
 	static public void initTestSDI() throws SvException {
-		SvGeometry.isSDIInitalized.set(true);
 		// create a fake boundary with about 10x10 grid cells
 		Envelope boundaryEnv = new Envelope(gridX0, 10 * SvConf.getSdiGridSize() * 1000, gridY0,
 				10 * SvConf.getSdiGridSize() * 1000);
@@ -64,8 +63,10 @@ public class SvGeometryTest {
 		boundGeom.add(SvUtil.sdiFactory.toGeometry(boundaryEnv));
 
 		// generate and prepare fake grid
-		GeometryCollection grid = DbInit.generateGrid(boundGeom.get(0));
-		SvGeometry.prepareGrid(grid);
+		GeometryCollection grid = SvGrid.generateGrid(boundGeom.get(0), SvConf.getSdiGridSize());
+		Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_GRID);
+		SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
+		SvGeometry.setSysGrid(svg);
 
 		// add the fake boundary as system boundary
 		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
@@ -99,9 +100,17 @@ public class SvGeometryTest {
 
 	@Test
 	public void testGrid() {
-		Map<String, Geometry> grid = SvGeometry.getGrid();
-		if (grid == null || grid.size() < 1)
+		Map<String, Geometry> grid;
+		try {
+			grid = SvGeometry.getGrid();
+
+			if (grid == null || grid.size() < 1)
+				fail("Failed fetching base grid");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
 			fail("Failed fetching base grid");
+			e.printStackTrace();
+		}
 	}
 
 	@Test
@@ -232,7 +241,7 @@ public class SvGeometryTest {
 		try (SvGeometry svg = new SvGeometry();) {
 			GeometryFactory gf = SvUtil.sdiFactory;
 			Point point = gf.createPoint(new Coordinate(100, 100));
-			System.out.println("Max tile:" + svg.getMaxXtile() + ":" + svg.getMaxYtile());
+			System.out.println("Max tile:" + svg.getSysGrid().getMaxXtile() + ":" + svg.getSysGrid().getMaxYtile());
 
 			List<Geometry> gcl = SvGeometry.getTileGeometries(point.getEnvelopeInternal());
 			if (gcl == null)
@@ -284,7 +293,8 @@ public class SvGeometryTest {
 	public void testGetTileNotExist() {
 		try {
 			GeometryFactory gf = SvUtil.sdiFactory;
-			System.out.println("Max tile:" + SvGeometry.getMaxXtile() + ":" + SvGeometry.getMaxYtile());
+			System.out.println(
+					"Max tile:" + SvGeometry.getSysGrid().getMaxXtile() + ":" + SvGeometry.getSysGrid().getMaxYtile());
 
 			Point point = gf.createPoint(new Coordinate(7469568, 4530337));
 			List<Geometry> gcl = SvGeometry.getTileGeometries(point.getEnvelopeInternal());
@@ -302,6 +312,15 @@ public class SvGeometryTest {
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
+
+		WKTReader wkr = new WKTReader();
+		String polyHole = "POLYGON ((30 30, 30 40, 40 40, 40 30, 30 30), (35 35, 37 35, 37 37, 35 37, 35 35))";
+		try {
+			g.add(wkr.read(polyHole));
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return g;
 	}
 
@@ -309,6 +328,7 @@ public class SvGeometryTest {
 		ArrayList<Geometry> g = new ArrayList<>();
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 25, x1 + 27, y1 + 20, y1 + 30)));
 		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
+		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 35, x1 + 40, y1 + 30, y1 + 40)));
 		return g;
 	}
 
@@ -337,6 +357,26 @@ public class SvGeometryTest {
 			Geometry g1 = copied.iterator().next();
 			Geometry g2 = intersected.iterator().next();
 			if (!g1.equalsExact(g2))
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomFromPointFullCopyWithHole() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Point point = SvUtil.sdiFactory.createPoint(new Coordinate(32, 32));
+
+			Set<Geometry> copied = svg.geometryFromPoint(point, TEST_LAYER_TYPE_ID, TEST_LAYER_SECOND_TYPE_ID, false);
+
+			Set<Geometry> intersected = svg.getRelatedGeometries(point, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS,
+					null, null, false);
+			Geometry g1 = copied.iterator().next();
+			Geometry g2 = intersected.iterator().next();
+			if (g1.getArea() != (50.0))
 				fail("Test did not return a copy of geometry");
 
 		}
@@ -396,7 +436,7 @@ public class SvGeometryTest {
 			coords[2] = new Coordinate(25, 25);
 			LineString line = SvUtil.sdiFactory.createLineString(coords);
 
-			Set<Geometry> copied = svg.splitGeometry(line, TEST_LAYER_TYPE_ID, false);
+			Set<Geometry> copied = svg.splitGeometry(line, TEST_LAYER_TYPE_ID, false, true, false);
 
 			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
 			// 20, 20 15, 10 15))]
@@ -647,4 +687,5 @@ public class SvGeometryTest {
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
+
 }

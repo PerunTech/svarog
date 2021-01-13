@@ -160,7 +160,7 @@ public class SvExecManagerTest {
 		public Object execute(Map<String, Object> params, ISvCore svCore) throws SvException {
 			// TODO Auto-generated method stub
 			log4j.info("Executor called:" + (params != null ? params.toString() : "no params"));
-			return null;
+			return getName();
 		}
 	}
 
@@ -328,32 +328,64 @@ public class SvExecManagerTest {
 
 		try (SvExecManager sve = new SvExecManager()) {
 			sve.setAutoCommit(false);
+			// first assign an array of 3 virtual executors
 			sve.osgiServices = new Object[3];
+
+			// create 3 different executors
 			sve.osgiServices[0] = new TestExecutor(name + "1");
 			sve.osgiServices[1] = new TestExecutor(name + "2");
 			sve.osgiServices[2] = new TestExecutor(name + "3");
 
+			// now create the packages. The 'test.pack' is the mother package, and
+			// 'test.pack.child' is inheriting from the mother pack
 			DbDataObject rootPack = sve.createExecutorPack("test.pack", null);
 			DbDataObject childPack = sve.createExecutorPack("test.pack.child", null, rootPack.getObjectId());
 
+			// we assign 2 executors to the mother package
 			sve.createExecutorPackItem(rootPack, "test.pack.item", (ISvExecutor) sve.osgiServices[0]);
 			sve.createExecutorPackItem(rootPack, "test.pack.item1", (ISvExecutor) sve.osgiServices[1]);
+
+			// assign 1 more executor to the child. The executor assigned to the child, has
+			// the same name as the first executor of mother pack
+			// having the same name, the child executor named 'test.pack.item' will hide the
+			// same executor coming from the mother pack.
 			sve.createExecutorPackItem(childPack, "test.pack.item", (ISvExecutor) sve.osgiServices[2]);
+
+			// now test, get all executors from the mother pack. We should get 2
+			// ("test.pack.item" and "test.pack.item1")
 			Map<String, ISvExecutor> rootItems = sve.getExecutorPackItems(rootPack, null);
 
+			// get all executors from the child pack (we should have 2) - ("test.pack.item"
+			// and "test.pack.item1")
+			// but the "test.pack.item" in the child shall have reference to
+			// sve.osgiServices[2] instead of sve.osgiServices[0] which is the root pack
 			Map<String, ISvExecutor> childItems = sve.getExecutorPackItems(childPack, null);
 
+			// do we have the test pack item in the mother package
 			if (!rootItems.get("test.pack.item").equals(sve.osgiServices[0]))
 				fail("Non matching root item");
 
+			// do we have the test pack item 1 in the mother package
 			if (!rootItems.get("test.pack.item1").equals(sve.osgiServices[1]))
 				fail("Non matching root item1");
 
+			// have the child package overriden the test.pack.item from the mother package?
 			if (!childItems.get("test.pack.item").equals(sve.osgiServices[2]))
 				fail("Non matching root item");
 
+			// has the child inherited the test.pack.item from the mother package.
 			if (!childItems.get("test.pack.item1").equals(sve.osgiServices[1]))
 				fail("Non matching root item1");
+
+			Object o = sve.executePack("test.pack.child", "test.pack.item", null, null);
+			if (!o.toString().equals(name + "3"))
+				fail("Executor pack by pack/item label failed");
+
+			o = sve.executePack("test.pack", "test.pack.item", null, null);
+			if (!o.toString().equals(name + "1"))
+				fail("Executor pack by pack/item label failed");
+
+			
 			sve.dbRollback();
 		} catch (Exception e) {
 			e.printStackTrace();
