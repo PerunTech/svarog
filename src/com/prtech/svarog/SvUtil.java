@@ -186,17 +186,13 @@ public class SvUtil {
 			Gson gson = new Gson();
 			jobj = gson.fromJson(json, JsonElement.class).getAsJsonObject();
 		} catch (IOException e) {
-			System.out.println("File " + fileName + " was not found or its not readable");// TODO
-																							// Auto-generated
-																							// catch
-																							// block
-			e.printStackTrace();
+			log4j.error("File " + fileName + " was not found or its not readable", e);
 		} finally {
 			if (fis != null)
 				try {
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					log4j.error("File stream close raised exceptin", e);
 				}
 		}
 		return jobj;
@@ -218,20 +214,20 @@ public class SvUtil {
 			if (file.getParentFile() != null) {
 				file.getParentFile().mkdirs();
 			}
-			file.createNewFile();
-			fop = new FileOutputStream(file);
+			boolean exists = file.exists();
+			if (!exists)
+				exists = file.createNewFile();
 
-			out = new BufferedWriter(new OutputStreamWriter(fop, "UTF8"));
+			if (exists) {
+				fop = new FileOutputStream(file);
+				out = new BufferedWriter(new OutputStreamWriter(fop, "UTF8"));
 
-			// if file doesnt exists, then create it
-			if (!file.exists()) {
-				file.createNewFile();
-			}
+				// get the content in bytes
+				out.append(strValue);
 
-			// get the content in bytes
-			out.append(strValue);
-
-			out.flush();
+				out.flush();
+			} else
+				log4j.error("Error writing to file. File " + fileName + " doesn't exists");
 
 		} catch (IOException e) {
 			log4j.error("Error writing to file.", e);

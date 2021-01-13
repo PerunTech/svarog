@@ -65,34 +65,46 @@ import com.google.common.math.DoubleMath;
  */
 public class SvGeometry extends SvCore {
 
-	/**
-	 * The main index of grid geometries.
-	 */
-	private static STRtree gridIndex = null;
+	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 
-	/**
-	 * The envelope of the boundaries of the system
-	 */
-	private static Envelope systemBoundsEnvelope = null;
+	private static volatile SvGrid sysGrid = null;
+	private static volatile SvSDITile sysBoundary = null;
 
-	static private Map<String, Geometry> gridMap = new HashMap<String, Geometry>();
+	static SvGrid getSysGrid() throws SvException {
+		if (sysGrid == null) {
+			synchronized (SvGeometry.class) {
+				if (sysGrid == null)
+					sysGrid = new SvGrid(Sv.SDI_SYSGRID);
 
-	private static ArrayList<String> borderTiles = new ArrayList<String>();
-
-	static int maxYtile = 0;
-	static int maxXtile = 0;
-
-	static AtomicBoolean isSDIInitalized = new AtomicBoolean(false);
-
-	static {
-		if (!isSDIInitalized()) {
-			GeometryCollection c = loadGridFromJson("conf/sdi/grid.json");
-			boolean initialised = prepareGrid(c);
-			isSDIInitalized.set(initialised);
+			}
 		}
+		return sysGrid;
 	}
 
-	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
+	static void setSysGrid(SvGrid svg) {
+		if (sysGrid == null)
+			sysGrid = svg;
+	}
+
+	/**
+	 * A method that creates a new {@link SvSDITile} based on the GeoJSON system
+	 * boundary
+	 * 
+	 * @return SvSDITile representing the system boundary
+	 * @throws SvException
+	 */
+	public static SvSDITile getSysBoundary() throws SvException {
+		if (sysBoundary == null) {
+			synchronized (SvGeometry.class) {
+				if (sysBoundary == null) {
+					HashMap<String, Object> params = new HashMap<String, Object>();
+					params.put("FILE_PATH", "conf/sdi/boundary.json");
+					sysBoundary = getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, Sv.SDI_SYSTEM_BOUNDARY, params);
+				}
+			}
+		}
+		return sysBoundary;
+	}
 
 	static Cache<String, SvSDITile> getLayerCache(Long tileTypeId) {
 		Cache<String, SvSDITile> cache = null;
@@ -100,7 +112,8 @@ public class SvGeometry extends SvCore {
 		if (cache == null) {
 			DbDataObject dbt = null;
 			try {
-				if (!tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE))
+				if (!(tileTypeId.equals(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE)
+						|| tileTypeId.equals(svCONST.OBJECT_TYPE_GRID)))
 					dbt = getDbt(tileTypeId);
 
 				@SuppressWarnings("unchecked")
@@ -179,80 +192,8 @@ public class SvGeometry extends SvCore {
 		dbo.setVal(getCentroidFieldName(dbo.getObjectType()), centroid);
 	}
 
-	/**
-	 * Method to initialise the system grid from a JSON file
-	 * 
-	 * @param gridFileName The filename containing the grid
-	 * @return collection of square geometries forming the system grid
-	 */
-	static GeometryCollection loadGridFromJson(String gridFileName) {
-		GeometryCollection grid = null;
-		if (log4j.isDebugEnabled())
-			log4j.trace("Loading base SDI grid from:" + gridFileName);
-		String geoJSONBounds = null;
-		InputStream is = null;
-		try {
-			String path = gridFileName;
-			is = new FileInputStream(path);
-			geoJSONBounds = IOUtils.toString(is);
-			GeoJsonReader jtsReader = new GeoJsonReader();
-			jtsReader.setUseFeatureType(true);
-			grid = (GeometryCollection) jtsReader.read(geoJSONBounds);
-			if (log4j.isDebugEnabled())
-				log4j.trace("Base SDI grid loaded:" + gridFileName);
-		} catch (Exception e) {
-			log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
-		} finally {
-			if (is != null)
-				try {
-					is.close();
-				} catch (IOException e) {
-					log4j.error("Failed loading base SDI grid from:" + gridFileName, e);
-				}
-		}
-		return grid;
-	}
-
-	/**
-	 * Method to build the gridIndex and populate the gridmap based on the grid
-	 * specified by the geometry collection
-	 * 
-	 * @param grid The geometry collection which represents the system grid
-	 * @return
-	 */
-	static boolean prepareGrid(GeometryCollection grid) {
-		Geometry gridItem = null;
-		gridIndex = new STRtree();
-		try {
-			for (int i = 0; i < grid.getNumGeometries(); i++) {
-				gridItem = grid.getGeometryN(i);
-				String TileId = (String) gridItem.getUserData();
-				String[] baseId = TileId.split("-");
-				if (baseId[1] != null && baseId[1].equals("true"))
-					borderTiles.add(baseId[0]);
-				gridItem.setUserData(baseId[0]);
-				String[] tileColRow = baseId[0].split(":");
-				if (maxXtile < Integer.parseInt(tileColRow[0]))
-					maxXtile = Integer.parseInt(tileColRow[0]);
-				if (maxYtile < Integer.parseInt(tileColRow[1]))
-					maxYtile = Integer.parseInt(tileColRow[1]);
-				gridIndex.insert(gridItem.getEnvelopeInternal(), gridItem);
-				if (systemBoundsEnvelope == null)
-					systemBoundsEnvelope = new Envelope(gridItem.getEnvelopeInternal());
-				else
-					systemBoundsEnvelope.expandToInclude(gridItem.getEnvelopeInternal());
-				gridMap.put(baseId[0], gridItem);
-			}
-		} catch (Exception e) {
-			log4j.error("Failed initialising system grid!", e);
-			return false;
-		}
-		gridIndex.build();
-		return true;
-	}
-
-	public static Map<String, Geometry> getGrid() {
-		return gridMap;
+	public static Map<String, Geometry> getGrid() throws SvException {
+		return getSysGrid().getGridMap();
 	}
 
 	/**
@@ -264,7 +205,7 @@ public class SvGeometry extends SvCore {
 	 */
 	public static Geometry getTileGeometry(Point point) throws SvException {
 		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(point.getEnvelopeInternal());
+		List<Geometry> result = getSysGrid().getGridIndex().query(point.getEnvelopeInternal());
 		if (result.size() == 0)
 			return null;
 		else if (result.size() == 1)
@@ -280,10 +221,11 @@ public class SvGeometry extends SvCore {
 	 * @param envelope The envelope which we want to use as bounding box for the
 	 *                 returned geometries
 	 * @return List of {@link Geometry} objects
+	 * @throws SvException
 	 */
-	public static List<Geometry> getTileGeometries(Envelope envelope) {
+	public static List<Geometry> getTileGeometries(Envelope envelope) throws SvException {
 		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(envelope);
+		List<Geometry> result = getSysGrid().getGridIndex().query(envelope);
 		return result;
 	}
 
@@ -312,7 +254,7 @@ public class SvGeometry extends SvCore {
 			DbDataObject userData = (DbDataObject) geom.getUserData();
 			Object geometryOid = userData != null ? userData.getObjectId() : null;
 			@SuppressWarnings("unchecked")
-			List<Geometry> gridItems = gridIndex.query(geom.getEnvelopeInternal());
+			List<Geometry> gridItems = getSysGrid().getGridIndex().query(geom.getEnvelopeInternal());
 			for (Geometry gridGeom : gridItems) {
 				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
 				Set<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
@@ -379,9 +321,37 @@ public class SvGeometry extends SvCore {
 		return result;
 	}
 
-	@SuppressWarnings("unchecked")
-	public Set<Geometry> splitGeometry(LineString line, Long layerTypeId, boolean allowMultiGeometries)
+	private void splitGeometryDbUpdate(Set<Geometry> newGeometries, Set<Geometry> deletedGeometries, boolean autoCommit)
 			throws SvException {
+		// get the previous state of autocommit
+		boolean oldAutoCommit = this.getAutoCommit();
+		try (SvWriter svw = new SvWriter(this)) {
+			// set autocommit to false to ensure all deletes and saves are in single
+			// transaction
+			this.setAutoCommit(false);
+			DbDataObject dbo = null;
+			// delete the others
+			for (Geometry g : deletedGeometries) {
+				dbo = (DbDataObject) g.getUserData();
+				svw.deleteObject(dbo);
+			}
+			for (Geometry g : newGeometries) {
+				dbo = (DbDataObject) g.getUserData();
+				SvGeometry.setGeometry(dbo, g);
+				this.saveGeometry(dbo);
+			}
+
+			if (autoCommit)
+				this.dbCommit();
+		} finally {
+			this.dbSetAutoCommit(oldAutoCommit);
+		}
+
+	}
+
+	@SuppressWarnings("unchecked")
+	public Set<Geometry> splitGeometry(LineString line, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
+			boolean autoCommit) throws SvException {
 		if (!line.isSimple())
 			throw (new SvException("system.error.sdi.line_intersects_self", svCONST.systemUser, null, line));
 
@@ -407,10 +377,9 @@ public class SvGeometry extends SvCore {
 				poly.setUserData(originalGeom.getUserData());
 				result.add(poly);
 			}
-
-			// if the difference resulted in multipolygon, we are interested only in the
-			// polygon which covers the point
-
+		}
+		if (!preview) {
+			splitGeometryDbUpdate(result, intersected, autoCommit);
 		}
 		return result;
 	}
@@ -457,7 +426,6 @@ public class SvGeometry extends SvCore {
 	public Geometry mergeGeometries(List<Point> points, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
 			boolean autoCommit) throws SvException {
 
-		Object userData = null;
 		ArrayList<Object> objectsToDelete = new ArrayList<>();
 		if (points.size() < 2)
 			throw (new SvException(Sv.Exceptions.SDI_MERGE_REQUIRES_2PLUS, svCONST.systemUser, null, points));
@@ -479,7 +447,7 @@ public class SvGeometry extends SvCore {
 				}
 			}
 		}
-		result.setUserData(userData);
+
 		if (!preview) {
 			mergeGeometriesDbUpdate(result, objectsToDelete, autoCommit);
 		}
@@ -527,7 +495,7 @@ public class SvGeometry extends SvCore {
 	 */
 	public ArrayList<Geometry> getGeometries(Long typeId, Geometry selector, boolean partialCover) throws SvException {
 		@SuppressWarnings("unchecked")
-		List<Geometry> result = gridIndex.query(selector.getEnvelopeInternal());
+		List<Geometry> result = getSysGrid().getGridIndex().query(selector.getEnvelopeInternal());
 		SDIRelation operator = partialCover ? SDIRelation.INTERSECTS : SDIRelation.COVEREDBY;
 		ArrayList<Geometry> geoms = new ArrayList<Geometry>();
 		for (Geometry tileGeom : result) {
@@ -704,44 +672,36 @@ public class SvGeometry extends SvCore {
 	 * @param tileId
 	 * @param tileParams
 	 * @return
+	 * @throws SvException
 	 */
-	static Envelope getTileEnvelope(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	static Envelope getTileEnvelope(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			throws SvException {
 		Envelope envl = null;
 		// if the tileId is found in the grid map, it means we are fetching
 		// a grid based tile
-		if (gridMap.containsKey(tileId)) {
-			Geometry geom = gridMap.get(tileId);
+		if (getSysGrid().getGridMap().containsKey(tileId)) {
+			Geometry geom = getSysGrid().getGridMap().get(tileId);
 			envl = geom.getEnvelopeInternal();
 		} else
-			envl = systemBoundsEnvelope;
+			envl = getSysGrid().getGridEnvelope();
 
 		return envl;
 	}
 
-	public static SvSDITile createTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public static SvSDITile createTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			throws SvException {
 		SvSDITile currentTile = null;
 		if (tileParams == null)
 			tileParams = new HashMap<String, Object>();
 
-		Envelope tileEnv = getTileEnvelope(tileTypeId, tileId, tileParams);
-		tileParams.put(Sv.ENVELOPE, tileEnv);
 		if (tileTypeId == svCONST.OBJECT_TYPE_SDI_GEOJSONFILE)
 			currentTile = new SvSDIJsonTile(tileTypeId, tileId, tileParams);
-		else
+		else {
+			Envelope tileEnv = getTileEnvelope(tileTypeId, tileId, tileParams);
+			tileParams.put(Sv.ENVELOPE, tileEnv);
 			currentTile = new SvSDIDbTile(tileTypeId, tileId, tileParams);
+		}
 		return currentTile;
-	}
-
-	/**
-	 * A method that creates a new {@link SvSDITile} based on the GeoJSON system
-	 * boundary
-	 * 
-	 * @return SvSDITile representing the system boundary
-	 */
-	public static SvSDITile getSysBoundary() {
-		HashMap<String, Object> params = new HashMap<String, Object>();
-		params.put("FILE_PATH", "conf/sdi/boundary.json");
-		return getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, Sv.SDI_SYSTEM_BOUNDARY, params);
 	}
 
 	/**
@@ -768,9 +728,11 @@ public class SvGeometry extends SvCore {
 	 * @param tileId     The string identification of the tile
 	 * @param tileParams Array of strings containing tile id or file path.
 	 * @return Instance of the tile, either from the cache of newly created
+	 * @throws SvException
 	 * 
 	 */
-	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			throws SvException {
 		Cache<String, SvSDITile> cache = getLayerCache(tileTypeId);
 		SvSDITile svTile = null;
 		synchronized (cache) {
@@ -842,22 +804,6 @@ public class SvGeometry extends SvCore {
 		List<Geometry> result = null;
 		return result;
 
-	}
-
-	public static int getMaxYtile() {
-		return maxYtile;
-	}
-
-	public static void setMaxYtile(int maxYtile) {
-		SvGeometry.maxYtile = maxYtile;
-	}
-
-	public static int getMaxXtile() {
-		return maxXtile;
-	}
-
-	public static void setMaxXtile(int maxXtile) {
-		SvGeometry.maxXtile = maxXtile;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -981,7 +927,7 @@ public class SvGeometry extends SvCore {
 	 */
 	void testBoundaryIntersection(Geometry geom, List<Geometry> tiles) throws SvException {
 		for (Geometry tile : tiles) {
-			if (borderTiles.contains((String) tile.getUserData())) {
+			if (getSysGrid().getBorderTiles().contains((String) tile.getUserData())) {
 				if (tile.covers(geom))
 					continue;
 				else if (tile.intersects(geom)) {
@@ -1331,15 +1277,15 @@ public class SvGeometry extends SvCore {
 		verifyBounds(dbo);
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
-		//
-		Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
-		testPolygonSpikes(geom, maxAngle);
+
+		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
+		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
 
 		Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE, Sv.DEFAULT_MIN_POINT_DISTANCE);
 		minVertexDistance(geom, minPointDistance, true);
 
-		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
-		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
+		Double maxAngle = SvParameter.getSysParam(Sv.SDI_SPIKE_MAX_ANGLE, Sv.DEFAULT_SPIKE_MAX_ANGLE);
+		testPolygonSpikes(geom, maxAngle);
 
 		// if area is not set or we have configured to override
 		if (dbo.getVal("AREA") == null || SvConf.sdiOverrideGeomCalc)
@@ -1416,7 +1362,7 @@ public class SvGeometry extends SvCore {
 
 	}
 
-	static void markDirtyTile(long tileTypeId, int[] cell) {
+	static void markDirtyTile(long tileTypeId, int[] cell) throws SvException {
 		if (cell != null && cell.length > 2) {
 			String tileId = Integer.toString(cell[0]) + ":" + Integer.toString(cell[1]);
 			SvSDITile tile = getTile(tileTypeId, tileId, null);
@@ -1462,10 +1408,6 @@ public class SvGeometry extends SvCore {
 	public void setAllowNullGeometry(boolean allowNullGeometry) {
 		if (this.hasPermission(svCONST.NULL_GEOMETRY_ACL))
 			this.allowNullGeometry = allowNullGeometry;
-	}
-
-	public static boolean isSDIInitalized() {
-		return isSDIInitalized.get();
 	}
 
 }

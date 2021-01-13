@@ -29,7 +29,6 @@ import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
 import org.osgi.util.tracker.ServiceTracker;
 
-
 import com.prtech.svarog_interfaces.IPerunPlugin;
 import com.prtech.svarog_interfaces.ISvExecutor;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
@@ -62,8 +61,8 @@ public class SvarogDaemon {
 	 **/
 	public static final String SYSTEM_PROPERTIES_FILE_VALUE = "system.properties";
 	/**
-	 * The property name used to specify an URL to the configuration property
-	 * file to be used for the created the framework instance.
+	 * The property name used to specify an URL to the configuration property file
+	 * to be used for the created the framework instance.
 	 **/
 	public static final String CONFIG_PROPERTIES_PROP = "felix.config.properties";
 	/**
@@ -83,87 +82,92 @@ public class SvarogDaemon {
 	/**
 	 * Satus code used by svarog installed to notify that the daemon should run
 	 */
-	public static int svarogDaemonStatus = -13;
+	private static int svarogDaemonStatus = -13;
+
+	/**
+	 * Method to provide public information about the status of the svarog daemon
+	 * 
+	 * @return
+	 */
+	public static int getDaemonStatus() {
+		return svarogDaemonStatus;
+	}
 
 	/**
 	 * Local field to keep reference to the internal hearbeat client
 	 */
 	static Thread internalClient = null;
 
-
 	/**
 	 * <p>
-	 * This method performs the main task of constructing an framework instance
-	 * and starting its execution or running the install/management process. The
+	 * This method performs the main task of constructing an framework instance and
+	 * starting its execution or running the install/management process. The
 	 * following functions are performed when invoked:
 	 * </p>
 	 * <ol>
 	 * <li><i><b>Examine and verify command-line arguments.</b></i> The launcher
-	 * will pass the command line to the SvarogInstaller. If the installer finds
-	 * -dm or --daemon, it will skipinstall and run the SvarogDaemon to host the
-	 * OSGI Framework</li>
-	 * <li><i><b>Copy configuration properties specified as system properties
-	 * into the set of configuration properties.</b></i> Even though the Felix
-	 * framework does not consult system properties for configuration
-	 * information, sometimes it is convenient to specify them on the command
-	 * line when launching Felix. To make this possible, the SvarogDaemon
-	 * launcher copies any configuration properties specified as system
-	 * properties into the set of configuration properties passed into
-	 * Felix.</li>
+	 * will pass the command line to the SvarogInstaller. If the installer finds -dm
+	 * or --daemon, it will skipinstall and run the SvarogDaemon to host the OSGI
+	 * Framework</li>
+	 * <li><i><b>Copy configuration properties specified as system properties into
+	 * the set of configuration properties.</b></i> Even though the Felix framework
+	 * does not consult system properties for configuration information, sometimes
+	 * it is convenient to specify them on the command line when launching Felix. To
+	 * make this possible, the SvarogDaemon launcher copies any configuration
+	 * properties specified as system properties into the set of configuration
+	 * properties passed into Felix.</li>
 	 * <li><i><b>Add shutdown hook.</b></i> To make sure the framework shutdowns
-	 * cleanly, the launcher installs a shutdown hook; this can be disabled with
-	 * the <tt>felix.shutdown.hook</tt> configuration property.</li>
+	 * cleanly, the launcher installs a shutdown hook; this can be disabled with the
+	 * <tt>felix.shutdown.hook</tt> configuration property.</li>
 	 * <li><i><b>Create and initialize a framework instance.</b></i> The OSGi
 	 * standard <tt>FrameworkFactory</tt> is retrieved from
-	 * <tt>META-INF/services</tt> and used to create a framework instance with
-	 * the configuration properties.</li>
+	 * <tt>META-INF/services</tt> and used to create a framework instance with the
+	 * configuration properties.</li>
 	 * <li><i><b>Auto-deploy bundles.</b></i> All bundles in the auto-deploy
 	 * directory are deployed into the framework instance.</li>
 	 * <li><i><b>Start the framework.</b></i> The framework is started and the
 	 * launcher thread waits for the framework to shutdown.</li>
 	 * </ol>
 	 * <p>
-	 * It should be noted that simply starting an instance of the framework is
-	 * not enough to create an interactive session with it. It is necessary to
-	 * install and start bundles that provide a some means to interact with the
-	 * framework; this is generally done by bundles in the auto-deploy directory
-	 * or specifying an "auto-start" property in the configuration property
-	 * file. If no bundles providing a means to interact with the framework are
-	 * installed or if the configuration property file cannot be found, the
-	 * framework will appear to be hung or deadlocked. This is not the case, it
-	 * is executing correctly, there is just no way to interact with it.
+	 * It should be noted that simply starting an instance of the framework is not
+	 * enough to create an interactive session with it. It is necessary to install
+	 * and start bundles that provide a some means to interact with the framework;
+	 * this is generally done by bundles in the auto-deploy directory or specifying
+	 * an "auto-start" property in the configuration property file. If no bundles
+	 * providing a means to interact with the framework are installed or if the
+	 * configuration property file cannot be found, the framework will appear to be
+	 * hung or deadlocked. This is not the case, it is executing correctly, there is
+	 * just no way to interact with it.
 	 * </p>
 	 * <p>
-	 * The launcher provides two ways to deploy bundles into a framework at
-	 * startup, which have associated configuration properties:
+	 * The launcher provides two ways to deploy bundles into a framework at startup,
+	 * which have associated configuration properties:
 	 * </p>
 	 * <ul>
-	 * <li>Bundle auto-deploy - Automatically deploys all bundles from a
-	 * specified directory, controlled by the following configuration
-	 * properties:
+	 * <li>Bundle auto-deploy - Automatically deploys all bundles from a specified
+	 * directory, controlled by the following configuration properties:
 	 * <ul>
-	 * <li><tt>felix.auto.deploy.dir</tt> - Specifies the auto-deploy directory
-	 * from which bundles are automatically deploy at framework startup. The
-	 * default is the <tt>bundle/</tt> directory of the current directory.</li>
-	 * <li><tt>felix.auto.deploy.action</tt> - Specifies the auto-deploy actions
-	 * to be found on bundle JAR files found in the auto-deploy directory. The
-	 * possible actions are <tt>install</tt>, <tt>update</tt>, <tt>start</tt>,
-	 * and <tt>uninstall</tt>. If no actions are specified, then the auto-deploy
-	 * directory is not processed. There is no default value for this property.
-	 * </li>
+	 * <li><tt>felix.auto.deploy.dir</tt> - Specifies the auto-deploy directory from
+	 * which bundles are automatically deploy at framework startup. The default is
+	 * the <tt>bundle/</tt> directory of the current directory.</li>
+	 * <li><tt>felix.auto.deploy.action</tt> - Specifies the auto-deploy actions to
+	 * be found on bundle JAR files found in the auto-deploy directory. The possible
+	 * actions are <tt>install</tt>, <tt>update</tt>, <tt>start</tt>, and
+	 * <tt>uninstall</tt>. If no actions are specified, then the auto-deploy
+	 * directory is not processed. There is no default value for this property.</li>
 	 * </ul>
 	 * </li>
-	 * <li>Bundle auto-properties - Configuration properties which specify URLs
-	 * to bundles to install/start:
+	 * <li>Bundle auto-properties - Configuration properties which specify URLs to
+	 * bundles to install/start:
 	 * <ul>
-	 * <li><tt>felix.auto.install.N</tt> - Space-delimited list of bundle URLs
-	 * to automatically install when the framework is started, where <tt>N</tt>
-	 * is the start level into which the bundle will be installed (e.g.,
+	 * <li><tt>felix.auto.install.N</tt> - Space-delimited list of bundle URLs to
+	 * automatically install when the framework is started, where <tt>N</tt> is the
+	 * start level into which the bundle will be installed (e.g.,
 	 * felix.auto.install.2).</li>
 	 * <li><tt>felix.auto.start.N</tt> - Space-delimited list of bundle URLs to
 	 * automatically install and start when the framework is started, where
-	 * <tt>N</tt> is the start level into which the bundle will be installed
-	 * (e.g., felix.auto.start.2).</li>
+	 * <tt>N</tt> is the start level into which the bundle will be installed (e.g.,
+	 * felix.auto.start.2).</li>
 	 * </ul>
 	 * </li>
 	 * </ul>
@@ -173,10 +177,8 @@ public class SvarogDaemon {
 	 * process.
 	 * </p>
 	 * 
-	 * @param args
-	 *            Accepts arguments to install, upgrade or configure svarog.
-	 * @throws Exception
-	 *             If an error occurs.
+	 * @param args Accepts arguments to install, upgrade or configure svarog.
+	 * @throws Exception If an error occurs.
 	 **/
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws Exception {
@@ -231,8 +233,7 @@ public class SvarogDaemon {
 			// Use the framework bundle context to register a service tracker
 			// in order to track Svarog Executors coming and going in the system
 			svcTracker = new ServiceTracker<Object, Object>(osgiFramework.getBundleContext(),
-					osgiFramework.getBundleContext().createFilter(serviceFilter),
-					new SvServiceTracker());
+					osgiFramework.getBundleContext().createFilter(serviceFilter), new SvServiceTracker());
 			svcTracker.open();
 
 			// Use the system bundle context to process the auto-deploy
@@ -288,12 +289,11 @@ public class SvarogDaemon {
 
 	/**
 	 * Simple method to parse META-INF/services file for framework factory.
-	 * Currently, it assumes the first non-commented line is the class name of
-	 * the framework factory implementation.
+	 * Currently, it assumes the first non-commented line is the class name of the
+	 * framework factory implementation.
 	 * 
 	 * @return The created <tt>FrameworkFactory</tt> instance.
-	 * @throws Exception
-	 *             if any errors occur.
+	 * @throws Exception if any errors occur.
 	 **/
 	static FrameworkFactory getFrameworkFactory() throws Exception {
 		URL url = SvarogDaemon.class.getClassLoader()
@@ -320,15 +320,14 @@ public class SvarogDaemon {
 	/**
 	 * <p>
 	 * Loads the properties in the system property file associated with the
-	 * framework installation into <tt>System.setProperty()</tt>. These
-	 * properties are not directly used by the framework in anyway. By default,
-	 * the system property file is located in the <tt>conf/</tt> directory of
-	 * the Felix installation directory and is called
-	 * "<tt>system.properties</tt>". The installation directory of Felix is
-	 * assumed to be the parent directory of the <tt>felix.jar</tt> file as
-	 * found on the system class path property. The precise file from which to
-	 * load system properties can be set by initializing the
-	 * "<tt>felix.system.properties</tt>" system property to an arbitrary URL.
+	 * framework installation into <tt>System.setProperty()</tt>. These properties
+	 * are not directly used by the framework in anyway. By default, the system
+	 * property file is located in the <tt>conf/</tt> directory of the Felix
+	 * installation directory and is called "<tt>system.properties</tt>". The
+	 * installation directory of Felix is assumed to be the parent directory of the
+	 * <tt>felix.jar</tt> file as found on the system class path property. The
+	 * precise file from which to load system properties can be set by initializing
+	 * the "<tt>felix.system.properties</tt>" system property to an arbitrary URL.
 	 * </p>
 	 **/
 	public static void loadSystemProperties() {
@@ -404,15 +403,14 @@ public class SvarogDaemon {
 	 * <p>
 	 * Loads the configuration properties in the configuration property file
 	 * associated with the Svarog framework installation; these properties are
-	 * accessible to the framework and to bundles and are intended for
-	 * configuration purposes. By default, the configuration property file is
-	 * located in the <tt>root</tt> directory of the Svarog installation
-	 * directory and is called "<tt>svarog.properties</tt>". The installation
-	 * directory of Svarog is assumed to be the parent directory of the
-	 * <tt>svarog.jar</tt> file as found on the system class path property. The
-	 * precise file from which to load configuration properties can be set by
-	 * initializing the "<tt>felix.config.properties</tt>" system property to an
-	 * arbitrary URL.
+	 * accessible to the framework and to bundles and are intended for configuration
+	 * purposes. By default, the configuration property file is located in the
+	 * <tt>root</tt> directory of the Svarog installation directory and is called
+	 * "<tt>svarog.properties</tt>". The installation directory of Svarog is assumed
+	 * to be the parent directory of the <tt>svarog.jar</tt> file as found on the
+	 * system class path property. The precise file from which to load configuration
+	 * properties can be set by initializing the "<tt>felix.config.properties</tt>"
+	 * system property to an arbitrary URL.
 	 * </p>
 	 * 
 	 * @return A <tt>Properties</tt> instance or <tt>null</tt> if there was an

@@ -23,7 +23,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -182,55 +184,117 @@ public class SvWriter extends SvCore {
 		}
 	}
 
-	/**
-	 * Method which checks if the object identified by object_id and pkid can be
-	 * written to the DataTable defined by parameter dbt
-	 * 
-	 * @param dbt         The object type descriptor
-	 * @param dbo         The data object subject of update
-	 * @param repoObjects
-	 * @throws SvException
-	 */
-	HashMap<Long, Object[]> getRepoData(DbDataObject dbt, DbDataArray dba) throws SvException {
-		HashMap<Long, Object[]> oldRepoData = new HashMap<Long, Object[]>();
+	StringBuilder getRepoSQLString(DbDataObject dbt, DbDataArray dba, boolean includingChildren, boolean includingLinks,
+			ArrayList<Long> linkTypes) {
+		StringBuilder strParam = new StringBuilder();
+		for (int i = 0; i < dba.getItems().size(); i++)
+			strParam.append("?,");
 
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		Object[] repoObjects = null;
-
-		try {
-			StringBuilder strParam = new StringBuilder();
-			for (int i = 0; i < dba.getItems().size(); i++)
-				strParam.append("?,");
-
-			strParam.setLength(strParam.length() - 1);
-
-			StringBuilder strSQL = new StringBuilder();
-			strSQL.append(
-					"SELECT pkid,object_id," + "parent_id, object_type, meta_pkid, dt_insert, dt_delete, status FROM "
-							+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE PKID in (");
+		strParam.setLength(strParam.length() - 1);
+		StringBuilder strSQL = new StringBuilder();
+		strSQL.append("SELECT pkid,object_id,parent_id, object_type, meta_pkid, dt_insert, dt_delete, status FROM "
+				+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE (PKID in (");
+		strSQL.append(strParam);
+		strSQL.append(") AND OBJECT_ID in (");
+		strSQL.append(strParam);
+		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE) ");
+		if (includingChildren) {
+			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
+					+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE ");
+			strSQL.append(" PARENT_ID in (");
 			strSQL.append(strParam);
-			strSQL.append(") AND OBJECT_ID in (");
+			strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
+		}
+		if (includingLinks) {
+			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
+					+ dbt.getVal("schema") + "." + "VSVAROG_LINK WHERE ");
+			strSQL.append(" (LINK_OBJ_ID_1 in (");
 			strSQL.append(strParam);
-			strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE");
-			// for mssql remove the for update part
-			if (!SvConf.getDbType().equals(SvDbType.MSSQL))
-				strSQL.append(" FOR UPDATE");
+			strSQL.append(") OR ");
+			strSQL.append(" LINK_OBJ_ID_2 in (");
+			strSQL.append(strParam);
+			strSQL.append(")) ");
+			if (linkTypes != null && !linkTypes.isEmpty()) {
+				strSQL.append(" AND LINK_TYPE_ID  in (");
+				for (int i = 0; i < linkTypes.size(); i++)
+					strSQL.append("?,");
+				strSQL.setLength(strSQL.length() - 1);
+				strSQL.append(") ");
+			}
+			strSQL.append(" AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
 
-			// TODO change the query to go up in the tree
-			// to validate root_path access is secured
+		}
 
-			ps = this.dbGetConn().prepareStatement(strSQL.toString());
+		return strSQL;
 
-			int paramPos = 1;
+	}
+
+	void bindObjectId(PreparedStatement ps, DbDataArray dba, boolean includingChildren, boolean includingLinks,
+			ArrayList<Long> linkTypes) throws SQLException {
+		int paramPos = 1;
+		for (DbDataObject dbo : dba.getItems()) {
+			ps.setLong(paramPos, dbo.getPkid());
+			paramPos++;
+		}
+		for (DbDataObject dbo : dba.getItems()) {
+			ps.setLong(paramPos, dbo.getObjectId());
+			paramPos++;
+		}
+
+		if (includingChildren)
 			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getPkid());
+				ps.setLong(paramPos, dbo.getObjectId());
+				paramPos++;
+			}
+		if (includingLinks) {
+			for (DbDataObject dbo : dba.getItems()) {
+				ps.setLong(paramPos, dbo.getObjectId());
 				paramPos++;
 			}
 			for (DbDataObject dbo : dba.getItems()) {
 				ps.setLong(paramPos, dbo.getObjectId());
 				paramPos++;
 			}
+			if (linkTypes != null && !linkTypes.isEmpty()) {
+				for (Long type : linkTypes)
+					ps.setLong(paramPos, type);
+				paramPos++;
+			}
+		}
+
+	}
+
+	/**
+	 * Method which checks if the object identified by object_id and pkid can be
+	 * written to the DataTable defined by parameter dbt
+	 * 
+	 * @param dbt               The object type descriptor
+	 * @param dbo               The list of data objects subject of update
+	 * @param includingChildren Flag to let the method fetch repo data of the child
+	 *                          objects
+	 * @param includingLinks    Flag to let the method fetch repo data of the link
+	 *                          objects (linked to the objects in the input array)
+	 * @param linkTypes         List of IDs of the requested link types. If empty or
+	 *                          null, it will return all types
+	 * @param repoObjects
+	 * @throws SvException
+	 */
+	HashMap<Long, Object[]> getRepoData(DbDataObject dbt, DbDataArray dba, boolean includingChildren,
+			boolean includingLinks, ArrayList<Long> linkTypes) throws SvException {
+		HashMap<Long, Object[]> oldRepoData = new LinkedHashMap<>();
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		Object[] repoObjects = null;
+
+		try {
+			StringBuilder strSQL = getRepoSQLString(dbt, dba, includingChildren, includingLinks, linkTypes);
+			// for mssql do not use FOR UPDATE
+			if (!SvConf.getDbType().equals(SvDbType.MSSQL))
+				strSQL.append(" FOR UPDATE");
+
+			ps = this.dbGetConn().prepareStatement(strSQL.toString());
+			bindObjectId(ps, dba, includingChildren, includingLinks, linkTypes);
 			rs = ps.executeQuery();
 			if (log4j.isDebugEnabled())
 				log4j.trace("Executing SQL:" + strSQL.toString());
@@ -248,13 +312,14 @@ public class SvWriter extends SvCore {
 				// currentStatus = rs.getString("status");
 				// check if the user still has privileges over the object
 			}
-			if (oldRepoData.size() != dba.getItems().size() && !isInternal) {
-				log4j.error(dba.toJson().toString());
-				throw (new SvException("system.error.obj_not_updateable", instanceUser, dba, null));
+			if (!isInternal) {
+				for (DbDataObject dbo : dba.getItems())
+					if (!oldRepoData.containsKey(dbo.getObjectId()))
+						throw (new SvException(Sv.Exceptions.OBJECT_NOT_UPDATEABLE, instanceUser, dbo, null));
+
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
-			throw (new SvException("system.error.sql_err", instanceUser, dba, null));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dba, null, e));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -326,7 +391,7 @@ public class SvWriter extends SvCore {
 	 * @param objectFields The list of fields which we plan to insert
 	 * @param oldPKID      The old PKID of the object in case of update
 	 * @return
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
 			Boolean hasPKID) throws SvException {
@@ -571,7 +636,6 @@ public class SvWriter extends SvCore {
 				throw (new SvException("system.error.batch_size_err", instanceUser, dba, dbt));
 
 		} catch (SQLException ex) {
-			ex.printStackTrace();
 			throw (new SvException("system.error.reposave_err", instanceUser, null, dba, ex));
 		} finally {
 			closeResource((AutoCloseable) rsGenKeys, instanceUser);
@@ -642,7 +706,7 @@ public class SvWriter extends SvCore {
 	 * @param conn           SQL Connection to be used for execution of the SQL
 	 *                       statements.
 	 * @throws SQLException
-	 * @throws SvException 
+	 * @throws SvException
 	 * @throws Exception
 	 */
 	void addRepoBatch(DbDataObject dbt, DbDataObject dbo, Boolean withMetaUpdate, Object[] repoObjects,
@@ -699,8 +763,7 @@ public class SvWriter extends SvCore {
 					oldTrxIsolation = conn.getTransactionIsolation();
 					conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log4j.error("Transaction isolation level can not be set to TRANSACTION_READ_UNCOMMITTED", e);
 				}
 		}
 		return internalReader.dbGetConn();
@@ -774,9 +837,7 @@ public class SvWriter extends SvCore {
 						dba.toSimpleJson().toString() + strb.toString()));
 			}
 		} catch (SQLException ex) {
-			ex.printStackTrace();
-			throw (new SvException("system.error.sql_statement_err", instanceUser, dba, sqlStrB.toString(),
-					ex.getCause()));
+			throw (new SvException("system.error.sql_statement_err", instanceUser, dba, sqlStrB.toString(), ex));
 		} finally {
 			closeResource((AutoCloseable) rs, svCONST.systemUser);
 			closeResource((AutoCloseable) ps, svCONST.systemUser);
@@ -804,7 +865,7 @@ public class SvWriter extends SvCore {
 		// distributed anyway because we'll need to use the distibuted locking
 		// mechanism from SvLock!
 		if (isFirstOld)
-			oldRepoData = getRepoData(dbt, dba);
+			oldRepoData = getRepoData(dbt, dba, false, false, null);
 
 		if (!skipPreSaveChecks) {
 			executeConstraints(dba);
@@ -839,28 +900,38 @@ public class SvWriter extends SvCore {
 	 */
 	static void cacheCleanup(DbDataObject dbo) throws SvException {
 
+		cacheCleanup(dbo.getObjectId(), dbo.getParentId(), dbo.getObjectType());
+
 		if (isCfgInDb) {
-			if (dbo.getObjectType() != svCONST.OBJECT_TYPE_TABLE && dbo.getObjectType() != svCONST.OBJECT_TYPE_FIELD) {
-				DbCache.removeObject(dbo.getObjectId(), dbo.getObjectType());
-				DbCache.removeObjectSupport(dbo);
-				dbo.setIsDirty(false);
+			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK))
+				removeLinkCache(dbo);
+			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_SYS_PARAMS))
+				SvParameter.paramsCache.invalidate(dbo.getVal(Sv.PARAM_NAME));
+
+		}
+
+	}
+
+	/**
+	 * Method for cleaning up the cache for a specific repo object
+	 * 
+	 * @param dbo The DbDataObject for which the cache should purged
+	 * @throws SvException
+	 */
+	static void cacheCleanup(Long objectId, Long parentId, Long objectType) throws SvException {
+
+		if (isCfgInDb) {
+			if (objectType != svCONST.OBJECT_TYPE_TABLE && objectType != svCONST.OBJECT_TYPE_FIELD) {
+				DbCache.removeObject(objectId, objectType);
+				DbCache.removeObjectSupport(parentId, objectType);
 			} else {
-				SvReader svr = new SvReader();
 				DbDataObject dboRefresh = null;
-				try {
-					dboRefresh = svr.getObjectById(dbo.getObjectId(), dbo.getObjectType(), null);
-				} finally {
-					svr.release();
+				try (SvReader svr = new SvReader()) {
+					dboRefresh = svr.getObjectById(objectId, objectType, null);
 				}
 				if (dboRefresh != null)
 					DbCache.addObject(dboRefresh);
 			}
-			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_LINK)) {
-				removeLinkCache(dbo);
-			}
-			if (dbo.getObjectType().equals(svCONST.OBJECT_TYPE_SYS_PARAMS))
-				SvParameter.paramsCache.invalidate(dbo.getVal(Sv.PARAM_NAME));
-
 		}
 
 	}
@@ -921,7 +992,7 @@ public class SvWriter extends SvCore {
 		} catch (BatchUpdateException e) {
 			throw (new SvException("system.error.batch_err", instanceUser, arrayToSave, dbt, e.getNextException()));
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, arrayToSave, dbt, e));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, arrayToSave, dbt, e));
 		} catch (Exception e) {
 			if (e instanceof SvException)
 				throw ((SvException) e);
@@ -1133,6 +1204,7 @@ public class SvWriter extends SvCore {
 		for (DbDataObject dbo : dba.getItems()) {
 			cacheCleanup(dbo);
 			executeAfterSaveCallbacks(dbo);
+			dbo.setIsDirty(false);
 		}
 		// broadcast the dirty objects to the cluster
 		// if we are coordinator, broadcast through the proxy otherwise
@@ -1283,54 +1355,174 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	protected void deleteObjectImpl(DbDataObject dbo) throws SvException {
-		if (log4j.isDebugEnabled())
-			log4j.trace("Deleting object with ID:" + dbo.getObjectId());
+		DbDataArray dba = new DbDataArray();
+		dba.addDataItem(dbo);
+		deleteImpl(dba, false, false, null, null);
+	}
 
-		PreparedStatement ps = null;
+	/**
+	 * Method for deleting list of object from database. The delete method acts
+	 * depending on the deletion type of the reference type of the object which is
+	 * deleted
+	 * 
+	 * @param dba The list of objects object which should be deleted
+	 * @throws SQLException
+	 * @throws SvException
+	 */
+	public void deleteObjects(DbDataArray dba) throws SvException {
+		deleteImpl(dba, false, false, null, null);
+	}
+
+	/**
+	 * Method for deleting list of object from database. The delete method acts
+	 * depending on the deletion type of the reference type of the object which is
+	 * deleted
+	 * 
+	 * @param dba            The list of objects object which should be deleted
+	 * @param deleteChildren Flag to ensure the method will cascade the deletion to
+	 *                       child objects
+	 * @param deleteLinks    Flag to ensure the method will cascade the deletion to
+	 *                       link objects (It delete only the link, not the linking
+	 *                       object!)
+	 * @throws SvException
+	 */
+	public void deleteObjects(DbDataArray dba, boolean deleteChildren, boolean deleteLinks) throws SvException {
+		deleteImpl(dba, deleteChildren, deleteLinks, null, null);
+	}
+
+	void validateList(DbDataArray dba) throws SvException {
+		if (dba.size() < 1)
+			throw (new SvException(Sv.Exceptions.NULL_OBJECT, instanceUser, dba, null));
+		DbDataObject dbt = getDbt(dba.get(0));
+		for (DbDataObject dbo : dba.getItems()) {
+			if (log4j.isDebugEnabled())
+				log4j.trace("Deleting object with ID:" + dbo.getObjectId());
+
+			if (dbo.getPkid() == 0L)
+				throw (new SvException(Sv.Exceptions.OBJECT_NOT_PERSISTENT, instanceUser, dbo, null));
+
+			if (dbo.getObjectType() != dbt.getObjectId())
+				throw (new SvException(Sv.Exceptions.MULTI_TYPES_NOT_ALLOWED, instanceUser, dba, null));
+
+		}
+	}
+
+	protected void deleteImpl(DbDataArray dba, boolean deleteChildren, boolean deleteLinks, ArrayList<Long> childTypes,
+			ArrayList<Long> linkTypes) throws SvException {
+
+		// perform basic validation on the deletion
+		validateList(dba);
 		try {
-
-			DbDataObject dbt = getDbt(dbo);
+			DbDataObject dbt = getDbt(dba.get(0));
 			// authorise the save operation
 			if (!isAdmin() && !isSystem() && !hasDbtAccess(dbt, null, SvAccess.MODIFY))
 				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
 						SvAccess.MODIFY.toString()));
 
-			Connection conn = this.dbGetConn();
-
 			// if an existing object is updated, make sure the object
 			// can still be updated and was not changed in mean time
-			if (dbo.getPkid() != 0) {
-				DbDataArray dba = new DbDataArray();
-				dba.addDataItem(dbo);
-				HashMap<Long, Object[]> repoData = getRepoData(dbt, dba);
-				if (repoData.get(dbo.getObjectId()) == null)
-					throw (new SvException("system.error.no_obj_to_del", instanceUser, dbo, null));
+			HashMap<Long, Object[]> repoData = getRepoData(dbt, dba, deleteChildren, deleteLinks, linkTypes);
+			for (DbDataObject dbo : dba.getItems()) {
+				if (!repoData.containsKey(dbo.getObjectId()))
+					throw (new SvException(Sv.Exceptions.OBJECT_NOT_FOUND, instanceUser, dbo, null));
 
 			}
-			String schema = dbt.getVal("schema").toString();
-			String repo_name = dbt.getVal("repo_name").toString();
-			DateTime dt_insert = new DateTime();
 
-			String sqlDel = UPDATE + " " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?";
-			if (dbo.getPkid() != 0) {
-				ps = conn.prepareStatement(sqlDel);
-				ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
-				ps.setLong(2, dbo.getPkid());
-				int invalidatedRows = ps.executeUpdate();
-				if (invalidatedRows != 1) {
-					throw (new SvException("system.error.multiple_rows_updated", instanceUser, dbo, null));
-				} else {
-					cacheCleanup(dbo);
-					executeAfterSaveCallbacks(dbo);
-				}
-				// DbCache.removeObject(dbo.getObjectId(),
-				// dbo.getObjectType());
-			}
+			int invalidatedRows = executeRepoUpdate(repoData);
+			if (invalidatedRows != repoData.size())
+				throw (new SvException(Sv.Exceptions.OBJECT_COUNT_ERROR, instanceUser, dba, null));
+			// now clean the cache
+			cacheCleanup(repoData, deleteLinks);
+
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbo, null, e));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dba, null, e));
+		}
+	}
+
+	int executeRepoUpdateSQL(String schema, String repoName, List<Long> pkids) throws SvException, SQLException {
+		if (pkids.size() < 1)
+			return 0;
+
+		PreparedStatement ps = null;
+		DateTime dt_insert = new DateTime();
+		StringBuilder sqlDel = null;
+		try {
+			Connection conn = this.dbGetConn();
+			sqlDel = new StringBuilder(50);
+			sqlDel.append(UPDATE + " " + schema + "." + repoName + " SET dt_delete=? WHERE PKID in (");
+			for (int i = 0; i < pkids.size(); i++) {
+				sqlDel.append("?,");
+			}
+			sqlDel.setLength(sqlDel.length() - 1);
+			sqlDel.append(")");
+
+			ps = conn.prepareStatement(sqlDel.toString());
+			ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
+			int paramPos = 2;
+			for (Long l : pkids) {
+				ps.setLong(paramPos++, l);
+			}
+			return ps.executeUpdate();
 		} finally {
 			closeResource((AutoCloseable) ps, instanceUser);
 		}
+
+	}
+
+	/**
+	 * Method to perform the actual database update to set the DT_DELETE to current
+	 * timestamp
+	 * 
+	 * @param dbt      The object type descriptor
+	 * @param repoData
+	 * @return
+	 * @throws SQLException
+	 * @throws SvException
+	 */
+	int executeRepoUpdate(HashMap<Long, Object[]> repoData) throws SQLException, SvException {
+
+		int deletedRows = 0;
+
+		DbDataObject dbt = null;
+
+		Iterator<Object[]> repoIt = repoData.values().iterator();
+		List<Long> pkids = new ArrayList<Long>(repoData.size());
+		String schema = null;
+		String repoName = null;
+
+		while (repoIt.hasNext()) {
+			Object[] repo = repoIt.next();
+			if (dbt == null || !dbt.getObjectId().equals(repo[3])) {
+				dbt = getDbt((Long) repo[3]);
+				// if the repo table is the same but the dbt has changed, just leave it
+				if (!(dbt.getVal("schema").equals(schema) && dbt.getVal("repo_name").equals(repoName))) {
+					// repo has changed, first commit the old result to the DB
+					deletedRows = deletedRows + executeRepoUpdateSQL(schema, repoName, pkids);
+					// then change the repo and clear the list of PKIDs
+					repoName = (String) dbt.getVal("repo_name");
+					schema = (String) dbt.getVal("schema");
+					pkids.clear();
+				}
+			}
+			pkids.add((Long) repo[0]);
+		}
+		// final update of the DB
+		deletedRows = deletedRows + executeRepoUpdateSQL(schema, repoName, pkids);
+
+		return deletedRows;
+
+	}
+
+	void cacheCleanup(HashMap<Long, Object[]> repoData, boolean deleteLinks) throws SvException {
+		Iterator<Entry<Long, Object[]>> it = repoData.entrySet().iterator();
+		while (it.hasNext()) {
+			Entry<Long, Object[]> item = it.next();
+			cacheCleanup((Long) item.getValue()[1], (Long) item.getValue()[2], (Long) item.getValue()[3]);
+			if (deleteLinks && svCONST.OBJECT_TYPE_LINK != (Long) item.getValue()[3])
+				it.remove();
+		}
+		// TODO
+		// now cleanup the cached links info
 
 	}
 
@@ -1822,10 +2014,7 @@ public class SvWriter extends SvCore {
 			if (dbarr != null && dbarr.getItems().size() > 0)
 				this.saveObject(dbarr, true, false);
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbarr, null));
-		} catch (Exception e) {
-			e.printStackTrace();
-
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbarr, null, e));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -1875,7 +2064,7 @@ public class SvWriter extends SvCore {
 			}
 
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, dbo, null));
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbo, null));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
