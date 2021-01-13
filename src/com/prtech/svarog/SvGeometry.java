@@ -67,16 +67,43 @@ public class SvGeometry extends SvCore {
 
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 
-	static SvGrid getSysGrid() {
-		SvGrid svg = null;
-		Cache<String, SvSDITile> cache = getLayerCache(svCONST.OBJECT_TYPE_GRID);
-		svg = (SvGrid) cache.getIfPresent(Sv.SDI_SYSGRID);
-		if (svg == null) {
-			GeometryCollection c = SvGrid.loadGridFromJson("conf/sdi/grid.json");
-			svg = new SvGrid(c, Sv.SDI_SYSGRID);
-			cache.put(Sv.SDI_SYSGRID, svg);
+	private static volatile SvGrid sysGrid = null;
+	private static volatile SvSDITile sysBoundary = null;
+
+	static SvGrid getSysGrid() throws SvException {
+		if (sysGrid == null) {
+			synchronized (SvGeometry.class) {
+				if (sysGrid == null)
+					sysGrid = new SvGrid(Sv.SDI_SYSGRID);
+
+			}
 		}
-		return svg;
+		return sysGrid;
+	}
+
+	static void setSysGrid(SvGrid svg) {
+		if (sysGrid == null)
+			sysGrid = svg;
+	}
+
+	/**
+	 * A method that creates a new {@link SvSDITile} based on the GeoJSON system
+	 * boundary
+	 * 
+	 * @return SvSDITile representing the system boundary
+	 * @throws SvException
+	 */
+	public static SvSDITile getSysBoundary() throws SvException {
+		if (sysBoundary == null) {
+			synchronized (SvGeometry.class) {
+				if (sysBoundary == null) {
+					HashMap<String, Object> params = new HashMap<String, Object>();
+					params.put("FILE_PATH", "conf/sdi/boundary.json");
+					sysBoundary = getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, Sv.SDI_SYSTEM_BOUNDARY, params);
+				}
+			}
+		}
+		return sysBoundary;
 	}
 
 	static Cache<String, SvSDITile> getLayerCache(Long tileTypeId) {
@@ -165,7 +192,7 @@ public class SvGeometry extends SvCore {
 		dbo.setVal(getCentroidFieldName(dbo.getObjectType()), centroid);
 	}
 
-	public static Map<String, Geometry> getGrid() {
+	public static Map<String, Geometry> getGrid() throws SvException {
 		return getSysGrid().getGridMap();
 	}
 
@@ -194,8 +221,9 @@ public class SvGeometry extends SvCore {
 	 * @param envelope The envelope which we want to use as bounding box for the
 	 *                 returned geometries
 	 * @return List of {@link Geometry} objects
+	 * @throws SvException
 	 */
-	public static List<Geometry> getTileGeometries(Envelope envelope) {
+	public static List<Geometry> getTileGeometries(Envelope envelope) throws SvException {
 		@SuppressWarnings("unchecked")
 		List<Geometry> result = getSysGrid().getGridIndex().query(envelope);
 		return result;
@@ -644,8 +672,10 @@ public class SvGeometry extends SvCore {
 	 * @param tileId
 	 * @param tileParams
 	 * @return
+	 * @throws SvException
 	 */
-	static Envelope getTileEnvelope(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	static Envelope getTileEnvelope(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			throws SvException {
 		Envelope envl = null;
 		// if the tileId is found in the grid map, it means we are fetching
 		// a grid based tile
@@ -658,30 +688,20 @@ public class SvGeometry extends SvCore {
 		return envl;
 	}
 
-	public static SvSDITile createTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public static SvSDITile createTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			throws SvException {
 		SvSDITile currentTile = null;
 		if (tileParams == null)
 			tileParams = new HashMap<String, Object>();
 
-		Envelope tileEnv = getTileEnvelope(tileTypeId, tileId, tileParams);
-		tileParams.put(Sv.ENVELOPE, tileEnv);
 		if (tileTypeId == svCONST.OBJECT_TYPE_SDI_GEOJSONFILE)
 			currentTile = new SvSDIJsonTile(tileTypeId, tileId, tileParams);
-		else
+		else {
+			Envelope tileEnv = getTileEnvelope(tileTypeId, tileId, tileParams);
+			tileParams.put(Sv.ENVELOPE, tileEnv);
 			currentTile = new SvSDIDbTile(tileTypeId, tileId, tileParams);
+		}
 		return currentTile;
-	}
-
-	/**
-	 * A method that creates a new {@link SvSDITile} based on the GeoJSON system
-	 * boundary
-	 * 
-	 * @return SvSDITile representing the system boundary
-	 */
-	public static SvSDITile getSysBoundary() {
-		HashMap<String, Object> params = new HashMap<String, Object>();
-		params.put("FILE_PATH", "conf/sdi/boundary.json");
-		return getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, Sv.SDI_SYSTEM_BOUNDARY, params);
 	}
 
 	/**
@@ -708,9 +728,11 @@ public class SvGeometry extends SvCore {
 	 * @param tileId     The string identification of the tile
 	 * @param tileParams Array of strings containing tile id or file path.
 	 * @return Instance of the tile, either from the cache of newly created
+	 * @throws SvException
 	 * 
 	 */
-	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public static SvSDITile getTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
+			throws SvException {
 		Cache<String, SvSDITile> cache = getLayerCache(tileTypeId);
 		SvSDITile svTile = null;
 		synchronized (cache) {
@@ -1340,7 +1362,7 @@ public class SvGeometry extends SvCore {
 
 	}
 
-	static void markDirtyTile(long tileTypeId, int[] cell) {
+	static void markDirtyTile(long tileTypeId, int[] cell) throws SvException {
 		if (cell != null && cell.length > 2) {
 			String tileId = Integer.toString(cell[0]) + ":" + Integer.toString(cell[1]);
 			SvSDITile tile = getTile(tileTypeId, tileId, null);

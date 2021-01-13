@@ -190,7 +190,7 @@ public class SvarogInstall {
 					if (line.hasOption("j"))
 						returnStatus = generateJsonCfg();
 					else if (line.hasOption("gd"))
-						returnStatus = generateGrid();
+						returnStatus = upgradeGrid();
 					else if (line.hasOption("i")) {
 						returnStatus = validateInstall();
 						if (returnStatus == 0 && line.hasOption("d"))
@@ -268,8 +268,17 @@ public class SvarogInstall {
 	 */
 	private static int validateInstall() {
 		int errStatus = canConnectToDb();
-		if (SvConf.isSdiEnabled()) {
-			GeometryCollection c = SvGrid.loadGridFromJson("conf/sdi/grid.json");
+		if (SvConf.isSdiEnabled() && isSvarogInstalled()) {
+			SvSDITile c = null;
+			try {
+				c = SvGeometry.getSysBoundary();
+				Set<Geometry> gs = c.getInternalGeometries();
+				GeometryCollection gc = c.getInternalGeomCollection();
+				if (gs.size() > 0 && gc.getArea() > 1)
+					errStatus = 0;
+			} catch (SvException e) {
+				log4j.debug("System boundary is invalid:", e);
+			}
 			if (c == null)
 				errStatus = -3;
 		}
@@ -282,11 +291,16 @@ public class SvarogInstall {
 	 * 
 	 * @return -1 in case of system error.
 	 */
-	private static int generateGrid() {
+	private static int upgradeGrid() {
+		if (!SvConf.isSdiEnabled()) {
+			log4j.error(
+					"SDI is not enabled, can't generate grid. Enable SDI via svarog.properties parameter \"sys.gis.enable_spatial\"");
+			return -1;
+		}
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
 		GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize());
-		boolean result = SvGrid.saveGridToMasterFile(grid);
-		if (!result) {
+		boolean gridExists = SvGrid.saveGridToDatabase(grid, Sv.SDI_SYSGRID);
+		if (!gridExists) {
 			log4j.error("Error generating system tile grid.");
 			return -1;
 		}
@@ -1369,12 +1383,19 @@ public class SvarogInstall {
 				log4j.error("Svarog master records " + operation + " failed");
 				return -2;
 			}
+			if (upgradeGrid() != 0) {
+				log4j.error("Svarog grid upgrade failed");
+				return -2;
+			}
+
 			// finally create the file store if it is initial install
-			if (!isSvarogInstalled())
-				if (!initFileStore()) {
-					log4j.error("Initialising the svarog file store failed");
-					return -2;
+			if (!isSvarogInstalled()) {
+				int result = initFileStore() ? 0 : -1;
+				if (result != 0) {
+					log4j.error("Post-install initialising  of file store failed");
+					return result;
 				}
+			}
 
 			executeConfiguration(ISvConfiguration.UpdateType.FINAL);
 
@@ -2035,8 +2056,8 @@ public class SvarogInstall {
 						if (!dbObjectExists(idxDbName, conn)) {
 							// for spatial indexes MSSQL needs the system
 							// bounding box
-							retval = createSpatialIndex(idxDbName, columns,
-									SvGeometry.getTileEnvelope(0L, "DUMMY", null), dbt.getDbTableName(), conn);
+							retval = createSpatialIndex(idxDbName, columns, SvGeometry.getSysBoundary().getEnvelope(),
+									dbt.getDbTableName(), conn);
 							if (!retval)
 								break;
 						}
