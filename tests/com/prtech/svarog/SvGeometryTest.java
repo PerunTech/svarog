@@ -63,11 +63,10 @@ public class SvGeometryTest {
 		boundGeom.add(SvUtil.sdiFactory.toGeometry(boundaryEnv));
 
 		// generate and prepare fake grid
-		DbDataObject gridDbt = SvCore.getDbtByName(Sv.SDI_GRID);
 		GeometryCollection grid = SvGrid.generateGrid(boundGeom.get(0), SvConf.getSdiGridSize());
-		Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(gridDbt.getObjectId());
+		Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_GRID);
 		SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
-		gridCache .put(Sv.SDI_SYSGRID, svg);
+		SvGeometry.setSysGrid(svg);
 
 		// add the fake boundary as system boundary
 		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
@@ -101,9 +100,17 @@ public class SvGeometryTest {
 
 	@Test
 	public void testGrid() {
-		Map<String, Geometry> grid = SvGeometry.getGrid();
-		if (grid == null || grid.size() < 1)
+		Map<String, Geometry> grid;
+		try {
+			grid = SvGeometry.getGrid();
+
+			if (grid == null || grid.size() < 1)
+				fail("Failed fetching base grid");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
 			fail("Failed fetching base grid");
+			e.printStackTrace();
+		}
 	}
 
 	@Test
@@ -286,7 +293,8 @@ public class SvGeometryTest {
 	public void testGetTileNotExist() {
 		try {
 			GeometryFactory gf = SvUtil.sdiFactory;
-			System.out.println("Max tile:" + SvGeometry.getSysGrid().getMaxXtile() + ":" + SvGeometry.getSysGrid().getMaxYtile());
+			System.out.println(
+					"Max tile:" + SvGeometry.getSysGrid().getMaxXtile() + ":" + SvGeometry.getSysGrid().getMaxYtile());
 
 			Point point = gf.createPoint(new Coordinate(7469568, 4530337));
 			List<Geometry> gcl = SvGeometry.getTileGeometries(point.getEnvelopeInternal());
@@ -368,7 +376,7 @@ public class SvGeometryTest {
 					null, null, false);
 			Geometry g1 = copied.iterator().next();
 			Geometry g2 = intersected.iterator().next();
-			if (g1.getArea()!=(50.0))
+			if (g1.getArea() != (50.0))
 				fail("Test did not return a copy of geometry");
 
 		}

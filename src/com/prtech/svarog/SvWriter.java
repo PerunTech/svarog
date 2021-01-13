@@ -1355,55 +1355,39 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	protected void deleteObjectImpl(DbDataObject dbo) throws SvException {
-		if (log4j.isDebugEnabled())
-			log4j.trace("Deleting object with ID:" + dbo.getObjectId());
+		DbDataArray dba = new DbDataArray();
+		dba.addDataItem(dbo);
+		deleteImpl(dba, false, false, null, null);
+	}
 
-		PreparedStatement ps = null;
-		try {
+	/**
+	 * Method for deleting list of object from database. The delete method acts
+	 * depending on the deletion type of the reference type of the object which is
+	 * deleted
+	 * 
+	 * @param dba The list of objects object which should be deleted
+	 * @throws SQLException
+	 * @throws SvException
+	 */
+	public void deleteObjects(DbDataArray dba) throws SvException {
+		deleteImpl(dba, false, false, null, null);
+	}
 
-			DbDataObject dbt = getDbt(dbo);
-			// authorise the save operation
-			if (!isAdmin() && !isSystem() && !hasDbtAccess(dbt, null, SvAccess.MODIFY))
-				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
-						SvAccess.MODIFY.toString()));
-
-			Connection conn = this.dbGetConn();
-
-			// if an existing object is updated, make sure the object
-			// can still be updated and was not changed in mean time
-			if (dbo.getPkid() != 0) {
-				DbDataArray dba = new DbDataArray();
-				dba.addDataItem(dbo);
-				HashMap<Long, Object[]> repoData = getRepoData(dbt, dba, false, false, null);
-				if (repoData.get(dbo.getObjectId()) == null)
-					throw (new SvException("system.error.no_obj_to_del", instanceUser, dbo, null));
-
-			}
-			String schema = dbt.getVal("schema").toString();
-			String repo_name = dbt.getVal("repo_name").toString();
-			DateTime dt_insert = new DateTime();
-
-			String sqlDel = UPDATE + " " + schema + "." + repo_name + " SET dt_delete=? WHERE pkid=?";
-			if (dbo.getPkid() != 0) {
-				ps = conn.prepareStatement(sqlDel);
-				ps.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
-				ps.setLong(2, dbo.getPkid());
-				int invalidatedRows = ps.executeUpdate();
-				if (invalidatedRows != 1) {
-					throw (new SvException("system.error.multiple_rows_updated", instanceUser, dbo, null));
-				} else {
-					cacheCleanup(dbo);
-					executeAfterSaveCallbacks(dbo);
-				}
-				// DbCache.removeObject(dbo.getObjectId(),
-				// dbo.getObjectType());
-			}
-		} catch (SQLException e) {
-			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbo, null, e));
-		} finally {
-			closeResource((AutoCloseable) ps, instanceUser);
-		}
-
+	/**
+	 * Method for deleting list of object from database. The delete method acts
+	 * depending on the deletion type of the reference type of the object which is
+	 * deleted
+	 * 
+	 * @param dba            The list of objects object which should be deleted
+	 * @param deleteChildren Flag to ensure the method will cascade the deletion to
+	 *                       child objects
+	 * @param deleteLinks    Flag to ensure the method will cascade the deletion to
+	 *                       link objects (It delete only the link, not the linking
+	 *                       object!)
+	 * @throws SvException
+	 */
+	public void deleteObjects(DbDataArray dba, boolean deleteChildren, boolean deleteLinks) throws SvException {
+		deleteImpl(dba, deleteChildren, deleteLinks, null, null);
 	}
 
 	void validateList(DbDataArray dba) throws SvException {

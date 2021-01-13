@@ -379,7 +379,8 @@ public class SvClusterNotifierClient implements Runnable {
 	@Override
 	public void run() {
 		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
-			log4j.error(this.getClass().getName()+ ".run() failed. Current status is active:"+isActive.get()+". Main server thread is running:"+isRunning.get());
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
 			return;
 		}
 
@@ -498,7 +499,7 @@ public class SvClusterNotifierClient implements Runnable {
 					SvGeometry.markDirtyTile(tileTypeId, cell);
 
 					objectCount++;
-				} catch (BufferUnderflowException ex) {
+				} catch (BufferUnderflowException | SvException ex) {
 					hasObjects = false;
 					log4j.debug(
 							"Received dirty notification " + msgBuffer.toString() + " objects of type " + tileTypeId);

@@ -85,6 +85,7 @@ public class SvSDIJsonTile extends SvSDITile {
 		try {
 			jtsReader.setUseFeatureType(true);
 			layer = (GeometryCollection) jtsReader.read(geoJSONBounds);
+			tileEnvelope = layer.getEnvelopeInternal();
 			if (layer != null) {
 				for (int i = 0; i < layer.getNumGeometries(); i++) {
 					geomItem = layer.getGeometryN(i);

@@ -11,15 +11,26 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.prtech.svarog_common.DbDataArray;
+import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbSearch;
+import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchExpression;
+import com.prtech.svarog_interfaces.ISvCore;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
 public class SvGrid extends SvSDITile {
 	static final Logger log4j = LogManager.getLogger(SvSDITile.class.getName());
+	private static final String GRID_NAME = "GRID_NAME";
+	private static final String GRIDTILE_ID = "GRIDTILE_ID";
 	/**
 	 * The main index of grid geometries.
 	 */
@@ -40,19 +51,33 @@ public class SvGrid extends SvSDITile {
 	static int maxYtile = 0;
 	static int maxXtile = 0;
 
+	protected Long tileTypeId = svCONST.OBJECT_TYPE_GRID;
+
+	protected String getTileId() {
+		return tileTypeId.toString() + "." + gridName;
+	}
+
 	/**
 	 * Method to build the gridIndex and populate the gridmap based on the grid
 	 * specified by the internal geometry collection {@link #grid}
 	 * 
 	 * @param gridName the code name of the grid.
 	 * @return
+	 * @throws SvException
 	 */
-	SvGrid(String gridName) {
+	SvGrid(String gridName) throws SvException {
 		this.gridName = gridName;
-		//TODO load geometries from DB?
+		Envelope env = SvGeometry.getSysBoundary().getEnvelope();
+		env.expandBy(2000);
+		this.tileEnvelope = env;
+		buildGrid(this.getInternalGeomCollection(), gridName);
 	}
 
-	SvGrid(GeometryCollection gridGcl, String gridName) {
+	public SvGrid(GeometryCollection gridGcl, String sdiSysgrid) {
+		buildGrid(gridGcl, gridName);
+	}
+
+	void buildGrid(GeometryCollection gridGcl, String gridName) {
 		this.gridName = gridName;
 		this.grid = gridGcl;
 		Geometry gridItem = null;
@@ -60,8 +85,13 @@ public class SvGrid extends SvSDITile {
 		try {
 			for (int i = 0; i < grid.getNumGeometries(); i++) {
 				gridItem = grid.getGeometryN(i);
-				String TileId = (String) gridItem.getUserData();
-				String[] baseId = TileId.split("-");
+				Object ud = gridItem.getUserData();
+				String tileId = null;
+				if (ud instanceof DbDataObject)
+					tileId = (String) ((DbDataObject) ud).getVal(GRIDTILE_ID);
+				else
+					tileId = (String) ud;
+				String[] baseId = tileId.split("-");
 				if (baseId[1] != null && baseId[1].equals("true"))
 					borderTiles.add(baseId[0]);
 				gridItem.setUserData(baseId[0]);
@@ -158,7 +188,7 @@ public class SvGrid extends SvSDITile {
 
 	}
 
-	static boolean saveGridToMasterFile(GeometryCollection grid ) {
+	static boolean saveGridToMasterFile(GeometryCollection grid) {
 		try {
 			String jtsJson = null;
 			GeoJsonWriter jtsWriter = new GeoJsonWriter();
@@ -179,10 +209,112 @@ public class SvGrid extends SvSDITile {
 		return false;
 	}
 
+	/**
+	 * Method to ensure the old grid items are invalidated
+	 * 
+	 * @param gridName The name of the grid which should be deleted
+	 * @param core     The parent ISvCore to ensure all happens in a single
+	 *                 transaction
+	 * @throws SvException Underlying exception if the deletion failed
+	 */
+	static void deleteOldGrid(String gridName, ISvCore core) throws SvException {
+
+		try (SvReader svr = new SvReader((SvCore) core); SvWriter svw = new SvWriter((SvCore) core)) {
+			DbSearch dbs = new DbSearchCriterion(GRID_NAME, DbCompareOperand.EQUAL, gridName);
+			DbDataArray arr = svr.getObjects(dbs, svCONST.OBJECT_TYPE_GRID, null, 0, 0);
+			if (arr.size() > 0)
+				svw.deleteObjects(arr);
+		}
+
+	}
+
+	static boolean shouldUpgradeGrid(GeometryCollection grid) {
+		SvGrid g = null;
+		boolean result = false;
+		try {
+			g = SvGeometry.getSysGrid();
+			Map<String, Geometry> gmap = g.getGridMap();
+			for (int i = 0; i < grid.getNumGeometries(); i++) {
+				Geometry gg = SvUtil.sdiFactory.createMultiPolygon(new Polygon[] { (Polygon) grid.getGeometryN(i) });
+				String tileId = (String) grid.getGeometryN(i).getUserData();
+				tileId = tileId.substring(0, tileId.indexOf("-"));
+				Geometry existing = gmap.get(tileId);
+				if (existing == null || !gg.equalsExact(existing)) {
+					log4j.info("Tile " + tileId + " has updated geometry, upgrade needed");
+					result = true;
+				}
+
+			}
+		} catch (SvException e) {
+			log4j.debug("System grid is empty. Initial install required");
+			result = true;
+		}
+		if (!result)
+			log4j.info("System grid is up to date");
+		return result;
+
+	}
+
+	/**
+	 * Save a new version of a grid into the database. It will invalidate the old
+	 * grid!
+	 * 
+	 * @param grid     The list of geometries forming the grid
+	 * @param gridName The name of the grid
+	 * @return
+	 */
+	static boolean saveGridToDatabase(GeometryCollection grid, String gridName) {
+		try (SvWriter svg = new SvWriter()) {
+			// if its the system grid test if we should upgrade
+			if (gridName.equals(Sv.SDI_SYSGRID) && !shouldUpgradeGrid(grid))
+				return true;
+			// first lets delete the existing grid if any
+			deleteOldGrid(gridName, svg);
+			// now prepare the new set of geometries for saving to the database
+			DbDataArray gridArray = new DbDataArray();
+			for (int i = 0; i < grid.getNumGeometries(); i++) {
+				DbDataObject gridCell = new DbDataObject(svCONST.OBJECT_TYPE_GRID);
+				Geometry g = SvUtil.sdiFactory.createMultiPolygon(new Polygon[] { (Polygon) grid.getGeometryN(i) });
+				gridCell.setVal(GRID_NAME, gridName);
+				gridCell.setVal(GRIDTILE_ID, grid.getGeometryN(i).getUserData());
+				gridCell.setVal(Sv.AREA, g.getArea());
+				SvGeometry.setGeometry(gridCell, g);
+				Point centroid = SvGeometry.calculateCentroid(g);
+				SvGeometry.setCentroid(gridCell, centroid);
+				gridArray.addDataItem(gridCell);
+			}
+			svg.isInternal = true;
+			svg.saveObject(gridArray, true);
+			log4j.info("Number of tiles written:" + grid.getNumGeometries());
+			return true;
+		} catch (Exception e) {
+			log4j.error("Error saving grid to file:" + SvConf.getConfPath() + SvarogInstall.masterSDIPath
+					+ SvarogInstall.sdiGridFile, e);
+		}
+		return false;
+	}
+
 	@Override
 	ArrayList<Geometry> loadGeometries() throws SvException {
-		// TODO Auto-generated method stub
-		return null;
+		ArrayList<Geometry> geometries = new ArrayList<>();
+		DbSearch dbs = new DbSearchCriterion(GRID_NAME, DbCompareOperand.EQUAL, gridName);
+		Geometry geom = null;
+		try (SvReader svr = new SvReader()) {
+
+			svr.includeGeometries = true;
+			DbDataArray arr = svr.getObjects(dbs, tileTypeId, null, 0, 0);
+			if (log4j.isDebugEnabled())
+				log4j.debug("Loaded " + arr.size() + " geometries for tile type:" + tileTypeId + ", with search:"
+						+ dbs.toSimpleJson().toString());
+			for (DbDataObject dbo : arr.getItems()) {
+				geom = SvGeometry.getGeometry(dbo);
+				geom.setUserData(dbo);
+				geometries.add(geom);
+			}
+		}
+		if (geometries.size() < 1)
+			throw (new SvException(Sv.Exceptions.EMPTY_GRID, svCONST.systemUser));
+		return geometries;
 	}
 
 	/**
