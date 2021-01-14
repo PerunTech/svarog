@@ -54,8 +54,7 @@ public class SvGeometryTest {
 	private static final long gridX0 = 0L;
 	private static final long gridY0 = 0L;
 
-	@BeforeClass
-	static public void initTestSDI() throws SvException {
+	private static void initFakeSysBoundary() {
 		// create a fake boundary with about 10x10 grid cells
 		Envelope boundaryEnv = new Envelope(gridX0, 10 * SvConf.getSdiGridSize() * 1000, gridY0,
 				10 * SvConf.getSdiGridSize() * 1000);
@@ -74,6 +73,11 @@ public class SvGeometryTest {
 		tile.tilelId = Sv.SDI_SYSTEM_BOUNDARY;
 		cache.put(tile.tilelId, tile);
 
+	}
+
+	@BeforeClass
+	static public void initTestSDI() throws SvException {
+		initFakeSysBoundary();
 		// now add a test layer with ID TEST_LAYER_TYPE_ID
 		CacheBuilder<String, SvSDITile> b = (CacheBuilder<String, SvSDITile>) DbCache.createBuilder(null);
 		Cache<String, SvSDITile> newCacheBase = b.<String, SvSDITile>build();
@@ -89,6 +93,7 @@ public class SvGeometryTest {
 				TEST_LAYER_SECOND_TYPE_ID, testGeomsSecond(gridX0, gridY0));
 		layerTileSecond.tilelId = "0:0";
 
+		Cache<String, SvSDITile> cache = null;
 		newCacheBase.put(layerTile.tilelId, layerTile);
 		newCacheSecond.put(layerTileSecond.tilelId, layerTileSecond);
 		cache = SvGeometry.layerCache.put(TEST_LAYER_TYPE_ID, newCacheBase);
@@ -686,6 +691,25 @@ public class SvGeometryTest {
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void getGrid() {
+		try {
+			SvGeometry.resetGrid();
+			// add the fake boundary as system boundary
+
+			SvGrid sysGrid = new SvGrid(Sv.SDI_SYSGRID);
+			if (sysGrid.getInternalGeometries().size() < 1 || sysGrid.getInternalGeomCollection().getArea() < 10)
+				fail("Grid init failed");
+
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail("Grid init raised exception");
+		}
+		initFakeSysBoundary();
+
 	}
 
 }

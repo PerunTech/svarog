@@ -81,6 +81,21 @@ public class SvGeometry extends SvCore {
 		return sysGrid;
 	}
 
+	/**
+	 * This method shall be used only to enfore reset of the grid and boundary
+	 */
+	static void resetGrid() {
+		sysGrid = null;
+		sysBoundary = null;
+		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
+		cache.invalidate(Sv.SDI_SYSTEM_BOUNDARY);
+	}
+
+	/**
+	 * Method to set a system grid before its initialised. Used for test purposes
+	 * 
+	 * @param svg
+	 */
 	static void setSysGrid(SvGrid svg) {
 		if (sysGrid == null)
 			sysGrid = svg;
