@@ -67,7 +67,9 @@ public class SvGrid extends SvSDITile {
 	 */
 	SvGrid(String gridName) throws SvException {
 		this.gridName = gridName;
-		Envelope env = SvGeometry.getSysBoundary().getEnvelope();
+		SvSDITile boundary = SvGeometry.getSysBoundary();
+		boundary.loadTile();
+		Envelope env = boundary.getEnvelope();
 		env.expandBy(2000);
 		this.tileEnvelope = env;
 		buildGrid(this.getInternalGeomCollection(), gridName);
