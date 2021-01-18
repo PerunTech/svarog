@@ -21,7 +21,7 @@ public class SvMTWriterTest {
 	public static void deleteNewRecs() throws SQLException {
 		try (SvReader svr = new SvReader()) {
 			PreparedStatement ps = svr.dbGetConn()
-					.prepareCall("DELETE FROM SVAROG_sys_params WHERE param_name like 'MTST%'");
+					.prepareCall("DELETE FROM "+SvConf.getDefaultSchema()+"."+SvConf.getMasterRepo()+"_SYS_PARAMS WHERE param_name like 'MTST%'");
 			ps.execute();
 			svr.dbCommit();
 		} catch (SvException e) {
