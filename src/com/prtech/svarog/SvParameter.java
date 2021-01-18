@@ -931,7 +931,7 @@ public class SvParameter extends SvCore {
 				} else
 					prepareParam(dbParamValue);
 				dbParamValue.setIsDirty(false);
-				paramsCache.put(Sv.PARAM_NAME, dbParamValue);
+				paramsCache.put(key, dbParamValue);
 			}
 		}
 		value = dbParamValue.getVal(Sv.PARAM_VALUE);

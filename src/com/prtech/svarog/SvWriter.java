@@ -443,7 +443,8 @@ public class SvWriter extends SvCore {
 					+ (String) dbt.getVal("table_name") + " WHERE pkid=?";
 			queryCache.put(-dbt.getObjectId(), sql);
 		}
-		log4j.debug(sql);
+		if (log4j.isDebugEnabled())
+			log4j.trace(sql);
 		return sql;
 	}
 
@@ -558,7 +559,9 @@ public class SvWriter extends SvCore {
 			String repoName = dbt.getVal("repo_name").toString();
 			Boolean isUpdate = dba.getItems().get(0).getObjectId() != 0L;
 			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repoName);
-			log4j.debug(sqlInsRepo);
+
+			if (log4j.isDebugEnabled())
+				log4j.trace(sqlInsRepo);
 			// sort the milis of the ending/starting time
 			long milis = new DateTime().getMillis();
 			Timestamp dtEndPrev = new Timestamp(milis - 1);
@@ -673,8 +676,8 @@ public class SvWriter extends SvCore {
 		dba.getItems().get(objectIndex)
 				.setUserId(this.saveAsUser != null ? this.saveAsUser.getObjectId() : this.instanceUser.getObjectId());
 		if (log4j.isDebugEnabled()) {
-			log4j.debug("Generated keys (pkid):" + pkid.toString());
-			log4j.debug("Generated keys (object_id)" + objectId.toString());
+			log4j.trace("Generated keys (pkid):" + pkid.toString());
+			log4j.trace("Generated keys (object_id)" + objectId.toString());
 		}
 	}
 
@@ -976,7 +979,7 @@ public class SvWriter extends SvCore {
 
 		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true);
 		if (log4j.isDebugEnabled())
-			log4j.debug("Executing SQL:" + sql);
+			log4j.trace("Executing SQL:" + sql);
 
 		try (SvLob lob = new SvLob(this.dbGetConn()); PreparedStatement ps = this.dbGetConn().prepareStatement(sql)) {
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
@@ -990,7 +993,8 @@ public class SvWriter extends SvCore {
 			if (arrayToSave.getItems().size() != insertedRows.length)
 				throw (new SvException("system.error.batch_size_err", instanceUser, arrayToSave, dbt));
 		} catch (BatchUpdateException e) {
-			throw (new SvException("system.error.batch_err", instanceUser, arrayToSave, dbt, e.getNextException()));
+			throw (new SvException("system.error.batch_err", instanceUser, arrayToSave, e.getUpdateCounts(),
+					e.getNextException()));
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, arrayToSave, dbt, e));
 		} catch (Exception e) {
@@ -1027,7 +1031,7 @@ public class SvWriter extends SvCore {
 
 			Object value = objToSave.getVal(fName);
 			if (log4j.isDebugEnabled())
-				log4j.debug("Bind variable " + pCount + ", field:" + fName + ", value:" + value);
+				log4j.trace("Bind variable " + pCount + ", field:" + fName + ", value:" + value);
 
 			// validate the field data and if exception happens re-throw
 			try {
@@ -1275,23 +1279,14 @@ public class SvWriter extends SvCore {
 
 		try {
 			this.dbSetAutoCommit(false);
-			DbDataArray batchToSend = new DbDataArray();
-			int dboCount = 1;
-			@SuppressWarnings("unchecked")
-			ArrayList<DbDataObject> dboArray = (ArrayList<DbDataObject>) dbDataArray.getItems().clone();
-			while (dboArray.size() > 0) {
-				dboCount = 0;
-				for (DbDataObject dbo : dboArray) {
-
-					if (dboCount < currentBatchSize) {
-						batchToSend.addDataItem(dbo);
-					} else
-						break;
-					dboCount++;
-				}
-				dboArray.removeAll(batchToSend.getItems());
-				saveObjectImpl(batchToSend, false);
-				batchToSend.getItems().clear();
+			int start = 0;
+			int end = currentBatchSize;
+			while (start < dbDataArray.size()) {
+				if (end > dbDataArray.size())
+					end = dbDataArray.size();
+				saveObjectImpl(new DbDataArray(dbDataArray.getItems().subList(start, end)), false);
+				start = end;
+				end = start + currentBatchSize;
 			}
 
 			if (autoCommit)

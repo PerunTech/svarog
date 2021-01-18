@@ -221,7 +221,7 @@ public class SvClusterNotifierClient implements Runnable {
 						(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount)));
 				// send the previous buffer
 				if (log4j.isDebugEnabled())
-					log4j.debug(
+					log4j.trace(
 							"Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
 				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
@@ -473,7 +473,7 @@ public class SvClusterNotifierClient implements Runnable {
 				try {
 					long objectId = msgBuffer.getLong();
 					if (log4j.isDebugEnabled())
-						log4j.debug("Received dirty notification for object with id:" + objectId + " and type "
+						log4j.trace("Received dirty notification for object with id:" + objectId + " and type "
 								+ objectTypeId);
 					SvWriter.cacheCleanup(objectId, objectTypeId);
 					objectCount++;
@@ -481,7 +481,9 @@ public class SvClusterNotifierClient implements Runnable {
 					log4j.info("Object dirty message not processed", e);
 				} catch (BufferUnderflowException ex) {
 					hasObjects = false;
-					log4j.debug("Received dirty notification for " + objectCount + " objects of type " + objectTypeId);
+					if (log4j.isDebugEnabled())
+						log4j.trace(
+								"Received dirty notification for " + objectCount + " objects of type " + objectTypeId);
 				}
 			}
 
@@ -495,14 +497,15 @@ public class SvClusterNotifierClient implements Runnable {
 					cell[0] = msgBuffer.getInt();
 					cell[1] = msgBuffer.getInt();
 					if (log4j.isDebugEnabled())
-						log4j.debug("Received dirty notification for tile with id:" + cell + " and type " + tileTypeId);
+						log4j.trace("Received dirty notification for tile with id:" + cell + " and type " + tileTypeId);
 					SvGeometry.markDirtyTile(tileTypeId, cell);
 
 					objectCount++;
 				} catch (BufferUnderflowException | SvException ex) {
 					hasObjects = false;
-					log4j.debug(
-							"Received dirty notification " + msgBuffer.toString() + " objects of type " + tileTypeId);
+					if (log4j.isDebugEnabled())
+						log4j.trace("Received dirty notification " + msgBuffer.toString() + " objects of type "
+								+ tileTypeId);
 				}
 			}
 

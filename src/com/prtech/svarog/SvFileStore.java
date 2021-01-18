@@ -325,7 +325,7 @@ public class SvFileStore extends SvCore {
 						files.addDataItem(file);
 				}
 			} else
-				files.setItems((ArrayList<DbDataObject>) allFiles.getItems().clone());
+				files.setItems((ArrayList<DbDataObject>) ((ArrayList<DbDataObject>) allFiles.getItems()).clone());
 		} finally {
 			svr.release();
 		}
