@@ -620,7 +620,7 @@ public class SvClusterClient implements Runnable {
 		} else {
 			lastContact = DateTime.now();
 			if (log4j.isDebugEnabled()) {
-				log4j.debug("Received heartbeat from coordinator node with destination:" + Long.toString(dstNode));
+				log4j.trace("Received heartbeat from coordinator node with destination:" + Long.toString(dstNode));
 			}
 		}
 	}

@@ -264,7 +264,7 @@ public class SvParametersTest {
 			 * DbCompareOperand.EQUAL, "POPULATED_AREAS_IPARD"));
 			 */
 			reg_office = svReader.getObjects(expr, objToSearch, null, 0, 0);
-			ArrayList<DbDataObject> list = reg_office.getItems();
+			ArrayList<DbDataObject> list = (ArrayList<DbDataObject>) reg_office.getItems();
 			if (list.size() > 0) {
 				result = list.get(0);
 			}

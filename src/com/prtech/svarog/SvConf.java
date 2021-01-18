@@ -433,8 +433,6 @@ public class SvConf {
 
 			}
 
-			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
-			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
 
 			if (svDbConnType.equals(SvDbConnType.JNDI)) {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
@@ -534,6 +532,9 @@ public class SvConf {
 
 			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", 0);
 			intersectSysBoundary = getProperty(mainProperties, "sys.gis.allow_boundary_intersect", false);
+
+			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
+			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
 
 			// make sure we configure the service classes as well as system
 			// classes

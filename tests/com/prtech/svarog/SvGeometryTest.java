@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -75,8 +76,14 @@ public class SvGeometryTest {
 
 	}
 
+	@AfterClass
+	static public void resetSDI() {
+		SvGeometry.resetGrid();
+	}
+
 	@BeforeClass
 	static public void initTestSDI() throws SvException {
+		SvGeometry.resetGrid();
 		initFakeSysBoundary();
 		// now add a test layer with ID TEST_LAYER_TYPE_ID
 		CacheBuilder<String, SvSDITile> b = (CacheBuilder<String, SvSDITile>) DbCache.createBuilder(null);
