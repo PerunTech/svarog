@@ -26,62 +26,73 @@ import com.prtech.svarog_common.DbDataObject;
 public class SvConstraint {
 	SvObjectConstraints parent = null;
 	public static final ResourceBundle sqlKw = SvConf.getSqlkw();
-	
+
 	static final Logger log4j = LogManager.getLogger(SvConstraint.class.getName());
 
-	ArrayList<Long> fields = new ArrayList<Long>();
-	String uniqueLevel = null;
-	String constraintName = null;
-	StringBuilder strBase = null;
-	StringBuilder singleCrit = null;
+	private final ArrayList<DbDataObject> fields = new ArrayList<>();
+	private String uniqueLevel = null;
+	private String constraintName = null;
+	private volatile StringBuilder singleCrit = null;
+	private volatile StringBuilder strBase = null;
 
-	public DbDataArray getConstraintFields()
-	{
-		DbDataArray retval=new DbDataArray();
-		retval.setItems(getConstraintFieldsA());
+	public DbDataArray getConstraintFields() {
+		DbDataArray retval = new DbDataArray();
+		retval.setItems((ArrayList<DbDataObject>) fields.clone());
 		return retval;
-		
+
 	}
-	private ArrayList<DbDataObject> getConstraintFieldsA()
-	{
-		ArrayList<DbDataObject> fieldObjs=new ArrayList<DbDataObject>();
-		for(Long fieldId:fields)
-		{
-			
-			DbDataObject fld = DbCache.getObject(fieldId, svCONST.OBJECT_TYPE_FIELD);
-			fieldObjs.add(fld);
-		}
-		return fieldObjs;
-	}
-	
-	
+
 	StringBuilder getBase() {
 		if (strBase == null) {
-			strBase = new StringBuilder();
-			DbDataObject dbt = parent.getDbt();
-			strBase.append("SELECT '" + constraintName + "' as constr_name, ");
-			String nvlFunction = sqlKw.getString("NVL");
-			singleCrit = new StringBuilder();
-			singleCrit.append("(" + (uniqueLevel.equals("PARENT") ? " "+sqlKw.getString("OBJECT_QUALIFIER_LEFT")+"PARENT_ID"+sqlKw.getString("OBJECT_QUALIFIER_RIGHT")+"=? AND " : ""));
-			singleCrit.append(sqlKw.getString("OBJECT_QUALIFIER_LEFT")+"OBJECT_ID"+sqlKw.getString("OBJECT_QUALIFIER_RIGHT")+"!=? AND ");
-			for (Long fieldId : fields) {
-				DbDataObject fld =DbCache.getObject(fieldId, svCONST.OBJECT_TYPE_FIELD);
-				boolean isNullable = (boolean)fld.getVal("IS_NULL");
-				singleCrit.append((isNullable?nvlFunction+"(":"")+sqlKw.getString("OBJECT_QUALIFIER_LEFT")+(String) fld.getVal("FIELD_NAME")+sqlKw.getString("OBJECT_QUALIFIER_RIGHT")+ (isNullable?", 'NaN')":"")+"="+(isNullable?nvlFunction+"(":"")+"?"+(isNullable?", 'NaN')":"")+" AND ");
-				strBase.append(sqlKw.getString("STRING_CAST").replace("{COLUMN_NAME}", sqlKw.getString("OBJECT_QUALIFIER_LEFT")+(String) fld.getVal("FIELD_NAME") +sqlKw.getString("OBJECT_QUALIFIER_RIGHT"))+sqlKw.getString("STRING_CONCAT")+"','"+sqlKw.getString("STRING_CONCAT"));
+			synchronized (SvConstraint.class) {
+				if (strBase == null) {
+					strBase = new StringBuilder();
+					DbDataObject dbt = parent.getDbt();
+					strBase.append("SELECT '" + constraintName + "' as constr_name, ");
+					// String nvlFunction = sqlKw.getString("NVL");
+					for (DbDataObject field : fields) {
+						// boolean isNullable = (boolean) fld.getVal("IS_NULL");
+						strBase.append(sqlKw.getString("STRING_CAST").replace("{COLUMN_NAME}",
+								sqlKw.getString("OBJECT_QUALIFIER_LEFT") + (String) field.getVal("FIELD_NAME")
+										+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT"))
+								+ sqlKw.getString("STRING_CONCAT") + "','" + sqlKw.getString("STRING_CONCAT"));
+					}
+					strBase.setLength(strBase.length() - ((sqlKw.getString("STRING_CONCAT").length() * 2) + 3));
+					strBase.append(" as existing_unq_vals FROM " + dbt.getVal("schema") + ".v"
+							+ dbt.getVal("table_name") + " WHERE DT_DELETE=? AND");
+				}
 			}
-			singleCrit.setLength(singleCrit.length() - 4);
-			singleCrit.append(")");
 
-			strBase.setLength(strBase.length() - ((sqlKw.getString("STRING_CONCAT").length()*2)+3));
-			strBase.append(
-					" as existing_unq_vals FROM " + dbt.getVal("schema") + ".v" + dbt.getVal("table_name") + " WHERE DT_DELETE=? AND");
 		}
 		return strBase;
 	}
+
 	StringBuilder getSingleCriterion() {
 		if (singleCrit == null) {
-			strBase = getBase();
+			synchronized (SvConstraint.class) {
+				if (singleCrit == null) {
+					String nvlFunction = sqlKw.getString("NVL");
+					singleCrit = new StringBuilder();
+					singleCrit.append(
+							"(" + (uniqueLevel.equals("PARENT")
+									? " " + sqlKw.getString("OBJECT_QUALIFIER_LEFT") + "PARENT_ID"
+											+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + "=? AND "
+									: ""));
+					singleCrit.append(sqlKw.getString("OBJECT_QUALIFIER_LEFT") + "OBJECT_ID"
+							+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + "!=? AND ");
+					for (DbDataObject field : fields) {
+						boolean isNullable = (boolean) field.getVal("IS_NULL");
+						singleCrit.append((isNullable ? nvlFunction + "(" : "")
+								+ sqlKw.getString("OBJECT_QUALIFIER_LEFT") + (String) field.getVal("FIELD_NAME")
+								+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + (isNullable ? ", 'NaN')" : "") + "="
+								+ (isNullable ? nvlFunction + "(" : "") + "?" + (isNullable ? ", 'NaN')" : "")
+								+ " AND ");
+
+					}
+					singleCrit.setLength(singleCrit.length() - 4);
+					singleCrit.append(")");
+				}
+			}
 		}
 		return singleCrit;
 	}
@@ -91,14 +102,14 @@ public class SvConstraint {
 		this.constraintName = constraintName;
 	}
 
-	public boolean addField(DbDataObject dbf) {
-		fields.add(dbf.getObject_id());
+	boolean addField(DbDataObject dbf) {
+		fields.add(dbf);
 		if (uniqueLevel == null)
 			uniqueLevel = (String) dbf.getVal("unq_level");
-		else if (!uniqueLevel.equals((String) dbf.getVal("unq_level")))
-		{
+		else if (!uniqueLevel.equals((String) dbf.getVal("unq_level"))) {
 			log4j.warn(
-					"One or multiple fields configured under same unique constraint have different uniqueness Level! Expected:"+uniqueLevel+", got:"+(String) dbf.getVal("unq_level"));
+					"One or multiple fields configured under same unique constraint have different uniqueness Level! Expected:"
+							+ uniqueLevel + ", got:" + (String) dbf.getVal("unq_level"));
 			return false;
 		}
 		return true;
@@ -107,33 +118,40 @@ public class SvConstraint {
 	public StringBuilder getSQLQueryString(DbDataArray dba) {
 		if (fields.size() < 1 || uniqueLevel == null)
 			return null;
-		StringBuilder sqlBuilder= new StringBuilder();
+		StringBuilder sqlBuilder = new StringBuilder();
 		sqlBuilder.append(getBase());
 		sqlBuilder.append("(");
-		for (int i=0;i<dba.getItems().size();i++)
-			sqlBuilder.append(singleCrit).append(" OR ");
+		for (int i = 0; i < dba.getItems().size(); i++)
+			sqlBuilder.append(getSingleCriterion()).append(" OR ");
 		sqlBuilder.setLength(sqlBuilder.length() - 4);
 		sqlBuilder.append(")");
 		return sqlBuilder;
 	}
-	
+
 	public ArrayList<Object> getSQLParamVals(DbDataArray dba) {
 		if (fields.size() < 1 || uniqueLevel == null)
 			return null;
 		ArrayList<Object> bindVals = new ArrayList<Object>();
-		ArrayList<DbDataObject> fieldObjs=getConstraintFieldsA();
-
 		bindVals.add(SvConf.MAX_DATE);
-		for (DbDataObject dbo:dba.getItems())
-		{
-			if(uniqueLevel.equals("PARENT"))
-				bindVals.add(dbo.getParent_id());
-			bindVals.add(dbo.getObject_id());
-			for(DbDataObject fld:fieldObjs)
-			{
-				bindVals.add(dbo.getVal((String)fld.getVal("FIELD_NAME")));
+		for (DbDataObject dbo : dba.getItems()) {
+			if (uniqueLevel.equals("PARENT"))
+				bindVals.add(dbo.getParentId());
+			bindVals.add(dbo.getObjectId());
+			for (DbDataObject fld : fields) {
+				bindVals.add(dbo.getVal((String) fld.getVal("FIELD_NAME")));
 			}
 		}
 		return bindVals;
+	}
+
+	public void initSQL() {
+
+		StringBuilder b = getBase();
+		StringBuilder c = getSingleCriterion();
+		if (log4j.isDebugEnabled()) {
+			log4j.trace("Initialising base constraint SQL: " + b.toString());
+			log4j.trace("Initialising criterion constraint SQL: " + c.toString());
+		}
+
 	}
 }
