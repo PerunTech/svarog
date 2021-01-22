@@ -1,5 +1,7 @@
 package com.prtech.svarog;
 
+import org.joda.time.DateTime;
+
 import com.prtech.svarog_common.SvCharId;
 
 /**
@@ -57,7 +59,7 @@ public class Sv {
 	private Sv() {
 	}
 
-	public static final String Y2K_START_DATE = "2000-01-01T00:00:00";
+	public static final DateTime Y2K_START_DATE = new DateTime("2000-01-01T00:00:00");
 	public static final String CODE_LIST_ID = "CODE_LIST_ID";
 	public static final SvCharId LABEL_CODE = new SvCharId("LABEL_CODE");
 	public static final String VERSION = "VERSION";

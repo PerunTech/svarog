@@ -16,6 +16,7 @@ package com.prtech.svarog;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -25,6 +26,7 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
 
 /**
  * The SvSDIDbTile allows loading of standard svarog objects represented by
@@ -47,12 +49,12 @@ public class SvSDIDbTile extends SvSDITile {
 	}
 
 	/**
-	 * Overriden method which loads geometries from the database by using the
-	 * tile envelope
+	 * Overriden method which loads geometries from the database by using the tile
+	 * envelope
 	 */
 	@Override
-	ArrayList<Geometry> loadGeometries() throws SvException {
-		ArrayList<Geometry> geometries = new ArrayList<>();
+	GeometryCollection loadGeometries() throws SvException {
+
 		DbSearch dbs = new DbSearchCriterion(SvGeometry.getGeometryFieldName(tileTypeId), DbCompareOperand.BBOX,
 				tileEnvelope);
 		if (extSearch != null) {
@@ -62,19 +64,22 @@ public class SvSDIDbTile extends SvSDITile {
 			dbs = dbe;
 		}
 		Geometry geom = null;
+		Geometry[] glist = null;
 		try (SvReader svr = new SvReader()) {
-
 			svr.includeGeometries = true;
 			DbDataArray arr = svr.getObjects(dbs, tileTypeId, null, 0, 0);
-			if(log4j.isDebugEnabled())
-				log4j.debug("Loaded "+arr.size()+" geometries for tile type:"+tileTypeId+", with search:"+dbs.toSimpleJson().toString());
+			glist = new Geometry[arr.size()];
+			if (log4j.isDebugEnabled())
+				log4j.debug("Loaded " + arr.size() + " geometries for tile type:" + tileTypeId + ", with search:"
+						+ dbs.toSimpleJson().toString());
+			int i = 0;
 			for (DbDataObject dbo : arr.getItems()) {
 				geom = SvGeometry.getGeometry(dbo);
 				geom.setUserData(dbo);
-				geometries.add(geom);
+				glist[i++] = geom;
 			}
 		}
-		return geometries;
+		return SvUtil.sdiFactory.createGeometryCollection(glist);
 	}
 
 }

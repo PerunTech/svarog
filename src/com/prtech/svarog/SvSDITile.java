@@ -82,7 +82,7 @@ public abstract class SvSDITile {
 		return this.tileEnvelope;
 	}
 
-	abstract ArrayList<Geometry> loadGeometries() throws SvException;
+	abstract GeometryCollection loadGeometries() throws SvException;
 
 	public void loadTile() throws SvException {
 		if (!isTileDirty)
@@ -96,8 +96,9 @@ public abstract class SvSDITile {
 				internalGeometries.clear();
 				borderGeometries.clear();
 				Point centroid = null;
-				for (Geometry geom : loadGeometries()) {
-
+				GeometryCollection gcl = loadGeometries();
+				for (int i = 0; i < gcl.getNumGeometries(); i++) {
+					Geometry geom = gcl.getGeometryN(i);
 					tileIndex.insert(geom.getEnvelopeInternal(), getPreparedGeom(geom));
 					if (geom.getUserData() != null && geom.getUserData() instanceof DbDataObject) {
 						centroid = SvGeometry.getCentroid((DbDataObject) geom.getUserData());
