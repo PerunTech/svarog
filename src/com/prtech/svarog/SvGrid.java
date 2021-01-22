@@ -29,8 +29,8 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
 public class SvGrid extends SvSDITile {
 	static final Logger log4j = LogManager.getLogger(SvSDITile.class.getName());
-	private static final String GRID_NAME = "GRID_NAME";
-	private static final String GRIDTILE_ID = "GRIDTILE_ID";
+	public static final String GRID_NAME = "GRID_NAME";
+	public static final String GRIDTILE_ID = "GRIDTILE_ID";
 	/**
 	 * The main index of grid geometries.
 	 */
@@ -39,6 +39,8 @@ public class SvGrid extends SvSDITile {
 	private String gridName;
 
 	GeometryCollection grid;
+
+	DbDataArray gridDboList = new DbDataArray();
 	/**
 	 * The envelope of the boundaries of the system
 	 */
@@ -65,7 +67,7 @@ public class SvGrid extends SvSDITile {
 	 * @return
 	 * @throws SvException
 	 */
-	SvGrid(String gridName) throws SvException {
+	public SvGrid(String gridName) throws SvException {
 		this.gridName = gridName;
 		SvSDITile boundary = SvGeometry.getSysBoundary();
 		boundary.loadTile();
@@ -84,14 +86,15 @@ public class SvGrid extends SvSDITile {
 		this.grid = gridGcl;
 		Geometry gridItem = null;
 		gridIndex = new STRtree();
+		gridDboList = new DbDataArray();
 		try {
 			for (int i = 0; i < grid.getNumGeometries(); i++) {
 				gridItem = grid.getGeometryN(i);
 				Object ud = gridItem.getUserData();
 				String tileId = null;
-				if (ud instanceof DbDataObject)
+				if (ud instanceof DbDataObject) {
 					tileId = (String) ((DbDataObject) ud).getVal(GRIDTILE_ID);
-				else
+				} else
 					tileId = (String) ud;
 				String[] baseId = tileId.split("-");
 				if (baseId[1] != null && baseId[1].equals("true"))
@@ -108,10 +111,16 @@ public class SvGrid extends SvSDITile {
 				else
 					gridEnvelope.expandToInclude(gridItem.getEnvelopeInternal());
 				gridMap.put(baseId[0], gridItem);
+				if (ud instanceof DbDataObject) {
+					((DbDataObject) ud).setVal(GRIDTILE_ID, baseId[0]);
+					((DbDataObject) ud).setIsDirty(true);
+					gridDboList.addDataItem((DbDataObject) ud);
+				}
 			}
 		} catch (Exception e) {
 			log4j.error("Failed initialising system grid!", e);
 		}
+		gridDboList.rebuildIndex(GRIDTILE_ID, true);
 		gridIndex.build();
 	}
 
@@ -131,7 +140,7 @@ public class SvGrid extends SvSDITile {
 		SvGrid.maxXtile = maxXtile;
 	}
 
-	static GeometryCollection generateGrid(Geometry geo, int gridSize) {
+	public static GeometryCollection generateGrid(Geometry geo, int gridSize) {
 		assert (geo != null);
 		Envelope env = geo.getEnvelopeInternal();
 
@@ -265,7 +274,7 @@ public class SvGrid extends SvSDITile {
 	 * @param gridName The name of the grid
 	 * @return
 	 */
-	static boolean saveGridToDatabase(GeometryCollection grid, String gridName) {
+	public static boolean saveGridToDatabase(GeometryCollection grid, String gridName) {
 		try (SvWriter svg = new SvWriter()) {
 			// if its the system grid test if we should upgrade
 			if (gridName.equals(Sv.SDI_SYSGRID) && !shouldUpgradeGrid(grid))
@@ -297,26 +306,36 @@ public class SvGrid extends SvSDITile {
 	}
 
 	@Override
-	ArrayList<Geometry> loadGeometries() throws SvException {
-		ArrayList<Geometry> geometries = new ArrayList<>();
+	GeometryCollection loadGeometries() throws SvException {
 		DbSearch dbs = new DbSearchCriterion(GRID_NAME, DbCompareOperand.EQUAL, gridName);
 		Geometry geom = null;
+		Geometry[] glist = null;
 		try (SvReader svr = new SvReader()) {
 
 			svr.includeGeometries = true;
 			DbDataArray arr = svr.getObjects(dbs, tileTypeId, null, 0, 0);
+			glist = new Geometry[arr.size()];
 			if (log4j.isDebugEnabled())
 				log4j.debug("Loaded " + arr.size() + " geometries for tile type:" + tileTypeId + ", with search:"
 						+ dbs.toSimpleJson().toString());
+			int i = 0;
 			for (DbDataObject dbo : arr.getItems()) {
 				geom = SvGeometry.getGeometry(dbo);
 				geom.setUserData(dbo);
-				geometries.add(geom);
+				glist[i++] = geom;
 			}
+			gridDboList = arr;
 		}
-		if (geometries.size() < 1)
+
+		if (gridDboList.size() < 1)
 			throw (new SvException(Sv.Exceptions.EMPTY_GRID, svCONST.systemUser));
-		return geometries;
+
+		return SvUtil.sdiFactory.createGeometryCollection(glist);
+
+	}
+
+	public DbDataObject getTileDbo(String tileId) {
+		return gridDboList.getItemByIdx(tileId);
 	}
 
 	/**
