@@ -6191,7 +6191,7 @@ public class DbInit {
 				dbo.setObjectId(svObjectId);
 				svObjectId++;
 				dbo.setStatus(svCONST.STATUS_VALID);
-				dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
+				dbo.setDtInsert(Sv.Y2K_START_DATE);
 				dbo.setDtDelete(SvConf.MAX_DATE);
 
 				dbo.setVal("field_name", dbf.getDbFieldName());

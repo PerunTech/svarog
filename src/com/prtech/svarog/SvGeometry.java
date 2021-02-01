@@ -17,7 +17,9 @@ package com.prtech.svarog;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,10 +42,12 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.SvCharId;
 import com.vividsolutions.jts.algorithm.Angle;
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateSequences;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
@@ -63,7 +67,7 @@ import com.google.common.math.DoubleMath;
  * @author XPS13
  *
  */
-public class SvGeometry extends SvCore {
+public class SvGeometry extends SvWriter {
 
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 
@@ -340,7 +344,7 @@ public class SvGeometry extends SvCore {
 			throws SvException {
 		// get the previous state of autocommit
 		boolean oldAutoCommit = this.getAutoCommit();
-		try (SvWriter svw = new SvWriter(this)) {
+		try {
 			// set autocommit to false to ensure all deletes and saves are in single
 			// transaction
 			this.setAutoCommit(false);
@@ -348,7 +352,7 @@ public class SvGeometry extends SvCore {
 			// delete the others
 			for (Geometry g : deletedGeometries) {
 				dbo = (DbDataObject) g.getUserData();
-				svw.deleteObject(dbo);
+				this.deleteObject(dbo);
 			}
 			for (Geometry g : newGeometries) {
 				dbo = (DbDataObject) g.getUserData();
@@ -785,7 +789,7 @@ public class SvGeometry extends SvCore {
 
 		if (!geom.covers(centroid) && (geom instanceof Polygon || geom instanceof MultiPolygon)) {
 			if (log4j.isDebugEnabled())
-				log4j.info("Geometry centroid " + centroid.toText() + "is out of the polygon:" + geom.toText());
+				log4j.trace("Geometry centroid " + centroid.toText() + "is out of the polygon:" + geom.toText());
 			centroid = geom.getInteriorPoint();
 			cor = centroid.getCoordinate();
 			if (DoubleMath.isMathematicalInteger(cor.x))
@@ -796,7 +800,7 @@ public class SvGeometry extends SvCore {
 
 			while (!geom.covers(centroid) && (geom instanceof Polygon || geom instanceof MultiPolygon)) {
 				if (log4j.isDebugEnabled())
-					log4j.info("Geometry centroid " + centroid.toText() + "is out of the polygon:" + geom.toText());
+					log4j.trace("Geometry centroid " + centroid.toText() + "is out of the polygon:" + geom.toText());
 				Envelope env = geom.getEnvelopeInternal();
 				// create a random point in the geometry envelope
 				cor.x = env.getMinX() + Math.random() * env.getWidth();
@@ -878,7 +882,7 @@ public class SvGeometry extends SvCore {
 	 *                     constructor
 	 */
 	SvGeometry() throws SvException {
-		super(svCONST.systemUser, null);
+		super();
 	}
 
 	/**
@@ -992,7 +996,17 @@ public class SvGeometry extends SvCore {
 	 *                     that the geometry has spike with angle less then maxAngle
 	 */
 	public void testPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
-		fixPolygonSpikes(g, maxAngle, true);
+		if (!(g instanceof Polygon || g instanceof MultiPolygon) || maxAngle < 0.01)
+			return;
+
+		for (int i = 0; i < g.getNumGeometries(); i++) {
+			Polygon p = (Polygon) g.getGeometryN(i);
+			testPolygonCoordinates(p.getExteriorRing(), maxAngle);
+			for (int j = 0; j < p.getNumInteriorRing(); j++) {
+				LineString ls = p.getInteriorRingN(j);
+				testPolygonCoordinates(ls, maxAngle);
+			}
+		}
 	}
 
 	/**
@@ -1011,25 +1025,20 @@ public class SvGeometry extends SvCore {
 	}
 
 	/**
-	 * Test a polygonal geometry for spikes and remove the spikes. Based on the test
-	 * only param it will either test or try to fix the spikes.
+	 * Remove the spikes from a geometry.
 	 * 
-	 * @param p        The polygon to be tested or fixed based on the testOnly flag.
+	 * @param p        The polygon to be fixed
 	 * @param maxAngle the maximum angle in degrees which is considered as spike
-	 * @param testOnly if this param is set to true, the method will try to find
-	 *                 angles less then max angle and throw
-	 *                 "system.error.sdi.spike_detected"
 	 * @return A list of coordinates which do not contain spikes
 	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
 	 *                     that the geometry spikes can not be fixed automatically
-	 *                     or "system.error.sdi.spike_detected" if spike was
-	 *                     detected via test only flag
 	 */
-	public List<Coordinate> fixPolygonCoordinates(Polygon p, Double maxAngle, boolean testOnly) throws SvException {
+	public LinearRing fixPolygonCoordinates(LineString p, Double maxAngle) throws SvException {
 		Coordinate[] coords = p.getCoordinates();
-		ArrayList<Coordinate> newCoordinates = new ArrayList<>(coords.length);
+		Coordinate[] newCoordinates = new Coordinate[coords.length];
 		// add the zero point, becase we start the loop from the first tail
-		newCoordinates.add(coords[0]);
+		newCoordinates[0] = coords[0];
+		int iDst = 1;
 		for (int cc = 1; cc < coords.length; cc++) {
 			Coordinate tip1 = coords[cc - 1];
 			Coordinate tail = coords[cc];
@@ -1037,12 +1046,42 @@ public class SvGeometry extends SvCore {
 			Coordinate tip2 = coords[tip2index];
 			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
 			if (angle >= maxAngle)
-				newCoordinates.add(tail);
-			else if (testOnly)
+				newCoordinates[iDst++] = tail;
+		}
+		if (iDst == coords.length)
+			newCoordinates = coords;
+		else {
+			// if the line string is less than 4 points, means it has collapsed
+			if (iDst < 3)
+				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
+			newCoordinates = Arrays.copyOf(newCoordinates, iDst);
+		}
+
+		return SvUtil.sdiFactory.createLinearRing(newCoordinates);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes (one ring at a time).The method will try
+	 * to find angles less then max angle and throw
+	 * "system.error.sdi.spike_detected"
+	 * 
+	 * @param p        The polygon linestring to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_detected" if spike was
+	 *                     detected
+	 */
+	public void testPolygonCoordinates(LineString p, Double maxAngle) throws SvException {
+		Coordinate[] coords = p.getCoordinates();
+		for (int cc = 1; cc < coords.length; cc++) {
+			Coordinate tip1 = coords[cc - 1];
+			Coordinate tail = coords[cc];
+			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
+			Coordinate tip2 = coords[tip2index];
+			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
+			if (angle < maxAngle)
 				throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
 
 		}
-		return newCoordinates;
 	}
 
 	/**
@@ -1062,24 +1101,32 @@ public class SvGeometry extends SvCore {
 	 */
 	Geometry fixPolygonSpikes(Geometry g, Double maxAngle, boolean testOnly) throws SvException {
 
-		if (!(g instanceof Polygon || g instanceof MultiPolygon))
+		if (!(g instanceof Polygon || g instanceof MultiPolygon) || maxAngle < 0.01)
 			return g;
 
 		Polygon[] allPoly = new Polygon[g.getNumGeometries()];
 		for (int i = 0; i < g.getNumGeometries(); i++) {
 			Polygon p = (Polygon) g.getGeometryN(i);
-			List<Coordinate> fixedCoordinates = fixPolygonCoordinates(p, maxAngle, testOnly);
 
-			if (fixedCoordinates.size() < 3)
-				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
+			LinearRing fixedShellCoordinates = fixPolygonCoordinates(p.getExteriorRing(), maxAngle);
+			LinearRing[] fixedInternalRingCoordinates = new LinearRing[p.getNumInteriorRing()];
 
-			Polygon pDst = SvUtil.sdiFactory
-					.createPolygon(fixedCoordinates.toArray(new Coordinate[fixedCoordinates.size()]));
+			for (int j = 0; j < p.getNumInteriorRing(); j++) {
+				LineString ls = p.getInteriorRingN(j);
+				fixedInternalRingCoordinates[j] = fixPolygonCoordinates(ls, maxAngle);
+			}
+			if (!testOnly) {
+				Polygon pDst = null;
+				try {
+					pDst = SvUtil.sdiFactory.createPolygon(fixedShellCoordinates, fixedInternalRingCoordinates);
+				} catch (Exception e) {
+					throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null, e));
+				}
+				if (pDst == null || pDst.getArea() < 1)
+					throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
 
-			if (pDst.getArea() < 1)
-				throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null));
-
-			allPoly[i] = pDst;
+				allPoly[i] = pDst;
+			}
 		}
 		if (allPoly.length == 1)
 			return allPoly[0];
@@ -1286,7 +1333,7 @@ public class SvGeometry extends SvCore {
 	 * @param dbo
 	 * @throws SvException
 	 */
-	private void prepareGeometry(DbDataObject dbo) throws SvException {
+	void prepareGeometry(DbDataObject dbo) throws SvException {
 
 		// test if the geometry is in the system boundaries
 		verifyBounds(dbo);
@@ -1316,6 +1363,7 @@ public class SvGeometry extends SvCore {
 
 	}
 
+
 	/**
 	 * Method to save a DbDataArray of DbDataObjects which are of Geometry Type and
 	 * have set the flag hasGeometries. The method will perform basic saveObject on
@@ -1328,37 +1376,35 @@ public class SvGeometry extends SvCore {
 	 *                     allowNullGeometry set to false
 	 */
 	public void saveGeometry(DbDataArray dba, Boolean isBatch) throws SvException {
-		try (SvWriter svw = new SvWriter(this)) {
-
-			svw.isInternal = true; // flag it as internal so can save SDI types
-			Geometry currentGeom = null;
-			for (DbDataObject dbo : dba.getItems()) {
-				if (!SvCore.hasGeometries(dbo.getObjectType()))
-					throw (new SvException("system.error.sdi.non_sdi_type", instanceUser, dba, null));
-				currentGeom = getGeometry(dbo);
-				if (currentGeom != null) {
-					prepareGeometry(dbo);
-				} else if (!allowNullGeometry)
-					throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
-			}
-			List<Geometry> tileGeomList = null;
-			List<SvSDITile> tileList = new ArrayList<SvSDITile>();
-			svw.saveObject(dba, isBatch);
-			for (DbDataObject dbo : dba.getItems()) {
-				Geometry vdataGeom = SvGeometry.getGeometry(dbo);
-				if (vdataGeom != null) {
-					Envelope env = vdataGeom.getEnvelopeInternal();
-					tileGeomList = SvGeometry.getTileGeometries(env);
-					for (Geometry tgl : tileGeomList) {
-						String tileID = (String) tgl.getUserData();
-						SvSDITile tile = SvGeometry.getTile(dbo.getObjectType(), tileID, null);
-						tileList.add(tile);
-					}
+		this.isInternal = true; // flag it as internal so can save SDI types
+		Geometry currentGeom = null;
+		for (DbDataObject dbo : dba.getItems()) {
+			if (!SvCore.hasGeometries(dbo.getObjectType()))
+				throw (new SvException("system.error.sdi.non_sdi_type", instanceUser, dba, null));
+			currentGeom = getGeometry(dbo);
+			if (currentGeom != null) {
+				prepareGeometry(dbo);
+			} else if (!allowNullGeometry)
+				throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
+		}
+		List<Geometry> tileGeomList = null;
+		List<SvSDITile> tileList = new ArrayList<SvSDITile>();
+		super.saveObject(dba, isBatch);
+		for (DbDataObject dbo : dba.getItems()) {
+			Geometry vdataGeom = SvGeometry.getGeometry(dbo);
+			if (vdataGeom != null) {
+				Envelope env = vdataGeom.getEnvelopeInternal();
+				tileGeomList = SvGeometry.getTileGeometries(env);
+				for (Geometry tgl : tileGeomList) {
+					String tileID = (String) tgl.getUserData();
+					SvSDITile tile = SvGeometry.getTile(dbo.getObjectType(), tileID, null);
+					tileList.add(tile);
 				}
 			}
-
-			cacheCleanup(tileList);
 		}
+
+		cacheCleanup(tileList);
+
 	}
 
 	private void cacheCleanup(List<SvSDITile> tileList) {
@@ -1387,6 +1433,26 @@ public class SvGeometry extends SvCore {
 	}
 
 	public void saveGeometry(DbDataArray dba) throws SvException {
+		saveGeometry(dba, false);
+	}
+	
+	/**
+	 * Method to save a single geometry to the database. Same as
+	 * {@link #saveGeometry(DbDataArray)}, but using a single object instead of
+	 * array.
+	 * 
+	 * @param dbo The object which should be saved
+	 * @throws SvException Pass through of underlying exceptions
+	 */
+	public void saveObject(DbDataObject dbo) throws SvException {
+		DbDataArray dba = new DbDataArray();
+		dba.addDataItem(dbo);
+		saveGeometry(dba);
+	}
+	public void saveObject(DbDataArray dba, Boolean isBatch) throws SvException {
+		saveGeometry(dba, isBatch);
+	}
+	public void saveObject(DbDataArray dba) throws SvException {
 		saveGeometry(dba, false);
 	}
 

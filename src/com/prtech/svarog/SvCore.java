@@ -1504,7 +1504,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		LinkedHashMap<String, DbDataField> dbFields = SvarogInstall.getFieldListFromDb(conn,
 				Sv.V + (String) dbt.getVal(Sv.TABLE_NAME), (String) dbt.getVal(Sv.SCHEMA));
 		@SuppressWarnings("unchecked")
-		ArrayList<DbDataObject> lstFields = (ArrayList<DbDataObject>) cachedFields.getItems().clone();
+		ArrayList<DbDataObject> lstFields = (ArrayList<DbDataObject>) ((ArrayList<DbDataObject>) cachedFields
+				.getItems()).clone();
 
 		Iterator<DbDataObject> it = lstFields.iterator();
 		while (it.hasNext()) {
@@ -1957,7 +1958,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			if (obj != null && obj.getClass().equals(DateTime.class))
 				obj = new Timestamp(((DateTime) obj).getMillis());
 			if (log4j.isDebugEnabled())
-				log4j.debug("Bind Variable:" + paramIdx.toString() + ", value:"
+				log4j.trace("Bind Variable:" + paramIdx.toString() + ", value:"
 						+ (obj != null ? obj.toString() : Sv.SQL_NULL));
 			ps.setObject(paramIdx, obj);
 			paramIdx++;
@@ -1996,7 +1997,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					sqlQry.append(Sv.SPACE + sRowLimit);
 			}
 			if (log4j.isDebugEnabled())
-				log4j.debug("Executing SQL: " + sqlQry);
+				log4j.trace("Executing SQL: " + sqlQry);
 			ps = conn.prepareStatement(sqlQry.toString());
 			bindQueryVals(ps, query.getSQLParamVals());
 		} catch (SQLException ex) {
@@ -2760,8 +2761,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	public boolean isAdmin() throws SvException {
-		return this.getDefaultUserGroup() != null
-				&& this.getDefaultUserGroup().getObjectId().equals(svCONST.SID_ADMINISTRATORS);
+		return isSystem() || isService() || (this.getDefaultUserGroup() != null
+				&& this.getDefaultUserGroup().getObjectId().equals(svCONST.SID_ADMINISTRATORS));
 
 	}
 
@@ -2938,7 +2939,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal(Sv.FIELD_TYPE));
 		if (log4j.isDebugEnabled())
-			log4j.debug("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
+			log4j.trace("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
 					+ (value != null ? value.toString() : Sv.SQL_NULL) + " at position " + bindAtPosition
 					+ " as data type " + type.toString());
 

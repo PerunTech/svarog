@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -54,29 +55,37 @@ public class SvGeometryTest {
 	private static final long gridX0 = 0L;
 	private static final long gridY0 = 0L;
 
-	private static void initFakeSysBoundary() {
+	private static void initFakeSysBoundary() throws SvException {
 		// create a fake boundary with about 10x10 grid cells
 		Envelope boundaryEnv = new Envelope(gridX0, 10 * SvConf.getSdiGridSize() * 1000, gridY0,
 				10 * SvConf.getSdiGridSize() * 1000);
-		ArrayList<Geometry> boundGeom = new ArrayList<>();
-		boundGeom.add(SvUtil.sdiFactory.toGeometry(boundaryEnv));
+		Geometry[] boundGeom = new Geometry[1];
+		boundGeom[0] = SvUtil.sdiFactory.toGeometry(boundaryEnv);
 
-		// generate and prepare fake grid
-		GeometryCollection grid = SvGrid.generateGrid(boundGeom.get(0), SvConf.getSdiGridSize());
-		Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_GRID);
-		SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
-		SvGeometry.setSysGrid(svg);
-
+		try (SvReader svr = new SvReader()) {
+			// generate and prepare fake grid
+			GeometryCollection grid = SvGrid.generateGrid(boundGeom[0], SvConf.getSdiGridSize(), svr);
+			Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_GRID);
+			SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
+			SvGeometry.setSysGrid(svg);
+		}
 		// add the fake boundary as system boundary
 		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
-		SvSDITile tile = new SvTestTile(boundaryEnv, svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, boundGeom);
+		SvSDITile tile = new SvTestTile(boundaryEnv, svCONST.OBJECT_TYPE_SDI_GEOJSONFILE,
+				SvUtil.sdiFactory.createGeometryCollection(boundGeom));
 		tile.tilelId = Sv.SDI_SYSTEM_BOUNDARY;
 		cache.put(tile.tilelId, tile);
 
 	}
 
+	@AfterClass
+	static public void resetSDI() {
+		SvGeometry.resetGrid();
+	}
+
 	@BeforeClass
 	static public void initTestSDI() throws SvException {
+		SvGeometry.resetGrid();
 		initFakeSysBoundary();
 		// now add a test layer with ID TEST_LAYER_TYPE_ID
 		CacheBuilder<String, SvSDITile> b = (CacheBuilder<String, SvSDITile>) DbCache.createBuilder(null);
@@ -123,9 +132,7 @@ public class SvGeometryTest {
 		if (SvCore.getDbtByName("PHYSICAL_BLOCK") == null)
 			return;
 
-		SvGeometry svg = null;
-		try {
-			svg = new SvGeometry();
+		try (SvGeometry svg = new SvGeometry()) {
 
 			Envelope env = new Envelope(7499070.2242, 4542102.0632, 7501509.7277, 4543436.8737);
 			List<Geometry> g = SvGeometry.getTileGeometries(env);
@@ -149,9 +156,8 @@ public class SvGeometryTest {
 
 	@Test
 	public void testBboxParsing() {
-		SvGeometry svg = null;
-		try {
-			svg = new SvGeometry();
+		try (SvGeometry svg = new SvGeometry()) {
+			;
 			SvSDITile tile = svg.getSysBoundary();
 			String bbox = SvGeometry.getBBox(tile.getEnvelope());
 			System.out.println("Tile bbox:" + bbox);
@@ -312,29 +318,36 @@ public class SvGeometryTest {
 			fail("You have a connection leak, you dirty animal!");
 	}
 
-	static ArrayList<Geometry> testGeomsBase(double x1, double y1) {
-		ArrayList<Geometry> g = new ArrayList<>();
-		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20)));
-		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30)));
-		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
+	static Geometry[] testGeomsBaseG(double x1, double y1) {
+		Geometry g[] = new Geometry[4];
+		g[0] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20));
+		g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30));
+		g[2] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5));
 
 		WKTReader wkr = new WKTReader();
 		String polyHole = "POLYGON ((30 30, 30 40, 40 40, 40 30, 30 30), (35 35, 37 35, 37 37, 35 37, 35 35))";
 		try {
-			g.add(wkr.read(polyHole));
+			g[3] = wkr.read(polyHole);
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return g;
+
 	}
 
-	static ArrayList<Geometry> testGeomsSecond(double x1, double y1) {
-		ArrayList<Geometry> g = new ArrayList<>();
-		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 25, x1 + 27, y1 + 20, y1 + 30)));
-		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5)));
-		g.add(SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 35, x1 + 40, y1 + 30, y1 + 40)));
-		return g;
+	static GeometryCollection testGeomsBase(double x1, double y1) {
+
+		return SvUtil.sdiFactory.createGeometryCollection(testGeomsBaseG(x1, y1));
+
+	}
+
+	static GeometryCollection testGeomsSecond(double x1, double y1) {
+		Geometry g[] = new Geometry[3];
+		g[0] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 25, x1 + 27, y1 + 20, y1 + 30));
+		g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5));
+		g[2] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 35, x1 + 40, y1 + 30, y1 + 40));
+		return SvUtil.sdiFactory.createGeometryCollection(g);
 	}
 
 	@Test
@@ -673,12 +686,12 @@ public class SvGeometryTest {
 			// fix based on one meter distance
 
 			// rebuild the tile, now replacing the first geometry with the result with hole
-			ArrayList<Geometry> geoms = testGeomsBase(gridX0, gridY0);
-			geoms.remove(0);
-			geoms.add(0, result);
+			Geometry[] geoms = testGeomsBaseG(gridX0, gridY0);
+			geoms[0] = result;
+
 			SvSDITile layerTile = new SvTestTile(
 					new Envelope(gridX0, SvConf.getSdiGridSize() * 1000, gridY0, SvConf.getSdiGridSize() * 1000),
-					TEST_LAYER_TYPE_ID, geoms);
+					TEST_LAYER_TYPE_ID, SvUtil.sdiFactory.createGeometryCollection(geoms));
 			layerTile.tilelId = "0:0";
 			Cache<String, SvSDITile> newCacheBase = SvGeometry.layerCache.get(TEST_LAYER_TYPE_ID);
 			newCacheBase.put(layerTile.tilelId, layerTile);
@@ -694,7 +707,7 @@ public class SvGeometryTest {
 	}
 
 	@Test
-	public void getGrid() {
+	public void getGrid() throws SvException {
 		try {
 			SvGeometry.resetGrid();
 			// add the fake boundary as system boundary
