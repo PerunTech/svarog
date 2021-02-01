@@ -28,7 +28,7 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
 public class SvGrid extends SvSDITile {
-	static final Logger log4j = LogManager.getLogger(SvSDITile.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvSDITile.class);
 	public static final String GRID_NAME = "GRID_NAME";
 	public static final String GRIDTILE_ID = "GRIDTILE_ID";
 	/**
@@ -140,7 +140,10 @@ public class SvGrid extends SvSDITile {
 		SvGrid.maxXtile = maxXtile;
 	}
 
-	public static GeometryCollection generateGrid(Geometry geo, int gridSize) {
+	public static GeometryCollection generateGrid(Geometry geo, int gridSize, ISvCore core) throws SvException {
+		if (!core.isAdmin())
+			throw (new SvException("sys.error.admin_user_required", svCONST.systemUser));
+
 		assert (geo != null);
 		Envelope env = geo.getEnvelopeInternal();
 
@@ -274,8 +277,8 @@ public class SvGrid extends SvSDITile {
 	 * @param gridName The name of the grid
 	 * @return
 	 */
-	public static boolean saveGridToDatabase(GeometryCollection grid, String gridName) {
-		try (SvWriter svg = new SvWriter()) {
+	public static boolean saveGridToDatabase(GeometryCollection grid, String gridName, ISvCore core) {
+		try (SvWriter svg = new SvWriter((SvCore) core)) {
 			// if its the system grid test if we should upgrade
 			if (gridName.equals(Sv.SDI_SYSGRID) && !shouldUpgradeGrid(grid))
 				return true;

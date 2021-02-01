@@ -192,5 +192,12 @@ public class Sv {
 	public static final String CANNOT = " can not be ";
 	public static final String SDI_GRID = "SDI_GRID";
 	public static final String AREA = "AREA";
+	public static final String STRING_CAST = "STRING_CAST";
+	public static final String OBJECT_QUALIFIER_LEFT = "OBJECT_QUALIFIER_LEFT";
+	public static final String OBJECT_QUALIFIER_RIGHT = "OBJECT_QUALIFIER_RIGHT";
+	public static final String STRING_CONCAT = "STRING_CONCAT";
+	public static final SvCharId IS_NULL = new SvCharId("IS_NULL");
+	public static final String PARENT_ID = "PARENT_ID";
+	public static final SvCharId UNQ_LEVEL = new SvCharId("UNQ_LEVEL");
 
 }

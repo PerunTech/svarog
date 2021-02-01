@@ -55,19 +55,20 @@ public class SvGeometryTest {
 	private static final long gridX0 = 0L;
 	private static final long gridY0 = 0L;
 
-	private static void initFakeSysBoundary() {
+	private static void initFakeSysBoundary() throws SvException {
 		// create a fake boundary with about 10x10 grid cells
 		Envelope boundaryEnv = new Envelope(gridX0, 10 * SvConf.getSdiGridSize() * 1000, gridY0,
 				10 * SvConf.getSdiGridSize() * 1000);
 		Geometry[] boundGeom = new Geometry[1];
 		boundGeom[0] = SvUtil.sdiFactory.toGeometry(boundaryEnv);
 
-		// generate and prepare fake grid
-		GeometryCollection grid = SvGrid.generateGrid(boundGeom[0], SvConf.getSdiGridSize());
-		Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_GRID);
-		SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
-		SvGeometry.setSysGrid(svg);
-
+		try (SvReader svr = new SvReader()) {
+			// generate and prepare fake grid
+			GeometryCollection grid = SvGrid.generateGrid(boundGeom[0], SvConf.getSdiGridSize(), svr);
+			Cache<String, SvSDITile> gridCache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_GRID);
+			SvGrid svg = new SvGrid(grid, Sv.SDI_SYSGRID);
+			SvGeometry.setSysGrid(svg);
+		}
 		// add the fake boundary as system boundary
 		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
 		SvSDITile tile = new SvTestTile(boundaryEnv, svCONST.OBJECT_TYPE_SDI_GEOJSONFILE,
@@ -131,9 +132,7 @@ public class SvGeometryTest {
 		if (SvCore.getDbtByName("PHYSICAL_BLOCK") == null)
 			return;
 
-		SvGeometry svg = null;
-		try {
-			svg = new SvGeometry();
+		try (SvGeometry svg = new SvGeometry()) {
 
 			Envelope env = new Envelope(7499070.2242, 4542102.0632, 7501509.7277, 4543436.8737);
 			List<Geometry> g = SvGeometry.getTileGeometries(env);
@@ -157,9 +156,8 @@ public class SvGeometryTest {
 
 	@Test
 	public void testBboxParsing() {
-		SvGeometry svg = null;
-		try {
-			svg = new SvGeometry();
+		try (SvGeometry svg = new SvGeometry()) {
+			;
 			SvSDITile tile = svg.getSysBoundary();
 			String bbox = SvGeometry.getBBox(tile.getEnvelope());
 			System.out.println("Tile bbox:" + bbox);
@@ -709,7 +707,7 @@ public class SvGeometryTest {
 	}
 
 	@Test
-	public void getGrid() {
+	public void getGrid() throws SvException {
 		try {
 			SvGeometry.resetGrid();
 			// add the fake boundary as system boundary

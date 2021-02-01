@@ -16,7 +16,6 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 	private final List<SvWriterThread> writerThreads;
 	private final List<Thread> threads;
 	private final AtomicBoolean isMTRunning = new AtomicBoolean(false);
-	private final AtomicBoolean isBusy = new AtomicBoolean(false);
 
 	private class SvWriterThread implements Runnable {
 		private final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -172,9 +171,12 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 		return exs;
 	}
 
-	public synchronized void saveObject(DbDataArray items, boolean isBatch) throws SvException {
+	public void saveObject(DbDataArray items, boolean isBatch) throws SvException {
 		if (!isMTRunning.get() || threads.isEmpty())
 			throw (new SvException("system.err.writer_not_running", svCONST.systemUser));
+		if (!allDone())
+			throw (new SvException("system.err.writer_busy", svCONST.systemUser));
+
 		// if the total number of items is same size as number of threads, just use the
 		// first thread
 		int batchSize = items.size() > threads.size() ? items.size() / threads.size() : items.size();

@@ -298,9 +298,15 @@ public class SvarogInstall {
 					"SDI is not enabled, can't generate grid. Enable SDI via svarog.properties parameter \"sys.gis.enable_spatial\"");
 			return -1;
 		}
+		boolean gridExists = false;
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
-		GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize());
-		boolean gridExists = SvGrid.saveGridToDatabase(grid, Sv.SDI_SYSGRID);
+		try (SvReader svr = new SvReader()) {
+			GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize(), svr);
+			gridExists = SvGrid.saveGridToDatabase(grid, Sv.SDI_SYSGRID, svr);
+		} catch (SvException e) {
+			log4j.error("Error generating system tile grid.", 2);
+			return -1;
+		}
 		if (!gridExists) {
 			log4j.error("Error generating system tile grid.");
 			return -1;

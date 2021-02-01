@@ -1504,7 +1504,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		LinkedHashMap<String, DbDataField> dbFields = SvarogInstall.getFieldListFromDb(conn,
 				Sv.V + (String) dbt.getVal(Sv.TABLE_NAME), (String) dbt.getVal(Sv.SCHEMA));
 		@SuppressWarnings("unchecked")
-		ArrayList<DbDataObject> lstFields = (ArrayList<DbDataObject>) ((ArrayList<DbDataObject>) cachedFields.getItems()).clone();
+		ArrayList<DbDataObject> lstFields = (ArrayList<DbDataObject>) ((ArrayList<DbDataObject>) cachedFields
+				.getItems()).clone();
 
 		Iterator<DbDataObject> it = lstFields.iterator();
 		while (it.hasNext()) {
@@ -2760,8 +2761,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	public boolean isAdmin() throws SvException {
-		return this.getDefaultUserGroup() != null
-				&& this.getDefaultUserGroup().getObjectId().equals(svCONST.SID_ADMINISTRATORS);
+		return isSystem() || isService() || (this.getDefaultUserGroup() != null
+				&& this.getDefaultUserGroup().getObjectId().equals(svCONST.SID_ADMINISTRATORS));
 
 	}
 
