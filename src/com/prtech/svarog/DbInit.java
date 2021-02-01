@@ -4396,6 +4396,7 @@ public class DbInit {
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(true);
+		dbf2.setIsUnique(true);
 		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "tile_id");
 
 		// f4
