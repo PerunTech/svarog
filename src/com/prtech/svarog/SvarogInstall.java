@@ -69,6 +69,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DboFactory;
+import com.prtech.svarog_common.DboUnderground;
 import com.prtech.svarog_common.SvCharId;
 import com.prtech.svarog_interfaces.ISvConfiguration;
 import com.prtech.svarog_interfaces.ISvCore;
@@ -297,9 +298,15 @@ public class SvarogInstall {
 					"SDI is not enabled, can't generate grid. Enable SDI via svarog.properties parameter \"sys.gis.enable_spatial\"");
 			return -1;
 		}
+		boolean gridExists = false;
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
-		GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize());
-		boolean gridExists = SvGrid.saveGridToDatabase(grid, Sv.SDI_SYSGRID);
+		try (SvReader svr = new SvReader()) {
+			GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize(), svr);
+			gridExists = SvGrid.saveGridToDatabase(grid, Sv.SDI_SYSGRID, svr);
+		} catch (SvException e) {
+			log4j.error("Error generating system tile grid.", 2);
+			return -1;
+		}
 		if (!gridExists) {
 			log4j.error("Error generating system tile grid.");
 			return -1;
@@ -2416,7 +2423,7 @@ public class SvarogInstall {
 			return false;
 		}
 
-		log4j.debug("executeDbScript() for " + scriptName + " started.");
+		log4j.trace("executeDbScript() for " + scriptName + " started.");
 
 		PreparedStatement ps = null;
 		try {
@@ -2443,7 +2450,7 @@ public class SvarogInstall {
 						stmt = stmt.replace("{" + currentKey + "}", params.get(currentKey));
 				}
 
-				log4j.debug(stmt.toUpperCase());
+				log4j.trace(stmt.toUpperCase());
 
 				if (returnsResultSet) {
 					prepStatement[i] = conn.prepareStatement(stmt.toUpperCase());
@@ -2850,7 +2857,7 @@ public class SvarogInstall {
 		try (SvWriter svw = new SvWriter(); SvLink svl = new SvLink(svw);) {
 
 			svw.isInternal = true;
-			svw.saveObject(localUsers, false);
+			svw.saveObject(localUsers, false, true);
 			DbDataArray users = extractType(localUsers, svCONST.OBJECT_TYPE_USER, false);
 			DbDataObject defaultUserGroupLink = SvCore.getLinkType("USER_DEFAULT_GROUP", svCONST.OBJECT_TYPE_USER,
 					svCONST.OBJECT_TYPE_GROUP);
@@ -2885,11 +2892,25 @@ public class SvarogInstall {
 	 */
 	static Boolean installLocales() throws SvException {
 		log4j.info("Install of system locales started");
-
+		SvMTWriter mt = null;
 		DbDataArray locales = getLocaleList();
-		try (SvWriter svw = new SvWriter()) {
-			svw.saveObject(locales);
-			svw.dbCommit();
+		try (SvWriter svw = new SvWriter(); SvWriter svw1 = new SvWriter();) {
+			ArrayList<SvWriter> svs = new ArrayList<SvWriter>();
+			svw1.isInternal = true;
+			svw.isInternal = true;
+			svs.add(svw);
+			svs.add(svw1);
+			mt = new SvMTWriter(svs);
+			mt.start();
+			mt.saveObject(locales, true);
+			mt.commit();
+		} finally {
+			try {
+				mt.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		return true;
 	}

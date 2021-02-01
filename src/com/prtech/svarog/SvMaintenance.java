@@ -96,7 +96,7 @@ public class SvMaintenance implements Runnable {
 
 		}
 	}
-	
+
 	public static long performMaintenance() {
 		long timeout = SvConf.getCoreIdleTimeout();
 
@@ -193,7 +193,7 @@ public class SvMaintenance implements Runnable {
 	 * @throws SvException
 	 * @throws Exception    Throw any underlying exception
 	 */
-	 private static void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
+	private static void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
 			throws SQLException, SvException {
 		PreparedStatement ps = null;
 
@@ -293,7 +293,6 @@ public class SvMaintenance implements Runnable {
 	}
 
 	public static AtomicBoolean getMaintenanceInProgress() {
-		// TODO Auto-generated method stub
 		return maintenanceInProgress;
 	}
 

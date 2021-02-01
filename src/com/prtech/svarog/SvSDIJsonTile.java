@@ -50,9 +50,8 @@ public class SvSDIJsonTile extends SvSDITile {
 	}
 
 	@Override
-	ArrayList<Geometry> loadGeometries() throws SvException {
+	GeometryCollection loadGeometries() throws SvException {
 
-		ArrayList<Geometry> l = new ArrayList<Geometry>();
 
 		if (log4j.isDebugEnabled())
 			log4j.trace("Loading JSON tile from:" + jsonFilePath);
@@ -81,23 +80,16 @@ public class SvSDIJsonTile extends SvSDITile {
 
 		GeoJsonReader jtsReader = new GeoJsonReader();
 		GeometryCollection layer = null;
-		Geometry geomItem = null;
+
 		try {
 			jtsReader.setUseFeatureType(true);
 			layer = (GeometryCollection) jtsReader.read(geoJSONBounds);
 			tileEnvelope = layer.getEnvelopeInternal();
-			if (layer != null) {
-				for (int i = 0; i < layer.getNumGeometries(); i++) {
-					geomItem = layer.getGeometryN(i);
-					l.add(geomItem);
-				}
-			}
 		} catch (Exception e) {
 			log4j.error("Failed parsing JSON tile:" + jsonFilePath, e);
 
 		}
-		// TODO Auto-generated method stub
-		return l;
+		return layer;
 	}
 
 }
