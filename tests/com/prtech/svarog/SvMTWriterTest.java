@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 
 import org.junit.AfterClass;
@@ -17,12 +18,12 @@ import com.prtech.svarog_common.DboUnderground;
 
 public class SvMTWriterTest {
 
-	@AfterClass
-	public static void deleteNewRecs() throws SQLException {
-		try (SvReader svr = new SvReader()) {
-			PreparedStatement ps = svr.dbGetConn()
-					.prepareCall("DELETE FROM "+SvConf.getDefaultSchema()+"."+SvConf.getMasterRepo()+"_SYS_PARAMS WHERE param_name like 'MTST%'");
-			ps.execute();
+	@BeforeClass
+	public static void deleteRecs() throws SQLException {
+		String sql = "DELETE FROM " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo()
+				+ "_SYS_PARAMS WHERE param_name like 'MTST%'";
+		try (SvReader svr = new SvReader(); Statement st = svr.dbGetConn().createStatement()) {
+			st.execute(sql);
 			svr.dbCommit();
 		} catch (SvException e) {
 			e.printStackTrace();
