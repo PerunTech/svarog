@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.SvCharId;
 
 public class SvConstraint {
 	SvObjectConstraints parent = null;
@@ -52,14 +53,14 @@ public class SvConstraint {
 					// String nvlFunction = sqlKw.getString("NVL");
 					for (DbDataObject field : fields) {
 						// boolean isNullable = (boolean) fld.getVal("IS_NULL");
-						strBase.append(sqlKw.getString("STRING_CAST").replace("{COLUMN_NAME}",
-								sqlKw.getString("OBJECT_QUALIFIER_LEFT") + (String) field.getVal("FIELD_NAME")
-										+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT"))
-								+ sqlKw.getString("STRING_CONCAT") + "','" + sqlKw.getString("STRING_CONCAT"));
+						strBase.append(sqlKw.getString(Sv.STRING_CAST).replace("{COLUMN_NAME}",
+								sqlKw.getString(Sv.OBJECT_QUALIFIER_LEFT) + (String) field.getVal(Sv.FIELD_NAME)
+										+ sqlKw.getString(Sv.OBJECT_QUALIFIER_RIGHT))
+								+ sqlKw.getString(Sv.STRING_CONCAT) + "','" + sqlKw.getString(Sv.STRING_CONCAT));
 					}
-					strBase.setLength(strBase.length() - ((sqlKw.getString("STRING_CONCAT").length() * 2) + 3));
-					strBase.append(" as existing_unq_vals FROM " + dbt.getVal("schema") + ".v"
-							+ dbt.getVal("table_name") + " WHERE DT_DELETE=? AND");
+					strBase.setLength(strBase.length() - ((sqlKw.getString(Sv.STRING_CONCAT).length() * 2) + 3));
+					strBase.append(" as existing_unq_vals FROM " + dbt.getVal(Sv.SCHEMA) + ".v"
+							+ dbt.getVal(Sv.TABLE_NAME) + " WHERE DT_DELETE=? AND");
 				}
 			}
 
@@ -67,28 +68,33 @@ public class SvConstraint {
 		return strBase;
 	}
 
+	void appendFields() {
+		String nvlFunction = sqlKw.getString("NVL");
+		for (DbDataObject field : fields) {
+			boolean isNullable = (boolean) field.getVal(Sv.IS_NULL);
+			singleCrit.append((isNullable ? nvlFunction + "(" : "") + sqlKw.getString(Sv.OBJECT_QUALIFIER_LEFT)
+					+ (String) field.getVal(Sv.FIELD_NAME) + sqlKw.getString(Sv.OBJECT_QUALIFIER_RIGHT)
+					+ (isNullable ? ", 'NaN')" : "") + "=" + (isNullable ? nvlFunction + "(" : "") + "?"
+					+ (isNullable ? ", 'NaN')" : "") + " AND ");
+
+		}
+	}
+
 	StringBuilder getSingleCriterion() {
 		if (singleCrit == null) {
 			synchronized (SvConstraint.class) {
 				if (singleCrit == null) {
-					String nvlFunction = sqlKw.getString("NVL");
 					singleCrit = new StringBuilder();
 					singleCrit.append(
-							"(" + (uniqueLevel.equals("PARENT")
-									? " " + sqlKw.getString("OBJECT_QUALIFIER_LEFT") + "PARENT_ID"
-											+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + "=? AND "
+							"(" + (uniqueLevel.equals(Sv.PARENT)
+									? " " + sqlKw.getString(Sv.OBJECT_QUALIFIER_LEFT) + Sv.PARENT_ID
+											+ sqlKw.getString(Sv.OBJECT_QUALIFIER_RIGHT) + "=? AND "
 									: ""));
-					singleCrit.append(sqlKw.getString("OBJECT_QUALIFIER_LEFT") + "OBJECT_ID"
-							+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + "!=? AND ");
-					for (DbDataObject field : fields) {
-						boolean isNullable = (boolean) field.getVal("IS_NULL");
-						singleCrit.append((isNullable ? nvlFunction + "(" : "")
-								+ sqlKw.getString("OBJECT_QUALIFIER_LEFT") + (String) field.getVal("FIELD_NAME")
-								+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + (isNullable ? ", 'NaN')" : "") + "="
-								+ (isNullable ? nvlFunction + "(" : "") + "?" + (isNullable ? ", 'NaN')" : "")
-								+ " AND ");
+					singleCrit.append(sqlKw.getString(Sv.OBJECT_QUALIFIER_LEFT) + Sv.OBJECT_ID
+							+ sqlKw.getString(Sv.OBJECT_QUALIFIER_RIGHT) + "!=? AND ");
+					// append fields criteria
+					appendFields();
 
-					}
 					singleCrit.setLength(singleCrit.length() - 4);
 					singleCrit.append(")");
 				}
@@ -105,11 +111,11 @@ public class SvConstraint {
 	boolean addField(DbDataObject dbf) {
 		fields.add(dbf);
 		if (uniqueLevel == null)
-			uniqueLevel = (String) dbf.getVal("unq_level");
-		else if (!uniqueLevel.equals((String) dbf.getVal("unq_level"))) {
+			uniqueLevel = (String) dbf.getVal(Sv.UNQ_LEVEL);
+		else if (!uniqueLevel.equals((String) dbf.getVal(Sv.UNQ_LEVEL))) {
 			log4j.warn(
 					"One or multiple fields configured under same unique constraint have different uniqueness Level! Expected:"
-							+ uniqueLevel + ", got:" + (String) dbf.getVal("unq_level"));
+							+ uniqueLevel + ", got:" + (String) dbf.getVal(Sv.UNQ_LEVEL));
 			return false;
 		}
 		return true;
@@ -134,11 +140,11 @@ public class SvConstraint {
 		ArrayList<Object> bindVals = new ArrayList<Object>();
 		bindVals.add(SvConf.MAX_DATE);
 		for (DbDataObject dbo : dba.getItems()) {
-			if (uniqueLevel.equals("PARENT"))
+			if (uniqueLevel.equals(Sv.PARENT))
 				bindVals.add(dbo.getParentId());
 			bindVals.add(dbo.getObjectId());
 			for (DbDataObject fld : fields) {
-				bindVals.add(dbo.getVal((String) fld.getVal("FIELD_NAME")));
+				bindVals.add(dbo.getVal((String) fld.getVal(Sv.FIELD_NAME)));
 			}
 		}
 		return bindVals;

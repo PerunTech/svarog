@@ -49,7 +49,7 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
  *
  */
 public abstract class SvSDITile {
-	static final Logger log4j = LogManager.getLogger(SvSDITile.class.getName());
+	static final Logger log4j = SvConf.getLogger(SvSDITile.class);
 
 	protected STRtree tileIndex = null;
 	// GeometryCollection tileGeometries= null;
