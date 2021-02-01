@@ -30,15 +30,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.prtech.svarog.SvConf.SvDbType;
-import com.prtech.svarog.io.SvOracleIO;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
-import com.vividsolutions.jts.geom.Geometry;
 
 public class SvPostgresIO implements ISvDatabaseIO {
 
 	static final String sqlScriptsPath = "/com/prtech/svarog/sql/";
 	static final String sqlScriptsPackage = "DEFAULT/";
-	static final String sqlKeywordsBundle =sqlScriptsPath + sqlScriptsPackage +"sql_keywords.properties";
+	static final String sqlKeywordsBundle = sqlScriptsPath + sqlScriptsPackage + "sql_keywords.properties";
 
 	static final Logger logger = LogManager.getLogger(SvPostgresIO.class.getName());
 	static String systemSrid;
@@ -122,11 +120,11 @@ public class SvPostgresIO implements ISvDatabaseIO {
 		String script = "";
 		InputStream fis = null;
 		try {
-			fis = SvPostgresIO.class.getResourceAsStream(sqlScriptsPath + sqlScriptsPackage +scriptName);
+			fis = SvPostgresIO.class.getResourceAsStream(sqlScriptsPath + sqlScriptsPackage + scriptName);
 			if (fis != null)
 				script = IOUtils.toString(fis, "UTF-8");
 			else
-				logger.error(sqlScriptsPath + sqlScriptsPackage  + scriptName + " is not available");
+				logger.error(sqlScriptsPath + sqlScriptsPackage + scriptName + " is not available");
 		} catch (IOException e) {
 			logger.error("Can't read stream, disk access error maybe?", e);
 		} finally {
@@ -145,7 +143,7 @@ public class SvPostgresIO implements ISvDatabaseIO {
 		ResourceBundle rb = null;
 		InputStream fis = null;
 		try {
-			fis = SvOracleIO.class.getResourceAsStream(sqlKeywordsBundle);
+			fis = SvPostgresIO.class.getResourceAsStream(sqlKeywordsBundle);
 			if (fis != null)
 				rb = new PropertyResourceBundle(fis);
 			else
@@ -161,15 +159,7 @@ public class SvPostgresIO implements ISvDatabaseIO {
 				}
 		}
 		return rb;
-		/*
-		ResourceBundle rb = null;
-		try {
-			rb = ResourceBundle.getBundle(sqlKeywordsBundle);
-		} catch (Exception e) {
-			logger.error("Error loading SQL key words bundle {}", sqlKeywordsBundle, e);
-		}
-		return rb;
-		*/
+
 	}
 
 	@Override
