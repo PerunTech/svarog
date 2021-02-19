@@ -187,9 +187,11 @@ public class SvCluster extends SvCore {
 	 */
 	static boolean becomeCoordinator(SvCore svc) throws SvException {
 		try (SvWriter svw = new SvWriter(svc); SvReader svr = new SvReader(svc);) {
-			if (coordinatorNode == null) {
+			if (coordinatorNode == null)
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
-			}
+			if (coordinatorNode == null)
+				coordinatorNode = SvCluster.getCurrentNodeInfo();
+
 			coordinatorNode.setValuesMap(getCurrentNodeInfo().getValuesMap());
 			svw.isInternal = true;
 			svw.saveObject(coordinatorNode, true);
@@ -329,6 +331,7 @@ public class SvCluster extends SvCore {
 			return false;
 		} else
 			log4j.info("SvCluster is starting");
+		isActive.set(false);
 		SvReader svr = null;
 		isCoordinator = false;
 		try {
@@ -488,7 +491,7 @@ public class SvCluster extends SvCore {
 		notifierThread = null;
 		coordinatorNode = null;
 		isCoordinator = false;
-
+		isActive.set(false);
 		// notify interested parties that we shut down
 		synchronized (SvCluster.isRunning) {
 			isRunning.notifyAll();
