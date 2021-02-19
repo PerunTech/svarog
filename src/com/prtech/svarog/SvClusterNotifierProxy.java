@@ -118,10 +118,11 @@ public class SvClusterNotifierProxy implements Runnable {
 	@Override
 	public void run() {
 		if (isActive.get() && !isRunning.compareAndSet(false, true)) {
-			log4j.error(this.getClass().getName()+ ".run() failed. Current status is active:"+isActive.get()+". Main server thread is running:"+isRunning.get());
+			log4j.error(this.getClass().getName() + ".run() failed. Current status is active:" + isActive.get()
+					+ ". Main server thread is running:" + isRunning.get());
 			return;
 		}
-		
+
 		if (subServerSock != null && pubServerSock != null) {
 			byte[] subs = new byte[1];
 			subs[0] = 1;
@@ -272,24 +273,28 @@ public class SvClusterNotifierProxy implements Runnable {
 	 * @throws SvException
 	 */
 	public static boolean waitForAck(int ackValue, long timeout) {
+		boolean result = true;
 		Set<Long> nodes = nodeAcks.get(ackValue);
 		if (log4j.isDebugEnabled())
 			log4j.debug("Waiting ack on " + nodes.toString() + ". Nodes which should respond:"
 					+ Integer.toString(nodes.size()) + "");
-		try {
-			synchronized (nodes) {
-				nodes.wait(timeout);
+		if (nodes != null) {
+			try {
+				synchronized (nodes) {
+					nodes.wait(timeout);
+				}
+				if (log4j.isDebugEnabled())
+					log4j.debug(
+							"Acknowledge completed. Nodes which didn't respond:" + Integer.toString(nodes.size()) + "");
+				nodeAcks.remove(ackValue);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				if (log4j.isDebugEnabled())
+					log4j.debug("Thread Interrupted. Nodes left:" + nodes.size());
 			}
-			if (log4j.isDebugEnabled())
-				log4j.debug("Acknowledge completed. Nodes which didn't respond:" + Integer.toString(nodes.size()) + "");
-			nodeAcks.remove(ackValue);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			if (log4j.isDebugEnabled())
-				log4j.debug("Thread Interrupted. Nodes left:" + nodes.size());
+			result = nodes.size() == 0;
 		}
-
-		return nodes.size() == 0;
+		return result;
 	}
 
 	/**
