@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.UUID;
@@ -22,7 +24,15 @@ import com.prtech.svarog_common.DboFactory;
 public class ClusterTest {
 
 	@BeforeClass
-	public static void init() {
+	public static void init() throws SQLException {
+		String sql = "DELETE FROM " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo() + "_CLUSTER";
+		try (SvReader svr = new SvReader(); Statement st = svr.dbGetConn().createStatement()) {
+			st.execute(sql);
+			svr.dbCommit();
+		} catch (SvException e) {
+			e.printStackTrace();
+		}
+
 		SvConf.setClusterEnabled(false);
 		// SvMaintenance.shutdown();
 		SvClusterClient.shutdown();
@@ -410,6 +420,7 @@ public class ClusterTest {
 			e.printStackTrace();
 		} finally {
 			SvClusterNotifierClient.shutdown();
+			SvClusterClient.shutdown();
 			SvCluster.shutdown();
 			SvLock.clearLocks();
 
@@ -426,6 +437,8 @@ public class ClusterTest {
 			SvCore.initSvCore();
 			SvCluster.autoStartClient = false;
 			SvCluster.initCluster();
+			// this sleep is just to give threads some time to boot.
+			Thread.sleep(50);
 			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
 
 			SvClusterNotifierClient.initClient(ipAddressList);
@@ -457,10 +470,7 @@ public class ClusterTest {
 			SvClusterNotifierClient.shutdown();
 			SvCluster.shutdown();
 			SvLock.clearLocks();
-		} catch (SvException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {

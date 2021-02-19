@@ -204,13 +204,18 @@ public class SvMaintenance implements Runnable {
 			sbr.append("DELETE FROM ");
 			sbr.append(SvConf.getDefaultSchema() + ".");
 			sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("REPO_NAME") + " WHERE ");
-			sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER) + " AND  PKID NOT IN (");
-			// append the ids which we should not delete
-			for (DbDataObject dbo : validNodes.getItems())
-				sbr.append(dbo.getPkid().toString() + ",");
+			sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER));
 
-			sbr.setLength(sbr.length() - 1);
-			sbr.append(")");
+			// append the ids which we should not delete
+			// if the list is empty then simply make sure we don't fail
+			if (validNodes.size() > 0) {
+				sbr.append(" AND  PKID NOT IN (");
+				for (DbDataObject dbo : validNodes.getItems())
+					sbr.append(dbo.getPkid().toString() + ",");
+
+				sbr.setLength(sbr.length() - 1);
+				sbr.append(")");
+			}
 			conn.setAutoCommit(false);
 			ps = conn.prepareStatement(sbr.toString());
 			ps.execute();
