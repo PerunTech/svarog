@@ -25,8 +25,6 @@ import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.svCONST;
-import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog_common.DbSearch;
 import com.prtech.svarog_common.DbSearch.DbLogicOperand;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
@@ -38,19 +36,20 @@ public class DbQueryObject extends DbQuery {
 	};
 
 	/**
-	 * The LinkType specifies how the two objects will be joined. If link type
-	 * is DBLINK, svarog will try to join the objects based on a configuration
-	 * of type svCONST.OBJECT_TYPE_LINK_TYPE.
+	 * The LinkType specifies how the two objects will be joined. If link type is
+	 * DBLINK, svarog will try to join the objects based on a configuration of type
+	 * svCONST.OBJECT_TYPE_LINK_TYPE.
 	 * 
-	 * If the link type if PARENT it will treat the next object as a parent
-	 * object to this one If the link type if CHILD it will treat the next
-	 * object as a object object to this one
+	 * If the link type if PARENT it will treat the next object as a parent object
+	 * to this one If the link type if CHILD it will treat the next object as a
+	 * object object to this one
 	 * 
 	 * @author PR01
 	 * 
 	 */
 	public enum LinkType {
-		DBLINK, DBLINK_REVERSE, PARENT, CHILD, CUSTOM, CUSTOM_FREETEXT, DENORMALIZED, DENORMALIZED_REVERSE, DENORMALIZED_FULL
+		DBLINK, DBLINK_REVERSE, PARENT, CHILD, CUSTOM, CUSTOM_FREETEXT, DENORMALIZED, DENORMALIZED_REVERSE,
+		DENORMALIZED_FULL
 	};
 
 	boolean reverseRelation = false;
@@ -65,6 +64,13 @@ public class DbQueryObject extends DbQuery {
 	DbSearch searchExternal;
 
 	String denormalizedFieldName;
+
+	/**
+	 * This is the name of the OTHER field on which we shall perform an SQL join. By
+	 * other, we mean the field name in the Table/Object to which we perform the
+	 * join. This field is not part of the current object/Table!
+	 */
+	String denormalizedJoinOnFieldName;
 	LinkType linkToNextType;
 	DbDataObject linkToNext;
 	DbJoinType joinToNext;
@@ -92,12 +98,12 @@ public class DbQueryObject extends DbQuery {
 	Boolean returnLinkObjects = false;
 
 	/**
-	 * Overriden version of the method in order to verify if the DBT exists in
-	 * the target configuration
+	 * Overriden version of the method in order to verify if the DBT exists in the
+	 * target configuration
 	 */
 	@Override
 	public Boolean fromJson(JsonObject obj) {
-		Boolean result = this.jsonIO.setMembersFromJson("", this, obj);
+		Boolean result = Jsonable.jsonIO.setMembersFromJson("", this, obj);
 		if (dbt != null) {
 			String tableName = (String) dbt.getVal("TABLE_NAME");
 			DbDataObject newDbt = SvCore.getDbtByName(tableName);
@@ -124,25 +130,21 @@ public class DbQueryObject extends DbQuery {
 	 * Method to auto assign supporting data for the specific Dbt
 	 */
 	private void autoAssignDbt() {
-		this.dbtFields = SvCore.getFields(dbt.getObject_id());
-		this.repo = SvCore.getRepoDbt(dbt.getObject_id());
-		this.repoFields = SvCore.getFields(repo.getObject_id());
+		this.dbtFields = SvCore.getFields(dbt.getObjectId());
+		this.repo = SvCore.getRepoDbt(dbt.getObjectId());
+		this.repoFields = SvCore.getFields(repo.getObjectId());
 	}
 
 	/**
 	 * Default DQO constructor.
 	 * 
-	 * @param dbt
-	 *            The object descriptor for the table based on which DQO will
-	 *            generate a query
-	 * @param search
-	 *            Search criteria
-	 * @param linkToNext
-	 *            The link descriptor for joining by link
-	 * @param referenceDate
-	 *            The reference date for which we'll fetch the dataset
-	 * @throws SvException
-	 *             If mandatory parameters are omitted an Exception is thrown
+	 * @param dbt           The object descriptor for the table based on which DQO
+	 *                      will generate a query
+	 * @param search        Search criteria
+	 * @param linkToNext    The link descriptor for joining by link
+	 * @param referenceDate The reference date for which we'll fetch the dataset
+	 * @throws SvException If mandatory parameters are omitted an Exception is
+	 *                     thrown
 	 */
 	public DbQueryObject(DbDataObject dbt, DbSearch search, DateTime referenceDate, DbJoinType joinToNext)
 			throws SvException {
@@ -159,33 +161,22 @@ public class DbQueryObject extends DbQuery {
 	}
 
 	/**
-	 * Constructor to construct a DQO based on dbt. This constructor is
-	 * deprecated because the repo information is not needed. Avoid it in the
-	 * future
+	 * Constructor to construct a DQO based on dbt. This constructor is deprecated
+	 * because the repo information is not needed. Avoid it in the future
 	 * 
-	 * @param repo
-	 *            Repo Descriptor
-	 * @param repoFields
-	 *            Repo Fields list
-	 * @param dbt
-	 *            The Object Type descriptor for which this DQO will generate a
-	 *            query
-	 * @param dbtFields
-	 *            The fields of the object type
-	 * @param search
-	 *            Search criteria
-	 * @param joinToNext
-	 *            Criteria for joining to the next DQO
-	 * @param linkToNext
-	 *            The link descriptor for joining by link
-	 * @param linkToNextType
-	 *            The type of join to the next DQO
-	 * @param orderByFields
-	 *            The list of fields in the order by clause
-	 * @param referenceDate
-	 *            The reference date of the DQO
-	 * @throws SvException
-	 *             If mandatory parameters are omitted an Exception is thrown
+	 * @param repo           Repo Descriptor
+	 * @param repoFields     Repo Fields list
+	 * @param dbt            The Object Type descriptor for which this DQO will
+	 *                       generate a query
+	 * @param dbtFields      The fields of the object type
+	 * @param search         Search criteria
+	 * @param joinToNext     Criteria for joining to the next DQO
+	 * @param linkToNext     The link descriptor for joining by link
+	 * @param linkToNextType The type of join to the next DQO
+	 * @param orderByFields  The list of fields in the order by clause
+	 * @param referenceDate  The reference date of the DQO
+	 * @throws SvException If mandatory parameters are omitted an Exception is
+	 *                     thrown
 	 */
 	@Deprecated
 	public DbQueryObject(DbDataObject repo, DbDataArray repoFields, DbDataObject dbt, DbDataArray dbtFields,
@@ -197,23 +188,16 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Constructor to construct a DQO based on dbt.
 	 * 
-	 * @param dbt
-	 *            The Object Type descriptor for which this DQO will generate a
-	 *            query
-	 * @param search
-	 *            Search criteria
-	 * @param joinToNext
-	 *            Criteria for joining to the next DQO
-	 * @param linkToNext
-	 *            The link descriptor for joining by link
-	 * @param linkToNextType
-	 *            The type of join to the next DQO
-	 * @param orderByFields
-	 *            The list of fields in the order by clause
-	 * @param referenceDate
-	 *            The reference date of the DQO
-	 * @throws SvException
-	 *             If mandatory parameters are omitted an Exception is thrown
+	 * @param dbt            The Object Type descriptor for which this DQO will
+	 *                       generate a query
+	 * @param search         Search criteria
+	 * @param joinToNext     Criteria for joining to the next DQO
+	 * @param linkToNext     The link descriptor for joining by link
+	 * @param linkToNextType The type of join to the next DQO
+	 * @param orderByFields  The list of fields in the order by clause
+	 * @param referenceDate  The reference date of the DQO
+	 * @throws SvException If mandatory parameters are omitted an Exception is
+	 *                     thrown
 	 */
 	public DbQueryObject(DbDataObject dbt, DbSearch search, DbJoinType joinToNext, DbDataObject linkToNext,
 			LinkType linkToNextType, ArrayList<String> orderByFields, DateTime referenceDate) throws SvException {
@@ -226,16 +210,12 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Constructor to create new DQO based on sub-query
 	 * 
-	 * @param subQuery
-	 *            The SQL subquery
-	 * @param whereParamVals
-	 *            The array of parameters for the where clause
-	 * @param inSubQParamVals
-	 *            The array of parameters to be replaced in the subquery
-	 * @param fieldList
-	 *            The list of fields this DQO will return
-	 * @throws SvException
-	 *             If mandatory parameters are omitted an Exception is thrown
+	 * @param subQuery        The SQL subquery
+	 * @param whereParamVals  The array of parameters for the where clause
+	 * @param inSubQParamVals The array of parameters to be replaced in the subquery
+	 * @param fieldList       The list of fields this DQO will return
+	 * @throws SvException If mandatory parameters are omitted an Exception is
+	 *                     thrown
 	 */
 	public DbQueryObject(String subQuery, ArrayList<Object> whereParamVals, ArrayList<Object> inSubQParamVals,
 			String fieldList) throws SvException {
@@ -254,31 +234,21 @@ public class DbQueryObject extends DbQuery {
 	}
 
 	/**
-	 * Constructor to construct a DQO based on dbt. This constructor is
-	 * deprecated because the repo information is not needed. Avoid it in the
-	 * future
+	 * Constructor to construct a DQO based on dbt. This constructor is deprecated
+	 * because the repo information is not needed. Avoid it in the future
 	 * 
-	 * @param repo
-	 *            Repo Descriptor
-	 * @param repoFields
-	 *            Repo Fields list
-	 * @param dbt
-	 *            The Object Type descriptor for which this DQO will generate a
-	 *            query
-	 * @param dbtFields
-	 *            The fields of the object type
-	 * @param search
-	 *            Search criteria
-	 * @param joinToNext
-	 *            Criteria for joining to the next DQO
-	 * @param linkToNext
-	 *            The link descriptor for joining by link
-	 * @param linkToNextType
-	 *            The type of join to the next DQO
-	 * @param orderByFields
-	 *            The list of fields in the order by clause
-	 * @throws SvException
-	 *             If mandatory parameters are omitted an Exception is thrown
+	 * @param repo           Repo Descriptor
+	 * @param repoFields     Repo Fields list
+	 * @param dbt            The Object Type descriptor for which this DQO will
+	 *                       generate a query
+	 * @param dbtFields      The fields of the object type
+	 * @param search         Search criteria
+	 * @param joinToNext     Criteria for joining to the next DQO
+	 * @param linkToNext     The link descriptor for joining by link
+	 * @param linkToNextType The type of join to the next DQO
+	 * @param orderByFields  The list of fields in the order by clause
+	 * @throws SvException If mandatory parameters are omitted an Exception is
+	 *                     thrown
 	 */
 	@Deprecated
 	public DbQueryObject(DbDataObject repo, DbDataArray repoFields, DbDataObject dbt, DbDataArray dbtFields,
@@ -291,8 +261,8 @@ public class DbQueryObject extends DbQuery {
 	}
 
 	/**
-	 * Another overload for backwards compatibility. Needs to be removed in
-	 * Svarog v3.
+	 * Another overload for backwards compatibility. Needs to be removed in Svarog
+	 * v3.
 	 * 
 	 * @param repo
 	 * @param repoFields
@@ -319,8 +289,7 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Method that sets the default repo criterion
 	 * 
-	 * @param refDate
-	 *            The reference date for object validity
+	 * @param refDate The reference date for object validity
 	 * @return
 	 */
 	DbSearchExpression getDefaultRepoCriterion(DateTime refDate, DbJoinType dbj) {
@@ -366,12 +335,10 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Method returning a list of DB fields with their appropriate aliases
 	 * 
-	 * @param repoDbt
-	 *            The config object for the repository of the object
-	 * @param dbt
-	 *            The config object for the object type
+	 * @param repoDbt The config object for the repository of the object
+	 * @param dbt     The config object for the object type
 	 * @return A string containing list of fields split by comma
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	StringBuilder getFieldList(String repoPrefix, String tblPrefix, Boolean includeGeometries) throws SvException {
 		StringBuilder retval = null;
@@ -391,12 +358,10 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Method returning a list of DB fields with their appropriate aliases
 	 * 
-	 * @param repoDbt
-	 *            The config object for the repository of the object
-	 * @param dbt
-	 *            The config object for the object type
+	 * @param repoDbt The config object for the repository of the object
+	 * @param dbt     The config object for the object type
 	 * @return A string containing list of fields split by comma
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	public StringBuilder getFieldList(String sqlTblAlias, DbDataArray repoFields, DbDataArray dbtFields,
 			Boolean includeGeometries) throws SvException {
@@ -406,12 +371,10 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Method returning a list of DB fields with their appropriate aliases
 	 * 
-	 * @param repoDbt
-	 *            The config object for the repository of the object
-	 * @param dbt
-	 *            The config object for the object type
+	 * @param repoDbt The config object for the repository of the object
+	 * @param dbt     The config object for the object type
 	 * @return A string containing list of fields split by comma
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	public StringBuilder getFieldList(String sqlTblAlias, DbDataArray repoFields, DbDataArray dbtFields,
 			Boolean includeGeometries, boolean useColumnPrefix) throws SvException {
@@ -486,7 +449,8 @@ public class DbQueryObject extends DbQuery {
 		return getTableSql(repoPrefix, tblPrefix, includeGeometries, sqlTablePrefix);
 	}
 
-	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries, String resultSetPrefix) throws SvException {
+	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries, String resultSetPrefix)
+			throws SvException {
 
 		StringBuilder retval = new StringBuilder(400);
 		String finalRepoPrefix = repoPrefix == null || repoPrefix.equals("") ? null : repoPrefix;
@@ -823,5 +787,22 @@ public class DbQueryObject extends DbQuery {
 
 	public void setCustomFieldsList(ArrayList<String> customFieldsList) {
 		this.customFieldsList = customFieldsList;
+	}
+
+	public String getDenormalizedJoinOnFieldName() {
+		return denormalizedJoinOnFieldName;
+	}
+
+	/**
+	 * * This is the name of the OTHER field on which we shall perform an SQL join.
+	 * By other, we mean the field name in the Table/Object to which we perform the
+	 * join. This field is not part of the current object/Table!
+	 * 
+	 * @param denormalizedJoinOnFieldName The field name part of the previous
+	 *                                    object/table in the SQL Expression
+	 */
+
+	public void setDenormalizedJoinOnFieldName(String denormalizedJoinOnFieldName) {
+		this.denormalizedJoinOnFieldName = denormalizedJoinOnFieldName;
 	}
 }

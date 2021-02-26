@@ -34,8 +34,8 @@ public class DbQueryExpression extends DbQuery {
 	static DbDataObject dblt = null;
 
 	/**
-	 * List of DbQueryObjects to be used for query generation. If the expression
-	 * is reverse this list is ignored
+	 * List of DbQueryObjects to be used for query generation. If the expression is
+	 * reverse this list is ignored
 	 */
 	LinkedList<DbQueryObject> items = new LinkedList<DbQueryObject>();
 
@@ -45,8 +45,8 @@ public class DbQueryExpression extends DbQuery {
 	DbQueryObject rootQueryObject = null;
 
 	/**
-	 * If the expression is reverse, then the root object is traversed otherwise
-	 * the list of items is traversed in forward maner
+	 * If the expression is reverse, then the root object is traversed otherwise the
+	 * list of items is traversed in forward maner
 	 */
 	Boolean isReverseExpression = false;
 
@@ -68,8 +68,8 @@ public class DbQueryExpression extends DbQuery {
 	}
 
 	/**
-	 * Default constructor to create a query expression with root query object
-	 * and reverse execution
+	 * Default constructor to create a query expression with root query object and
+	 * reverse execution
 	 * 
 	 * @param rootQueryObject
 	 */
@@ -124,10 +124,8 @@ public class DbQueryExpression extends DbQuery {
 	/**
 	 * Method to get a DQO from the list of available QueryObjects
 	 * 
-	 * @param currentDqo
-	 *            The currently selected DQO
-	 * @param sequence
-	 *            The sequence inside the DQO or global sequence
+	 * @param currentDqo The currently selected DQO
+	 * @param sequence   The sequence inside the DQO or global sequence
 	 * @return
 	 */
 	DbQueryObject getDqo(DbQueryObject currentDqo, Integer sequence) {
@@ -157,7 +155,6 @@ public class DbQueryExpression extends DbQuery {
 		if (currentDqo.getLinkToNextType() != null && currentDqo.getParent() != null) {
 			StringBuilder[] nextJoinStr = new StringBuilder[2];
 			getPrevTableJoin(currentDqo.getParent(), currentDqo, nextJoinStr, false);
-			String[] tmpSplit = null;
 			if (currentDqo.joinToNext.equals(DbJoinType.LEFT)) {
 				boolean isDbLink = (currentDqo.linkToNextType.equals(LinkType.DBLINK)
 						|| currentDqo.linkToNextType.equals(LinkType.DBLINK_REVERSE));
@@ -165,7 +162,7 @@ public class DbQueryExpression extends DbQuery {
 				StringBuilder tmpFinal = new StringBuilder().append(" LEFT JOIN (SELECT ");
 				// System.out.println("tmp str:" + tmp.toString());
 				tmpFinal.append(currentDqo.getFieldList(currentDqo.getSqlTablePrefix(), SvCore.getRepoDbtFields(),
-						SvCore.getFields(currentDqo.getDbt().getObject_id()), false, false));
+						SvCore.getFields(currentDqo.getDbt().getObjectId()), false, false));
 				if (isDbLink)
 					tmpFinal.append("," + currentDqo.getFieldList("lnk" + currentDqo.getSqlTablePrefix(),
 							SvCore.getRepoDbtFields(), SvCore.getFields(svCONST.OBJECT_TYPE_LINK), false));
@@ -211,8 +208,9 @@ public class DbQueryExpression extends DbQuery {
 					} else {
 						tmpWhere.append(" (? between lnk" + currentDqo.getSqlTablePrefix() + ".dt_insert and lnk"
 								+ currentDqo.getSqlTablePrefix() + ".dt_delete) ");
-						whereQueryParamVals.add(currentDqo.getLinkReferenceDate() != null
-								? currentDqo.getLinkReferenceDate() : currentDqo.getReferenceDate());
+						whereQueryParamVals
+								.add(currentDqo.getLinkReferenceDate() != null ? currentDqo.getLinkReferenceDate()
+										: currentDqo.getReferenceDate());
 
 					}
 				}
@@ -252,11 +250,9 @@ public class DbQueryExpression extends DbQuery {
 	/**
 	 * Method to build an sql expression for a reversed query expression
 	 * 
-	 * @param includeGeometries
-	 *            if geometries should be included in the resultset
+	 * @param includeGeometries if geometries should be included in the resultset
 	 * @return A SQL String to be executed using JDBC
-	 * @throws SvException
-	 *             Any exception which occurred should be forwarded
+	 * @throws SvException Any exception which occurred should be forwarded
 	 */
 	public StringBuilder getReverseSQLExpression(Boolean includeGeometries) throws SvException {
 
@@ -292,8 +288,7 @@ public class DbQueryExpression extends DbQuery {
 
 	@Override
 	/**
-	 * Method to generate SQL Query from an Expression which groups multiple
-	 * Objects
+	 * Method to generate SQL Query from an Expression which groups multiple Objects
 	 */
 	public StringBuilder getSQLExpression(Boolean forcePhysicalTables, Boolean includeGeometries) throws SvException {
 
@@ -481,7 +476,8 @@ public class DbQueryExpression extends DbQuery {
 			// if legacy version is still null, try to get from current DQO
 			if (tmpLnkStatus == null)
 				tmpLnkStatus = (currentDqo.getLinkStatusList() != null && currentDqo.getLinkStatusList().size() > 0)
-						? currentDqo.getLinkStatusList() : null;
+						? currentDqo.getLinkStatusList()
+						: null;
 			StringBuilder lnkStr = new StringBuilder();
 			if (tmpLnkStatus != null) {
 				boolean hasPrev = false;
@@ -522,7 +518,8 @@ public class DbQueryExpression extends DbQuery {
 			// if legacy version is still null, try to get from current DQO
 			if (tmpLnkStatus == null)
 				tmpLnkStatus = (currentDqo.getLinkStatusList() != null && currentDqo.getLinkStatusList().size() > 0)
-						? currentDqo.getLinkStatusList() : null;
+						? currentDqo.getLinkStatusList()
+						: null;
 
 			StringBuilder lnkStr = new StringBuilder();
 			if (tmpLnkStatus != null) {
@@ -560,9 +557,15 @@ public class DbQueryExpression extends DbQuery {
 		}
 			break;
 		case DENORMALIZED_FULL: {
+			// get the name of the previous field. If the current table has its own
+			// specified field name use it, otherwise fall back to the previous DQO
+			String prevTableField = currentDqo.getDenormalizedJoinOnFieldName() != null
+					? currentDqo.getDenormalizedJoinOnFieldName()
+					: prevDqo.getDenormalizedFieldName();
+
 			// first get the dblink table name
-			joinCritFromPrev.append(" on " + prevDqo.getSqlTablePrefix() + "." + prevDqo.getDenormalizedFieldName()
-					+ "=" + currentDqo.getSqlTablePrefix() + "." + currentDqo.getDenormalizedFieldName() + " ");
+			joinCritFromPrev.append(" on " + prevDqo.getSqlTablePrefix() + "." + prevTableField + "="
+					+ currentDqo.getSqlTablePrefix() + "." + currentDqo.getDenormalizedFieldName() + " ");
 		}
 			break;
 		}
@@ -756,8 +759,7 @@ public class DbQueryExpression extends DbQuery {
 			// the first instance
 			if (!hasDqoIsReturnType) {
 				for (DbQueryObject dqo : items) {
-					if (dqo.getDbt() != null
-							&& dqo.getDbt().getObject_id().equals(this.getReturnType().getObject_id())) {
+					if (dqo.getDbt() != null && dqo.getDbt().getObjectId().equals(this.getReturnType().getObjectId())) {
 						dqo.setIsReturnType(true); // we found it
 						break;
 					}
