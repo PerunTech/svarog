@@ -385,7 +385,6 @@ public class SvExecManagerTest {
 			if (!o.toString().equals(name + "1"))
 				fail("Executor pack by pack/item label failed");
 
-			
 			sve.dbRollback();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -393,5 +392,19 @@ public class SvExecManagerTest {
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void initExecsPack() throws SvException {
+		try (SvExecManager sve = new SvExecManager()) {
+			sve.osgiServices = new Object[3];
+
+			// create 3 different executors
+			sve.osgiServices[0] = new TestExecutor(name + "1");
+			sve.osgiServices[1] = new TestExecutor(name + "2");
+			sve.osgiServices[2] = new TestExecutor(name + "3");
+			
+			sve.initOSGIExecutors();
+		}
 	}
 }
