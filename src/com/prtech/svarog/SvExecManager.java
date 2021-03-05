@@ -451,6 +451,11 @@ public class SvExecManager extends SvCore {
 		return exeInstance;
 	}
 
+	public void initOSGIExecutors() throws SvException {
+		if (this.isAdmin() || this.isSystem())
+			loadOSGIExecutors(null, null);
+	}
+
 	/**
 	 * Method to load executor services from the OSGI tracker
 	 * 
@@ -462,21 +467,25 @@ public class SvExecManager extends SvCore {
 		for (int i = 0; (services != null) && (i < services.length); i++) {
 			SvExecInstance svx = null;
 			if (services[i] instanceof ISvExecutor && services[i] != null
-					&& getKey((ISvExecutor) services[i]).equals(key)) {
+					&& (getKey((ISvExecutor) services[i]).equals(key) || (key == null && execs == null))) {
 				ISvExecutor sve = (ISvExecutor) services[i];
 				// get start and end date from database and
 				// update the SVE
 				svx = new SvExecInstance(sve, sve.getStartDate(), sve.getEndDate());
 				svx.setStatus(svCONST.STATUS_VALID);
-				execs.addIfAbsent(initExecInstance(svx));
+				SvExecInstance s = initExecInstance(svx);
+				if (execs != null)
+					execs.addIfAbsent(s);
 			}
 			if (services[i] instanceof ISvExecutorGroup && services[i] != null
-					&& getKeys((ISvExecutorGroup) services[i]).contains(key)) {
+					&& (getKeys((ISvExecutorGroup) services[i]).contains(key) || (key == null && execs == null))) {
 				ISvExecutorGroup svg = (ISvExecutorGroup) services[i];
 				ISvExecutor svge = new SvExecutorWrapper(svg, getName(svg.getCategory(), key));
 				svx = new SvExecInstance(svge, svge.getStartDate(), svge.getEndDate());
 				svx.setStatus(svCONST.STATUS_VALID);
-				execs.addIfAbsent(initExecInstance(svx));
+				SvExecInstance s = initExecInstance(svx);
+				if (execs != null)
+					execs.addIfAbsent(s);
 			}
 
 		}
