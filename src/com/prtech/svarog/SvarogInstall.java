@@ -69,7 +69,6 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DboFactory;
-import com.prtech.svarog_common.DboUnderground;
 import com.prtech.svarog_common.SvCharId;
 import com.prtech.svarog_interfaces.ISvConfiguration;
 import com.prtech.svarog_interfaces.ISvCore;
@@ -130,11 +129,6 @@ public class SvarogInstall {
 
 	static ArrayList<Option> sysCoreOpts = new ArrayList<Option>();
 
-	/**
-	 * List of SvConfigurations available in the system
-	 */
-	static ArrayList<ISvConfiguration> iSvCfgs = null;
-
 	public static final String labelsFilePrefix = "20. master_labels_";
 	public static final String codesFile = "30. master_codes.json";
 	public static final String usersFile = "999. default_users.json";
@@ -150,6 +144,12 @@ public class SvarogInstall {
 	public static final String aclFile = "acl.json";
 	public static final String aclSidFile = "acl_sid.json";
 
+	/**
+	 * Method to manage the writing to the console. If there's active console write
+	 * to it, otherwise write to the log
+	 * 
+	 * @param message The string message to be written
+	 */
 	static void writeToScreen(String message) {
 		Console console = System.console();
 		if (console != null) {
@@ -1261,73 +1261,6 @@ public class SvarogInstall {
 		return cfgs;
 	}
 
-	static void prepareConfig() {
-		if (iSvCfgs == null) {
-			iSvCfgs = new ArrayList<ISvConfiguration>();
-			// add the system implementation
-			iSvCfgs.add(new SvConfigurationImpl());
-
-			ArrayList<Object> cfgs = DbInit.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY),
-					ISvConfiguration.class);
-			if (cfgs != null)
-				for (Object o : cfgs)
-					if (o instanceof ISvConfiguration)
-						iSvCfgs.add((ISvConfiguration) o);
-		}
-	}
-
-	static void executeConfiguration(ISvConfiguration.UpdateType updateType) throws Exception {
-		Connection conn = null;
-		String schema = null;
-		String msg = "";
-		ISvCore svc = null;
-		prepareConfig();
-
-		// pre-install db handler call
-		try {
-			conn = SvConf.getDBConnection();
-			schema = SvConf.getDefaultSchema();
-			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled())
-				svc = new SvReader();
-			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
-				switch (updateType) {
-				case SCHEMA:
-					msg = conf.beforeSchemaUpdate(conn, svc, schema);
-					break;
-				case LABELS:
-					msg = conf.beforeLabelsUpdate(conn, svc, schema);
-					break;
-				case CODES:
-					msg = conf.beforeCodesUpdate(conn, svc, schema);
-					break;
-				case TYPES:
-					msg = conf.beforeTypesUpdate(conn, svc, schema);
-					break;
-				case LINKTYPES:
-					msg = conf.beforeLinkTypesUpdate(conn, svc, schema);
-					break;
-				case ACL:
-					msg = conf.beforeAclUpdate(conn, svc, schema);
-					break;
-				case SIDACL:
-					msg = conf.beforeSidAclUpdate(conn, svc, schema);
-					break;
-				case FINAL:
-					msg = conf.afterUpdate(conn, svc, schema);
-					break;
-				default:
-					break;
-				}
-				log4j.info(msg);
-			}
-		} finally {
-			if (svc != null)
-				svc.release();
-			if (conn != null)
-				conn.close();
-		}
-	}
-
 	/**
 	 * Method for install/upgrade svarog, to the latest config.
 	 * 
@@ -1377,7 +1310,7 @@ public class SvarogInstall {
 			if (runConfigurationTest)
 				prepareConfigurationTest();
 			// pre-install db handler call
-			executeConfiguration(ISvConfiguration.UpdateType.SCHEMA);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.SCHEMA);
 
 			// do the actual table creation, unless we run labels only upgrade
 			if (!labelsOnly)
@@ -1404,7 +1337,7 @@ public class SvarogInstall {
 				}
 			}
 
-			executeConfiguration(ISvConfiguration.UpdateType.FINAL);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.FINAL);
 
 			if (isSvarogInstalled())
 				try {
@@ -1435,8 +1368,8 @@ public class SvarogInstall {
 	}
 
 	private static void prepareConfigurationTest() {
-		iSvCfgs = new ArrayList<ISvConfiguration>();
-		iSvCfgs.add(new SvConfigurationDryRun());
+		SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
+		SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
 	}
 
 	/**
@@ -2773,7 +2706,7 @@ public class SvarogInstall {
 			File[] confFiles = confFolder.listFiles();
 			DbDataArray allNonProcessed = new DbDataArray();
 
-			executeConfiguration(ISvConfiguration.UpdateType.LABELS);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.LABELS);
 
 			Arrays.sort(confFiles);
 			// iterate over all files containing Labels and run upgrade
@@ -2805,7 +2738,7 @@ public class SvarogInstall {
 					upgradeObjectCfg(upgradeFile, allNonProcessed);
 				}
 			}
-			executeConfiguration(ISvConfiguration.UpdateType.LINKTYPES);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.LINKTYPES);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("4")) {
 					String upgradeFile = confPath + confFiles[i].getName();
@@ -2814,7 +2747,7 @@ public class SvarogInstall {
 			}
 
 			SvCore.initSvCore(true);
-			executeConfiguration(ISvConfiguration.UpdateType.ACL);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.ACL);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("90")) {
 					String upgradeFile = confPath + confFiles[i].getName();
