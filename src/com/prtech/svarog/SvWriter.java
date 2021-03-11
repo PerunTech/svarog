@@ -394,13 +394,13 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
-			Boolean hasPKID) throws SvException {
+			Boolean hasPKID, boolean hasNullGeometry) throws SvException {
 		String sql = null;
 		if (!isUpdate)
 			sql = queryCache.get(dbt.getObjectId());
 		else
 			sql = queryCache.get(-dbt.getObjectId());
-		if (sql != null)
+		if (!hasNullGeometry && sql != null)
 			return sql;
 
 		sql = "INSERT INTO " + (String) dbt.getVal("schema") + "." + (String) dbt.getVal("table_name");
@@ -417,13 +417,8 @@ public class SvWriter extends SvCore {
 			// maybe add field level checks in 2020?
 			// if (!isFieldWriteable(obj, "Replace with User", status)) {
 			// fieldVals.append((String) obj.getVal("field_name"));
-			// else
-			if (((String) obj.getVal("field_type")).equals("GEOMETRY")) // add
-																		// specifics
-																		// for
-																		// GIS
-																		// data
-			{
+
+			if (((String) obj.getVal("field_type")).equals("GEOMETRY") && !hasNullGeometry) {
 				ISvDatabaseIO gio = SvConf.getDbHandler();
 				fieldVals.append(gio.getGeomWriteSQL() + ",");
 			} else
@@ -977,16 +972,19 @@ public class SvWriter extends SvCore {
 		// get the table columns (object fields) to generate the insert
 		DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 
-		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true);
+		DbDataObject dboFirst = arrayToSave.get(0);
+		boolean hasNullGeometry = SvGeometry.getGeometry(dboFirst) == null;
+		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true, hasNullGeometry);
 		if (log4j.isDebugEnabled())
 			log4j.trace("Executing SQL:" + sql);
 
 		try (SvLob lob = new SvLob(this.dbGetConn()); PreparedStatement ps = this.dbGetConn().prepareStatement(sql)) {
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
-
 				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObjectId()) : null;
 				// always bind the PKID at position one
 				ps.setBigDecimal(1, new BigDecimal(objToSave.getPkid()));
+				if ((SvGeometry.getGeometry(objToSave) == null) != hasNullGeometry)
+					throw (new SvException("system.error.null_geometry_mix", instanceUser, arrayToSave, dbt));
 				bindColumnValues(objToSave, isUpdate, objectFields, oldRepoData, ps, lob);
 			}
 			int[] insertedRows = ps.executeBatch();
@@ -1666,7 +1664,7 @@ public class SvWriter extends SvCore {
 			svr.instanceUser = svCONST.systemUser;
 
 			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
-			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true);
+			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true, false);
 			log4j.debug("Executing SQL:" + sql);
 
 			Connection conn = this.dbGetConn();
