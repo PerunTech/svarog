@@ -14,10 +14,6 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.commons.io.IOUtils;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -42,7 +35,6 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.SvCharId;
 import com.vividsolutions.jts.algorithm.Angle;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateSequences;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
@@ -70,6 +62,17 @@ import com.google.common.math.DoubleMath;
 public class SvGeometry extends SvWriter {
 
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
+	public static final String GEOM_STRUCT_TYPE = initStructType();
+
+	static String initStructType() {
+		String geomStructType = Sv.EMPTY_STRING;
+		try {
+			geomStructType = SvCore.getDbHandler().getSQLKeyWordsBundle().getString("GEOMETRY_STRUCT_TYPE");
+		} catch (SvException e) {
+			log4j.error("Can't get geometry struct type!", e);
+		}
+		return geomStructType;
+	}
 
 	private static volatile SvGrid sysGrid = null;
 	private static volatile SvSDITile sysBoundary = null;
@@ -1363,7 +1366,6 @@ public class SvGeometry extends SvWriter {
 
 	}
 
-
 	/**
 	 * Method to save a DbDataArray of DbDataObjects which are of Geometry Type and
 	 * have set the flag hasGeometries. The method will perform basic saveObject on
@@ -1435,7 +1437,7 @@ public class SvGeometry extends SvWriter {
 	public void saveGeometry(DbDataArray dba) throws SvException {
 		saveGeometry(dba, false);
 	}
-	
+
 	/**
 	 * Method to save a single geometry to the database. Same as
 	 * {@link #saveGeometry(DbDataArray)}, but using a single object instead of
@@ -1449,9 +1451,11 @@ public class SvGeometry extends SvWriter {
 		dba.addDataItem(dbo);
 		saveGeometry(dba);
 	}
+
 	public void saveObject(DbDataArray dba, Boolean isBatch) throws SvException {
 		saveGeometry(dba, isBatch);
 	}
+
 	public void saveObject(DbDataArray dba) throws SvException {
 		saveGeometry(dba, false);
 	}

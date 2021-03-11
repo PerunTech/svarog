@@ -69,7 +69,6 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
-
 /**
  * 
  * SvCore is core abstract class of the Svarog Platform. It provides all the
@@ -2960,16 +2959,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			bindString(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case GEOMETRY:
-			if (value == null) {
-				value = SvUtil.sdiFactory.createGeometry(null);
-			}
-			byte[] byteVal = getWKBWriter().write((Geometry) value);
-			try {
-				SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
-			} catch (Exception e) {
-				throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
-			}
-
+			if (value != null) {
+				byte[] byteVal = getWKBWriter().write((Geometry) value);
+				try {
+					SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+				} catch (Exception e) {
+					throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
+				}
+			} else
+				ps.setNull(bindAtPosition, java.sql.Types.STRUCT,SvGeometry.GEOM_STRUCT_TYPE);
 			break;
 		default:
 			ps.setString(bindAtPosition, (String) value);

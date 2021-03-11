@@ -207,6 +207,32 @@ public class SvGeometryTest {
 	}
 
 	@Test
+	public void testUnitsSaveNullGeometry() {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			GeometryFactory gf = SvUtil.sdiFactory;
+			Geometry geom = gf
+					.createMultiPolygon(new Polygon[] { (Polygon) gf.toGeometry(new Envelope(-100, 200, -100, 20)) });
+
+			DbDataObject dbounds = new DbDataObject(svCONST.OBJECT_TYPE_SDI_UNITS);
+			dbounds.setVal("UNIT_NAME", "testBounds");
+			dbounds.setVal("UNIT_ID", "123");
+			dbounds.setVal("UNIT_CLASS", "REGION");
+			SvGeometry.setGeometry(dbounds, null);
+			// SvGeometry.allowBoundaryIntersect=true;
+			svg.setAllowNullGeometry(true);
+			svg.saveGeometry(dbounds);
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail("Test failed with exception:" + e.getFormattedMessage());
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
 	public void testBoundsSave() {
 
 		try (SvGeometry svg = new SvGeometry()) {
