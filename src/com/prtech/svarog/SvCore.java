@@ -2960,12 +2960,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			bindString(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case GEOMETRY:
-			byte[] byteVal = getWKBWriter().write((Geometry) value);
-			try {
-				SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
-			} catch (Exception e) {
-				throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
-			}
+			if (value != null) {
+				byte[] byteVal = getWKBWriter().write((Geometry) value);
+				try {
+					SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+				} catch (Exception e) {
+					throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
+				}
+			} else
+				ps.setNull(bindAtPosition, java.sql.Types.BLOB);
 			break;
 		default:
 			ps.setString(bindAtPosition, (String) value);
