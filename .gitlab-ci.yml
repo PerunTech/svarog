@@ -121,6 +121,7 @@ svarog-install:
   script:  
     - pwd
     - mvn install -DskipTests
+    - mvn deploy
   only:
     - master
     - staging
