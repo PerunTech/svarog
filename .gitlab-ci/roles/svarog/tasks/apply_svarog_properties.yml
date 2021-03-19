@@ -1,7 +1,7 @@
 ---
 - name: "Apply svarog.properties template for branch {{ env_name }}"
   template:
-    src: "{{ base_dir }}/svarog.properties.tpl"
+    src: svarog.properties.tpl"
     dest: "{{ base_dir }}/svarog.properties"
 
 - name: Register output for svarog.properties
