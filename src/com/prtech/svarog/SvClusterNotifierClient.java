@@ -241,7 +241,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 *               NotifierClient
 	 * 
 	 */
-	static void publishDirtyTileArray(List<SvSDITile> tiles) {
+	static void publishDirtyTileArray(Set<SvSDITile> tiles) {
 		publishDirtyTileArray(tiles, pubServerSock);
 	}
 
@@ -256,7 +256,7 @@ public class SvClusterNotifierClient implements Runnable {
 	 *               NotifierClient
 	 * 
 	 */
-	static void publishDirtyTileArray(List<SvSDITile> tiles, ZMQ.Socket socket) {
+	static void publishDirtyTileArray(Set<SvSDITile> tiles, ZMQ.Socket socket) {
 		if (socket != null) {
 			ByteBuffer msgBuffer = null;
 			Long currentType = 0L;

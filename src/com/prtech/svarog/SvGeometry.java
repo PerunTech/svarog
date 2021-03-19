@@ -1389,9 +1389,21 @@ public class SvGeometry extends SvWriter {
 			} else if (!allowNullGeometry)
 				throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
 		}
-		List<Geometry> tileGeomList = null;
-		List<SvSDITile> tileList = new ArrayList<SvSDITile>();
 		super.saveObject(dba, isBatch);
+		cacheCleanup(dba);
+	}
+
+	/**
+	 * Method to invalidate the tiles caching the GIS data related to geometries
+	 * held in the DbDataArray
+	 * 
+	 * @param dba The list of objects containing Geometries
+	 * @throws SvException
+	 */
+	static void cacheCleanup(DbDataArray dba) throws SvException {
+		List<Geometry> tileGeomList = null;
+		Set<SvSDITile> tileList = new HashSet<SvSDITile>();
+
 		for (DbDataObject dbo : dba.getItems()) {
 			Geometry vdataGeom = SvGeometry.getGeometry(dbo);
 			if (vdataGeom != null) {
@@ -1400,16 +1412,15 @@ public class SvGeometry extends SvWriter {
 				for (Geometry tgl : tileGeomList) {
 					String tileID = (String) tgl.getUserData();
 					SvSDITile tile = SvGeometry.getTile(dbo.getObjectType(), tileID, null);
-					tileList.add(tile);
+					if(!tileList.contains(tile))
+						tileList.add(tile);
 				}
 			}
 		}
-
-		cacheCleanup(tileList);
-
+		tilesCleanup(tileList);
 	}
 
-	private void cacheCleanup(List<SvSDITile> tileList) {
+	private static void tilesCleanup(Set<SvSDITile> tileList) {
 		for (SvSDITile tile : tileList) {
 			tile.setIsTileDirty(true);
 		}

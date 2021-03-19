@@ -332,7 +332,7 @@ public class SvClusterNotifierProxy implements Runnable {
 		SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
 	}
 
-	static public void publishDirtyTileArray(List<SvSDITile> dba) {
+	static public void publishDirtyTileArray(Set<SvSDITile> dba) {
 		SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
 	}
 

@@ -1069,7 +1069,7 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for validating the data for a specific field
+	 * cachCleanup Method for validating the data for a specific field
 	 * 
 	 * @param dbf   The descriptor of the field
 	 * @param value The value to which the field is set
@@ -1203,11 +1203,23 @@ public class SvWriter extends SvCore {
 				}
 			}
 
+		// finally invoce the cache clean up
+		cacheCleanup(dba);
+
+	}
+
+	private void cacheCleanup(DbDataArray dba) throws SvException {
+		DbDataObject dboFirst = dba.getItems().get(0);
+
 		for (DbDataObject dbo : dba.getItems()) {
 			cacheCleanup(dbo);
 			executeAfterSaveCallbacks(dbo);
 			dbo.setIsDirty(false);
 		}
+		// if we have geometry then clean the tile cache
+		if (dboFirst.isGeometryType())
+			SvGeometry.cacheCleanup(dba);
+
 		// broadcast the dirty objects to the cluster
 		// if we are coordinator, broadcast through the proxy otherwise
 		// broadcast through the client
@@ -1218,7 +1230,6 @@ public class SvWriter extends SvCore {
 				SvClusterNotifierProxy.publishDirtyArray(dba);
 
 		}
-
 	}
 
 	/**
