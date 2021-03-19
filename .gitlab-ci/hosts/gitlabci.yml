@@ -1,10 +1,7 @@
 [runner]
-gitlab-ci-runner
+localhost
 
 [master]
-gitlab-ci-runner
-
-[oracle]
-gitlab-ci-oracle
+localhost
 
 [master:vars]
