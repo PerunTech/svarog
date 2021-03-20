@@ -3797,7 +3797,7 @@ public class DbInit {
 			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_type");
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
-			dbf2_1.setDbFieldName("CODE_VALUE");
+			dbf2_1.setDbFieldName(Sv.CODE_VALUE);
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(50);
 			dbf2_1.setIsNull(false);
@@ -3822,7 +3822,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf5 = new DbDataField();
-			dbf5.setDbFieldName("PARENT_CODE_VALUE");
+			dbf5.setDbFieldName(Sv.PARENT_CODE_VALUE);
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(50);
 			dbf5.setIsNull(true);

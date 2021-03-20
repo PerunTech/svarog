@@ -199,5 +199,6 @@ public class Sv {
 	public static final SvCharId IS_NULL = new SvCharId("IS_NULL");
 	public static final String PARENT_ID = "PARENT_ID";
 	public static final SvCharId UNQ_LEVEL = new SvCharId("UNQ_LEVEL");
+	public static final String PARENT_CODE_VALUE = "PARENT_CODE_VALUE";
 
 }

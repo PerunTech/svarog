@@ -3183,6 +3183,78 @@ public class SvarogInstall {
 		return retval;
 	}
 
+	static String getParentCode(DbDataObject dbc, HashMap<Long, DbDataObject> codesMap) {
+		String realParentCode = null;
+		String pc = (String) dbc.getVal(Sv.PARENT_CODE_VALUE);
+		if (!dbc.getParentId().equals(0L)) {
+			DbDataObject dbParent = codesMap.get(dbc.getParentId());
+			pc = (String) dbParent.getVal(Sv.CODE_VALUE);
+		}
+
+		if (pc != null && !pc.isEmpty())
+			realParentCode = pc;
+
+		return realParentCode;
+	}
+
+	static DbDataObject findParentDbo(String parentCode, HashMap<String, DbDataObject> map) {
+		DbDataObject parent = map.get(parentCode);
+		if (parent == null)
+			for (DbDataObject dbo : map.values()) {
+				@SuppressWarnings("unchecked")
+				HashMap<String, DbDataObject> cMap = (HashMap<String, DbDataObject>) dbo.getVal("CHILD_CODES");
+				if (cMap != null) {
+					parent = findParentDbo(parentCode, cMap);
+					if (parent != null)
+						break;
+				}
+			}
+		return parent;
+	}
+
+	static HashMap<String, DbDataObject> convertToTree(DbDataArray codes) {
+
+		HashMap<Long, DbDataObject> objIdMap = new HashMap<Long, DbDataObject>();
+		for (DbDataObject dbo : codes.getItems())
+			objIdMap.put(dbo.getObjectId(), dbo);
+
+		HashMap<String, DbDataObject> map = new HashMap<String, DbDataObject>();
+
+		ArrayList<DbDataObject> codeList = codes.getSortedItems("PARENT_ID", true);
+		int lastCount = codeList.size();
+		while (codeList.size() > 0) {
+			Iterator<DbDataObject> dbi = codeList.iterator();
+			while (dbi.hasNext()) {
+				DbDataObject dbc = dbi.next();
+				String parentCode = getParentCode(dbc, objIdMap);
+				if (parentCode == null) {
+					map.put((String) dbc.getVal(Sv.CODE_VALUE), dbc);
+					dbi.remove();
+				} else {
+					DbDataObject parent = findParentDbo(parentCode, map);
+					if (parent != null) {
+						HashMap<String, DbDataObject> cMap = (HashMap<String, DbDataObject>) parent
+								.getVal("CHILD_CODES");
+						if (cMap == null) {
+							cMap = new HashMap<String, DbDataObject>();
+							parent.setVal("CHILD_CODES", cMap);
+						}
+						cMap.put((String) dbc.getVal(Sv.CODE_VALUE), dbc);
+						dbi.remove();
+					}
+				}
+			}
+			if (lastCount == codeList.size()) {
+				log4j.warn("Unresolved codes were found:");
+				for (DbDataObject c : codeList)
+					log4j.warn(c.toSimpleJson());
+				break;
+			} else
+				lastCount = codeList.size();
+		}
+		return map;
+	}
+
 	/**
 	 * Recursively called method to upgrade all codes with their respective children
 	 * 
@@ -3272,14 +3344,16 @@ public class SvarogInstall {
 					SvCore.getDbt(svCONST.OBJECT_TYPE_CODE), SvCore.getFields(svCONST.OBJECT_TYPE_CODE), null, null,
 					null);
 			DbDataArray oldCodes = dbu.getObjects(query, 0, 0);
-
-			oldCodes.rebuildIndex("CODE_VALUE");
-			newCodes.rebuildIndex("CODE_VALUE");
-
 			DbDataArray codeFields = SvCore.getFields(svCONST.OBJECT_TYPE_CODE);
 			codeFields.rebuildIndex("FIELD_NAME");
 
-			upgradeCode(newCodes, oldCodes, 0L, 0L, dbu, codeFields);
+			HashMap<String, DbDataObject> oldMap = convertToTree(oldCodes);
+			HashMap<String, DbDataObject> newMap = convertToTree(newCodes);
+			dbu.setAutoCommit(false);
+
+			List<DbDataObject> upgradedCodes = prepareUpgrade(newMap, oldMap, codeFields, 0L, dbu);
+			if (upgradedCodes.size() > 0)
+				dbu.saveObject(new DbDataArray(upgradedCodes));
 
 			dbu.dbCommit();
 
@@ -3288,6 +3362,60 @@ public class SvarogInstall {
 		}
 		log4j.info("Finished " + operation + " using records file: " + upgradeFile);
 
+	}
+
+	private static List<DbDataObject> prepareUpgrade(HashMap<String, DbDataObject> newCodes,
+			HashMap<String, DbDataObject> oldCodes, DbDataArray codeFields, Long parentId, SvWriter dbu)
+			throws SvException {
+		ArrayList<DbDataObject> upgradedCodes = new ArrayList<DbDataObject>();
+		HashMap<String, DbDataObject> existingChildren = null;
+		HashMap<String, DbDataObject> toUpgradeChildren = null;
+		// iterates over the new list
+		for (Entry<String, DbDataObject> en : newCodes.entrySet()) {
+			DbDataObject codeToUpgrade = en.getValue();
+			DbDataObject existingCode = null;
+			toUpgradeChildren = (HashMap<String, DbDataObject>) codeToUpgrade.getVal("CHILD_CODES");
+			boolean updateRequired = false;
+
+			if (oldCodes != null)
+				existingCode = oldCodes.get(en.getKey());
+
+			if (existingCode != null) {
+				existingChildren = (HashMap<String, DbDataObject>) existingCode.getVal("CHILD_CODES");
+				// remove the item to mark it as processed
+				oldCodes.remove(en.getKey());
+
+				Long existingPkid = existingCode.getPkid();
+				Long existingOID = existingCode.getObjectId();
+				updateRequired = shouldUpgradeConfig(existingCode, codeToUpgrade, codeFields, true);
+				codeToUpgrade.setPkid(existingPkid);
+				codeToUpgrade.setObjectId(existingOID);
+				codeToUpgrade.setParentId(existingCode.getParentId());
+			} else {
+				updateRequired = true;
+				codeToUpgrade.setObjectId(0L);
+				codeToUpgrade.setParentId(parentId);
+			}
+			if (updateRequired && codeToUpgrade.getObjectId().equals(0L) && toUpgradeChildren != null
+					&& toUpgradeChildren.size() > 0) {
+				dbu.saveObject(codeToUpgrade, false);
+				updateRequired = false;
+			}
+			if (updateRequired)
+				upgradedCodes.add(codeToUpgrade);
+
+			if (toUpgradeChildren != null && toUpgradeChildren.size() > 0) {
+				List<DbDataObject> childList = prepareUpgrade(toUpgradeChildren, existingChildren, codeFields,
+						codeToUpgrade.getObjectId(), dbu);
+				upgradedCodes.addAll(childList);
+			}
+		}
+		
+		if (!parentId.equals(0L) && oldCodes != null && oldCodes.size() > 0) {
+			dbu.deleteObjects(new DbDataArray(new ArrayList(oldCodes.values())));
+		}
+
+		return upgradedCodes;
 	}
 
 	/**
