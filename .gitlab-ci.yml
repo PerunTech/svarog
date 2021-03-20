@@ -78,7 +78,7 @@ upgrade-oracle-pipeline:
     - cd $CI_PROJECT_DIR  
     - mvn exec:java@upgrade-force-auto -P Oracle
     - mvn test -P Oracle
-environment:
+  environment:
     name: $CI_COMMIT_REF_NAME
   only:
     - master
