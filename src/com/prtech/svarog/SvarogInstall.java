@@ -3226,7 +3226,13 @@ public class SvarogInstall {
 			Iterator<DbDataObject> dbi = codeList.iterator();
 			while (dbi.hasNext()) {
 				DbDataObject dbc = dbi.next();
-				String parentCode = getParentCode(dbc, objIdMap);
+				String parentCode = null;
+				try {
+					parentCode = getParentCode(dbc, objIdMap);
+				} catch (Exception e) {
+					log4j.warn("Can't find code's parent. Code ignored: " + dbc.toSimpleJson());
+					continue;
+				}
 				if (parentCode == null) {
 					map.put((String) dbc.getVal(Sv.CODE_VALUE), dbc);
 					dbi.remove();
@@ -3375,6 +3381,8 @@ public class SvarogInstall {
 			DbDataObject codeToUpgrade = en.getValue();
 			DbDataObject existingCode = null;
 			toUpgradeChildren = (HashMap<String, DbDataObject>) codeToUpgrade.getVal("CHILD_CODES");
+			existingChildren = null;
+			
 			boolean updateRequired = false;
 
 			if (oldCodes != null)
@@ -3410,7 +3418,7 @@ public class SvarogInstall {
 				upgradedCodes.addAll(childList);
 			}
 		}
-		
+
 		if (!parentId.equals(0L) && oldCodes != null && oldCodes.size() > 0) {
 			dbu.deleteObjects(new DbDataArray(new ArrayList(oldCodes.values())));
 		}
