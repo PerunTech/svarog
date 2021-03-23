@@ -190,7 +190,10 @@ public class SvCluster extends SvCore {
 			if (coordinatorNode == null)
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 			if (coordinatorNode == null)
+			{
 				coordinatorNode = SvCluster.getCurrentNodeInfo();
+				coordinatorNode.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
+			}
 
 			coordinatorNode.setValuesMap(getCurrentNodeInfo().getValuesMap());
 			svw.isInternal = true;
