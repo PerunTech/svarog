@@ -235,7 +235,7 @@ public class SvClusterClient implements Runnable {
 	static void shutdown(boolean shouldPart) {
 		if (shouldPart) {
 			if (!isRunning.compareAndSet(true, false)) {
-				log4j.warn("Clieant thread is not running. Can't shut down inactive client");
+				log4j.warn("Client thread is not running. Can't shut down inactive client");
 				return;
 			}
 			try {

@@ -196,6 +196,9 @@ public class SvMaintenance implements Runnable {
 	private static void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
 			throws SQLException, SvException {
 		PreparedStatement ps = null;
+		// if there's no valid list, do nothing
+		if (validNodes == null || validNodes.size() < 1)
+			return;
 
 		try {
 			StringBuilder sbr = new StringBuilder(100);
