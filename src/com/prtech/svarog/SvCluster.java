@@ -189,8 +189,7 @@ public class SvCluster extends SvCore {
 		try (SvWriter svw = new SvWriter(svc); SvReader svr = new SvReader(svc);) {
 			if (coordinatorNode == null)
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
-			if (coordinatorNode == null)
-			{
+			if (coordinatorNode == null) {
 				coordinatorNode = SvCluster.getCurrentNodeInfo();
 				coordinatorNode.setObjectId(svCONST.CLUSTER_COORDINATOR_ID);
 			}
@@ -317,6 +316,7 @@ public class SvCluster extends SvCore {
 		}
 		return initHb && initNotif && isCoordinator;
 	}
+
 
 	/**
 	 * Method to initialise the Svarog Cluster. This method shall try to locate a
