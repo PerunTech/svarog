@@ -1889,6 +1889,29 @@ public class SvarogInstall {
 		return dbTables;
 	}
 
+	static void deleteClusterRogueRecord() throws SQLException, SvException {
+		if (!isSvarogInstalled())
+			return;
+
+		StringBuilder sbr = new StringBuilder(100);
+		sbr.append("DELETE FROM ");
+		sbr.append(SvConf.getDefaultSchema() + ".");
+		sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("REPO_NAME") + " WHERE ");
+		sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER) + " AND OBJECT_ID="
+				+ Long.toString(svCONST.CLUSTER_COORDINATOR_ID));
+
+		try (SvReader svr = new SvReader(); Statement st = svr.dbGetConn().createStatement()) {
+			DbDataObject clusterCoordinator = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID,
+					svCONST.OBJECT_TYPE_CLUSTER, null);
+			if (clusterCoordinator == null) {
+				st.execute(sbr.toString());
+				svr.dbCommit();
+			}
+		} catch (SvException e) {
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * A method which creates all master configuration tables for Svarog. It
 	 * initializes the DB structure, to be further used by the framework.
@@ -1918,6 +1941,9 @@ public class SvarogInstall {
 					}
 				}
 			}
+			// sometimes due to bug we have a rogue cluster master record which we need to
+			// delete
+			deleteClusterRogueRecord();
 			// Create all other tables
 			if (retval)
 				for (DbDataTable dbt : dbTables) {
@@ -1992,9 +2018,13 @@ public class SvarogInstall {
 				sbt.append(SvConf.getSqlkw().getString("OBJECT_QUALIFIER_LEFT") + rdft.getDbFieldName()
 						+ SvConf.getSqlkw().getString("OBJECT_QUALIFIER_RIGHT") + ",");
 		}
+		String strTypeWhere = Sv.EMPTY_STRING;
+		if(dbt!=null&& dbt.getObjectId()!=null)
+			strTypeWhere = " WHERE REP0.OBJECT_TYPE="+ Long.toString(dbt.getObjectId());
+		
 		sbt.setLength(sbt.length() - 1);
 		sbt.append(" FROM " + dbt.getDbSchema() + "." + dbt.getDbRepoName() + " REP0 JOIN " + dbt.getDbSchema() + "."
-				+ dbt.getDbTableName() + " TBL0 ON REP0.META_PKID = TBL0.PKID ");
+				+ dbt.getDbTableName() + " TBL0 ON REP0.META_PKID = TBL0.PKID"+strTypeWhere);
 
 		return createView("V" + dbt.getDbTableName(), sbt.toString(), conn);
 	}
@@ -3382,7 +3412,7 @@ public class SvarogInstall {
 			DbDataObject existingCode = null;
 			toUpgradeChildren = (HashMap<String, DbDataObject>) codeToUpgrade.getVal("CHILD_CODES");
 			existingChildren = null;
-			
+
 			boolean updateRequired = false;
 
 			if (oldCodes != null)
@@ -3420,7 +3450,8 @@ public class SvarogInstall {
 		}
 
 		if (!parentId.equals(0L) && oldCodes != null && oldCodes.size() > 0) {
-			dbu.deleteObjects(new DbDataArray(new ArrayList(oldCodes.values())));
+			if (SvConf.getIsDebugEnabled())
+				dbu.deleteObjects(new DbDataArray(new ArrayList(oldCodes.values())));
 		}
 
 		return upgradedCodes;

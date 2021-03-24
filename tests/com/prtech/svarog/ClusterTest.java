@@ -25,13 +25,7 @@ public class ClusterTest {
 
 	@BeforeClass
 	public static void init() throws SQLException {
-		/*String sql = "DELETE FROM " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo() + "_CLUSTER";
-		try (SvReader svr = new SvReader(); Statement st = svr.dbGetConn().createStatement()) {
-			st.execute(sql);
-			svr.dbCommit();
-		} catch (SvException e) {
-			e.printStackTrace();
-		}*/
+
 
 		SvConf.setClusterEnabled(false);
 		// SvMaintenance.shutdown();

@@ -313,6 +313,8 @@ public class SvConf {
 	 */
 	private static boolean overrideTimeStamps = true;
 
+	private static boolean deleteCodesOnUpgrade = false;
+
 	/**
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
@@ -433,7 +435,6 @@ public class SvConf {
 
 			}
 
-
 			if (svDbConnType.equals(SvDbConnType.JNDI)) {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
 				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
@@ -527,6 +528,7 @@ public class SvConf {
 			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
 			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
 			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
+			deleteCodesOnUpgrade = getProperty(mainProperties, "sys.codes.delete_upgrade", false);
 
 			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
 
