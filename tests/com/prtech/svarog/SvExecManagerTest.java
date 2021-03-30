@@ -397,13 +397,13 @@ public class SvExecManagerTest {
 	@Test
 	public void initExecsPack() throws SvException {
 		try (SvExecManager sve = new SvExecManager()) {
-			sve.osgiServices = new Object[3];
+			sve.osgiServices = new Object[4];
 
 			// create 3 different executors
 			sve.osgiServices[0] = new TestExecutor(name + "1");
 			sve.osgiServices[1] = new TestExecutor(name + "2");
 			sve.osgiServices[2] = new TestExecutor(name + "3");
-			
+			sve.osgiServices[3] = new TestExecutorGroup();
 			sve.initOSGIExecutors();
 		}
 	}
