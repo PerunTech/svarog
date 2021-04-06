@@ -171,7 +171,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * @param dba The DbDataArray instance which should be published as dirty
 	 */
 	static public void publishDirtyArray(DbDataArray dba) {
-		publishDirtyArray(dba, pubServerSock);
+		synchronized (pubServerSock) {
+			publishDirtyArray(dba, pubServerSock);
+		}
 	}
 
 	/**
@@ -191,11 +193,12 @@ public class SvClusterNotifierClient implements Runnable {
 			Long currentType = 0L;
 			int objectCount = 0;
 			int totalCount = 0;
+			int lastKnownBufferSize = 0;
 			for (DbDataObject dbo : dba.getItems()) {
 				if (currentType != dbo.getObjectType()) {
 					if (objectCount > 0 && msgBuffer != null) {
-						byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-								(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount)));
+						int finalByteCount = (1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount));
+						byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0, finalByteCount);
 						// send the previous buffer
 						if (log4j.isDebugEnabled())
 							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
@@ -205,8 +208,9 @@ public class SvClusterNotifierClient implements Runnable {
 					}
 					objectCount = 0;
 					currentType = dbo.getObjectType();
-					msgBuffer = ByteBuffer.allocate(
-							SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * (dba.size() - totalCount)));
+					lastKnownBufferSize = SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG
+							+ (SvUtil.sizeof.LONG * (dba.size() - totalCount));
+					msgBuffer = ByteBuffer.allocate(lastKnownBufferSize);
 					msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
 					msgBuffer.putLong(currentType);
 				}
@@ -217,8 +221,8 @@ public class SvClusterNotifierClient implements Runnable {
 			}
 			// the array was finished so lets send the left over buffer if any
 			if (objectCount > 0 && msgBuffer != null) {
-				byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0,
-						(1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount)));
+				int finalByteCount = (1 + SvUtil.sizeof.LONG + (SvUtil.sizeof.LONG * objectCount));
+				byte[] finalBytes = Arrays.copyOfRange(msgBuffer.array(), 0, finalByteCount);
 				// send the previous buffer
 				if (log4j.isDebugEnabled())
 					log4j.trace(
@@ -242,7 +246,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * 
 	 */
 	static void publishDirtyTileArray(Set<SvSDITile> tiles) {
-		publishDirtyTileArray(tiles, pubServerSock);
+		synchronized (pubServerSock) {
+			publishDirtyTileArray(tiles, pubServerSock);
+		}
 	}
 
 	/**
@@ -318,17 +324,20 @@ public class SvClusterNotifierClient implements Runnable {
 	 * @param objectTypeId The type of the dirty object
 	 */
 	static public void publishDirtyObject(long objectId, long objectTypeId) {
-		if (pubServerSock != null) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
-			msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
-			msgBuffer.putLong(objectTypeId);
-			msgBuffer.putLong(objectId);
-			if (log4j.isDebugEnabled())
-				log4j.debug("Sent dirty notification of object with id:" + objectId + " to coordinator");
-			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
-				log4j.error("Error publishing message to coordinator node");
-		} else if (log4j.isDebugEnabled())
-			log4j.debug("Publisher socke is null! Notifier client not started!");
+		synchronized (pubServerSock) {
+			if (pubServerSock != null) {
+				ByteBuffer msgBuffer = ByteBuffer
+						.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
+				msgBuffer.put(SvCluster.NOTE_DIRTY_OBJECT);
+				msgBuffer.putLong(objectTypeId);
+				msgBuffer.putLong(objectId);
+				if (log4j.isDebugEnabled())
+					log4j.debug("Sent dirty notification of object with id:" + objectId + " to coordinator");
+				if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+					log4j.error("Error publishing message to coordinator node");
+			} else if (log4j.isDebugEnabled())
+				log4j.debug("Publisher socke is null! Notifier client not started!");
+		}
 	}
 
 	/**
@@ -337,18 +346,21 @@ public class SvClusterNotifierClient implements Runnable {
 	 * @param sessionId String representation of the user session/token
 	 */
 	static public void publishLogoff(String sessionId) {
-		if (pubServerSock != null) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
-			msgBuffer.put(SvCluster.NOTE_LOGOFF);
-			UUID uuid = UUID.fromString(sessionId);
-			msgBuffer.putLong(uuid.getMostSignificantBits());
-			msgBuffer.putLong(uuid.getLeastSignificantBits());
-			if (log4j.isDebugEnabled())
-				log4j.debug("Sent logoff notification with token:" + uuid.toString() + " to the coordinator");
-			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
-				log4j.error("Error publishing message to coordinator node");
-		} else if (log4j.isDebugEnabled())
-			log4j.debug("Publisher socke is null! Notifier client not started!");
+		synchronized (pubServerSock) {
+			if (pubServerSock != null) {
+				ByteBuffer msgBuffer = ByteBuffer
+						.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.LONG);
+				msgBuffer.put(SvCluster.NOTE_LOGOFF);
+				UUID uuid = UUID.fromString(sessionId);
+				msgBuffer.putLong(uuid.getMostSignificantBits());
+				msgBuffer.putLong(uuid.getLeastSignificantBits());
+				if (log4j.isDebugEnabled())
+					log4j.debug("Sent logoff notification with token:" + uuid.toString() + " to the coordinator");
+				if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+					log4j.error("Error publishing message to coordinator node");
+			} else if (log4j.isDebugEnabled())
+				log4j.debug("Publisher socke is null! Notifier client not started!");
+		}
 	}
 
 	/**
@@ -357,18 +369,22 @@ public class SvClusterNotifierClient implements Runnable {
 	 * @param sessionId String representation of the user session/token
 	 */
 	static public void publishAck(Integer ackValue, byte successMsg) {
-		if (pubServerSock != null) {
-			ByteBuffer msgBuffer = ByteBuffer.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.INT + 1);
-			msgBuffer.put(SvCluster.NOTE_ACK);
-			msgBuffer.putLong(SvClusterClient.nodeId);
-			msgBuffer.putInt(ackValue);
-			msgBuffer.put(successMsg);
-			if (log4j.isDebugEnabled())
-				log4j.debug("Sent ack notification with value:" + Integer.toString(ackValue) + " to the coordinator");
-			if (!pubServerSock.send(msgBuffer.array()))
-				log4j.error("Error publishing message to coordinator node");
-		} else if (log4j.isDebugEnabled())
-			log4j.debug("Publisher socket is null! Notifier client not started!");
+		synchronized (pubServerSock) {
+			if (pubServerSock != null) {
+				ByteBuffer msgBuffer = ByteBuffer
+						.allocate(SvUtil.sizeof.BYTE + SvUtil.sizeof.LONG + SvUtil.sizeof.INT + 1);
+				msgBuffer.put(SvCluster.NOTE_ACK);
+				msgBuffer.putLong(SvClusterClient.nodeId);
+				msgBuffer.putInt(ackValue);
+				msgBuffer.put(successMsg);
+				if (log4j.isDebugEnabled())
+					log4j.debug(
+							"Sent ack notification with value:" + Integer.toString(ackValue) + " to the coordinator");
+				if (!pubServerSock.send(msgBuffer.array()))
+					log4j.error("Error publishing message to coordinator node");
+			} else if (log4j.isDebugEnabled())
+				log4j.debug("Publisher socket is null! Notifier client not started!");
+		}
 	}
 
 	/**

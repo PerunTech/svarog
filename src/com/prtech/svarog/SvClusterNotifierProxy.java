@@ -147,9 +147,12 @@ public class SvClusterNotifierProxy implements Runnable {
 								shouldForward = serverProcessMsg(msgBuffer);
 							}
 							// publish it to the cluster and handle multiparts
-							if (shouldForward)
-								if (!pubServerSock.send(msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
-									log4j.error("Error sending notification to cluster!");
+							if (shouldForward) {
+								synchronized (pubServerSock) {
+									if (!pubServerSock.send(msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
+										log4j.error("Error sending notification to cluster!");
+								}
+							}
 
 						}
 						if (!hasMoreMessages) {
@@ -309,31 +312,37 @@ public class SvClusterNotifierProxy implements Runnable {
 	 */
 
 	static public void publishLockAction(byte actionType, int hashCode, long nodeId, String lockKey) {
-		if (pubServerSock != null) {
-			byte[] key = null;
-			key = lockKey.getBytes(ZMQ.CHARSET);
-			// allocate one byte for message type, one long for node Id and the
-			// rest for the token
-			ByteBuffer msgBuffer = ByteBuffer.allocate(
-					SvUtil.sizeof.BYTE + SvUtil.sizeof.INT + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
-			msgBuffer.put(actionType);
-			msgBuffer.putLong(nodeId);
-			msgBuffer.putInt(hashCode);
-			msgBuffer.put(key);
-			if (log4j.isDebugEnabled())
-				log4j.debug("Broadcast lock action " + Byte.toString(actionType) + " notification with key:" + lockKey
-						+ " and node:" + Long.toString(nodeId));
-			if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
-				log4j.error("Error publishing message to cluster");
+		synchronized (pubServerSock) {
+			if (pubServerSock != null) {
+				byte[] key = null;
+				key = lockKey.getBytes(ZMQ.CHARSET);
+				// allocate one byte for message type, one long for node Id and the
+				// rest for the token
+				ByteBuffer msgBuffer = ByteBuffer.allocate(
+						SvUtil.sizeof.BYTE + SvUtil.sizeof.INT + SvUtil.sizeof.LONG + (key != null ? key.length : 0));
+				msgBuffer.put(actionType);
+				msgBuffer.putLong(nodeId);
+				msgBuffer.putInt(hashCode);
+				msgBuffer.put(key);
+				if (log4j.isDebugEnabled())
+					log4j.debug("Broadcast lock action " + Byte.toString(actionType) + " notification with key:"
+							+ lockKey + " and node:" + Long.toString(nodeId));
+				if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+					log4j.error("Error publishing message to cluster");
+			}
 		}
 	}
 
 	static public void publishDirtyArray(DbDataArray dba) {
-		SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
+		synchronized (pubServerSock) {
+			SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
+		}
 	}
 
 	static public void publishDirtyTileArray(Set<SvSDITile> dba) {
-		SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
+		synchronized (pubServerSock) {
+			SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
+		}
 	}
 
 }
