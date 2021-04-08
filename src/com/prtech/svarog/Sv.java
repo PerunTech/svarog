@@ -32,7 +32,9 @@ public class Sv {
 		public static final String OBJECT_NOT_FOUND = "system.error.object_not_found";
 		public static final String OBJECT_COUNT_ERROR = "system.error.wrong_row_count_update";
 		public static final String OBJECT_NOT_UPDATEABLE = "system.error.obj_not_updateable";
-		public static final String EMPTY_GRID = "system.error.gis_grid_empty";;
+		public static final String EMPTY_GRID = "system.error.gis_grid_empty";
+		public static final String CLUSTER_INACTIVE = "system.error.cluster_inactive";
+		public static final String CLUSTER_COMMUNICATION_ERROR = "system.error.cluster_socket_error";;
 
 		private Exceptions() {
 		}

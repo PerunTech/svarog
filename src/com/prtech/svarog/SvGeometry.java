@@ -1420,7 +1420,7 @@ public class SvGeometry extends SvWriter {
 		tilesCleanup(tileList);
 	}
 
-	private static void tilesCleanup(Set<SvSDITile> tileList) {
+	private static void tilesCleanup(Set<SvSDITile> tileList) throws SvException {
 		for (SvSDITile tile : tileList) {
 			tile.setIsTileDirty(true);
 		}

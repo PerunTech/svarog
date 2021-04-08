@@ -11,6 +11,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.zeromq.ZMQ;
+import org.zeromq.ZMQException;
 
 import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonObject;
@@ -88,6 +90,23 @@ public class SvCluster extends SvCore {
 			this.lock = lock;
 			this.key = key;
 			this.lockHash = lockHash;
+		}
+	}
+
+	public class SvarogHook implements Runnable {
+		String executorList = null;
+		String operationName = null;
+
+		SvarogHook(String executors, String operation) {
+			executorList = executors;
+			operationName = operation;
+		}
+
+		@Override
+		public void run() {
+			if (executorList != null && !executorList.isEmpty()) {
+				execSvarogHooks(executorList, operationName);
+			}
 		}
 	}
 
@@ -311,12 +330,11 @@ public class SvCluster extends SvCore {
 			// finally we are the coordinator
 			isCoordinator = true;
 		} else {
-			log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster shutdown.");
+			log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster 	\n" + "shutdown.");
 			shutdown();
 		}
 		return initHb && initNotif && isCoordinator;
 	}
-
 
 	/**
 	 * Method to initialise the Svarog Cluster. This method shall try to locate a
@@ -373,6 +391,13 @@ public class SvCluster extends SvCore {
 			if (svr != null)
 				svr.release();
 		}
+		// if start was successful execute the startup hooks in nonblocking thread
+		if (isActive.get()) {
+			String startUpExec = (String) SvConf.getParam(SVAROG_STARTUP_HOOK_PROP);
+			if (startUpExec != null && !startUpExec.isEmpty()) {
+				execSvarogHooks(startUpExec, "start-up");
+			}
+		}
 		return isActive.get();
 	}
 
@@ -381,6 +406,44 @@ public class SvCluster extends SvCore {
 	 */
 	public static void checkCluster() {
 		// TODO add sanity check of the threads
+	}
+
+	/**
+	 * Method to send data via ZMQ socket and handle termination errors
+	 * 
+	 * @throws SvException
+	 */
+	public static byte[] zmqRecv(ZMQ.Socket socket, int timeOut) throws SvException {
+		byte[] result = null;
+		try {
+			result = socket.recv(timeOut);
+		} catch (ZMQException e) {
+			if (e.getErrorCode() == zmq.ZError.ETERM)
+				throw (new SvException(Sv.Exceptions.CLUSTER_INACTIVE, svCONST.systemUser, e));
+			else
+				throw (new SvException(Sv.Exceptions.CLUSTER_COMMUNICATION_ERROR, svCONST.systemUser, e));
+		}
+		return result;
+	}
+
+	/**
+	 * Method to send data via ZMQ socket and handle termination errors
+	 * 
+	 * @throws SvException
+	 */
+	public static boolean zmqSend(ZMQ.Socket socket, byte[] data, int socketFlags) throws SvException {
+		boolean result = false;
+		try {
+			result = socket.send(data, socketFlags);
+			if (!result)
+				log4j.error("Error sending message:" + data.toString());
+		} catch (ZMQException e) {
+			if (e.getErrorCode() == zmq.ZError.ETERM)
+				throw (new SvException(Sv.Exceptions.CLUSTER_INACTIVE, svCONST.systemUser, e));
+			else
+				throw (new SvException(Sv.Exceptions.CLUSTER_COMMUNICATION_ERROR, svCONST.systemUser, e));
+		}
+		return result;
 	}
 
 	/**
@@ -494,10 +557,42 @@ public class SvCluster extends SvCore {
 		notifierThread = null;
 		coordinatorNode = null;
 		isCoordinator = false;
+		// store the previous state before we mark the cluster as inactive
+		boolean shutdownExecutors = isActive.get();
 		isActive.set(false);
 		// notify interested parties that we shut down
 		synchronized (SvCluster.isRunning) {
 			isRunning.notifyAll();
+		}
+		if (shutdownExecutors) {
+			String shutDownExec = (String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP);
+			if (shutDownExec != null && !shutDownExec.isEmpty()) {
+				execSvarogHooks(shutDownExec, "shut-down");
+			}
+		}
+
+	}
+
+	/**
+	 * Method to execute list of start up or shut down executors loaded from
+	 * svarog.properties.
+	 * 
+	 * @param shutDownExec List of key of svarog executors. Semicolon is the list
+	 *                     separator
+	 */
+	private static void execSvarogHooks(String hooksExec, String operation) {
+		String[] list = hooksExec.trim().split(";");
+		try (SvExecManager sve = new SvExecManager();) {
+			for (int i = 0; i < list.length; i++) {
+				try {
+					sve.execute(list[i].toUpperCase(), null, new DateTime());
+					log4j.info("Executed " + operation + " executor: " + list[i]);
+				} catch (Exception e) {
+					log4j.info("Could not execute " + operation + " executor: " + list[i], e);
+				}
+			}
+		} catch (SvException e) {
+			log4j.info("Error executing Svarog " + operation + " hooks", e);
 		}
 	}
 
@@ -665,9 +760,10 @@ public class SvCluster extends SvCore {
 	 * @param nodeId    The node under which the locks shall be moved
 	 * @param oldNodeId The node from which the locks will be moved
 	 * @param nodeLocks The map fo locks which shall be used (Server or Client side)
+	 * @throws SvException 
 	 */
 	static void copyLocalLocks(Long nodeId, Long oldNodeId,
-			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks) {
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks) throws SvException {
 		{
 			CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = localNodeLocks.remove(oldNodeId);
 			if (nodeLock != null) {
@@ -696,10 +792,6 @@ public class SvCluster extends SvCore {
 			return isActive;
 		else
 			return SvClusterClient.isActive;
-	}
-
-	public static void setIsActive(AtomicBoolean isActive) {
-		SvCluster.isActive = isActive;
 	}
 
 	public static DbDataObject getCoordinatorNode() {
