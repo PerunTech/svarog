@@ -124,17 +124,17 @@ public class SvClusterNotifierProxy implements Runnable {
 		}
 
 		if (subServerSock != null && pubServerSock != null) {
-			byte[] subs = new byte[1];
-			subs[0] = 1;
-			subServerSock.send(subs);
-			boolean hasMoreMessages = false;
-			boolean shouldForward = false;
-			log4j.info("NotifierProxy started");
 			try {
+				byte[] subs = new byte[1];
+				subs[0] = 1;
+				SvCluster.zmqSend(subServerSock, subs, 0);
+				boolean hasMoreMessages = false;
+				boolean shouldForward = false;
+				log4j.info("NotifierProxy started");
 				while (isRunning.get()) {
 					while (true) {
 						// receive message from the subscriber
-						byte[] msg = subServerSock.recv(0);
+						byte[] msg = SvCluster.zmqRecv(subServerSock, 0);
 						hasMoreMessages = subServerSock.hasReceiveMore();
 
 						if (msg != null) {
@@ -149,7 +149,7 @@ public class SvClusterNotifierProxy implements Runnable {
 							// publish it to the cluster and handle multiparts
 							if (shouldForward) {
 								synchronized (pubServerSock) {
-									if (!pubServerSock.send(msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
+									if (!SvCluster.zmqSend(pubServerSock, msg, hasMoreMessages ? ZMQ.SNDMORE : 0))
 										log4j.error("Error sending notification to cluster!");
 								}
 							}
@@ -162,7 +162,8 @@ public class SvClusterNotifierProxy implements Runnable {
 				}
 
 			} catch (Exception e) {
-				log4j.error("NotifierProxy threw exception", e);
+				log4j.error("NotifierProxy threw exception, shutting down", e);
+				isRunning.set(false);
 			}
 		} else
 			log4j.error("Pub/Sub sockets not available, ensure proper initialisation");
@@ -309,9 +310,11 @@ public class SvClusterNotifierProxy implements Runnable {
 	 * @param hashCode   The hash code of the lock
 	 * @param nodeId     The node which has performed the action
 	 * @param lockKey    The text id of the lock
+	 * @throws SvException
 	 */
 
-	static public void publishLockAction(byte actionType, int hashCode, long nodeId, String lockKey) {
+	static public void publishLockAction(byte actionType, int hashCode, long nodeId, String lockKey)
+			throws SvException {
 		synchronized (pubServerSock) {
 			if (pubServerSock != null) {
 				byte[] key = null;
@@ -327,19 +330,19 @@ public class SvClusterNotifierProxy implements Runnable {
 				if (log4j.isDebugEnabled())
 					log4j.debug("Broadcast lock action " + Byte.toString(actionType) + " notification with key:"
 							+ lockKey + " and node:" + Long.toString(nodeId));
-				if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				if (!SvCluster.zmqSend(pubServerSock, msgBuffer.array(), ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to cluster");
 			}
 		}
 	}
 
-	static public void publishDirtyArray(DbDataArray dba) {
+	static public void publishDirtyArray(DbDataArray dba) throws SvException {
 		synchronized (pubServerSock) {
 			SvClusterNotifierClient.publishDirtyArray(dba, SvClusterNotifierProxy.pubServerSock);
 		}
 	}
 
-	static public void publishDirtyTileArray(Set<SvSDITile> dba) {
+	static public void publishDirtyTileArray(Set<SvSDITile> dba) throws SvException {
 		synchronized (pubServerSock) {
 			SvClusterNotifierClient.publishDirtyTileArray(dba, SvClusterNotifierProxy.pubServerSock);
 		}

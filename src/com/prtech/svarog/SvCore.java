@@ -69,6 +69,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
+
 /**
  * 
  * SvCore is core abstract class of the Svarog Platform. It provides all the
@@ -78,7 +79,7 @@ import com.vividsolutions.jts.io.WKBWriter;
  * to management of Forms (except for reading forms which is assigned to the
  * SvReader). It also ensures that proper SvCore chaining is validated and
  * allows sharing JDBC connections between different cores. It also performs all
- * Svarog related authorization processes which in turn implement the security
+ * Svarog related authorization processes which turn implement the security
  * enforcement via SVAROG ACLs. Internally it provides the basic reading of data
  * from the database structure and transforming it into set of DbDataObject
  * POJOs.
@@ -98,7 +99,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * svarog shutdown hook.
 	 **/
 	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
-
+	public static final String SVAROG_STARTUP_HOOK_PROP = "svarog.startup.hook";
+	
 	/**
 	 * Static block to set the shutdown hooks only once at boot
 	 */
@@ -418,7 +420,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		if (SvConf.isClusterEnabled() && (SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
 			if ((srcCore != null && !srcCore.isInternal))
-				throw (new SvException("system.error.cluster_inactive", instanceUser));
+				throw (new SvException(Sv.Exceptions.CLUSTER_INACTIVE, instanceUser));
 		}
 		// if the svarog core is not in valid state we should start the
 		// initialisation
@@ -1276,33 +1278,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		initSvCoreImpl(false);
 	}
 
-	/**
-	 * Method to execute list of shut down executors loaded from svarog.properties.
-	 * 
-	 * @param shutDownExec List of key of svarog executors. Semicolon is the list
-	 *                     separator
-	 */
-	private static void execSvarogShutDownHooks(String shutDownExec) {
-		SvExecManager sve = null;
-		String[] list = shutDownExec.trim().split(";");
-		try {
-			sve = new SvExecManager();
-			for (int i = 0; i < list.length; i++) {
-				try {
-					sve.execute(list[i].toUpperCase(), null, new DateTime());
-					log4j.info("Executed shut down executor: " + list[i]);
-				} catch (Exception e) {
-					log4j.info("Could not execute shut down executor: " + list[i], e);
-				}
-			}
-		} catch (SvException e) {
-			log4j.info("Error Svarog shut down", e);
-		} finally {
-			if (sve != null) {
-				sve.release();
-			}
-		}
-	}
+
 
 	/**
 	 * Method to set a shutdown hook to the JVM in order to perform cleanup and
@@ -1314,9 +1290,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				try {
 					log4j.info("Shutting down svarog");
 					// Svarog shut down executing list of executors
-					String shutDownExec = (String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP);
-					if (shutDownExec != null && !shutDownExec.isEmpty())
-						execSvarogShutDownHooks(shutDownExec);
 
 					log4j.info("Shutting down the cluster infrastructure");
 					SvCluster.shutdown(false);
@@ -2967,7 +2940,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 					throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
 				}
 			} else
-				ps.setNull(bindAtPosition, java.sql.Types.STRUCT,SvGeometry.GEOM_STRUCT_TYPE);
+				ps.setNull(bindAtPosition, java.sql.Types.STRUCT, SvGeometry.GEOM_STRUCT_TYPE);
 			break;
 		default:
 			ps.setString(bindAtPosition, (String) value);

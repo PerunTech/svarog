@@ -169,8 +169,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * cluster
 	 * 
 	 * @param dba The DbDataArray instance which should be published as dirty
+	 * @throws SvException
 	 */
-	static public void publishDirtyArray(DbDataArray dba) {
+	static public void publishDirtyArray(DbDataArray dba) throws SvException {
 		synchronized (pubServerSock) {
 			publishDirtyArray(dba, pubServerSock);
 		}
@@ -185,9 +186,10 @@ public class SvClusterNotifierClient implements Runnable {
 	 *               is coordinator, it shall send on the proxy socket. If the node
 	 *               is worker, then it will publish on the publish socket of the
 	 *               NotifierClient
+	 * @throws SvException
 	 * 
 	 */
-	static void publishDirtyArray(DbDataArray dba, ZMQ.Socket socket) {
+	static void publishDirtyArray(DbDataArray dba, ZMQ.Socket socket) throws SvException {
 		if (socket != null) {
 			ByteBuffer msgBuffer = null;
 			Long currentType = 0L;
@@ -203,7 +205,7 @@ public class SvClusterNotifierClient implements Runnable {
 						if (log4j.isDebugEnabled())
 							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
 									+ " to coordinator");
-						if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+						if (!SvCluster.zmqSend(socket, finalBytes, ZMQ.DONTWAIT))
 							log4j.error("Error publishing message to coordinator node");
 					}
 					objectCount = 0;
@@ -227,7 +229,7 @@ public class SvClusterNotifierClient implements Runnable {
 				if (log4j.isDebugEnabled())
 					log4j.trace(
 							"Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
-				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+				if (!SvCluster.zmqSend(socket, finalBytes, ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
 			}
 		} else if (log4j.isDebugEnabled())
@@ -243,9 +245,10 @@ public class SvClusterNotifierClient implements Runnable {
 	 *               is coordinator, it shall send on the proxy socket. If the node
 	 *               is worker, then it will publish on the publish socket of the
 	 *               NotifierClient
+	 * @throws SvException
 	 * 
 	 */
-	static void publishDirtyTileArray(Set<SvSDITile> tiles) {
+	static void publishDirtyTileArray(Set<SvSDITile> tiles) throws SvException {
 		synchronized (pubServerSock) {
 			publishDirtyTileArray(tiles, pubServerSock);
 		}
@@ -260,9 +263,10 @@ public class SvClusterNotifierClient implements Runnable {
 	 *               is coordinator, it shall send on the proxy socket. If the node
 	 *               is worker, then it will publish on the publish socket of the
 	 *               NotifierClient
+	 * @throws SvException
 	 * 
 	 */
-	static void publishDirtyTileArray(Set<SvSDITile> tiles, ZMQ.Socket socket) {
+	static void publishDirtyTileArray(Set<SvSDITile> tiles, ZMQ.Socket socket) throws SvException {
 		if (socket != null) {
 			ByteBuffer msgBuffer = null;
 			Long currentType = 0L;
@@ -281,7 +285,7 @@ public class SvClusterNotifierClient implements Runnable {
 						if (log4j.isDebugEnabled())
 							log4j.debug("Sent dirty notification of array with ids:" + msgBuffer.toString()
 									+ " to coordinator");
-						if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+						if (!SvCluster.zmqSend(socket, finalBytes, ZMQ.DONTWAIT))
 							log4j.error("Error publishing message to coordinator node");
 					}
 					objectCount = 0;
@@ -309,7 +313,7 @@ public class SvClusterNotifierClient implements Runnable {
 				if (log4j.isDebugEnabled())
 					log4j.debug(
 							"Sent dirty notification of array with ids:" + msgBuffer.toString() + " to coordinator");
-				if (!socket.send(finalBytes, ZMQ.DONTWAIT))
+				if (!SvCluster.zmqSend(socket, finalBytes, ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
 			}
 		} else if (log4j.isDebugEnabled())
@@ -322,8 +326,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * 
 	 * @param objectId     The id of the dirty object
 	 * @param objectTypeId The type of the dirty object
+	 * @throws SvException
 	 */
-	static public void publishDirtyObject(long objectId, long objectTypeId) {
+	static public void publishDirtyObject(long objectId, long objectTypeId) throws SvException {
 		synchronized (pubServerSock) {
 			if (pubServerSock != null) {
 				ByteBuffer msgBuffer = ByteBuffer
@@ -333,7 +338,7 @@ public class SvClusterNotifierClient implements Runnable {
 				msgBuffer.putLong(objectId);
 				if (log4j.isDebugEnabled())
 					log4j.debug("Sent dirty notification of object with id:" + objectId + " to coordinator");
-				if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				if (!SvCluster.zmqSend(pubServerSock, msgBuffer.array(), ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
 			} else if (log4j.isDebugEnabled())
 				log4j.debug("Publisher socke is null! Notifier client not started!");
@@ -344,8 +349,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a logoff notification to the other nodes in the cluster
 	 * 
 	 * @param sessionId String representation of the user session/token
+	 * @throws SvException
 	 */
-	static public void publishLogoff(String sessionId) {
+	static public void publishLogoff(String sessionId) throws SvException {
 		synchronized (pubServerSock) {
 			if (pubServerSock != null) {
 				ByteBuffer msgBuffer = ByteBuffer
@@ -356,7 +362,7 @@ public class SvClusterNotifierClient implements Runnable {
 				msgBuffer.putLong(uuid.getLeastSignificantBits());
 				if (log4j.isDebugEnabled())
 					log4j.debug("Sent logoff notification with token:" + uuid.toString() + " to the coordinator");
-				if (!pubServerSock.send(msgBuffer.array(), ZMQ.DONTWAIT))
+				if (!SvCluster.zmqSend(pubServerSock, msgBuffer.array(), ZMQ.DONTWAIT))
 					log4j.error("Error publishing message to coordinator node");
 			} else if (log4j.isDebugEnabled())
 				log4j.debug("Publisher socke is null! Notifier client not started!");
@@ -367,8 +373,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * Method to publish a logoff notification to the other nodes in the cluster
 	 * 
 	 * @param sessionId String representation of the user session/token
+	 * @throws SvException
 	 */
-	static public void publishAck(Integer ackValue, byte successMsg) {
+	static public void publishAck(Integer ackValue, byte successMsg) throws SvException {
 		synchronized (pubServerSock) {
 			if (pubServerSock != null) {
 				ByteBuffer msgBuffer = ByteBuffer
@@ -380,7 +387,7 @@ public class SvClusterNotifierClient implements Runnable {
 				if (log4j.isDebugEnabled())
 					log4j.debug(
 							"Sent ack notification with value:" + Integer.toString(ackValue) + " to the coordinator");
-				if (!pubServerSock.send(msgBuffer.array()))
+				if (!SvCluster.zmqSend(pubServerSock, msgBuffer.array(), 0))
 					log4j.error("Error publishing message to coordinator node");
 			} else if (log4j.isDebugEnabled())
 				log4j.debug("Publisher socket is null! Notifier client not started!");
@@ -403,19 +410,20 @@ public class SvClusterNotifierClient implements Runnable {
 		if (subServerSock != null) {
 			subServerSock.subscribe(ZMQ.SUBSCRIPTION_ALL);
 			log4j.info("Notify subscriber client started");
-			try {
-				while (isRunning.get()) {
-					byte[] msg = subServerSock.recv(0);
+			while (isRunning.get()) {
+				try {
+					byte[] msg = SvCluster.zmqRecv(subServerSock, 0);
 					if (msg != null) {
 						ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
 						processMessage(msgBuffer);
 					}
+				} catch (SvException e) {
+					if (e.getLabelCode().equals(Sv.Exceptions.CLUSTER_INACTIVE))
+						isRunning.set(false);
+					else
+						log4j.error("Error processing notification", e);
 				}
-			} catch (Exception e) {
-				if (isRunning.get())
-					log4j.error("Error processing notification", e);
 			}
-
 			log4j.info("Notify subscriber client shut down");
 		} else
 			log4j.error("Subscriber socket not available, ensure proper initialisation");
@@ -432,8 +440,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * 
 	 * @param msgBuffer The buffer associated with the lock acquired message
 	 * @return If the message was processed, return true
+	 * @throws SvException
 	 */
-	private static boolean processLockAcquired(ByteBuffer msgBuffer) {
+	private static boolean processLockAcquired(ByteBuffer msgBuffer) throws SvException {
 		Long remoteNodeId = msgBuffer.getLong();
 		Integer ackValue = msgBuffer.getInt();
 		String lockKey = new String(Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG + SvUtil.sizeof.INT,
@@ -476,8 +485,9 @@ public class SvClusterNotifierClient implements Runnable {
 	 * log-off.
 	 * 
 	 * @param msgBuffer
+	 * @throws SvException
 	 */
-	static void processMessage(ByteBuffer msgBuffer) {
+	static void processMessage(ByteBuffer msgBuffer) throws SvException {
 		boolean hasObjects = true;
 		byte msgType = msgBuffer.get();
 		int objectCount = 0;

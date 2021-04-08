@@ -679,7 +679,7 @@ public class SvConf {
 		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedOnMaintenance(getProperty(mainProperties, "dbcp.remove.abandoned", true));
 		((BasicDataSource) sysDataSource)
-				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 3000));
+				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 600));
 		((BasicDataSource) sysDataSource)
 				.setTimeBetweenEvictionRunsMillis(getProperty(mainProperties, "dbcp.eviction.time", 3000));
 		((BasicDataSource) sysDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
