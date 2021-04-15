@@ -330,7 +330,7 @@ public class SvCluster extends SvCore {
 			// finally we are the coordinator
 			isCoordinator = true;
 		} else {
-			log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster 	\n" + "shutdown.");
+			log4j.info("Svarog Cluster Servers initialisation failed. Initiating Cluster Server shutdown.");
 			shutdown();
 		}
 		return initHb && initNotif && isCoordinator;
@@ -381,8 +381,13 @@ public class SvCluster extends SvCore {
 				isActive.set(startServers());
 
 			// if the servers failed to start, then try to start as a client
-			if (!isActive.get() && autoStartClient)
-				isActive.set(startClients(hbAddress));
+			if (!isActive.get()) {
+				log4j.info(
+						"Svarog Cluster failed to start as Server and register as Cluster Coordinator. Starting Cluster Client :"
+								+ Boolean.toString(autoStartClient));
+				if (autoStartClient)
+					isActive.set(startClients(hbAddress));
+			}
 
 		} catch (Exception e) {
 			log4j.error("Svarog cluster could not be initialised. Cluster not running!", e);
@@ -760,10 +765,11 @@ public class SvCluster extends SvCore {
 	 * @param nodeId    The node under which the locks shall be moved
 	 * @param oldNodeId The node from which the locks will be moved
 	 * @param nodeLocks The map fo locks which shall be used (Server or Client side)
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	static void copyLocalLocks(Long nodeId, Long oldNodeId,
-			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks) throws SvException {
+			ConcurrentHashMap<Long, CopyOnWriteArrayList<SvCluster.DistributedLock>> localNodeLocks)
+			throws SvException {
 		{
 			CopyOnWriteArrayList<SvCluster.DistributedLock> nodeLock = localNodeLocks.remove(oldNodeId);
 			if (nodeLock != null) {

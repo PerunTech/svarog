@@ -107,7 +107,9 @@ public class SvClusterServer implements Runnable {
 			if (tmpSock.bind("tcp://*:" + SvConf.getHeartBeatPort()))
 				hbServerSock = tmpSock;
 		} catch (Exception e) {
-			log4j.error("The node can't bind socket on port range:" + SvConf.getHeartBeatPort(), e);
+			if (log4j.isDebugEnabled())
+				log4j.debug("The node can't bind socket on port range:" + SvConf.getHeartBeatPort());
+
 		}
 		if (hbServerSock == null) {
 			isActive.set(false);
@@ -445,7 +447,7 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId    The node which sent the message
 	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) throws SvException {
 		Integer lockHash = msgBuffer.getInt();
@@ -484,7 +486,7 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId    The node which sent the message
 	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) throws SvException {
 
@@ -533,7 +535,7 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId    The node which sent the message
 	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
-	 * @throws SvException 
+	 * @throws SvException
 	 */
 	private byte[] processMessage(byte msgType, long nodeId, ByteBuffer msgBuffer) throws SvException {
 		ByteBuffer respBuffer = null;
