@@ -66,7 +66,7 @@ public class SvarogRolesTest {
 		SvReader svr = null;
 		try {
 
-			svs = new SvSecurity();
+			svs = new SvSecurity("SSSS");
 			svw = new SvWorkflow();
 			svw.setAutoCommit(false);
 			svwr = new SvWriter(svw);

@@ -14,10 +14,17 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQueryObject;
@@ -43,6 +50,21 @@ import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 public class SvSecurity extends SvCore {
 
 	/**
+	 * Cache to hold details about all public ip adresses trying to use system
+	 * resources without having proper user access, we shall throttle the requests.
+	 */
+	private static LoadingCache<String, DbDataObject> ipThrottle = CacheBuilder.newBuilder()
+			.expireAfterAccess(10, TimeUnit.MINUTES)
+			.<String, DbDataObject>build(new CacheLoader<String, DbDataObject>() {
+				@Override
+				public DbDataObject load(String key) {
+					DbDataObject dbo = new DbDataObject();
+					dbo.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
+					dbo.setVal(Sv.Security.REQUEST_COUNT, 1);
+					return dbo;
+				}
+			});
+	/**
 	 * Log4j instance used for logging
 	 */
 	static final Logger log4j = LogManager.getLogger(SvSecurity.class.getName());
@@ -59,13 +81,73 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * The public anonymous constructor. This is the ONLY SvCore inherited classes
-	 * which allows anonymous constructors without valid user session
+	 * DEPRECATED!!!! Replace with <b>SvSecurity(String publicUserID)</b>
 	 * 
 	 * @throws SvException Re-throw any underlying Svarog exception
+	 * @deprecated This constructor is replaced with SvSecurity(String publicUserID)
 	 */
+	@Deprecated
 	public SvSecurity() throws SvException {
 		super(svCONST.systemUser, null);
+	}
+
+	/**
+	 * The public anonymous constructor. This is the ONLY SvCore inherited classes
+	 * which allows anonymous constructors without valid user session. The only
+	 * input parameter is used as a way to identify a user or group of users. Most
+	 * commonly this will be the IP Address of the connection as provided by the
+	 * public web services. The sole purpose of this ID is to prevent DDoS and to
+	 * enable Svarog to throttle the connections of sessions being established at
+	 * high rate from single IP address in attempt to perform brute force attack of
+	 * any kind of DoS.
+	 * 
+	 * @param publicUserID A string identification of a user or a user group. In a
+	 *                     classic web application the IP address of peer is a
+	 *                     perfect candidate for public identification of potential
+	 *                     system users
+	 * 
+	 * @throws SvException Re-throw any underlying Svarog exception
+	 * 
+	 */
+	public SvSecurity(String publicUserID) throws SvException {
+		super(svCONST.systemUser, null);
+
+		try {
+			DbDataObject info = ipThrottle.get(publicUserID);
+			DateTime blockedUntil = (DateTime) info.getVal(Sv.Security.BLOCKED_UNTIL);
+			if (blockedUntil != null && blockedUntil.isAfterNow())
+				throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, info, publicUserID));
+			synchronized (info) {
+				int count = (int) info.getVal(Sv.Security.REQUEST_COUNT);
+				DateTime firstRequest = (DateTime) info.getVal(Sv.Security.FIRST_REQUEST_TIME);
+				DateTime window = firstRequest.plusMinutes(1);
+				// if window is in the future then increase the count
+				if (window.isAfterNow()) {
+					count++;
+					info.setVal(Sv.Security.REQUEST_COUNT, count);
+				} else {
+					// if the window passed, reset the counter
+					count = 1;
+					info.setVal(Sv.Security.REQUEST_COUNT, count);
+					info.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
+				}
+				// if the count of sessions is more than the max allowed
+				if (count > SvConf.getMaxRequestsPerMinute()) {
+					Integer blockCount = (Integer) info.getVal(Sv.Security.BLOCKED_COUNT);
+					if (blockCount == null)
+						blockCount = 1;
+					else
+						blockCount++;
+					info.setVal(Sv.Security.BLOCKED_UNTIL, DateTime.now().plusMinutes(blockCount));
+					info.setVal(Sv.Security.BLOCKED_COUNT, blockCount);
+					log4j.info("Public user session throttled. Key:" + publicUserID + ", reason:"
+							+ info.toSimpleJson().toString());
+				}
+			}
+		} catch (ExecutionException e) {
+			throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, null, publicUserID, e));
+		}
+
 	}
 
 	@Override
