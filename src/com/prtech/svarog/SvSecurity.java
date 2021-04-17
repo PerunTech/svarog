@@ -53,14 +53,14 @@ public class SvSecurity extends SvCore {
 	 * Cache to hold details about all public ip adresses trying to use system
 	 * resources without having proper user access, we shall throttle the requests.
 	 */
-	private static LoadingCache<String, DbDataObject> ipThrottle = CacheBuilder.newBuilder()
+	static LoadingCache<String, DbDataObject> ipThrottle = CacheBuilder.newBuilder()
 			.expireAfterAccess(10, TimeUnit.MINUTES)
 			.<String, DbDataObject>build(new CacheLoader<String, DbDataObject>() {
 				@Override
 				public DbDataObject load(String key) {
 					DbDataObject dbo = new DbDataObject();
 					dbo.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
-					dbo.setVal(Sv.Security.REQUEST_COUNT, 1);
+					dbo.setVal(Sv.Security.REQUEST_COUNT, 0);
 					return dbo;
 				}
 			});
@@ -91,6 +91,32 @@ public class SvSecurity extends SvCore {
 		super(svCONST.systemUser, null);
 	}
 
+	private void blockPublicUser(String publicUserID) throws SvException, ExecutionException {
+		DbDataObject info = ipThrottle.get(publicUserID);
+		Integer blockCount = (Integer) info.getVal(Sv.Security.BLOCKED_COUNT);
+		if (blockCount == null)
+			blockCount = 1;
+		else
+			blockCount++;
+		info.setVal(Sv.Security.BLOCKED_UNTIL, DateTime.now().plusMinutes(blockCount));
+		info.setVal(Sv.Security.BLOCKED_COUNT, blockCount);
+		log4j.info("Public user session throttled. Key:" + publicUserID + ", reason:" + info.toSimpleJson().toString());
+		throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, null, publicUserID));
+	}
+
+	/**
+	 * Method to unblock a public IP found on the list of blacklisted peers
+	 * 
+	 * @param publicUserID The IP of the peer or any other uniquely identifying
+	 *                     toked
+	 * @throws ExecutionException
+	 */
+	static void unblockPublicUser(String publicUserID) throws ExecutionException {
+		DbDataObject info = ipThrottle.get(publicUserID);
+		info.setVal(Sv.Security.REQUEST_COUNT, 0);
+		info.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
+	}
+
 	/**
 	 * The public anonymous constructor. This is the ONLY SvCore inherited classes
 	 * which allows anonymous constructors without valid user session. The only
@@ -115,9 +141,10 @@ public class SvSecurity extends SvCore {
 		try {
 			DbDataObject info = ipThrottle.get(publicUserID);
 			DateTime blockedUntil = (DateTime) info.getVal(Sv.Security.BLOCKED_UNTIL);
-			if (blockedUntil != null && blockedUntil.isAfterNow())
-				throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, info, publicUserID));
+
 			synchronized (info) {
+				if (blockedUntil != null && blockedUntil.isAfterNow())
+					blockPublicUser(publicUserID);
 				int count = (int) info.getVal(Sv.Security.REQUEST_COUNT);
 				DateTime firstRequest = (DateTime) info.getVal(Sv.Security.FIRST_REQUEST_TIME);
 				DateTime window = firstRequest.plusMinutes(1);
@@ -125,24 +152,13 @@ public class SvSecurity extends SvCore {
 				if (window.isAfterNow()) {
 					count++;
 					info.setVal(Sv.Security.REQUEST_COUNT, count);
-				} else {
-					// if the window passed, reset the counter
-					count = 1;
-					info.setVal(Sv.Security.REQUEST_COUNT, count);
-					info.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
-				}
+				} else
+					unblockPublicUser(publicUserID);
+
 				// if the count of sessions is more than the max allowed
-				if (count > SvConf.getMaxRequestsPerMinute()) {
-					Integer blockCount = (Integer) info.getVal(Sv.Security.BLOCKED_COUNT);
-					if (blockCount == null)
-						blockCount = 1;
-					else
-						blockCount++;
-					info.setVal(Sv.Security.BLOCKED_UNTIL, DateTime.now().plusMinutes(blockCount));
-					info.setVal(Sv.Security.BLOCKED_COUNT, blockCount);
-					log4j.info("Public user session throttled. Key:" + publicUserID + ", reason:"
-							+ info.toSimpleJson().toString());
-				}
+				if (count > SvConf.getMaxRequestsPerMinute())
+					blockPublicUser(publicUserID);
+
 			}
 		} catch (ExecutionException e) {
 			throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, null, publicUserID, e));
