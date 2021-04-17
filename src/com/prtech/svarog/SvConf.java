@@ -533,7 +533,7 @@ public class SvConf {
 			deleteCodesOnUpgrade = getProperty(mainProperties, "sys.codes.delete_upgrade", false);
 
 			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
-			maxRequestsPerMinute = getProperty(mainProperties, "sys.max.requests_per_min", 20);
+			maxRequestsPerMinute = getProperty(mainProperties, "sys.max.requests_per_min", 60);
 
 			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", 0);
 			intersectSysBoundary = getProperty(mainProperties, "sys.gis.allow_boundary_intersect", false);
