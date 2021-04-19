@@ -283,7 +283,8 @@ public class SvGeometry extends SvWriter {
 				for (Geometry g : relatedGeoms) {
 					// apply the filter by value
 					DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
-					if (SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue))
+					if (filterFieldName != null
+							&& !SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue))
 						continue;
 					// exclude self if needed
 					if (excludeSelf && SvUtil.fieldMatchValue(relatedUserData, objectIdField, geometryOid))
@@ -1412,7 +1413,7 @@ public class SvGeometry extends SvWriter {
 				for (Geometry tgl : tileGeomList) {
 					String tileID = (String) tgl.getUserData();
 					SvSDITile tile = SvGeometry.getTile(dbo.getObjectType(), tileID, null);
-					if(!tileList.contains(tile))
+					if (!tileList.contains(tile))
 						tileList.add(tile);
 				}
 			}
