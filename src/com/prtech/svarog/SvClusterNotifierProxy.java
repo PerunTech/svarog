@@ -85,8 +85,9 @@ public class SvClusterNotifierProxy implements Runnable {
 				pubServerSock = pubSock;
 
 		} catch (Exception e) {
-			log4j.error("The node can't bind socket on ports:" + Integer.toString(subscriberPort) + ", "
-					+ Integer.toString(publisherPort), e);
+			if (log4j.isDebugEnabled())
+				log4j.debug("The node can't bind socket on ports:" + Integer.toString(subscriberPort) + ", "
+						+ Integer.toString(publisherPort), e);
 		}
 		if (subServerSock == null)
 			log4j.error("Notification subscriber socket can't bind on port:" + subscriberPort);
