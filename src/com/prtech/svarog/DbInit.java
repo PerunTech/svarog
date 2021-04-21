@@ -50,12 +50,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
+import com.prtech.svarog_geojson.GeoJsonReader;
+import com.prtech.svarog_geojson.GeoJsonWriter;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.io.ParseException;
 
 public class DbInit {
 	/**

@@ -10,10 +10,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<repositories>
+		<repository>
+			<id>osgeo</id>
+			<name>OSGeo Release Repository</name>
+			<url>https://repo.osgeo.org/repository/release/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+	</repositories>
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.2.15</version>
+	<version>3.3</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -271,7 +285,7 @@
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
 			<artifactId>svarog-jts-io</artifactId>
-			<version>[1.14.0,)</version>
+			<version>[1.18.0,)</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
@@ -298,6 +312,13 @@
 			<artifactId>guava</artifactId>
 			<version>29.0-jre</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.geotools/gt-geobuf -->
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-geobuf</artifactId>
+			<version>25.0</version>
+		</dependency>
+
 
 		<!-- https://mvnrepository.com/artifact/junit/junit -->
 		<dependency>
@@ -332,8 +353,9 @@
 		<dependency>
 			<groupId>org.zeromq</groupId>
 			<artifactId>jeromq</artifactId>
-			<version>0.5.1</version>
+			<version>0.5.2</version>
 		</dependency>
+
 	</dependencies>
 
 	<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
