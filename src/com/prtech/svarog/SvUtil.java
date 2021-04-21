@@ -39,8 +39,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.SvCharId;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.PrecisionModel;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 
 public class SvUtil {
 
