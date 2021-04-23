@@ -24,6 +24,20 @@ public class SvSecurityTest {
 			e.printStackTrace();
 		}
 	}
+	
+	@Test
+	public void testActivateExternal() {
+		try {
+			SvSecurity svs = new SvSecurity();
+			DbDataObject user = svs.getUser("ADMIN");
+			String uuid = user.getVal("USER_UID").toString();
+			svs.activateExternalUser(uuid);
+			System.out.println("activated");
+		} catch (SvException e) {
+			e.printStackTrace();
+			fail(e.getLabelCode());
+		}
+	}
 
 	@Test
 	public void testIpThrottle() {
