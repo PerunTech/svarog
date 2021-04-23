@@ -715,8 +715,7 @@ public class SvSecurity extends SvCore {
 				if (user != null && user.getStatus().equals("PENDING")) {
 					(svw).moveObject(user, svCONST.STATUS_VALID);
 					userFound = true;
-				}  
-				if (user != null && user.getStatus().equals("VALID")) {
+				}  else if (user != null && user.getStatus().equals("VALID")) {
 					userFound = true;
 				}
 			}
