@@ -705,9 +705,7 @@ public class SvSecurity extends SvCore {
 		SvWorkflow svw = new SvWorkflow(svr);
 		DbSearchExpression dse = new DbSearchExpression();
 		DbSearchCriterion searchByUID = new DbSearchCriterion("USER_UID", DbCompareOperand.EQUAL, uuid);
-		DbSearchCriterion searchByStatus = new DbSearchCriterion("STATUS", DbCompareOperand.EQUAL, "PENDING");
 		dse.addDbSearchItem(searchByUID);
-		dse.addDbSearchItem(searchByStatus);
 
 		try {
 			Boolean userFound = false;
@@ -716,6 +714,9 @@ public class SvSecurity extends SvCore {
 				DbDataObject user = dba.getItems().size() > 0 ? dba.getItems().get(0) : null;
 				if (user != null && user.getStatus().equals("PENDING")) {
 					(svw).moveObject(user, svCONST.STATUS_VALID);
+					userFound = true;
+				}  
+				if (user != null && user.getStatus().equals("VALID")) {
 					userFound = true;
 				}
 			}
