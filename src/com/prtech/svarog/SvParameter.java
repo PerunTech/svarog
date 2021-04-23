@@ -924,6 +924,8 @@ public class SvParameter extends SvCore {
 				DbDataObject dbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SYS_PARAMS);
 				dbParamValue = svr.getObjectByUnqConfId(key, dbt);
 				if (dbParamValue == null) {
+					if (SvConf.getParam(key) != null && !SvConf.getParam(key).isEmpty())
+						defaultValue = SvConf.getParam(key);
 					dbParamValue = new DbDataObject(svCONST.OBJECT_TYPE_SYS_PARAMS);
 					dbParamValue.setVal(Sv.PARAM_NAME, key);
 					dbParamValue.setVal(Sv.PARAM_VALUE, defaultValue);
