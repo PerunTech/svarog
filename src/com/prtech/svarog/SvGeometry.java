@@ -1040,18 +1040,27 @@ public class SvGeometry extends SvWriter {
 	public LinearRing fixPolygonCoordinates(LineString p, Double maxAngle) throws SvException {
 		Coordinate[] coords = p.getCoordinates();
 		Coordinate[] newCoordinates = new Coordinate[coords.length];
+		int startIndex = 0;
+
+		// check if there's spike at the first/last
+		double angle = Angle.toDegrees(Angle.angleBetween(coords[1], coords[0], coords[coords.length - 2]));
+		if (angle <= maxAngle)
+			startIndex = 1;
+
 		// add the zero point, becase we start the loop from the first tail
-		newCoordinates[0] = coords[0];
+		newCoordinates[0] = coords[startIndex];
 		int iDst = 1;
-		for (int cc = 1; cc < coords.length; cc++) {
+		for (int cc = startIndex + 1; cc < coords.length; cc++) {
 			Coordinate tip1 = coords[cc - 1];
 			Coordinate tail = coords[cc];
 			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
 			Coordinate tip2 = coords[tip2index];
-			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
+			angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
 			if (angle >= maxAngle)
 				newCoordinates[iDst++] = tail;
 		}
+		if (startIndex == 1)
+			newCoordinates[iDst++] = newCoordinates[0];
 		if (iDst == coords.length)
 			newCoordinates = coords;
 		else {
