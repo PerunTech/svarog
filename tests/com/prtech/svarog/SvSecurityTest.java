@@ -28,7 +28,7 @@ public class SvSecurityTest {
 	@Test
 	public void testActivateExternal() {
 		try {
-			SvSecurity svs = new SvSecurity(testIp);
+			SvSecurity svs = new SvSecurity();
 			DbDataObject user = svs.getUser("ADMIN");
 			String uuid = user.getVal("USER_UID").toString();
 			svs.activateExternalUser(uuid);
