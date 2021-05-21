@@ -120,6 +120,10 @@ public class SvWriter extends SvCore {
 	 * Map to store pre-built queries
 	 */
 	static HashMap<Long, String> queryCache = new HashMap<Long, String>();
+	/**
+	 * Map to store pre-built queries
+	 */
+	static HashMap<Long, String> querySDICache = new HashMap<Long, String>();
 
 	/**
 	 * Constant for the keyword update
@@ -396,11 +400,17 @@ public class SvWriter extends SvCore {
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
 			Boolean hasPKID, boolean hasNullGeometry) throws SvException {
 		String sql = null;
-		if (!isUpdate)
-			sql = queryCache.get(dbt.getObjectId());
+		HashMap<Long, String> qCache = null;
+		if (SvCore.hasGeometries(dbt.getObjectId()) && !hasNullGeometry)
+			qCache = querySDICache;
 		else
-			sql = queryCache.get(-dbt.getObjectId());
-		if (!hasNullGeometry && sql != null)
+			qCache = queryCache;
+
+		if (!isUpdate)
+			sql = qCache.get(dbt.getObjectId());
+		else
+			sql = qCache.get(-dbt.getObjectId());
+		if (sql != null)
 			return sql;
 
 		sql = "INSERT INTO " + (String) dbt.getVal("schema") + "." + (String) dbt.getVal("table_name");
@@ -432,11 +442,11 @@ public class SvWriter extends SvCore {
 
 		if (!isUpdate) {
 			sql += "VALUES(" + fieldVals + ")";
-			queryCache.put(dbt.getObjectId(), sql);
+			qCache.put(dbt.getObjectId(), sql);
 		} else {
 			sql += "SELECT " + fieldVals + " FROM " + (String) dbt.getVal("schema") + "."
 					+ (String) dbt.getVal("table_name") + " WHERE pkid=?";
-			queryCache.put(-dbt.getObjectId(), sql);
+			qCache.put(-dbt.getObjectId(), sql);
 		}
 		if (log4j.isDebugEnabled())
 			log4j.trace(sql);
