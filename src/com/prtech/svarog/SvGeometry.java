@@ -736,7 +736,7 @@ public class SvGeometry extends SvWriter {
 	 * @return The SvSDITile instance holding all units of the specific class
 	 * @throws SvException Pass through of underlying exceptions
 	 */
-	public static SvSDITile getSDIUnitBoundary(Long unitClass) throws SvException {
+	public static SvSDITile getSDIUnitBoundary(String unitClass) throws SvException {
 		DbSearchCriterion dbs = new DbSearchCriterion("UNIT_CLASS", DbCompareOperand.EQUAL, unitClass);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		params.put("DB_SEARCH", dbs);

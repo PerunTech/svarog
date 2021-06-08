@@ -128,7 +128,7 @@ public class SvConf {
 	 */
 	private static int heartBeatTimeOut;
 
-	private static long admUnitClass;
+	private static String admUnitClass;
 
 	private static boolean intersectSysBoundary;
 
@@ -535,7 +535,7 @@ public class SvConf {
 			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
 			maxRequestsPerMinute = getProperty(mainProperties, "sys.max.requests_per_min", 60);
 
-			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", 0);
+			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", "0");
 			intersectSysBoundary = getProperty(mainProperties, "sys.gis.allow_boundary_intersect", false);
 
 			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
@@ -1044,11 +1044,11 @@ public class SvConf {
 		SvConf.heartBeatTimeOut = heartBeatTimeOut;
 	}
 
-	public static long getAdmUnitClass() {
+	public static String getAdmUnitClass() {
 		return admUnitClass;
 	}
 
-	public static void setAdmUnitClass(long admUnitClass) {
+	public static void setAdmUnitClass(String admUnitClass) {
 		SvConf.admUnitClass = admUnitClass;
 	}
 
