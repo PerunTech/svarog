@@ -107,7 +107,7 @@ svarog-install:
   stage: mvn_install
   script:  
     - pwd
-    - mvn deploy -DskipTests
+    - mvn clean package org.apache.maven.plugins:maven-deploy-plugin:3.0.0-M1:deploy -DskipTests
   only:
     - master
     - staging
