@@ -33,6 +33,7 @@ public class SvPerunInstance {
 	String jsPath;
 	int sortOrder;
 	IPerunPlugin plugin;
+	DbDataObject dboPlugin;
 
 	
 	JsonObject setMenuJson(DbDataObject dboPlugin, String confFieldName)
@@ -87,6 +88,7 @@ public class SvPerunInstance {
 		this.sortOrder = (dboPlugin.getVal("SORT_ORDER") != null ? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
 				: plugin.getSortOrder());
 		this.plugin = plugin;
+		this.dboPlugin = dboPlugin;
 
 	}
 
@@ -157,4 +159,7 @@ public class SvPerunInstance {
 		return status;
 	}
 
+	public DbDataObject getDboPlugin() {
+		return dboPlugin;
+	}
 }
