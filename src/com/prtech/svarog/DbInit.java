@@ -156,7 +156,14 @@ public class DbInit {
 		dbf10.setIsNull(false);
 		dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "" + Sv.SORT_ORDER.toLowerCase());
 
-		DbDataField[] dbTableFields = new DbDataField[10];
+		DbDataField dbf11 = new DbDataField();
+		dbf11.setDbFieldName("GUI_METADATA");
+		dbf11.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf11.setDbFieldSize(2000);
+		dbf11.setIsNull(true);
+		dbf11.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_VISIBLE_UI);
+		
+		DbDataField[] dbTableFields = new DbDataField[11];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe2;
 		dbTableFields[2] = dbe3;
@@ -167,6 +174,7 @@ public class DbInit {
 		dbTableFields[7] = dbf8;
 		dbTableFields[8] = dbf9;
 		dbTableFields[9] = dbf10;
+		dbTableFields[10] = dbf11;
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
