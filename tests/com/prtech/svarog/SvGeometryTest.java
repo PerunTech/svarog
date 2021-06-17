@@ -16,6 +16,9 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,9 +27,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geotools.data.DataStore;
+import org.geotools.data.DataStoreFinder;
+import org.geotools.data.DataUtilities;
+import org.geotools.data.DefaultTransaction;
+import org.geotools.data.FeatureWriter;
+import org.geotools.data.FileDataStoreFactorySpi;
+import org.geotools.data.FileDataStoreFinder;
+import org.geotools.data.Transaction;
+import org.geotools.data.geobuf.GeobufDataStore;
+import org.geotools.data.memory.MemoryDataStore;
+import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.data.simple.SimpleFeatureSource;
+import org.geotools.data.simple.SimpleFeatureStore;
+import org.geotools.feature.SchemaException;
+import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.util.URLs;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -34,20 +56,20 @@ import com.prtech.svarog.SvSDITile.SDIRelation;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.SvCharId;
+import com.prtech.svarog_geojson.GeoJsonWriter;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.WKTWriter;
 
 public class SvGeometryTest {
 	private static final Long TEST_LAYER_TYPE_ID = 999L;
@@ -732,6 +754,118 @@ public class SvGeometryTest {
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGeomHolePBF() throws SvException, SchemaException, IOException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			Geometry hole = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 15, gridX0 + 17, gridY0 + 15, gridY0 + 17));
+
+			Set<Geometry> gg = svg.getRelatedGeometries(hole, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS, null, null,
+					false);
+			Geometry original = gg.iterator().next();
+			Double originalArea = original.getArea();
+			// this is with default values and should not raise any exceptions
+			Geometry result = svg.holeInPolygon(hole, TEST_LAYER_TYPE_ID, false);
+
+			if ((result.getArea() + hole.getArea()) != originalArea)
+				fail("Geometry was not cut off properly");
+			// fix based on one meter distance
+			final SimpleFeatureType TYPE = DataUtilities.createType("Location", "geom:MultiPolygon:srid=4326," + // <-
+																													// the
+																													// geometry
+																													// attribute:
+																													// Point
+																													// type
+					"name:String," + // <- a String attribute
+					"number:Integer" // a number attribute
+			);
+			SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+			// GeobufEncoder enc = new GeobufEncoder(stream, precisionScale);
+			// enc.writeSvGeometry(result);
+			List<SimpleFeature> features = new ArrayList<>();
+			featureBuilder.add(result);
+			featureBuilder.add("test");
+			featureBuilder.add(123);
+			SimpleFeature feature = featureBuilder.buildFeature(null);
+			features.add(feature);
+			exportToPBF(features, "test", new File("."));
+
+			System.out.println(result);
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	private static Set<MultiPolygon> initializeFrom(File shapeFile) throws IOException {
+		URL shapeFileURL = shapeFile.toURI().toURL();
+		Map<String, URL> inputMap = new HashMap<>();
+		inputMap.put("url", shapeFileURL);
+
+		DataStore dataStore = DataStoreFinder.getDataStore(inputMap);
+		SimpleFeatureSource featureSource = dataStore.getFeatureSource(dataStore.getTypeNames()[0]);
+		SimpleFeatureCollection collection = DataUtilities.collection(featureSource.getFeatures());
+		dataStore.dispose();
+
+		Set<MultiPolygon> polygons = new HashSet<>();
+		SimpleFeatureIterator iterator = collection.features();
+		while (iterator.hasNext())
+			polygons.add((MultiPolygon) iterator.next().getDefaultGeometry());
+		return polygons;
+	}
+
+	void exportToPBF(List<SimpleFeature> features, String typeName, File directory)
+			throws IOException, SchemaException {
+		// existing feature source from MemoryDataStore
+		final SimpleFeatureType TYPE = DataUtilities.createType("Location", "geom:MultiPolygon:srid=4326," + // <-
+				"name:String," + // <- a String attribute
+				"number:Integer" // a number attribute
+		);
+
+		File file = new File(directory, typeName + ".pbf");
+
+		Map<String, java.io.Serializable> creationParams = new HashMap<>();
+		//creationParams.put("url", URLs.fileToUrl(file));
+
+		FileDataStoreFactorySpi factory = FileDataStoreFinder.getDataStoreFactory("pbf");
+		DataStore dataStore = new GeobufDataStore(file, 2, 2);
+
+		dataStore.createSchema(TYPE);
+
+		SimpleFeatureStore featureStore = (SimpleFeatureStore) dataStore.getFeatureSource(typeName);
+
+		try (Transaction t = new DefaultTransaction()) {
+			// featureSource.getFeatures(); // grab all features
+
+			FeatureWriter<SimpleFeatureType, SimpleFeature> writer = dataStore.getFeatureWriter(typeName, t);
+
+			Iterator<SimpleFeature> iterator = features.iterator();
+			SimpleFeature feature;
+			try {
+				while (iterator.hasNext()) {
+					feature = iterator.next();
+
+					// Step1: create a new empty feature on each call to next
+					SimpleFeature aNewFeature = writer.next();
+					// Step2: copy the values in
+					aNewFeature.setAttributes(feature.getAttributes());
+					// Step3: write out the feature
+					writer.write();
+				}
+				t.commit();
+			} catch (IOException eek) {
+				eek.printStackTrace();
+				try {
+					t.rollback();
+				} catch (IOException doubleEeek) {
+					// rollback failed?
+				}
+			}
+		}
+		// return dataStore;
 	}
 
 	@Test
