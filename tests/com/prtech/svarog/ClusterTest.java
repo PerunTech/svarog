@@ -25,13 +25,7 @@ public class ClusterTest {
 
 	@BeforeClass
 	public static void init() throws SQLException {
-		String sql = "DELETE FROM " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo() + "_CLUSTER";
-		try (SvReader svr = new SvReader(); Statement st = svr.dbGetConn().createStatement()) {
-			st.execute(sql);
-			svr.dbCommit();
-		} catch (SvException e) {
-			e.printStackTrace();
-		}
+
 
 		SvConf.setClusterEnabled(false);
 		// SvMaintenance.shutdown();
@@ -483,6 +477,87 @@ public class ClusterTest {
 		}
 	}
 
+	@Test
+	public void ClusterDirtyArrayMultiTypeTest() {
+		System.out.print("Test ClusterDirtyArrayMultiTypeTest");
+		SvCluster.shutdown();
+		SvLock.clearLocks();
+		SvSecurity svs = null;
+		try {
+			SvCore.initSvCore();
+			SvCluster.autoStartClient = false;
+			SvCluster.initCluster();
+			String ipAddressList = (String) SvCluster.getCoordinatorNode().getVal("local_ip");
+
+			SvClusterNotifierClient.initClient(ipAddressList);
+			Thread notifierThread = new Thread(new SvClusterNotifierClient());
+			notifierThread.start();
+
+			// now test the array clean up
+			DbDataArray array = new DbDataArray();
+			// get one more token
+			String secondToken = SvarogRolesTest.getUserToken(false);
+			// get the Dbo representation
+			DbDataObject dboToken = DbCache.getObject(secondToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
+			if (dboToken != null)
+				array.addDataItem(dboToken);
+			else
+				fail("can't get object from cache");
+			
+
+			for(int i=0; i<3; i++)
+			{
+				DbDataObject dbod = new DbDataObject(svCONST.OBJECT_TYPE_CONVERSATION);
+				dbod.setObjectId(new Long(i+123));
+				array.addDataItem(dbod);
+
+			}
+			// get one more token
+			secondToken = SvarogRolesTest.getUserToken(false);
+			// get the Dbo representation
+			dboToken = DbCache.getObject(secondToken, svCONST.OBJECT_TYPE_SECURITY_LOG);
+			if (dboToken != null)
+				array.addDataItem(dboToken);
+			else
+				fail("can't get object from cache");
+
+			for(int i=0; i<3; i++)
+			{
+				DbDataObject dbod = new DbDataObject(svCONST.OBJECT_TYPE_ACL);
+				dbod.setObjectId(new Long(i+12355));
+				array.addDataItem(dbod);
+
+			}
+			// send dirty notification
+			SvClusterNotifierClient.publishDirtyArray(array);
+
+			// sleep few milis to ensure the message passed through the proxy
+			Thread.sleep(200);
+			// now check the cache again ... the token shouldn't be there
+			dboToken = DbCache.getObject(array.get(0).getObjectId(), array.get(0).getObjectType());
+			if (dboToken != null)
+				fail("Dirty object 1 still in cache!");
+
+			dboToken = DbCache.getObject(array.get(1).getObjectId(), array.get(1).getObjectType());
+			if (dboToken != null)
+				fail("Dirty object 2 still in cache!");
+
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (svs != null)
+				svs.release();
+			SvClusterNotifierClient.shutdown();
+			SvCluster.shutdown();
+			SvLock.clearLocks();
+		}
+	}
+
+	
 	@Test
 	public void ClusterDirtyArrayTest() {
 		System.out.print("Test ClusterDirtyObjectTest");

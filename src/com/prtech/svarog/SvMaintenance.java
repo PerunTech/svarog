@@ -196,6 +196,9 @@ public class SvMaintenance implements Runnable {
 	private static void clusterListDeleteHistory(Connection conn, DbDataArray validNodes)
 			throws SQLException, SvException {
 		PreparedStatement ps = null;
+		// if there's no valid list, do nothing
+		if (validNodes == null || validNodes.size() < 1)
+			return;
 
 		try {
 			StringBuilder sbr = new StringBuilder(100);
@@ -233,13 +236,16 @@ public class SvMaintenance implements Runnable {
 			sbr = new StringBuilder(100);
 			sbr.append("DELETE FROM ");
 			sbr.append(SvConf.getDefaultSchema() + ".");
-			sbr.append(
-					(String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME") + " WHERE PKID NOT IN (");
+			sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("TABLE_NAME"));
 			// append the ids which we should not delete
-			for (DbDataObject dbo : validNodes.getItems())
-				sbr.append(dbo.getPkid().toString() + ",");
-			sbr.setLength(sbr.length() - 1);
-			sbr.append(")");
+
+			if (validNodes.size() > 0) {
+				sbr.append(" WHERE PKID NOT IN (");
+				for (DbDataObject dbo : validNodes.getItems())
+					sbr.append(dbo.getPkid().toString() + ",");
+				sbr.setLength(sbr.length() - 1);
+				sbr.append(")");
+			}
 			conn.setAutoCommit(false);
 			ps = conn.prepareStatement(sbr.toString());
 			ps.execute();

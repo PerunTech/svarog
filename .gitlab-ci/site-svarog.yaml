@@ -1,5 +1,5 @@
 ---
-- hosts: gitlab-ci-runner
+- hosts: localhost
   gather_facts: yes
   connection: local
   roles:

@@ -120,6 +120,10 @@ public class SvWriter extends SvCore {
 	 * Map to store pre-built queries
 	 */
 	static HashMap<Long, String> queryCache = new HashMap<Long, String>();
+	/**
+	 * Map to store pre-built queries
+	 */
+	static HashMap<Long, String> querySDICache = new HashMap<Long, String>();
 
 	/**
 	 * Constant for the keyword update
@@ -394,12 +398,18 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
-			Boolean hasPKID) throws SvException {
+			Boolean hasPKID, boolean hasNullGeometry) throws SvException {
 		String sql = null;
-		if (!isUpdate)
-			sql = queryCache.get(dbt.getObjectId());
+		HashMap<Long, String> qCache = null;
+		if (SvCore.hasGeometries(dbt.getObjectId()) && !hasNullGeometry)
+			qCache = querySDICache;
 		else
-			sql = queryCache.get(-dbt.getObjectId());
+			qCache = queryCache;
+
+		if (!isUpdate)
+			sql = qCache.get(dbt.getObjectId());
+		else
+			sql = qCache.get(-dbt.getObjectId());
 		if (sql != null)
 			return sql;
 
@@ -417,13 +427,8 @@ public class SvWriter extends SvCore {
 			// maybe add field level checks in 2020?
 			// if (!isFieldWriteable(obj, "Replace with User", status)) {
 			// fieldVals.append((String) obj.getVal("field_name"));
-			// else
-			if (((String) obj.getVal("field_type")).equals("GEOMETRY")) // add
-																		// specifics
-																		// for
-																		// GIS
-																		// data
-			{
+
+			if (((String) obj.getVal("field_type")).equals("GEOMETRY") && !hasNullGeometry) {
 				ISvDatabaseIO gio = SvConf.getDbHandler();
 				fieldVals.append(gio.getGeomWriteSQL() + ",");
 			} else
@@ -437,11 +442,11 @@ public class SvWriter extends SvCore {
 
 		if (!isUpdate) {
 			sql += "VALUES(" + fieldVals + ")";
-			queryCache.put(dbt.getObjectId(), sql);
+			qCache.put(dbt.getObjectId(), sql);
 		} else {
 			sql += "SELECT " + fieldVals + " FROM " + (String) dbt.getVal("schema") + "."
 					+ (String) dbt.getVal("table_name") + " WHERE pkid=?";
-			queryCache.put(-dbt.getObjectId(), sql);
+			qCache.put(-dbt.getObjectId(), sql);
 		}
 		if (log4j.isDebugEnabled())
 			log4j.trace(sql);
@@ -977,16 +982,19 @@ public class SvWriter extends SvCore {
 		// get the table columns (object fields) to generate the insert
 		DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 
-		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true);
+		DbDataObject dboFirst = arrayToSave.get(0);
+		boolean hasNullGeometry = SvGeometry.getGeometry(dboFirst) == null;
+		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true, hasNullGeometry);
 		if (log4j.isDebugEnabled())
 			log4j.trace("Executing SQL:" + sql);
 
 		try (SvLob lob = new SvLob(this.dbGetConn()); PreparedStatement ps = this.dbGetConn().prepareStatement(sql)) {
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
-
 				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObjectId()) : null;
 				// always bind the PKID at position one
 				ps.setBigDecimal(1, new BigDecimal(objToSave.getPkid()));
+				if ((SvGeometry.getGeometry(objToSave) == null) != hasNullGeometry)
+					throw (new SvException("system.error.null_geometry_mix", instanceUser, arrayToSave, dbt));
 				bindColumnValues(objToSave, isUpdate, objectFields, oldRepoData, ps, lob);
 			}
 			int[] insertedRows = ps.executeBatch();
@@ -1071,7 +1079,7 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for validating the data for a specific field
+	 * cachCleanup Method for validating the data for a specific field
 	 * 
 	 * @param dbf   The descriptor of the field
 	 * @param value The value to which the field is set
@@ -1205,11 +1213,23 @@ public class SvWriter extends SvCore {
 				}
 			}
 
+		// finally invoce the cache clean up
+		cacheCleanup(dba);
+
+	}
+
+	private void cacheCleanup(DbDataArray dba) throws SvException {
+		DbDataObject dboFirst = dba.getItems().get(0);
+
 		for (DbDataObject dbo : dba.getItems()) {
 			cacheCleanup(dbo);
 			executeAfterSaveCallbacks(dbo);
 			dbo.setIsDirty(false);
 		}
+		// if we have geometry then clean the tile cache
+		if (dboFirst.isGeometryType())
+			SvGeometry.cacheCleanup(dba);
+
 		// broadcast the dirty objects to the cluster
 		// if we are coordinator, broadcast through the proxy otherwise
 		// broadcast through the client
@@ -1220,7 +1240,6 @@ public class SvWriter extends SvCore {
 				SvClusterNotifierProxy.publishDirtyArray(dba);
 
 		}
-
 	}
 
 	/**
@@ -1666,7 +1685,7 @@ public class SvWriter extends SvCore {
 			svr.instanceUser = svCONST.systemUser;
 
 			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
-			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true);
+			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true, false);
 			log4j.debug("Executing SQL:" + sql);
 
 			Connection conn = this.dbGetConn();

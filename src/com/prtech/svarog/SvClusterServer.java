@@ -107,7 +107,9 @@ public class SvClusterServer implements Runnable {
 			if (tmpSock.bind("tcp://*:" + SvConf.getHeartBeatPort()))
 				hbServerSock = tmpSock;
 		} catch (Exception e) {
-			log4j.error("The node can't bind socket on port range:" + SvConf.getHeartBeatPort(), e);
+			if (log4j.isDebugEnabled())
+				log4j.debug("The node can't bind socket on port range:" + SvConf.getHeartBeatPort());
+
 		}
 		if (hbServerSock == null) {
 			isActive.set(false);
@@ -166,32 +168,38 @@ public class SvClusterServer implements Runnable {
 
 		lastGCTime = DateTime.now();
 		log4j.info("Heartbeat server started");
+		long nodeId = 0L;
 		while (isRunning.get()) {
-			byte[] msg = hbServerSock.recv(0);
-			if (msg != null) {
-				ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
-				byte msgType = msgBuffer.get();
-				long nodeId = msgBuffer.getLong();
-				int sockFlag;
-				if (msgType == SvCluster.MSG_JOIN) {
-					Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
-					sockFlag = ZMQ.SNDMORE;
-					while (iterator.hasNext()) {
-						ByteBuffer b = iterator.next();
-						if (!iterator.hasNext())
-							sockFlag = 0;
-						if (!hbServerSock.send(b.array(), sockFlag))
-							log4j.error("Error sending message to node:" + Long.toString(nodeId));
+			try {
+				byte[] msg = SvCluster.zmqRecv(hbServerSock, 0);
+				if (msg != null) {
+					ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
+					byte msgType = msgBuffer.get();
+					nodeId = msgBuffer.getLong();
+					int sockFlag;
+					if (msgType == SvCluster.MSG_JOIN) {
+						Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
+						sockFlag = ZMQ.SNDMORE;
+						while (iterator.hasNext()) {
+							ByteBuffer b = iterator.next();
+							if (!iterator.hasNext())
+								sockFlag = 0;
+							SvCluster.zmqSend(hbServerSock, b.array(), sockFlag);
+						}
+					} else {
+						byte[] response = processMessage(msgType, nodeId, msgBuffer);
+						SvCluster.zmqSend(hbServerSock, response, 0);
 					}
-				} else {
-					byte[] response = processMessage(msgType, nodeId, msgBuffer);
-					if (!hbServerSock.send(response))
-						log4j.error("Error sending message to node:" + Long.toString(nodeId));
-				}
-			} else
-				clusterMaintenance();
-
+				} else
+					clusterMaintenance();
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.CLUSTER_INACTIVE))
+					log4j.error("Exception in sending message to node:" + Long.toString(nodeId), e);
+				else
+					isRunning.set(false);
+			}
 		}
+
 		// make sure we clear the locks on shutdown
 		clearDistributedLocks();
 		log4j.info("Heartbeat server shut down");
@@ -439,8 +447,9 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId    The node which sent the message
 	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
+	 * @throws SvException
 	 */
-	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
+	private ByteBuffer processReleaseLock(byte msgType, long nodeId, ByteBuffer msgBuffer) throws SvException {
 		Integer lockHash = msgBuffer.getInt();
 		// unlock the lock using the server lists of locks
 		String lockKey = SvCluster.releaseDistributedLock(lockHash, nodeId, nodeLocks, null, false);
@@ -477,8 +486,9 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId    The node which sent the message
 	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
+	 * @throws SvException
 	 */
-	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) {
+	private ByteBuffer processLock(byte msgType, long nodeId, ByteBuffer msgBuffer) throws SvException {
 
 		String lockKey = new String(
 				Arrays.copyOfRange(msgBuffer.array(), 1 + SvUtil.sizeof.LONG, msgBuffer.array().length), ZMQ.CHARSET);
@@ -525,8 +535,9 @@ public class SvClusterServer implements Runnable {
 	 * @param nodeId    The node which sent the message
 	 * @param msgBuffer The rest of the message buffer
 	 * @return A response message buffer
+	 * @throws SvException
 	 */
-	private byte[] processMessage(byte msgType, long nodeId, ByteBuffer msgBuffer) {
+	private byte[] processMessage(byte msgType, long nodeId, ByteBuffer msgBuffer) throws SvException {
 		ByteBuffer respBuffer = null;
 		if (log4j.isDebugEnabled())
 			log4j.debug("Received message " + Integer.toString(msgType) + " from node " + nodeId);
