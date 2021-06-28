@@ -60,8 +60,7 @@ public class SvPerunManager extends SvCore {
 	static final String CONTEXT_MENU_CONF = "CONTEXT_MENU_CONF";
 
 	/**
-	 * Callback class to refresh the plugin according to changes in Svarog
-	 * database
+	 * Callback class to refresh the plugin according to changes in Svarog database
 	 * 
 	 * @author XPS13
 	 *
@@ -89,8 +88,7 @@ public class SvPerunManager extends SvCore {
 	}
 
 	/**
-	 * Global init block to set the call back for plugin refresh from the
-	 * database.
+	 * Global init block to set the call back for plugin refresh from the database.
 	 */
 	static {
 		ISvOnSave callback = new SvPerunCallback();
@@ -103,40 +101,35 @@ public class SvPerunManager extends SvCore {
 	static final Logger log4j = LogManager.getLogger(SvPerunManager.class.getName());
 
 	/**
-	 * Cache with all executors responding to a specific command string. The Key
-	 * is represents a CATEGORY.NAME
+	 * Cache with all executors responding to a specific command string. The Key is
+	 * represents a CATEGORY.NAME
 	 */
 	static ConcurrentHashMap<String, SvPerunInstance> pluginMap = new ConcurrentHashMap<String, SvPerunInstance>();
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @param session_id
-	 *            String UID of the user session under which the SvCore instance
-	 *            will run
+	 * @param session_id String UID of the user session under which the SvCore
+	 *                   instance will run
 	 * 
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvPerunManager(String session_id) throws SvException {
 		super(session_id);
 	}
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @param session_id
-	 *            String UID of the user session under which the SvCore instance
-	 *            will run
-	 * @param sharedSvCore
-	 *            The SvCore instance which will be used for JDBC connection
-	 *            sharing (i.e. parent SvCore)
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @param session_id   String UID of the user session under which the SvCore
+	 *                     instance will run
+	 * @param sharedSvCore The SvCore instance which will be used for JDBC
+	 *                     connection sharing (i.e. parent SvCore)
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvPerunManager(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -146,11 +139,9 @@ public class SvPerunManager extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @param sharedSvCore
-	 *            The SvCore instance which will be used for JDBC connection
-	 *            sharing (i.e. parent SvCore)
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @param sharedSvCore The SvCore instance which will be used for JDBC
+	 *                     connection sharing (i.e. parent SvCore)
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvPerunManager(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -160,8 +151,7 @@ public class SvPerunManager extends SvCore {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	SvPerunManager() throws SvException {
 		super();
@@ -208,8 +198,7 @@ public class SvPerunManager extends SvCore {
 	/**
 	 * Method to get a plugin instance by context name
 	 * 
-	 * @param context
-	 *            the http context name assigned to the plugin
+	 * @param context the http context name assigned to the plugin
 	 * @return The plugin instance
 	 */
 	SvPerunInstance getPlugin(String context) {
@@ -224,8 +213,7 @@ public class SvPerunManager extends SvCore {
 	/**
 	 * Method to build a DbDataObject instance from a IPerunPlugin class
 	 * 
-	 * @param plugin
-	 *            The pluing instance
+	 * @param plugin The pluing instance
 	 * @return Populated DbDataObject
 	 */
 	@SuppressWarnings("unchecked")
@@ -258,13 +246,12 @@ public class SvPerunManager extends SvCore {
 	}
 
 	/**
-	 * Method which initialises the plugin metadata from the database. This part
-	 * is important to support the changing certain data of the plugin by the
-	 * admin user in the database in order override the dates coming from the
-	 * plugin itself.
+	 * Method which initialises the plugin metadata from the database. This part is
+	 * important to support the changing certain data of the plugin by the admin
+	 * user in the database in order override the dates coming from the plugin
+	 * itself.
 	 * 
-	 * @param plugins
-	 *            List of plugins available in the OSGI
+	 * @param plugins List of plugins available in the OSGI
 	 * @return SvExecInstance object to be stored in the execution cache
 	 */
 	private static void reloadPluginInstances(List<IPerunPlugin> plugins) {
@@ -286,12 +273,14 @@ public class SvPerunManager extends SvCore {
 
 			DbQueryObject dqo = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_PERUN_PLUGIN), search, null, null);
 			DbDataArray dboPlugins = svr.getObjects(dqo, 0, 0);
+			// build gui meta data for each
+			buildGuiMetaData(dboPlugins);
 			// switch to service user in order to be able to manage permissions
 			svw = new SvWriter(svr);
 			svs = new SvSecurity(svw);
 			svw.setAutoCommit(false);
 			dboPlugins.rebuildIndex(unqNameField, true);
-		
+
 			DbDataArray upgradedList = configurePlugins(plugins, dboPlugins);
 			svw.saveObject(upgradedList);
 			svw.dbCommit();
@@ -308,14 +297,29 @@ public class SvPerunManager extends SvCore {
 		}
 	}
 
+	private static void buildGuiMetaData(DbDataArray dboPlugins) {
+		for (DbDataObject dbo : dboPlugins.getItems()) {
+			String strGuiMeta = (String) dbo.getVal(Sv.GUI_METADATA);
+			if (strGuiMeta != null) {
+				Gson g = new Gson();
+				try {
+					JsonObject guiMeta = g.fromJson(strGuiMeta, JsonObject.class);
+					dbo.setVal(Sv.GUI_METADATA, guiMeta);
+				} catch (Exception e) {
+					dbo.setVal(Sv.GUI_METADATA, null);
+					log4j.warn("Can't parse gui metadata for object:" + dbo.toJson().toString(), e);
+				}
+			}
+		}
+
+	}
+
 	/**
 	 * Method to math the plugin instances loaded in the OSGI container with the
 	 * database configuration and reconfigure if needed.
 	 * 
-	 * @param plugins
-	 *            The list of pluings loaded in the OSGI
-	 * @param dboPlugins
-	 *            The list of database objects configured in the database
+	 * @param plugins    The list of pluings loaded in the OSGI
+	 * @param dboPlugins The list of database objects configured in the database
 	 * @return List of database objects which should be used for upgrade of the
 	 *         database
 	 */
@@ -336,6 +340,8 @@ public class SvPerunManager extends SvCore {
 						newVersion.setVal(CONTEXT_MENU_CONF, pluginDbo.getVal(CONTEXT_MENU_CONF));
 					newVersion.setPkid(pluginDbo.getPkid());
 					newVersion.setObjectId(pluginDbo.getObjectId());
+					if (pluginDbo.getVal(Sv.GUI_METADATA) != null)
+						newVersion.setVal(Sv.GUI_METADATA, pluginDbo.getVal(Sv.GUI_METADATA));
 					pluginDbo = newVersion;
 					upgradedList.addDataItem(pluginDbo);
 				}
@@ -376,8 +382,7 @@ public class SvPerunManager extends SvCore {
 	/**
 	 * Method to get the main plugin menu based on the authorisations
 	 * 
-	 * @param context
-	 *            the context name for which we want to get the menu
+	 * @param context the context name for which we want to get the menu
 	 * @return JsonObject containing the menu of the module
 	 */
 	public JsonObject getMenu(String context) {
@@ -390,13 +395,10 @@ public class SvPerunManager extends SvCore {
 	}
 
 	/**
-	 * Method to get the plugin context menu based on the authorisations and
-	 * context
+	 * Method to get the plugin context menu based on the authorisations and context
 	 * 
-	 * @param context
-	 *            the context name for which we want to get the menu
-	 * @param contextMap
-	 *            the context parameters to parameterise the menu
+	 * @param context    the context name for which we want to get the menu
+	 * @param contextMap the context parameters to parameterise the menu
 	 * @return JsonObject containing the menu of the module
 	 */
 	public JsonObject getContextMenu(String context, HashMap<String, String> contextMap) {

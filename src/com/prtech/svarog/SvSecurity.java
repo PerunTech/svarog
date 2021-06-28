@@ -14,10 +14,17 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQueryObject;
@@ -43,6 +50,21 @@ import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 public class SvSecurity extends SvCore {
 
 	/**
+	 * Cache to hold details about all public ip adresses trying to use system
+	 * resources without having proper user access, we shall throttle the requests.
+	 */
+	static LoadingCache<String, DbDataObject> ipThrottle = CacheBuilder.newBuilder()
+			.expireAfterAccess(10, TimeUnit.MINUTES)
+			.<String, DbDataObject>build(new CacheLoader<String, DbDataObject>() {
+				@Override
+				public DbDataObject load(String key) {
+					DbDataObject dbo = new DbDataObject();
+					dbo.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
+					dbo.setVal(Sv.Security.REQUEST_COUNT, 0);
+					return dbo;
+				}
+			});
+	/**
 	 * Log4j instance used for logging
 	 */
 	static final Logger log4j = LogManager.getLogger(SvSecurity.class.getName());
@@ -50,24 +72,98 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Constructor which allows SvCore chaining
 	 * 
-	 * @param sharedSvCore
-	 *            the parent SvCore instance to be used for connection sharing
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param sharedSvCore the parent SvCore instance to be used for connection
+	 *                     sharing
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public SvSecurity(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
 	}
 
 	/**
-	 * The public anonymous constructor. This is the ONLY SvCore inherited
-	 * classes which allows anonymous constructors without valid user session
+	 * DEPRECATED!!!! Replace with <b>SvSecurity(String publicUserID)</b>
 	 * 
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
+	 * @deprecated This constructor is replaced with SvSecurity(String publicUserID)
 	 */
+	@Deprecated
 	public SvSecurity() throws SvException {
 		super(svCONST.systemUser, null);
+	}
+
+	private void blockPublicUser(String publicUserID) throws SvException, ExecutionException {
+		DbDataObject info = ipThrottle.get(publicUserID);
+		Integer blockCount = (Integer) info.getVal(Sv.Security.BLOCKED_COUNT);
+		if (blockCount == null)
+			blockCount = 1;
+		else
+			blockCount++;
+		info.setVal(Sv.Security.BLOCKED_UNTIL, DateTime.now().plusMinutes(blockCount));
+		info.setVal(Sv.Security.BLOCKED_COUNT, blockCount);
+		log4j.info("Public user session throttled. Key:" + publicUserID + ", reason:" + info.toSimpleJson().toString());
+		throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, null, publicUserID));
+	}
+
+	/**
+	 * Method to unblock a public IP found on the list of blacklisted peers
+	 * 
+	 * @param publicUserID The IP of the peer or any other uniquely identifying
+	 *                     toked
+	 * @throws ExecutionException
+	 */
+	static void unblockPublicUser(String publicUserID) throws ExecutionException {
+		DbDataObject info = ipThrottle.get(publicUserID);
+		info.setVal(Sv.Security.REQUEST_COUNT, 0);
+		info.setVal(Sv.Security.FIRST_REQUEST_TIME, DateTime.now());
+	}
+
+	/**
+	 * The public anonymous constructor. This is the ONLY SvCore inherited classes
+	 * which allows anonymous constructors without valid user session. The only
+	 * input parameter is used as a way to identify a user or group of users. Most
+	 * commonly this will be the IP Address of the connection as provided by the
+	 * public web services. The sole purpose of this ID is to prevent DDoS and to
+	 * enable Svarog to throttle the connections of sessions being established at
+	 * high rate from single IP address in attempt to perform brute force attack of
+	 * any kind of DoS.
+	 * 
+	 * @param publicUserID A string identification of a user or a user group. In a
+	 *                     classic web application the IP address of peer is a
+	 *                     perfect candidate for public identification of potential
+	 *                     system users
+	 * 
+	 * @throws SvException Re-throw any underlying Svarog exception
+	 * 
+	 */
+	public SvSecurity(String publicUserID) throws SvException {
+		super(svCONST.systemUser, null);
+
+		try {
+			DbDataObject info = ipThrottle.get(publicUserID);
+			DateTime blockedUntil = (DateTime) info.getVal(Sv.Security.BLOCKED_UNTIL);
+
+			synchronized (info) {
+				if (blockedUntil != null && blockedUntil.isAfterNow())
+					blockPublicUser(publicUserID);
+				int count = (int) info.getVal(Sv.Security.REQUEST_COUNT);
+				DateTime firstRequest = (DateTime) info.getVal(Sv.Security.FIRST_REQUEST_TIME);
+				DateTime window = firstRequest.plusMinutes(1);
+				// if window is in the future then increase the count
+				if (window.isAfterNow()) {
+					count++;
+					info.setVal(Sv.Security.REQUEST_COUNT, count);
+				} else
+					unblockPublicUser(publicUserID);
+
+				// if the count of sessions is more than the max allowed
+				if (count > SvConf.getMaxRequestsPerMinute())
+					blockPublicUser(publicUserID);
+
+			}
+		} catch (ExecutionException e) {
+			throw (new SvException(Sv.Exceptions.IP_BLOCKED, svCONST.systemUser, null, publicUserID, e));
+		}
+
 	}
 
 	@Override
@@ -77,11 +173,9 @@ public class SvSecurity extends SvCore {
 	 * raise an exception since anonymous users should not be allowed to switch
 	 * without having a valid session
 	 * 
-	 * @param userName
-	 *            The name of user which should be switched
-	 * @throws SvException
-	 *             If the caller class is not registered service class it will
-	 *             throw "system.error.cant_switch_system_user"
+	 * @param userName The name of user which should be switched
+	 * @throws SvException If the caller class is not registered service class it
+	 *                     will throw "system.error.cant_switch_system_user"
 	 */
 	public void switchUser(String userName) throws SvException {
 		DbDataObject user = this.getUser(userName);
@@ -95,11 +189,9 @@ public class SvSecurity extends SvCore {
 	 * raise an exception since anonymous users should not be allowed to switch
 	 * without having a valid session
 	 * 
-	 * @param user
-	 *            DbDataObject which describes the user to be switched
-	 * @throws SvException
-	 *             If the caller class is not registered service class it will
-	 *             throw "system.error.cant_switch_system_user"
+	 * @param user DbDataObject which describes the user to be switched
+	 * @throws SvException If the caller class is not registered service class it
+	 *                     will throw "system.error.cant_switch_system_user"
 	 */
 	public void switchUser(DbDataObject user) throws SvException {
 		if (!SvConf.isServiceClass(SvUtil.getCallerClassName(this.getClass())))
@@ -113,8 +205,7 @@ public class SvSecurity extends SvCore {
 	 * parameter is considered any parameter which has parent of type
 	 * svCONST.OBJECT_TYPE_SECURITY_LOG (currently long value 5)
 	 * 
-	 * @param label
-	 *            label is LABEL_CODE of SVAROG_PARAM_TYPE object.
+	 * @param label label is LABEL_CODE of SVAROG_PARAM_TYPE object.
 	 * 
 	 * @return It only returns the first value of object.
 	 */
@@ -137,14 +228,11 @@ public class SvSecurity extends SvCore {
 	 * Method returning list of objects over which the specific user has been
 	 * empowered with Power of Attorney over.
 	 * 
-	 * @param userObjectId
-	 *            The Object ID of the user
-	 * @param poaObjectTypeName
-	 *            The name of object types over which the user is empowered
-	 * @return DbDataArray containing all object over which the user is
-	 *         empowered
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param userObjectId      The Object ID of the user
+	 * @param poaObjectTypeName The name of object types over which the user is
+	 *                          empowered
+	 * @return DbDataArray containing all object over which the user is empowered
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataArray getPOAObjects(Long userObjectId, String poaObjectTypeName) throws SvException {
 		DbDataArray poaObjects = null;
@@ -164,11 +252,9 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method that loads a user object according to username from the database.
 	 * 
-	 * @param userId
-	 *            The user name
+	 * @param userId The user name
 	 * @return The user object associated with the specific username
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject getUser(String userId) throws SvException {
 		return getSid(userId, svCONST.OBJECT_TYPE_USER);
@@ -177,14 +263,11 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method that loads a SID object according to sid name from the database.
 	 * 
-	 * @param sidName
-	 *            The SID name
-	 * @param sidType
-	 *            The type of Security Identifier (OBJECT_TYPE_GROUP or
-	 *            OBJECT_TYPE_USER)
+	 * @param sidName The SID name
+	 * @param sidType The type of Security Identifier (OBJECT_TYPE_GROUP or
+	 *                OBJECT_TYPE_USER)
 	 * @return The sid descriptor
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject getSid(String sidName, Long sidType) throws SvException {
 		if (sidType.equals(svCONST.OBJECT_TYPE_USER) || sidType.equals(svCONST.OBJECT_TYPE_GROUP)) {
@@ -199,17 +282,13 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method that loads a SID object according to sid object id from the
-	 * database.
+	 * Method that loads a SID object according to sid object id from the database.
 	 * 
-	 * @param sidId
-	 *            The object id of the requested sid
-	 * @param sidType
-	 *            The type of Security Identifier (OBJECT_TYPE_GROUP or
-	 *            OBJECT_TYPE_USER)
+	 * @param sidId   The object id of the requested sid
+	 * @param sidType The type of Security Identifier (OBJECT_TYPE_GROUP or
+	 *                OBJECT_TYPE_USER)
 	 * @return The sid descriptor
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject getSid(Long sidId, Long sidType) throws SvException {
 
@@ -221,17 +300,14 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to load a sid from the database according to either object id or
-	 * sid name
+	 * Method to load a sid from the database according to either object id or sid
+	 * name
 	 * 
-	 * @param sidId
-	 *            The identifier of this sid (either string/name or
-	 *            long/object_id)
-	 * @param sidType
-	 *            The type of sid which should be loaded
+	 * @param sidId   The identifier of this sid (either string/name or
+	 *                long/object_id)
+	 * @param sidType The type of sid which should be loaded
 	 * @return The sid descriptor loaded from the database
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown s
+	 * @throws SvException Any underlying exception is re-thrown s
 	 */
 	DbDataObject getSidImpl(Object sidId, Long sidType) throws SvException {
 		DbDataObject sid = null;
@@ -279,12 +355,9 @@ public class SvSecurity extends SvCore {
 	 * Method to add system level permissions which are not linked to specific
 	 * object types
 	 * 
-	 * @param permissionKey
-	 *            The permission key
-	 * @param permission
-	 *            The access level of the permission
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param permissionKey The permission key
+	 * @param permission    The access level of the permission
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public void addSysPermission(String permissionKey, SvAccess permission) throws SvException {
 		addPermission(SvCore.repoDbt, permissionKey, permissionKey, permission);
@@ -294,18 +367,13 @@ public class SvSecurity extends SvCore {
 	 * Method to add security permission for different object types (table
 	 * descriptors)
 	 * 
-	 * @param secureObject
-	 *            The object type/descriptor for which this permission will be
-	 *            valid
-	 * @param unqConfigKey
-	 *            The unique configuration key of the object type (if any)
-	 * @param permissionKey
-	 *            The permission key which should be added to the list of
-	 *            permissions
-	 * @param permission
-	 *            The access level for this permission
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @param secureObject  The object type/descriptor for which this permission
+	 *                      will be valid
+	 * @param unqConfigKey  The unique configuration key of the object type (if any)
+	 * @param permissionKey The permission key which should be added to the list of
+	 *                      permissions
+	 * @param permission    The access level for this permission
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public void addPermission(DbDataObject secureObject, String unqConfigKey, String permissionKey, SvAccess permission)
 			throws SvException {
@@ -364,16 +432,13 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to grant permission to a specific SID
 	 * 
-	 * @param sid
-	 *            The SID object (user/group) to which the specific permission
-	 *            should be granted
-	 * @param permissionKey
-	 *            The key of the permissions to be granted
-	 * @throws SvException
-	 *             Throws exception if the SvSecurity is running as system
-	 *             without logon or if the SID was not found in the database. It
-	 *             also raises exception if the permission key was not found in
-	 *             the list of ACLs
+	 * @param sid           The SID object (user/group) to which the specific
+	 *                      permission should be granted
+	 * @param permissionKey The key of the permissions to be granted
+	 * @throws SvException Throws exception if the SvSecurity is running as system
+	 *                     without logon or if the SID was not found in the
+	 *                     database. It also raises exception if the permission key
+	 *                     was not found in the list of ACLs
 	 */
 	public void grantPermission(DbDataObject sid, String permissionKey) throws SvException {
 		if (isSystem())
@@ -420,16 +485,14 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to revode a permission from a specific SID
 	 * 
-	 * @param sid
-	 *            The SID object for which the permission should be revoked
-	 * @param permissionKey
-	 *            The key under which the permission is registered in the ACLs
-	 *            table
-	 * @throws SvException
-	 *             Throws exception if the SvSecurity is running as system
-	 *             without logon or if the SID was not found in the database. It
-	 *             also raises exception if the permission key was not found in
-	 *             the list of ACLs
+	 * @param sid           The SID object for which the permission should be
+	 *                      revoked
+	 * @param permissionKey The key under which the permission is registered in the
+	 *                      ACLs table
+	 * @throws SvException Throws exception if the SvSecurity is running as system
+	 *                     without logon or if the SID was not found in the
+	 *                     database. It also raises exception if the permission key
+	 *                     was not found in the list of ACLs
 	 */
 	public void revokePermission(DbDataObject sid, String permissionKey) throws SvException {
 		if (isSystem())
@@ -475,14 +538,11 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to return list of permissions according to specific permission
-	 * mask
+	 * Method to return list of permissions according to specific permission mask
 	 * 
-	 * @param permissionMask
-	 *            The permission mask to be used.
+	 * @param permissionMask The permission mask to be used.
 	 * @return The list of permissions in DbDataArray variable
-	 * @throws SvException
-	 *             Any underlying exception is re-thrown
+	 * @throws SvException Any underlying exception is re-thrown
 	 */
 	public DbDataArray getPermissions(String permissionMask) throws SvException {
 		if (isSystem())
@@ -513,16 +573,12 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method for authenticating a user against the svarog database
 	 * 
-	 * @param user
-	 *            The username to be authenticated
-	 * @param pass
-	 *            The password to be used for authentication
-	 * @param svw
-	 *            SvWriter instance to be used for the writing to database
+	 * @param user The username to be authenticated
+	 * @param pass The password to be used for authentication
+	 * @param svw  SvWriter instance to be used for the writing to database
 	 * @return Svarog Security token which can be further used to get a DbUtil
 	 *         instance
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	String logonImpl(String user, String pass, SvWriter svw) throws SvException {
 		String sessionToken = null;
@@ -579,18 +635,14 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to perform svarog logon, with option to use your own writer, in
-	 * case you need to control the database transaction explicitly
+	 * Method to perform svarog logon, with option to use your own writer, in case
+	 * you need to control the database transaction explicitly
 	 * 
-	 * @param user
-	 *            The user name of the user
-	 * @param pass
-	 *            The password of the user
-	 * @param svw
-	 *            SvWriter instance to control your own transaction if needed
+	 * @param user The user name of the user
+	 * @param pass The password of the user
+	 * @param svw  SvWriter instance to control your own transaction if needed
 	 * @return A string containing a session token
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public String logon(String user, String pass, SvWriter svw) throws SvException {
 		return logonImpl(user, pass, svw);
@@ -599,13 +651,10 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to perform svarog logon, with commit on success
 	 * 
-	 * @param user
-	 *            The user name of the user
-	 * @param pass
-	 *            The password of the user
+	 * @param user The user name of the user
+	 * @param pass The password of the user
 	 * @return A string containing a session token
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public String logon(String user, String pass) throws SvException {
 		SvWriter svw = new SvWriter();
@@ -629,10 +678,11 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to remove all cached data from the security log
 	 * 
-	 * @param sessionId
-	 *            The user session which should be removed from the security log
+	 * @param sessionId The user session which should be removed from the security
+	 *                  log
+	 * @throws SvException
 	 */
-	public void logoff(String sessionId) {
+	public void logoff(String sessionId) throws SvException {
 		DbDataObject svToken = DbCache.getObject(sessionId, svCONST.OBJECT_TYPE_SECURITY_LOG);
 		if (svToken != null) {
 			DbCache.removeObject(svToken.getObjectId(), sessionId, svCONST.OBJECT_TYPE_SECURITY_LOG);
@@ -647,19 +697,15 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method which activates a pending external user registration
 	 * 
-	 * @param uuid
-	 *            UID of the user which should be activated
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param uuid UID of the user which should be activated
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void activateExternalUser(String uuid) throws SvException {
 		SvReader svr = new SvReader();
 		SvWorkflow svw = new SvWorkflow(svr);
 		DbSearchExpression dse = new DbSearchExpression();
 		DbSearchCriterion searchByUID = new DbSearchCriterion("USER_UID", DbCompareOperand.EQUAL, uuid);
-		DbSearchCriterion searchByStatus = new DbSearchCriterion("STATUS", DbCompareOperand.EQUAL, "PENDING");
 		dse.addDbSearchItem(searchByUID);
-		dse.addDbSearchItem(searchByStatus);
 
 		try {
 			Boolean userFound = false;
@@ -668,6 +714,8 @@ public class SvSecurity extends SvCore {
 				DbDataObject user = dba.getItems().size() > 0 ? dba.getItems().get(0) : null;
 				if (user != null && user.getStatus().equals("PENDING")) {
 					(svw).moveObject(user, svCONST.STATUS_VALID);
+					userFound = true;
+				}  else if (user != null && user.getStatus().equals("VALID")) {
 					userFound = true;
 				}
 			}
@@ -683,29 +731,20 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Implementation method to create a new user in the svarog system. If the
 	 * SvSecurity instance runs as System User then all created users will be
-	 * userType=EXTERNAL with status=PENDING. If the instance runs as admin
-	 * user, it creates the user according to all parameter values
+	 * userType=EXTERNAL with status=PENDING. If the instance runs as admin user, it
+	 * creates the user according to all parameter values
 	 * 
-	 * @param userName
-	 *            The username
-	 * @param password
-	 *            Password of the user
-	 * @param firstName
-	 *            First name of the user
-	 * @param lastName
-	 *            Last name of the user
-	 * @param e_mail
-	 *            E-mail of the user
-	 * @param pin
-	 *            Personal ID number
-	 * @param tax_id
-	 *            Secondary ID of the user. Tax ID if legal entity.
-	 * @param userType
-	 *            The type of the user (EXTERNAL is specific type for public
-	 *            users)
+	 * @param userName  The username
+	 * @param password  Password of the user
+	 * @param firstName First name of the user
+	 * @param lastName  Last name of the user
+	 * @param e_mail    E-mail of the user
+	 * @param pin       Personal ID number
+	 * @param tax_id    Secondary ID of the user. Tax ID if legal entity.
+	 * @param userType  The type of the user (EXTERNAL is specific type for public
+	 *                  users)
 	 * @return The descriptor of the newly created user
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	DbDataObject createUserImpl(String userName, String password, String firstName, String lastName, String e_mail,
 			String pin, String tax_id, String userType, String status, Boolean overWrite, SvWriter svw)
@@ -769,15 +808,11 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Implementation method to recovery a user password in a svarog system.
 	 * 
-	 * @param userName
-	 *            The username
-	 * @param pin
-	 *            Personal ID number
-	 * @param newPass
-	 *            New password of the user
+	 * @param userName The username
+	 * @param pin      Personal ID number
+	 * @param newPass  New password of the user
 	 * @return
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject recoverPassword(String userName, String pin, String newPass) throws SvException {
 		SvReader svr = null;
@@ -817,15 +852,11 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Implementation method to change a user password in a svarog system.
 	 * 
-	 * @param userName
-	 *            The username
-	 * @param oldPass
-	 *            Old (Current) password of the user
-	 * @param newPass
-	 *            New password of the user
+	 * @param userName The username
+	 * @param oldPass  Old (Current) password of the user
+	 * @param newPass  New password of the user
 	 * @return
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject updatePassword(String userName, String oldPass, String newPass) throws SvException {
 		SvReader svr = null;
@@ -865,32 +896,23 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to create a new user in the svarog system, with option to auto
-	 * commit. If the SvSecurity instance runs as System User then all created
-	 * users will be userType=EXTERNAL with status=PENDING. If the instance runs
-	 * as admin user, it creates the user according to all parameter values. The
-	 * SvWriter parameter allows you to control your own db transaction
+	 * Method to create a new user in the svarog system, with option to auto commit.
+	 * If the SvSecurity instance runs as System User then all created users will be
+	 * userType=EXTERNAL with status=PENDING. If the instance runs as admin user, it
+	 * creates the user according to all parameter values. The SvWriter parameter
+	 * allows you to control your own db transaction
 	 * 
-	 * @param userName
-	 *            The username
-	 * @param password
-	 *            Password of the user
-	 * @param firstName
-	 *            First name of the user
-	 * @param lastName
-	 *            Last name of the user
-	 * @param e_mail
-	 *            E-mail of the user
-	 * @param pin
-	 *            Personal ID number
-	 * @param tax_id
-	 *            Secondary ID of the user. Tax ID if legal entity.
-	 * @param userType
-	 *            The type of the user (EXTERNAL is specific type for public
-	 *            users)
+	 * @param userName  The username
+	 * @param password  Password of the user
+	 * @param firstName First name of the user
+	 * @param lastName  Last name of the user
+	 * @param e_mail    E-mail of the user
+	 * @param pin       Personal ID number
+	 * @param tax_id    Secondary ID of the user. Tax ID if legal entity.
+	 * @param userType  The type of the user (EXTERNAL is specific type for public
+	 *                  users)
 	 * @return
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject createUser(String userName, String password, String firstName, String lastName, String e_mail,
 			String pin, String tax_id, String userType, String status, Boolean overWrite, SvWriter svw)
@@ -904,8 +926,7 @@ public class SvSecurity extends SvCore {
 	 * Method that checks if a user already exists according the userName in
 	 * registration forms. If exists return true.
 	 * 
-	 * @param userName
-	 *            the userName entered in the user registration form
+	 * @param userName the userName entered in the user registration form
 	 */
 	public Boolean checkIfUserExistsByUserName(String userName) throws SvException {
 		return checkIfUserExistsByUserName(userName, null);
@@ -915,11 +936,9 @@ public class SvSecurity extends SvCore {
 	 * Method that checks if a user already exists according the userName in
 	 * registration forms. If exists return true.
 	 * 
-	 * @param userName
-	 *            the userName entered in the user registration form
-	 * @param status
-	 *            The status for which the user should be checked. Status check
-	 *            is void if null.
+	 * @param userName the userName entered in the user registration form
+	 * @param status   The status for which the user should be checked. Status check
+	 *                 is void if null.
 	 */
 	public Boolean checkIfUserExistsByUserName(String userName, String status) throws SvException {
 		Boolean result = false;
@@ -946,29 +965,24 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method that checks if a user already exists according the entered pin
-	 * number in registration forms. If exists return true.
+	 * Method that checks if a user already exists according the entered pin number
+	 * in registration forms. If exists return true.
 	 * 
-	 * @param pinNo
-	 *            the pin number entered in the user registration form
+	 * @param pinNo the pin number entered in the user registration form
 	 * @return True if the user identified by the pin exists.
-	 * @throws SvException
-	 *             Passthrough of underlying SvException
+	 * @throws SvException Passthrough of underlying SvException
 	 */
 	public Boolean checkIfUserExistsByPin(String pinNo) throws SvException {
 		return checkIfUserExistsByPin(pinNo, null);
 	}
 
 	/**
-	 * Method that checks if a user already exists according the entered pin
-	 * number in registration forms along with status of the user. If exists
-	 * return true.
+	 * Method that checks if a user already exists according the entered pin number
+	 * in registration forms along with status of the user. If exists return true.
 	 * 
-	 * @param pinNo
-	 *            the pin number entered in the user registration form
-	 * @param status
-	 *            The status for which the user should be checked. Status check
-	 *            is void if null.
+	 * @param pinNo  the pin number entered in the user registration form
+	 * @param status The status for which the user should be checked. Status check
+	 *               is void if null.
 	 */
 	public Boolean checkIfUserExistsByPin(String pinNo, String status) throws SvException {
 		Boolean result = false;
@@ -996,31 +1010,22 @@ public class SvSecurity extends SvCore {
 
 	/**
 	 * Method to create a new user in the svarog system, with commit on success
-	 * (rollback on exception). If the SvSecurity instance runs as System User
-	 * then all created users will be userType=EXTERNAL with status=PENDING. If
-	 * the instance runs as admin user, it creates the user according to all
-	 * parameter values
+	 * (rollback on exception). If the SvSecurity instance runs as System User then
+	 * all created users will be userType=EXTERNAL with status=PENDING. If the
+	 * instance runs as admin user, it creates the user according to all parameter
+	 * values
 	 * 
-	 * @param userName
-	 *            The username
-	 * @param password
-	 *            Password of the user
-	 * @param firstName
-	 *            First name of the user
-	 * @param lastName
-	 *            Last name of the user
-	 * @param e_mail
-	 *            E-mail of the user
-	 * @param pin
-	 *            Personal ID number
-	 * @param tax_id
-	 *            Secondary ID of the user. Tax ID if legal entity.
-	 * @param userType
-	 *            The type of the user (EXTERNAL is specific type for public
-	 *            users)
+	 * @param userName  The username
+	 * @param password  Password of the user
+	 * @param firstName First name of the user
+	 * @param lastName  Last name of the user
+	 * @param e_mail    E-mail of the user
+	 * @param pin       Personal ID number
+	 * @param tax_id    Secondary ID of the user. Tax ID if legal entity.
+	 * @param userType  The type of the user (EXTERNAL is specific type for public
+	 *                  users)
 	 * @return
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject createUser(String userName, String password, String firstName, String lastName, String e_mail,
 			String pin, String tax_id, String userType, String status) throws SvException {
@@ -1043,31 +1048,22 @@ public class SvSecurity extends SvCore {
 
 	/**
 	 * Method to create a new user in the svarog system, with commit on success
-	 * (rollback on exception). If the SvSecurity instance runs as System User
-	 * then all created users will be userType=EXTERNAL with status=PENDING. If
-	 * the instance runs as admin user, it creates the user according to all
-	 * parameter values
+	 * (rollback on exception). If the SvSecurity instance runs as System User then
+	 * all created users will be userType=EXTERNAL with status=PENDING. If the
+	 * instance runs as admin user, it creates the user according to all parameter
+	 * values
 	 * 
-	 * @param userName
-	 *            The username
-	 * @param password
-	 *            Password of the user
-	 * @param firstName
-	 *            First name of the user
-	 * @param lastName
-	 *            Last name of the user
-	 * @param e_mail
-	 *            E-mail of the user
-	 * @param pin
-	 *            Personal ID number
-	 * @param tax_id
-	 *            Secondary ID of the user. Tax ID if legal entity.
-	 * @param userType
-	 *            The type of the user (EXTERNAL is specific type for public
-	 *            users)
+	 * @param userName  The username
+	 * @param password  Password of the user
+	 * @param firstName First name of the user
+	 * @param lastName  Last name of the user
+	 * @param e_mail    E-mail of the user
+	 * @param pin       Personal ID number
+	 * @param tax_id    Secondary ID of the user. Tax ID if legal entity.
+	 * @param userType  The type of the user (EXTERNAL is specific type for public
+	 *                  users)
 	 * @return
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject createUser(String userName, String password, String firstName, String lastName, String e_mail,
 			String pin, String tax_id, String userType, String status, Boolean overwrite) throws SvException {
@@ -1092,15 +1088,12 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to empower a user over a unique object identified by search
-	 * criteria
+	 * Method to empower a user over a unique object identified by search criteria
 	 * 
-	 * @param userObj
-	 *            The object describing the user
+	 * @param userObj        The object describing the user
 	 * @param objectTypeName
 	 * @param searchCriteria
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void empowerUser(DbDataObject userObj, String objectTypeName, DbSearch searchCriteria) throws SvException {
 
@@ -1118,18 +1111,14 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to empower a user over a unique object identified by search
-	 * criteria
+	 * Method to empower a user over a unique object identified by search criteria
 	 * 
-	 * @param userObj
-	 *            The object describing the user
+	 * @param userObj        The object describing the user
 	 * @param objectTypeName
 	 * @param searchCriteria
-	 * @param svl
-	 *            SvLink to be used for the empowerment to enable transaction
-	 *            control
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param svl            SvLink to be used for the empowerment to enable
+	 *                       transaction control
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void empowerUser(DbDataObject userObj, String objectTypeName, DbSearch searchCriteria, SvLink svl)
 			throws SvException {
@@ -1157,12 +1146,9 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to empower a user over a svarog object type with auto commit.
 	 * 
-	 * @param userObj
-	 *            The user object which should be empowered
-	 * @param empowerOverObject
-	 *            The object over which the userObj shall be empowered
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param userObj           The user object which should be empowered
+	 * @param empowerOverObject The object over which the userObj shall be empowered
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void empowerUser(DbDataObject userObj, DbDataObject empowerOverObject) throws SvException {
 
@@ -1178,18 +1164,14 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to empower a user over a svarog object type by using your own
-	 * SvLink instance and have full transaction control.
+	 * Method to empower a user over a svarog object type by using your own SvLink
+	 * instance and have full transaction control.
 	 * 
-	 * @param userObj
-	 *            The user object which should be empowered
-	 * @param empowerOverObject
-	 *            The object over which the userObj shall be empowered
-	 * @param svl
-	 *            SvLink instance to be used for linking the objects and allow
-	 *            transaction control
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param userObj           The user object which should be empowered
+	 * @param empowerOverObject The object over which the userObj shall be empowered
+	 * @param svl               SvLink instance to be used for linking the objects
+	 *                          and allow transaction control
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void empowerUser(DbDataObject userObj, DbDataObject empowerOverObject, SvLink svl) throws SvException {
 		DbDataObject dboLType = null;
@@ -1207,10 +1189,9 @@ public class SvSecurity extends SvCore {
 				// are importing from
 				/*
 				 * if (empowerOverObject.getVal("MAIL") == null ||
-				 * empowerOverObject.getVal("MAIL").toString().trim().equals("")
-				 * ) { empowerOverObject.setVal("MAIL",
-				 * userObj.getVal("E_MAIL")); svw.saveObject(empowerOverObject,
-				 * false);
+				 * empowerOverObject.getVal("MAIL").toString().trim().equals("") ) {
+				 * empowerOverObject.setVal("MAIL", userObj.getVal("E_MAIL"));
+				 * svw.saveObject(empowerOverObject, false);
 				 * 
 				 * }
 				 */
@@ -1242,18 +1223,14 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to link a user to user group. Will throw exception if the user
-	 * already is member of the requested user group, or if the user already has
-	 * another default group.
+	 * Method to link a user to user group. Will throw exception if the user already
+	 * is member of the requested user group, or if the user already has another
+	 * default group.
 	 * 
-	 * @param user
-	 *            The user to become a member of the user group
-	 * @param userGroup
-	 *            The user group object
-	 * @param isDefaultGroup
-	 *            Is this user group the default one?
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @param user           The user to become a member of the user group
+	 * @param userGroup      The user group object
+	 * @param isDefaultGroup Is this user group the default one?
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	void linkUserToGroup(DbDataObject user, DbDataObject userGroup, Boolean isDefaultGroup, SvReader svr)
 			throws SvException {
@@ -1282,17 +1259,14 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method for adding a user to a specific user group
 	 * 
-	 * @param user
-	 *            The user object descriptor
-	 * @param userGroup
-	 *            The user group object descriptor
-	 * @param isDefaultGroup
-	 *            Flag if the user group should be the default
-	 * @throws SvException
-	 *             In case the user is already a member or it has a different
-	 *             default group an exception will be thrown. In case the
-	 *             SvSecurity has been instantiated as SYSTEM exception will be
-	 *             thrown to prevent non-authenticated use.
+	 * @param user           The user object descriptor
+	 * @param userGroup      The user group object descriptor
+	 * @param isDefaultGroup Flag if the user group should be the default
+	 * @throws SvException In case the user is already a member or it has a
+	 *                     different default group an exception will be thrown. In
+	 *                     case the SvSecurity has been instantiated as SYSTEM
+	 *                     exception will be thrown to prevent non-authenticated
+	 *                     use.
 	 */
 	public void addUserToGroup(DbDataObject user, DbDataObject userGroup, Boolean isDefaultGroup) throws SvException {
 		if (isSystem())
@@ -1311,13 +1285,11 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to remove the requested user from the user group
 	 * 
-	 * @param user
-	 *            The user object descriptor
-	 * @param userGroup
-	 *            The user group object descriptor
-	 * @throws SvException
-	 *             In case the SvSecurity has been instantiated as SYSTEM
-	 *             exception will be thrown to prevent non-authenticated use.
+	 * @param user      The user object descriptor
+	 * @param userGroup The user group object descriptor
+	 * @throws SvException In case the SvSecurity has been instantiated as SYSTEM
+	 *                     exception will be thrown to prevent non-authenticated
+	 *                     use.
 	 */
 	public void removeUserFromGroup(DbDataObject user, DbDataObject userGroup) throws SvException {
 		if (isSystem())
@@ -1365,11 +1337,9 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to check if a user already exists in the database
 	 * 
-	 * @param objectTypeName
-	 *            the name of the table where to search
+	 * @param objectTypeName the name of the table where to search
 	 * @param searchCriteria
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 * @return Yes if the user exists
 	 */
 	public Boolean checkIfExists(String objectTypeName, DbSearch searchCriteria, SvReader svReader) throws SvException {
@@ -1391,11 +1361,9 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Method to check if a user already exists in the database
 	 * 
-	 * @param objectTypeName
-	 *            the name of the table where to search
+	 * @param objectTypeName the name of the table where to search
 	 * @param searchCriteria
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public Boolean checkIfExists(String objectTypeName, DbSearch searchCriteria) throws SvException {
 		SvReader svReader = new SvReader();
@@ -1411,14 +1379,12 @@ public class SvSecurity extends SvCore {
 	}
 
 	/**
-	 * Method to check if there exist matching between userName (FIC) and
-	 * pin/vat of farmer
+	 * Method to check if there exist matching between userName (FIC) and pin/vat of
+	 * farmer
 	 * 
-	 * @param objectTypeName
-	 *            the name of the table where to search
+	 * @param objectTypeName the name of the table where to search
 	 * @param searchCriteria
-	 * @throws SvException
-	 *             Re-throw any underlying Svarog exception
+	 * @throws SvException Re-throw any underlying Svarog exception
 	 * @return Yes if the user exists
 	 */
 	public Boolean checkIfExistsConditional(String objectTypeName, DbSearch searchCriteria, String columnToCompare,

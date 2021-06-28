@@ -141,11 +141,18 @@ public class SvRelationCache {
 	LinkType relationToParent = null;
 
 	/**
-	 * The name of the field used for denormalised relations to parent/left hand
-	 * side
+	 * The name of the field used for denormalised relations on the left hand
+	 * side (the current Dqo side of the join)
 	 */
 	String denormFieldName = null;
 
+	
+	/**
+	 * The name of the field used for denormalised relations on the left hand
+	 * side (the previous Dqo side of the join)
+	 */
+	String denormPreviousFieldName = null;
+	
 	/**
 	 * The link descriptor object if the relation to parent is DBLINK
 	 */
@@ -246,11 +253,11 @@ public class SvRelationCache {
 	}
 
 	/**
-	 * Method to check SvRelation list if there already a user object
+	 * Method to check SvRelation list if there already a user defined object
 	 * 
 	 * @return True if the list contains a user object (is_config_table=false)
 	 */
-	boolean hasLinkedUserObject() {
+	boolean hasLinkedUserDefinedObject() {
 		boolean hasUserObject = false;
 		for (SvRelationCache link : this.cacheList) {
 			if (link.getDbt().getVal("is_config_table").equals(false)) {
@@ -419,6 +426,7 @@ public class SvRelationCache {
 		DbQueryObject rootDqo = new DbQueryObject(cache.dbt, qSearch, cache.referenceDate, cache.joinToParent);
 		DbQueryObject dqo = rootDqo;
 		dqo.setDenormalizedFieldName(cache.denormFieldName);
+		dqo.setDenormalizedJoinOnFieldName(cache.denormPreviousFieldName);
 		dqo.setSqlTablePrefix(cache.objectAlias);
 		dqo.setLinkReferenceDate(cache.linkReferenceDate);
 		dqo.setLinkStatusList(cache.linkStatusList);
@@ -586,6 +594,14 @@ public class SvRelationCache {
 	public void setDenormFieldName(String denoFieldName) {
 		this.denormFieldName = denoFieldName;
 	}
+	
+	public String getDenormPreviousFieldName() {
+		return denormPreviousFieldName;
+	}
+
+	public void setDenormPreviousFieldName(String denormPreviousFieldName) {
+		this.denormPreviousFieldName = denormPreviousFieldName;
+	}
 
 	public void removeCache(SvRelationCache o) {
 		cacheList.remove(o);
@@ -594,7 +610,7 @@ public class SvRelationCache {
 	public void addCache(SvRelationCache cache) throws SvException {
 		if (cache != null) {
 			if (cache.getDbt().getVal("is_config_table").equals(false)) {
-				if (hasLinkedUserObject())
+				if (hasLinkedUserDefinedObject())
 					throw (new SvException("", svCONST.systemUser, null, this));
 
 				cache.setParent(this);

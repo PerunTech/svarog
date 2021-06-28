@@ -13,7 +13,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.2.5</version>
+	<version>3.2.21</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -37,6 +37,11 @@
 			</resource>
 		</resources>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>3.0.0-M1</version>
+			</plugin>
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
@@ -261,12 +266,12 @@
 		<dependency>
 			<groupId>svarog</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>[3.2.4,)</version>
+			<version>[3.2.5,3.3]</version>
 		</dependency>
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
 			<artifactId>svarog-jts-io</artifactId>
-			<version>[1.14.0,)</version>
+			<version>[1.14.0,1.15.0]</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
@@ -291,7 +296,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>24.1.1-jre</version>
+			<version>29.0-jre</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/junit/junit -->
@@ -355,7 +360,7 @@
 				<dependency>
 					<groupId>svarog</groupId>
 					<artifactId>svarog-io</artifactId>
-					<version>1.0.4.1</version>
+					<version>1.0.4.3</version>
 				</dependency>
 			</dependencies>
 		</profile>

@@ -33,6 +33,7 @@ import com.google.common.cache.CacheBuilder;
 import com.prtech.svarog.SvSDITile.SDIRelation;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.SvCharId;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -175,6 +176,19 @@ public class SvGeometryTest {
 	}
 
 	@Test
+	public void testSpikes() throws ParseException, SvException {
+		GeometryFactory gf = SvUtil.sdiFactory;
+		String sap = "MULTIPOLYGON (((7479402.8434 4565348.5114, 7479354.0402 4565344.2105, 7479301.9682 4565340.1414, 7479300.0397 4565340.036, 7479278.8263 4565338.7649, 7479277.9074 4565368.7508, 7479277.9074 4565368.7508, 7479344.8897 4565368.7788, 7479375.1521 4565368.3581, 7479442.8025 4565367.4966, 7479390.5765 4565368.0914, 7479395.8834 4565347.8652, 7479402.8434 4565348.5114)))";
+		String slu = "POLYGON ((7570896.26 4588986.09, 7570900.02 4588983.91, 7570904.99 4588981.33, 7570905.78 4588978.95, 7570903.97 4588974.17, 7570906.77 4588970.77, 7570911.34 4588972.99, 7570912.93 4588974.18, 7570914.91 4588976.17, 7570918.48 4588982.12, 7570926.02 4588994.03, 7570938.33 4589007.52, 7570940.31 4589010.7, 7570938.72 4589012.68, 7570936.74 4589015.86, 7570930.79 4589022.6, 7570924.04 4589032.52, 7570919.28 4589037.68, 7570917.69 4589039.27, 7570914.12 4589038.08, 7570911.34 4589035.7, 7570906.97 4589030.94, 7570900.62 4589019.03, 7570891.89 4588996.81, 7570892.69 4588989.66, 7570896.26 4588986.09))";
+		try (SvGeometry svg = new SvGeometry()) {
+			WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
+			Geometry geom = wkr.read(sap);
+			geom = svg.fixMinVertexDistance(geom, 100);
+			geom = svg.fixPolygonSpikes(geom, 2.0);
+		}
+	}
+
+	@Test
 	public void testBoundaryIntersect() {
 		if (!SvConf.isSdiEnabled())
 			return;
@@ -204,6 +218,32 @@ public class SvGeometryTest {
 			fail("Test raised exception:" + e.getFormattedMessage());
 		}
 
+	}
+
+	@Test
+	public void testUnitsSaveNullGeometry() {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			GeometryFactory gf = SvUtil.sdiFactory;
+			Geometry geom = gf
+					.createMultiPolygon(new Polygon[] { (Polygon) gf.toGeometry(new Envelope(-100, 200, -100, 20)) });
+
+			DbDataObject dbounds = new DbDataObject(svCONST.OBJECT_TYPE_SDI_UNITS);
+			dbounds.setVal("UNIT_NAME", "testBounds");
+			dbounds.setVal("UNIT_ID", "123");
+			dbounds.setVal("UNIT_CLASS", "REGION");
+			SvGeometry.setGeometry(dbounds, null);
+			// SvGeometry.allowBoundaryIntersect=true;
+			svg.setAllowNullGeometry(true);
+			svg.saveGeometry(dbounds);
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail("Test failed with exception:" + e.getFormattedMessage());
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
 	}
 
 	@Test
@@ -324,6 +364,13 @@ public class SvGeometryTest {
 		g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30));
 		g[2] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5));
 
+		for (int i = 0; i < 3; i++) {
+			DbDataObject dbo = new DbDataObject();
+			dbo.setParentId(i + TEST_LAYER_TYPE_ID);
+			dbo.setObjectId(i + TEST_LAYER_TYPE_ID + 100);
+			g[i].setUserData(dbo);
+		}
+
 		WKTReader wkr = new WKTReader();
 		String polyHole = "POLYGON ((30 30, 30 40, 40 40, 40 30, 30 30), (35 35, 37 35, 37 37, 35 37, 35 35))";
 		try {
@@ -375,6 +422,27 @@ public class SvGeometryTest {
 			Geometry g1 = copied.iterator().next();
 			Geometry g2 = intersected.iterator().next();
 			if (!g1.equalsExact(g2))
+				fail("Test did not return a copy of geometry");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testGetRelatedGeomsWithFilter() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+			Point point = SvUtil.sdiFactory.createPoint(new Coordinate(15, 15));
+
+			Set<Geometry> copied = svg.geometryFromPoint(point, TEST_LAYER_TYPE_ID, TEST_LAYER_SECOND_TYPE_ID, false);
+
+			Geometry g1 = copied.iterator().next();
+			Set<Geometry> intersected = svg.getRelatedGeometries(point, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS,
+					new SvCharId("PARENT_ID"), ((DbDataObject) g1.getUserData()).getParentId(), false);
+
+			Geometry g2 = intersected.iterator().next();
+			if (g2 == null)
 				fail("Test did not return a copy of geometry");
 
 		}

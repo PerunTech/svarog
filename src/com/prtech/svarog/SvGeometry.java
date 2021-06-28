@@ -14,10 +14,6 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.commons.io.IOUtils;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -42,7 +35,6 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.SvCharId;
 import com.vividsolutions.jts.algorithm.Angle;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateSequences;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
@@ -70,6 +62,17 @@ import com.google.common.math.DoubleMath;
 public class SvGeometry extends SvWriter {
 
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
+	public static final String GEOM_STRUCT_TYPE = initStructType();
+
+	static String initStructType() {
+		String geomStructType = Sv.EMPTY_STRING;
+		try {
+			geomStructType = SvCore.getDbHandler().getSQLKeyWordsBundle().getString("GEOMETRY_STRUCT_TYPE");
+		} catch (SvException e) {
+			log4j.error("Can't get geometry struct type!", e);
+		}
+		return geomStructType;
+	}
 
 	private static volatile SvGrid sysGrid = null;
 	private static volatile SvSDITile sysBoundary = null;
@@ -280,7 +283,8 @@ public class SvGeometry extends SvWriter {
 				for (Geometry g : relatedGeoms) {
 					// apply the filter by value
 					DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
-					if (SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue))
+					if (filterFieldName != null
+							&& !SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue))
 						continue;
 					// exclude self if needed
 					if (excludeSelf && SvUtil.fieldMatchValue(relatedUserData, objectIdField, geometryOid))
@@ -732,7 +736,7 @@ public class SvGeometry extends SvWriter {
 	 * @return The SvSDITile instance holding all units of the specific class
 	 * @throws SvException Pass through of underlying exceptions
 	 */
-	public static SvSDITile getSDIUnitBoundary(Long unitClass) throws SvException {
+	public static SvSDITile getSDIUnitBoundary(String unitClass) throws SvException {
 		DbSearchCriterion dbs = new DbSearchCriterion("UNIT_CLASS", DbCompareOperand.EQUAL, unitClass);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		params.put("DB_SEARCH", dbs);
@@ -1036,18 +1040,27 @@ public class SvGeometry extends SvWriter {
 	public LinearRing fixPolygonCoordinates(LineString p, Double maxAngle) throws SvException {
 		Coordinate[] coords = p.getCoordinates();
 		Coordinate[] newCoordinates = new Coordinate[coords.length];
+		int startIndex = 0;
+
+		// check if there's spike at the first/last
+		double angle = Angle.toDegrees(Angle.angleBetween(coords[1], coords[0], coords[coords.length - 2]));
+		if (angle <= maxAngle)
+			startIndex = 1;
+
 		// add the zero point, becase we start the loop from the first tail
-		newCoordinates[0] = coords[0];
+		newCoordinates[0] = coords[startIndex];
 		int iDst = 1;
-		for (int cc = 1; cc < coords.length; cc++) {
+		for (int cc = startIndex + 1; cc < coords.length; cc++) {
 			Coordinate tip1 = coords[cc - 1];
 			Coordinate tail = coords[cc];
 			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
 			Coordinate tip2 = coords[tip2index];
-			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
+			angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
 			if (angle >= maxAngle)
 				newCoordinates[iDst++] = tail;
 		}
+		if (startIndex == 1)
+			newCoordinates[iDst++] = newCoordinates[0];
 		if (iDst == coords.length)
 			newCoordinates = coords;
 		else {
@@ -1363,7 +1376,6 @@ public class SvGeometry extends SvWriter {
 
 	}
 
-
 	/**
 	 * Method to save a DbDataArray of DbDataObjects which are of Geometry Type and
 	 * have set the flag hasGeometries. The method will perform basic saveObject on
@@ -1387,9 +1399,21 @@ public class SvGeometry extends SvWriter {
 			} else if (!allowNullGeometry)
 				throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
 		}
-		List<Geometry> tileGeomList = null;
-		List<SvSDITile> tileList = new ArrayList<SvSDITile>();
 		super.saveObject(dba, isBatch);
+		cacheCleanup(dba);
+	}
+
+	/**
+	 * Method to invalidate the tiles caching the GIS data related to geometries
+	 * held in the DbDataArray
+	 * 
+	 * @param dba The list of objects containing Geometries
+	 * @throws SvException
+	 */
+	static void cacheCleanup(DbDataArray dba) throws SvException {
+		List<Geometry> tileGeomList = null;
+		Set<SvSDITile> tileList = new HashSet<SvSDITile>();
+
 		for (DbDataObject dbo : dba.getItems()) {
 			Geometry vdataGeom = SvGeometry.getGeometry(dbo);
 			if (vdataGeom != null) {
@@ -1398,16 +1422,15 @@ public class SvGeometry extends SvWriter {
 				for (Geometry tgl : tileGeomList) {
 					String tileID = (String) tgl.getUserData();
 					SvSDITile tile = SvGeometry.getTile(dbo.getObjectType(), tileID, null);
-					tileList.add(tile);
+					if (!tileList.contains(tile))
+						tileList.add(tile);
 				}
 			}
 		}
-
-		cacheCleanup(tileList);
-
+		tilesCleanup(tileList);
 	}
 
-	private void cacheCleanup(List<SvSDITile> tileList) {
+	private static void tilesCleanup(Set<SvSDITile> tileList) throws SvException {
 		for (SvSDITile tile : tileList) {
 			tile.setIsTileDirty(true);
 		}
@@ -1435,7 +1458,7 @@ public class SvGeometry extends SvWriter {
 	public void saveGeometry(DbDataArray dba) throws SvException {
 		saveGeometry(dba, false);
 	}
-	
+
 	/**
 	 * Method to save a single geometry to the database. Same as
 	 * {@link #saveGeometry(DbDataArray)}, but using a single object instead of
@@ -1449,9 +1472,11 @@ public class SvGeometry extends SvWriter {
 		dba.addDataItem(dbo);
 		saveGeometry(dba);
 	}
+
 	public void saveObject(DbDataArray dba, Boolean isBatch) throws SvException {
 		saveGeometry(dba, isBatch);
 	}
+
 	public void saveObject(DbDataArray dba) throws SvException {
 		saveGeometry(dba, false);
 	}

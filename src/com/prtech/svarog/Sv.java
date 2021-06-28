@@ -32,7 +32,10 @@ public class Sv {
 		public static final String OBJECT_NOT_FOUND = "system.error.object_not_found";
 		public static final String OBJECT_COUNT_ERROR = "system.error.wrong_row_count_update";
 		public static final String OBJECT_NOT_UPDATEABLE = "system.error.obj_not_updateable";
-		public static final String EMPTY_GRID = "system.error.gis_grid_empty";;
+		public static final String EMPTY_GRID = "system.error.gis_grid_empty";
+		public static final String CLUSTER_INACTIVE = "system.error.cluster_inactive";
+		public static final String CLUSTER_COMMUNICATION_ERROR = "system.error.cluster_socket_error";
+		public static final String IP_BLOCKED = "system.error.ip_blocked";
 
 		private Exceptions() {
 		}
@@ -52,6 +55,22 @@ public class Sv {
 		public static final SvCharId DEFER_SECURITY = new SvCharId("DEFER_SECURITY");
 
 		private Link() {
+		}
+
+	}
+
+	public static class Security {
+
+		/**
+		 * Different exception type constants
+		 */
+
+		public static final SvCharId FIRST_REQUEST_TIME = new SvCharId("FIRST_REQUEST_TIME");
+		public static final SvCharId REQUEST_COUNT = new SvCharId("REQUEST_COUNT");
+		public static final SvCharId BLOCKED_UNTIL = new SvCharId("BLOCKED_UNTIL");
+		public static final SvCharId BLOCKED_COUNT = new SvCharId("BLOCKED_COUNT");
+
+		private Security() {
 		}
 
 	}
@@ -199,5 +218,6 @@ public class Sv {
 	public static final SvCharId IS_NULL = new SvCharId("IS_NULL");
 	public static final String PARENT_ID = "PARENT_ID";
 	public static final SvCharId UNQ_LEVEL = new SvCharId("UNQ_LEVEL");
+	public static final String PARENT_CODE_VALUE = "PARENT_CODE_VALUE";
 
 }

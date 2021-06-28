@@ -128,7 +128,7 @@ public class SvConf {
 	 */
 	private static int heartBeatTimeOut;
 
-	private static long admUnitClass;
+	private static String admUnitClass;
 
 	private static boolean intersectSysBoundary;
 
@@ -313,6 +313,10 @@ public class SvConf {
 	 */
 	private static boolean overrideTimeStamps = true;
 
+	private static boolean deleteCodesOnUpgrade = false;
+
+	private static int maxRequestsPerMinute;
+
 	/**
 	 * Method to return the currently configured ISvDatabaseIO instance
 	 * 
@@ -433,7 +437,6 @@ public class SvConf {
 
 			}
 
-
 			if (svDbConnType.equals(SvDbConnType.JNDI)) {
 				String jndiDataSourceName = getProperty(mainProperties, "jndi.datasource", "");
 				log4j.info("DB connection type is JNDI, datasource name:" + jndiDataSourceName);
@@ -527,10 +530,12 @@ public class SvConf {
 			heartBeatTimeOut = getProperty(mainProperties, "sys.cluster.heartbeat_timeout", 10000);
 			vmBridgeIPAddress = getProperty(mainProperties, "sys.cluster.vmbridge_ip", "");
 			clusterEnabled = getProperty(mainProperties, "sys.cluster.enabled", true);
+			deleteCodesOnUpgrade = getProperty(mainProperties, "sys.codes.delete_upgrade", false);
 
 			overrideTimeStamps = getProperty(mainProperties, "sys.core.override_timestamp", true);
+			maxRequestsPerMinute = getProperty(mainProperties, "sys.max.requests_per_min", 60);
 
-			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", 0);
+			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", "0");
 			intersectSysBoundary = getProperty(mainProperties, "sys.gis.allow_boundary_intersect", false);
 
 			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
@@ -656,6 +661,7 @@ public class SvConf {
 		sysDataSource = new BasicDataSource();
 		((BasicDataSource) sysDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
 		((BasicDataSource) sysDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
+		log4j.info("Configuring connection to: " + mainProperties.getProperty("conn.string").trim());
 		((BasicDataSource) sysDataSource).setUsername(mainProperties.getProperty("user.name").trim());
 		((BasicDataSource) sysDataSource).setPassword(mainProperties.getProperty("user.password").trim());
 
@@ -676,7 +682,7 @@ public class SvConf {
 		((BasicDataSource) sysDataSource)
 				.setRemoveAbandonedOnMaintenance(getProperty(mainProperties, "dbcp.remove.abandoned", true));
 		((BasicDataSource) sysDataSource)
-				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 3000));
+				.setRemoveAbandonedTimeout(getProperty(mainProperties, "dbcp.abandoned.timeout", 600));
 		((BasicDataSource) sysDataSource)
 				.setTimeBetweenEvictionRunsMillis(getProperty(mainProperties, "dbcp.eviction.time", 3000));
 		((BasicDataSource) sysDataSource).setMaxIdle(getProperty(mainProperties, "dbcp.max.idle", 10));
@@ -1038,11 +1044,11 @@ public class SvConf {
 		SvConf.heartBeatTimeOut = heartBeatTimeOut;
 	}
 
-	public static long getAdmUnitClass() {
+	public static String getAdmUnitClass() {
 		return admUnitClass;
 	}
 
-	public static void setAdmUnitClass(long admUnitClass) {
+	public static void setAdmUnitClass(String admUnitClass) {
 		SvConf.admUnitClass = admUnitClass;
 	}
 
@@ -1052,6 +1058,14 @@ public class SvConf {
 
 	public static void setIntersectSysBoundary(boolean intersectSysBoundary) {
 		SvConf.intersectSysBoundary = intersectSysBoundary;
+	}
+
+	public static int getMaxRequestsPerMinute() {
+		return maxRequestsPerMinute;
+	}
+
+	public static void setMaxRequestsPerMinute(int maxRequestsPerMinute) {
+		SvConf.maxRequestsPerMinute = maxRequestsPerMinute;
 	}
 
 }
