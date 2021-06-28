@@ -13,7 +13,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.2.20</version>
+	<version>3.2.21</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -266,12 +266,12 @@
 		<dependency>
 			<groupId>svarog</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>[3.2.5,)</version>
+			<version>[3.2.5,3.3]</version>
 		</dependency>
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
 			<artifactId>svarog-jts-io</artifactId>
-			<version>[1.14.0,)</version>
+			<version>[1.14.0,1.15.0]</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
