@@ -75,7 +75,7 @@ public class SvPerunManager extends SvCore {
 
 		@Override
 		public void afterSave(SvCore parentCore, DbDataObject dbo) {
-			String name = (String) dbo.getVal(CONTEXT_MENU_CONF);
+			String name = (String) dbo.getVal(CONTEXT_NAME);
 			if (name != null) {
 				SvPerunInstance inst = pluginMap.get(name);
 				if (inst != null) {
