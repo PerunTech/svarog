@@ -100,7 +100,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 **/
 	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
 	public static final String SVAROG_STARTUP_HOOK_PROP = "svarog.startup.hook";
-	
+
 	/**
 	 * Static block to set the shutdown hooks only once at boot
 	 */
@@ -1277,8 +1277,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			isInitialized.compareAndSet(true, false);
 		initSvCoreImpl(false);
 	}
-
-
 
 	/**
 	 * Method to set a shutdown hook to the JVM in order to perform cleanup and
@@ -3099,6 +3097,21 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	public DbDataObject getInstanceUser() {
 		return instanceUser;
+	}
+
+	/**
+	 * Method to set the current user of the SvCore. This is possible only for
+	 * System or Service users.
+	 * 
+	 * @param newInstanceUser The descriptor of the new instance user
+	 * @throws SvException "system.error.not_authorised" is thrown if the the
+	 *                     current user is not system or service
+	 */
+	public void setInstanceUser(DbDataObject newInstanceUser) throws SvException {
+		if (isSystem() || isService()) {
+			instanceUser = newInstanceUser;
+		} else
+			throw (new SvException("system.error.not_authorised", instanceUser));
 	}
 
 	public Boolean getIsDebugEnabled() {

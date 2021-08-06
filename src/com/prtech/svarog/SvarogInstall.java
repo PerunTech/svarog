@@ -1287,8 +1287,10 @@ public class SvarogInstall {
 		try {
 			conn = SvConf.getDBConnection();
 			schema = SvConf.getDefaultSchema();
-			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled())
+			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled()) {
 				svc = new SvReader();
+				svc.setInstanceUser(svCONST.serviceUser);
+			}
 			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
 				switch (updateType) {
 				case SCHEMA:
@@ -2019,12 +2021,12 @@ public class SvarogInstall {
 						+ SvConf.getSqlkw().getString("OBJECT_QUALIFIER_RIGHT") + ",");
 		}
 		String strTypeWhere = Sv.EMPTY_STRING;
-		if(dbt!=null&& dbt.getObjectId()!=null)
-			strTypeWhere = " WHERE REP0.OBJECT_TYPE="+ Long.toString(dbt.getObjectId());
-		
+		if (dbt != null && dbt.getObjectId() != null)
+			strTypeWhere = " WHERE REP0.OBJECT_TYPE=" + Long.toString(dbt.getObjectId());
+
 		sbt.setLength(sbt.length() - 1);
 		sbt.append(" FROM " + dbt.getDbSchema() + "." + dbt.getDbRepoName() + " REP0 JOIN " + dbt.getDbSchema() + "."
-				+ dbt.getDbTableName() + " TBL0 ON REP0.META_PKID = TBL0.PKID"+strTypeWhere);
+				+ dbt.getDbTableName() + " TBL0 ON REP0.META_PKID = TBL0.PKID" + strTypeWhere);
 
 		return createView("V" + dbt.getDbTableName(), sbt.toString(), conn);
 	}

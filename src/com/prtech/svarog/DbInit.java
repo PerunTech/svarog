@@ -162,7 +162,7 @@ public class DbInit {
 		dbf11.setDbFieldSize(2000);
 		dbf11.setIsNull(true);
 		dbf11.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_VISIBLE_UI);
-		
+
 		DbDataField[] dbTableFields = new DbDataField[11];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe2;
@@ -6420,7 +6420,6 @@ public class DbInit {
 		dblPrint.setVal("LINK_OBJ_TYPE_2", svCONST.OBJECT_TYPE_UI_STRUCTURE_SOURCE);
 		defaultObjests.addDataItem(dblPrint);
 
-
 		defaultObjests.addDataItem(SvCluster.getCurrentNodeInfo());
 		/*
 		 * // link conversation and user DbDataObject dblConversationUser = new
@@ -6936,16 +6935,19 @@ public class DbInit {
 			while (en.hasMoreElements()) {
 				String className = getClassName(en);
 				if (className != null) {
-					Class<?> c = cl.loadClass(className);
-					if (clazz.isAssignableFrom(c)) {
-						dbi.add(c.newInstance());
+					try {
+						Class<?> c = cl.loadClass(className);
+						if (clazz.isAssignableFrom(c))
+							dbi.add(c.newInstance());
+					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+							| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+						log4j.error("Error loading class:" + className + ", faulty jar:" + pathToJar, ex);
 
 					}
-				}
 
+				}
 			}
-		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
-				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError ex) {
 			if (log4j.isDebugEnabled())
 				log4j.trace("Error loading class", ex);
 		}
