@@ -24,7 +24,7 @@ public class SvSecurityTest {
 			e.printStackTrace();
 		}
 	}
-	
+
 	@Test
 	public void testActivateExternal() {
 		try {
@@ -37,6 +37,15 @@ public class SvSecurityTest {
 			e.printStackTrace();
 			fail(e.getLabelCode());
 		}
+	}
+
+	@Test
+	public void testUserSwitch() throws SvException {
+		SvReader svc = new SvReader();
+		svc.setInstanceUser(svCONST.serviceUser);
+
+		SvSecurity svs = new SvSecurity(svc);
+		svs.switchUser("ADMIN");
 	}
 
 	@Test
