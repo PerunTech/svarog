@@ -1039,6 +1039,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				linkToParentDbt(dbo);
 			} catch (Exception e) {
 				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata", e);
+				if (log4j.isDebugEnabled())
+					log4j.warn(e);
 			}
 
 		}
@@ -1102,9 +1104,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 		assert (dbt != null);
 
-		JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
-		if (meta == null) {
-
+		Object gmeta = dbt.getVal(Sv.GUI_METADATA);
+		JsonObject meta = null;
+		if (gmeta != null && gmeta instanceof JsonObject) {
+			meta = (JsonObject) gmeta;
+		} else {
 			try (SvReader svr = new SvReader()) {
 				DboUnderground.revertReadOnly(dbt, svr);
 				meta = new JsonObject();

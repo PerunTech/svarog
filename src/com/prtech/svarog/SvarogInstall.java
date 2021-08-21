@@ -1264,6 +1264,8 @@ public class SvarogInstall {
 	static void prepareConfig() {
 		if (iSvCfgs == null) {
 			iSvCfgs = new ArrayList<ISvConfiguration>();
+			log4j.info("Preparing list of Configuration classes");
+
 			// add the system implementation
 			iSvCfgs.add(new SvConfigurationImpl());
 
@@ -1271,8 +1273,10 @@ public class SvarogInstall {
 					ISvConfiguration.class);
 			if (cfgs != null)
 				for (Object o : cfgs)
-					if (o instanceof ISvConfiguration)
+					if (o instanceof ISvConfiguration) {
+						log4j.info("Loaded class: " + o.getClass().getName());
 						iSvCfgs.add((ISvConfiguration) o);
+					}
 		}
 	}
 
@@ -1292,35 +1296,44 @@ public class SvarogInstall {
 				svc.setInstanceUser(svCONST.serviceUser);
 			}
 			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
-				switch (updateType) {
-				case SCHEMA:
-					msg = conf.beforeSchemaUpdate(conn, svc, schema);
-					break;
-				case LABELS:
-					msg = conf.beforeLabelsUpdate(conn, svc, schema);
-					break;
-				case CODES:
-					msg = conf.beforeCodesUpdate(conn, svc, schema);
-					break;
-				case TYPES:
-					msg = conf.beforeTypesUpdate(conn, svc, schema);
-					break;
-				case LINKTYPES:
-					msg = conf.beforeLinkTypesUpdate(conn, svc, schema);
-					break;
-				case ACL:
-					msg = conf.beforeAclUpdate(conn, svc, schema);
-					break;
-				case SIDACL:
-					msg = conf.beforeSidAclUpdate(conn, svc, schema);
-					break;
-				case FINAL:
-					msg = conf.afterUpdate(conn, svc, schema);
-					break;
-				default:
-					break;
+				try {
+					switch (updateType) {
+					case SCHEMA:
+						msg = conf.beforeSchemaUpdate(conn, svc, schema);
+						break;
+					case LABELS:
+						msg = conf.beforeLabelsUpdate(conn, svc, schema);
+						break;
+					case CODES:
+						msg = conf.beforeCodesUpdate(conn, svc, schema);
+						break;
+					case TYPES:
+						msg = conf.beforeTypesUpdate(conn, svc, schema);
+						break;
+					case LINKTYPES:
+						msg = conf.beforeLinkTypesUpdate(conn, svc, schema);
+						break;
+					case ACL:
+						msg = conf.beforeAclUpdate(conn, svc, schema);
+						break;
+					case SIDACL:
+						msg = conf.beforeSidAclUpdate(conn, svc, schema);
+						break;
+					case FINAL:
+						msg = conf.afterUpdate(conn, svc, schema);
+						break;
+					default:
+						break;
+					}
+					if (msg != null && !msg.isEmpty())
+						log4j.info(msg);
+				} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+						| Exception ex) {
+					log4j.error(
+							"Error executing " + updateType.toString() + "configuration: " + conf.getClass().getName());
+					if (log4j.isDebugEnabled())
+						log4j.error(ex);
 				}
-				log4j.info(msg);
 			}
 		} finally {
 			if (svc != null)
