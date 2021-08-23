@@ -6729,7 +6729,9 @@ public class DbInit {
 				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
 			}
 		} catch (Exception e1) {
-			log4j.error("Error loading codes from custom jar:" + jarPath, e1);
+			log4j.error("Error loading codes from custom jar:" + jarPath);
+			if (log4j.isDebugEnabled())
+				log4j.error(e1);
 			return;
 		}
 
@@ -6941,8 +6943,9 @@ public class DbInit {
 							dbi.add(c.newInstance());
 					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
 							| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-						log4j.error("Error loading class:" + className + ", faulty jar:" + pathToJar, ex);
-
+						log4j.error("Error loading class:" + className + ", faulty jar:" + pathToJar);
+						if (log4j.isDebugEnabled())
+							log4j.debug(ex);
 					}
 
 				}
