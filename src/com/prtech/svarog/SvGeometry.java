@@ -43,6 +43,7 @@ import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.Polygonal;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.operation.polygonize.Polygonizer;
@@ -1347,11 +1348,10 @@ public class SvGeometry extends SvWriter {
 	 * @throws SvException
 	 */
 	void prepareGeometry(DbDataObject dbo) throws SvException {
-
-		// test if the geometry is in the system boundaries
-		verifyBounds(dbo);
 		Geometry geom = getGeometry(dbo);
-		Point centroid = calculateCentroid(geom);
+		Point centroid = null;
+		if (geom instanceof Polygonal)
+			calculateCentroid(geom);
 
 		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
 		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
@@ -1395,7 +1395,9 @@ public class SvGeometry extends SvWriter {
 				throw (new SvException("system.error.sdi.non_sdi_type", instanceUser, dba, null));
 			currentGeom = getGeometry(dbo);
 			if (currentGeom != null) {
-				prepareGeometry(dbo);
+				verifyBounds(dbo);
+				if (currentGeom instanceof Polygonal)
+					prepareGeometry(dbo);
 			} else if (!allowNullGeometry)
 				throw (new SvException("system.error.sdi.geom_field_missing", instanceUser, dba, null));
 		}
