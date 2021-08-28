@@ -1349,9 +1349,7 @@ public class SvGeometry extends SvWriter {
 	 */
 	void prepareGeometry(DbDataObject dbo) throws SvException {
 		Geometry geom = getGeometry(dbo);
-		Point centroid = null;
-		if (geom instanceof Polygonal)
-			calculateCentroid(geom);
+		Point centroid =  calculateCentroid(geom);
 
 		Integer minGeomDistance = SvParameter.getSysParam(Sv.SDI_MIN_GEOM_DISTANCE, Sv.DEFAULT_MIN_GEOM_DISTANCE);
 		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
