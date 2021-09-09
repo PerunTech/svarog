@@ -294,9 +294,9 @@ public class SvarogInstall {
 	 */
 	private static int upgradeGrid() {
 		if (!SvConf.isSdiEnabled()) {
-			log4j.error(
+			log4j.info(
 					"SDI is not enabled, can't generate grid. Enable SDI via svarog.properties parameter \"sys.gis.enable_spatial\"");
-			return -1;
+			return 0;
 		}
 		boolean gridExists = false;
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
@@ -2401,6 +2401,10 @@ public class SvarogInstall {
 	 */
 	static synchronized Boolean createSpatialIndex(String idxName, String columnName, Envelope sysEnvelope,
 			String tableName, Connection conn) {
+		if (sysEnvelope == null) {
+			log4j.error("Creation of spatial index requires a system boundary in conf/sdi/boundary.json");
+			return false;
+		}
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("DB_TYPE", SvConf.getDbType().toString());
 		params.put("DB_USER", SvConf.getUserName());
@@ -2408,6 +2412,7 @@ public class SvarogInstall {
 		params.put("SCHEMA", SvConf.getDefaultSchema());
 		params.put("TABLE_NAME", tableName);
 		params.put("COLUMN_NAME", columnName);
+
 		params.put("MINX", Double.toString(sysEnvelope.getMinX()));
 		params.put("MINY", Double.toString(sysEnvelope.getMinY()));
 		params.put("MAXX", Double.toString(sysEnvelope.getMaxX()));
@@ -2415,7 +2420,6 @@ public class SvarogInstall {
 		params.put("SRID", SvConf.getParam("sys.gis.default_srid"));
 		return executeDbScript("create_spatial_index.sql", params, conn);
 
-		// return true;
 	}
 
 	static synchronized Boolean createView(String viewName, String selectQuery, Connection conn) {
