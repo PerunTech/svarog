@@ -193,7 +193,7 @@ public class SvarogTest {
 				svs.release();
 		}
 
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -216,7 +216,7 @@ public class SvarogTest {
 
 		}
 
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -249,7 +249,7 @@ public class SvarogTest {
 				svr.release();
 		}
 
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -310,8 +310,7 @@ public class SvarogTest {
 
 			SvRelationCache src = new SvRelationCache(SvCore.getDbtByName("CAD_PARCEL"), search,
 					"CP");/*
-							 * , LinkType.DBLINK_REVERSE, null, dblCadParcelLUP,
-							 * submitDate);
+							 * , LinkType.DBLINK_REVERSE, null, dblCadParcelLUP, submitDate);
 							 */
 
 			SvRelationCache lnkd1 = new SvRelationCache(SvCore.getDbtByName("LAND_USE_PLAN"), null, "LUP",
@@ -365,7 +364,7 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -511,7 +510,7 @@ public class SvarogTest {
 				svr.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -666,7 +665,7 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -829,7 +828,7 @@ public class SvarogTest {
 			// svw.release();
 			svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -885,7 +884,7 @@ public class SvarogTest {
 			// svw.release();
 			svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1112,7 +1111,7 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("There are still active connections");
 
 	}
@@ -1207,7 +1206,7 @@ public class SvarogTest {
 		} finally {
 			if (svn != null)
 				svn.release();
-			if(svr!=null)
+			if (svr != null)
 				svr.hardRelease();
 		}
 		if (SvConnTracker.hasTrackedConnections(true))
@@ -1257,8 +1256,7 @@ public class SvarogTest {
 			svw.saveObject(dboFormType, false);
 			/*
 			 * DbSearchCriterion search = new
-			 * DbSearchCriterion("OBJECT_ID",DbCompareOperand.EQUAL,166);
-			 * DbDataArray dbo =
+			 * DbSearchCriterion("OBJECT_ID",DbCompareOperand.EQUAL,166); DbDataArray dbo =
 			 * dbu.getObjectsHistory(search,svCONST.OBJECT_TYPE_TABLE, 0, 0);
 			 */
 			DbSearchCriterion search = new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL,
@@ -1276,7 +1274,7 @@ public class SvarogTest {
 			svw.release();
 			swf.release();
 
-			if (SvConnTracker.hasTrackedConnections(false,false))
+			if (SvConnTracker.hasTrackedConnections(false, false))
 				fail("You have a connection leak, you dirty animal!");
 
 		}
@@ -1324,7 +1322,7 @@ public class SvarogTest {
 			svw.release();
 			svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1344,9 +1342,8 @@ public class SvarogTest {
 			DbDataArray linkedArr = svr.getObjectsByLinkedId(userSv.getObject_id(), dblt, new DateTime(), 1, 0);
 
 			/*
-			 * (svCONST.OBJECT_TYPE_FORM, svCONST.OBJECT_TYPE_TABLE,
-			 * "LINK_FILE", svCONST.OBJECT_TYPE_TABLE, true, null, 0, 0,
-			 * "VALID");
+			 * (svCONST.OBJECT_TYPE_FORM, svCONST.OBJECT_TYPE_TABLE, "LINK_FILE",
+			 * svCONST.OBJECT_TYPE_TABLE, true, null, 0, 0, "VALID");
 			 * 
 			 */
 			if (linkedArr.getItems().size() < 1)
@@ -1360,7 +1357,7 @@ public class SvarogTest {
 			svr.release();
 			svs.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1439,7 +1436,7 @@ public class SvarogTest {
 			svr.release();
 			svl.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1476,7 +1473,7 @@ public class SvarogTest {
 			svr.release();
 			swf.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1505,7 +1502,7 @@ public class SvarogTest {
 		} finally {
 			svl.hardRelease();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1561,7 +1558,7 @@ public class SvarogTest {
 			// svw.release();
 			svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1583,12 +1580,11 @@ public class SvarogTest {
 
 	/*
 	 * @Test public void testAnimalClaim() { String uniqueCacheId = "TEST-ANIM";
-	 * SvWriter svr = null; try { svr = new SvWriter();
-	 * svr.setAutoCommit(false);
+	 * SvWriter svr = null; try { svr = new SvWriter(); svr.setAutoCommit(false);
 	 * 
 	 * // link between animal and farmer DbDataObject dblAnimalFarmer =
-	 * SvCore.getLinkType("LINK_ANIMAL_FARMER",
-	 * SvReader.getTypeIdByName("ANIMAL"), SvReader.getTypeIdByName("FARMER"));
+	 * SvCore.getLinkType("LINK_ANIMAL_FARMER", SvReader.getTypeIdByName("ANIMAL"),
+	 * SvReader.getTypeIdByName("FARMER"));
 	 * 
 	 * // link between animal and supp_claim DbDataObject dblAnimalClaim =
 	 * SvCore.getLinkType("LINK_SUPPORT_CLAIM_WITH_ANIMAL",
@@ -1607,9 +1603,8 @@ public class SvarogTest {
 	 * DbSearchCriterion dbs = new DbSearchCriterion("OBJECT_ID",
 	 * DbCompareOperand.DBLINK, 207808L, dblAnimalFarmer.getObject_id());
 	 * 
-	 * SvRelationCache lnkd1 = new
-	 * SvRelationCache(SvCore.getDbtByName("ANIMAL"), dbs, "ANIM",
-	 * LinkType.DBLINK_REVERSE, null, dblAnimalFarmer, null);
+	 * SvRelationCache lnkd1 = new SvRelationCache(SvCore.getDbtByName("ANIMAL"),
+	 * dbs, "ANIM", LinkType.DBLINK_REVERSE, null, dblAnimalFarmer, null);
 	 * 
 	 * SvRelationCache lnkd2 = new
 	 * SvRelationCache(SvCore.getDbtByName("SUPPORT_CLAIM"), null, "SPC",
@@ -1633,9 +1628,8 @@ public class SvarogTest {
 	 * 
 	 * DbDataObject dboFormType = new DbDataObject();
 	 * dboFormType.setObject_type(svCONST.OBJECT_TYPE_FORM_TYPE);
-	 * dboFormType.setVal("FORM_CATEGORY", "1");
-	 * dboFormType.setVal("MULTI_ENTRY", true);
-	 * dboFormType.setVal("AUTOINSTANCE_SINGLE", false);
+	 * dboFormType.setVal("FORM_CATEGORY", "1"); dboFormType.setVal("MULTI_ENTRY",
+	 * true); dboFormType.setVal("AUTOINSTANCE_SINGLE", false);
 	 * dboFormType.setVal("MANDATORY_BASE_VALUE", true);
 	 * dboFormType.setVal("LABEL_CODE", "form_type.test_multi2");
 	 * svr.saveObject(dboFormType);
@@ -1649,9 +1643,8 @@ public class SvarogTest {
 	 * System.out.println(values.toSimpleJson());
 	 * 
 	 * } catch (SvException e) { // TODO Auto-generated catch block
-	 * e.printStackTrace(); fail("Exception occured"); } finally { //
-	 * svw.release(); svr.release(); } if
-	 * (SvConnTracker.hasTrackedConnections(false,false)) fail(
+	 * e.printStackTrace(); fail("Exception occured"); } finally { // svw.release();
+	 * svr.release(); } if (SvConnTracker.hasTrackedConnections(false,false)) fail(
 	 * "You have a connection leak, you dirty animal!"); }
 	 */
 	@Test
@@ -1684,7 +1677,7 @@ public class SvarogTest {
 			svw.release();
 			svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1716,23 +1709,23 @@ public class SvarogTest {
 			svw.release();
 			swf.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
 	/**
-	 * This test is not the best one, it uses cloning of the repo object which
-	 * is dumb.
+	 * This test is not the best one, it uses cloning of the repo object which is
+	 * dumb.
 	 */
 	/*
 	 * @Test public void testCloneObject() {
 	 * 
-	 * SvReader svr = null; SvWriter svw = null; SvLink svl = null; SvSecurity
-	 * svs = null; DbDataObject dblink = null; DbDataArray dboChildren = null;
+	 * SvReader svr = null; SvWriter svw = null; SvLink svl = null; SvSecurity svs =
+	 * null; DbDataObject dblink = null; DbDataArray dboChildren = null;
 	 * DbDataObject user = null; try {
 	 * 
-	 * svw = new SvWriter(); svw.setAutoCommit(false); svr = new SvReader(svw);
-	 * svl = new SvLink(svr);
+	 * svw = new SvWriter(); svw.setAutoCommit(false); svr = new SvReader(svw); svl
+	 * = new SvLink(svr);
 	 * 
 	 * registerLinkType(String linkType, Long objType1, Long objType2, String
 	 * linkDescription)
@@ -1740,23 +1733,22 @@ public class SvarogTest {
 	 * dboChildren = svr.getObjectsByParentId(svCONST.OBJECT_TYPE_REPO,
 	 * svCONST.OBJECT_TYPE_FIELD, null, 0, 0);
 	 * 
-	 * svs = new SvSecurity(svr); user = svs.getUser("ADMIN"); // link the
-	 * form_type table to the repo table try {
+	 * svs = new SvSecurity(svr); user = svs.getUser("ADMIN"); // link the form_type
+	 * table to the repo table try {
 	 * svl.linkObjects(dboChildren.getItems().get(0).getObject_id(),
 	 * user.getObject_id(), dblink.getObject_id(),
 	 * "test forward link between form type and repo", true, true); } catch
 	 * (SvException sv) { if
-	 * (!sv.getMessage().equals("system.error.unq_constraint_violated")) throw
-	 * (sv);
+	 * (!sv.getMessage().equals("system.error.unq_constraint_violated")) throw (sv);
 	 * 
 	 * } } catch (SvException e) { System.out.println("Test failed:" +
-	 * e.getFormattedMessage()); e.printStackTrace(); fail("Can't link object");
-	 * } finally { svw.release(); svr.release(); svl.release(); }
+	 * e.getFormattedMessage()); e.printStackTrace(); fail("Can't link object"); }
+	 * finally { svw.release(); svr.release(); svl.release(); }
 	 * 
-	 * try { svw = new SvWriter(); svr = new SvReader(svw); svl = new
-	 * SvLink(svr); DbDataArray res = svr.getObjects( new
-	 * DbSearchCriterion("LABEL_CODE", DbCompareOperand.EQUAL,
-	 * "form_type.test_multi"), svCONST.OBJECT_TYPE_FORM_TYPE, null, 0, 0);
+	 * try { svw = new SvWriter(); svr = new SvReader(svw); svl = new SvLink(svr);
+	 * DbDataArray res = svr.getObjects( new DbSearchCriterion("LABEL_CODE",
+	 * DbCompareOperand.EQUAL, "form_type.test_multi"),
+	 * svCONST.OBJECT_TYPE_FORM_TYPE, null, 0, 0);
 	 * 
 	 * 
 	 * // we will clone the repo table DbDataArray formVals =
@@ -1765,11 +1757,11 @@ public class SvarogTest {
 	 * 
 	 * DbDataObject dbo = formVals.get(0);
 	 * 
-	 * // in order to test the links cloning we will create a new dummy // link
-	 * type between the field and the forms
+	 * // in order to test the links cloning we will create a new dummy // link type
+	 * between the field and the forms
 	 * 
-	 * // the repo must have fields, so we aren't checking the result
-	 * DbDataObject clonedRepo = svw.cloneObject(dbo, true, true, false);
+	 * // the repo must have fields, so we aren't checking the result DbDataObject
+	 * clonedRepo = svw.cloneObject(dbo, true, true, false);
 	 * 
 	 * svw.dbCommit(); DbDataArray dboClonedChildren =
 	 * svr.getObjectsByParentId(clonedRepo.getObject_id(),
@@ -1780,15 +1772,14 @@ public class SvarogTest {
 	 * DbDataObject findTheChildWithLink = null; for (DbDataObject dboc :
 	 * dboClonedChildren.getItems()) { if
 	 * (dboc.getVal("FIELD_NAME").equals(dboChildren.getItems().get(0).getVal(
-	 * "FIELD_NAME"))) findTheChildWithLink = dboc; } if (findTheChildWithLink
-	 * == null) fail("Children not properly cloned");
+	 * "FIELD_NAME"))) findTheChildWithLink = dboc; } if (findTheChildWithLink ==
+	 * null) fail("Children not properly cloned");
 	 * 
 	 * DbDataObject formClone = null; DbDataArray dboLinked =
-	 * svr.getObjectsByLinkedId(findTheChildWithLink.getObject_id(), dblink,
-	 * null, 0, 0); for (DbDataObject linkedDbo : dboLinked.getItems()) { if
-	 * (linkedDbo.getObject_id().equals(user.getObject_id())) formClone =
-	 * linkedDbo; } if (formClone == null) fail(
-	 * "Children links not properly cloned");
+	 * svr.getObjectsByLinkedId(findTheChildWithLink.getObject_id(), dblink, null,
+	 * 0, 0); for (DbDataObject linkedDbo : dboLinked.getItems()) { if
+	 * (linkedDbo.getObject_id().equals(user.getObject_id())) formClone = linkedDbo;
+	 * } if (formClone == null) fail( "Children links not properly cloned");
 	 * 
 	 * } catch (Exception e) { // TODO Auto-generated catch block
 	 * e.printStackTrace(); fail("Test failed with exception"); } finally { //
@@ -1817,7 +1808,7 @@ public class SvarogTest {
 		} finally {
 			dbu.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1870,7 +1861,7 @@ public class SvarogTest {
 			if (dbu != null)
 				dbu.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -1913,7 +1904,7 @@ public class SvarogTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -1999,7 +1990,7 @@ public class SvarogTest {
 			svr.release();
 			cl.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -2031,7 +2022,7 @@ public class SvarogTest {
 			lst.release();
 			svs.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -2111,7 +2102,7 @@ public class SvarogTest {
 				svw.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -2143,7 +2134,7 @@ public class SvarogTest {
 			lst.release();
 			svs.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -2269,7 +2260,7 @@ public class SvarogTest {
 			svr.release();
 			svs.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 
 			fail("You have a connection leak, you dirty animal!");
 
@@ -2434,7 +2425,7 @@ public class SvarogTest {
 			svs.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -2551,7 +2542,7 @@ public class SvarogTest {
 			svw.release();
 			svs.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -2655,7 +2646,7 @@ public class SvarogTest {
 				svr.release();
 		}
 
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -2773,7 +2764,7 @@ public class SvarogTest {
 				svw.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -2816,7 +2807,7 @@ public class SvarogTest {
 				svw.release();
 			}
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -2964,7 +2955,7 @@ public class SvarogTest {
 				svw.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -3025,7 +3016,7 @@ public class SvarogTest {
 				svr.release();
 
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -3035,9 +3026,15 @@ public class SvarogTest {
 		SvWriter svw = null;
 		try {
 			svw = new SvWriter();
+
 			DbDataArray labels = I18n.getLabels("en_US", "codes");
 			if (labels == null || labels.size() < 1)
 				fail("Failed getting Labels list");
+
+			labels.rebuildIndex("LABEL_CODE", true);
+			DbDataObject newLabelExists = labels.getItemByIdx("codes.test1");
+			if (newLabelExists != null)
+				svw.deleteObject(newLabelExists, true);
 
 			labelText = I18n.getLabel("en_US", "codes.master");
 			if (labelText == null)
@@ -3055,15 +3052,15 @@ public class SvarogTest {
 			svw.deleteObject(newLabel, true);
 
 		} catch (SvException e) {
-			fail("Failed with exception");
 			e.printStackTrace();
+			fail("Failed with exception");
 		} finally {
 			if (svw != null) {
 				svw.release();
 			}
 		}
 
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}

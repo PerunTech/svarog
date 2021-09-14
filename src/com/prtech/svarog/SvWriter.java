@@ -188,84 +188,167 @@ public class SvWriter extends SvCore {
 		}
 	}
 
-	StringBuilder getRepoSQLString(DbDataObject dbt, DbDataArray dba, boolean includingChildren, boolean includingLinks,
-			ArrayList<Long> linkTypes) {
+	/**
+	 * Method to fetch the PKID of all dependent objects. The flags allow to control
+	 * if we want to get the child object or the linked objects. The linked objects
+	 * shall be filtered according to the list of link types
+	 * 
+	 * @param dbt               The object type descriptor matching the object types
+	 *                          in the DBA array.
+	 * @param dba               The list of objects whose dependents we need to
+	 *                          delete.
+	 * @param includingChildren Shall the method include the child objects in the
+	 *                          result
+	 * @param includingLinks    Shall the method include link objects in the result.
+	 * @param linkTypes         The link types which should be included in the
+	 *                          result
+	 * @return List of PKIDs of the resulting objects
+	 * @throws SvException  Any underlying exception which may be raised.
+	 * @throws SQLException Any SQL exception which was raised by the database while
+	 *                      reading the objects
+	 */
+	private ArrayList<Long> getPKIDs(DbDataObject dbt, DbDataArray dba, boolean includingChildren,
+			boolean includingLinks, ArrayList<Long> linkTypes) throws SvException, SQLException {
+		// TODO Auto-generated method stub
 		StringBuilder strParam = new StringBuilder();
 		for (int i = 0; i < dba.getItems().size(); i++)
 			strParam.append("?,");
 
 		strParam.setLength(strParam.length() - 1);
-		StringBuilder strSQL = new StringBuilder();
-		strSQL.append("SELECT pkid,object_id,parent_id, object_type, meta_pkid, dt_insert, dt_delete, status FROM "
-				+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE (PKID in (");
-		strSQL.append(strParam);
-		strSQL.append(") AND OBJECT_ID in (");
-		strSQL.append(strParam);
-		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE) ");
-		if (includingChildren) {
-			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
-					+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE ");
-			strSQL.append(" PARENT_ID in (");
-			strSQL.append(strParam);
-			strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
-		}
-		if (includingLinks) {
-			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
-					+ dbt.getVal("schema") + "." + "VSVAROG_LINK WHERE ");
-			strSQL.append(" (LINK_OBJ_ID_1 in (");
-			strSQL.append(strParam);
-			strSQL.append(") OR ");
-			strSQL.append(" LINK_OBJ_ID_2 in (");
-			strSQL.append(strParam);
-			strSQL.append(")) ");
-			if (linkTypes != null && !linkTypes.isEmpty()) {
-				strSQL.append(" AND LINK_TYPE_ID  in (");
-				for (int i = 0; i < linkTypes.size(); i++)
-					strSQL.append("?,");
-				strSQL.setLength(strSQL.length() - 1);
-				strSQL.append(") ");
-			}
-			strSQL.append(" AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
+		String sqlParam = strParam.toString();
 
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+
+		ArrayList<Long> supportingObjectPKIDs = new ArrayList<>();
+		if (includingChildren)
+			try {
+				String strSQL = getChildIdSQLString(dbt, sqlParam).toString();
+				ps = this.dbGetConn().prepareStatement(strSQL.toString());
+				bindChildObjectId(ps, dba);
+				if (log4j.isDebugEnabled())
+					log4j.trace("Executing SQL:" + strSQL.toString());
+				rs = ps.executeQuery();
+
+				while (rs.next()) {
+					supportingObjectPKIDs.add(rs.getLong(1));
+				}
+			} finally {
+				SvCore.closeResource(rs, dbt);
+				SvCore.closeResource(ps, dbt);
+			}
+
+		if (includingLinks)
+			try {
+				String strSQL = getLinksIdSQLString(dbt, linkTypes, sqlParam).toString();
+				ps = this.dbGetConn().prepareStatement(strSQL.toString());
+				bindLinkObjectId(ps, dba, linkTypes);
+				if (log4j.isDebugEnabled())
+					log4j.trace("Executing SQL:" + strSQL.toString());
+				rs = ps.executeQuery();
+				while (rs.next()) {
+					supportingObjectPKIDs.add(rs.getLong(1));
+				}
+			} finally {
+				SvCore.closeResource(rs, dbt);
+				SvCore.closeResource(ps, dbt);
+			}
+
+		return supportingObjectPKIDs;
+	}
+
+	StringBuilder getChildIdSQLString(DbDataObject dbt, String sqlParam) {
+		StringBuilder strSQL = new StringBuilder(50);
+		strSQL.append("SELECT 	max(pkid) pkid ,object_id	FROM " + dbt.getVal("schema") + "."
+				+ dbt.getVal("repo_name") + " WHERE ");
+		strSQL.append(" PARENT_ID in (");
+		strSQL.append(sqlParam);
+		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id");
+		return strSQL;
+
+	}
+
+	void bindChildObjectId(PreparedStatement ps, DbDataArray dba) throws SQLException {
+		int paramPos = 1;
+		for (DbDataObject dbo : dba.getItems()) {
+			ps.setLong(paramPos, dbo.getObjectId());
+			paramPos++;
 		}
+	}
+
+	StringBuilder getLinksIdSQLString(DbDataObject dbt, ArrayList<Long> linkTypes, String sqlParam) {
+		StringBuilder strSQL = new StringBuilder(50);
+
+		strSQL.append(
+				"SELECT 	max(pkid) pkid ,object_id	FROM " + dbt.getVal("schema") + "." + "VSVAROG_LINK WHERE ");
+		strSQL.append(" (LINK_OBJ_ID_1 in (");
+		strSQL.append(sqlParam);
+		strSQL.append(") OR ");
+		strSQL.append(" LINK_OBJ_ID_2 in (");
+		strSQL.append(sqlParam);
+		strSQL.append(")) ");
+		if (linkTypes != null && !linkTypes.isEmpty()) {
+			strSQL.append(" AND LINK_TYPE_ID  in (");
+			for (int i = 0; i < linkTypes.size(); i++)
+				strSQL.append("?,");
+			strSQL.setLength(strSQL.length() - 1);
+			strSQL.append(") ");
+		}
+		strSQL.append(" AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id");
 
 		return strSQL;
 
 	}
 
-	void bindObjectId(PreparedStatement ps, DbDataArray dba, boolean includingChildren, boolean includingLinks,
-			ArrayList<Long> linkTypes) throws SQLException {
+	void bindLinkObjectId(PreparedStatement ps, DbDataArray dba, ArrayList<Long> linkTypes) throws SQLException {
 		int paramPos = 1;
 		for (DbDataObject dbo : dba.getItems()) {
-			ps.setLong(paramPos, dbo.getPkid());
+			ps.setLong(paramPos, dbo.getObjectId());
 			paramPos++;
 		}
 		for (DbDataObject dbo : dba.getItems()) {
 			ps.setLong(paramPos, dbo.getObjectId());
 			paramPos++;
 		}
-
-		if (includingChildren)
-			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObjectId());
-				paramPos++;
-			}
-		if (includingLinks) {
-			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObjectId());
-				paramPos++;
-			}
-			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObjectId());
-				paramPos++;
-			}
-			if (linkTypes != null && !linkTypes.isEmpty()) {
-				for (Long type : linkTypes)
-					ps.setLong(paramPos, type);
-				paramPos++;
-			}
+		if (linkTypes != null && !linkTypes.isEmpty()) {
+			for (Long type : linkTypes)
+				ps.setLong(paramPos, type);
+			paramPos++;
 		}
+	}
 
+	StringBuilder getRepoSQLString(DbDataObject dbt, DbDataArray dba, ArrayList<Long> supportingPKIDs) {
+		StringBuilder strSQL = new StringBuilder();
+		strSQL.append("SELECT pkid,object_id,parent_id, object_type, meta_pkid, dt_insert, dt_delete, status FROM "
+				+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE ((PKID in (");
+		for (int i = 0; i < dba.getItems().size(); i++)
+			strSQL.append("?,");
+		strSQL.setLength(strSQL.length() - 1);
+
+		strSQL.append(") ");
+		if (supportingPKIDs != null && supportingPKIDs.size() > 0) {
+			strSQL.append("OR PKID in (");
+			for (int i = 0; i < supportingPKIDs.size(); i++)
+				strSQL.append("?,");
+			strSQL.setLength(strSQL.length() - 1);
+			strSQL.append(")");
+		}
+		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE) ");
+
+		return strSQL;
+
+	}
+
+	void bindObjectId(PreparedStatement ps, DbDataArray dba, ArrayList<Long> supportingPKIDs) throws SQLException {
+		int paramPos = 1;
+		for (DbDataObject dbo : dba.getItems()) {
+			ps.setLong(paramPos, dbo.getPkid());
+			paramPos++;
+		}
+		for (Long pkid : supportingPKIDs) {
+			ps.setLong(paramPos, pkid);
+			paramPos++;
+		}
 	}
 
 	/**
@@ -292,13 +375,15 @@ public class SvWriter extends SvCore {
 		Object[] repoObjects = null;
 
 		try {
-			StringBuilder strSQL = getRepoSQLString(dbt, dba, includingChildren, includingLinks, linkTypes);
+			ArrayList<Long> supportingObjectPKIDs = getPKIDs(dbt, dba, includingChildren, includingLinks, linkTypes);
+
+			StringBuilder strSQL = getRepoSQLString(dbt, dba, supportingObjectPKIDs);
 			// for mssql do not use FOR UPDATE
 			if (!SvConf.getDbType().equals(SvDbType.MSSQL))
 				strSQL.append(" FOR UPDATE");
 
 			ps = this.dbGetConn().prepareStatement(strSQL.toString());
-			bindObjectId(ps, dba, includingChildren, includingLinks, linkTypes);
+			bindObjectId(ps, dba, supportingObjectPKIDs);
 			rs = ps.executeQuery();
 			if (log4j.isDebugEnabled())
 				log4j.trace("Executing SQL:" + strSQL.toString());
