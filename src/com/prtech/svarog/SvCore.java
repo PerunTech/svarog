@@ -1161,8 +1161,18 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	private static void prepareTables(DbDataArray tables, DbDataArray fields, DbDataArray links) {
 		boolean found = false;
+		Gson gs = new Gson();
 		for (DbDataObject dbt : tables.getItems()) {
 			found = false;
+			if (dbt.getVal(Sv.GUI_METADATA) != null) {
+				JsonObject jo = gs.fromJson((String) dbt.getVal(Sv.GUI_METADATA), JsonObject.class);
+				dbt.setVal(Sv.GUI_METADATA, jo);
+				dbt.setIsDirty(false);
+			}
+
+			if (dbt.getVal(Sv.EXTENDED_PARAMS) != null)
+				prepareExtOpts(dbt);
+			
 			if (dbt.getVal(Sv.CONFIG_TYPE_ID) != null) {
 				Object cfgTypeId = dbt.getVal(Sv.CONFIG_TYPE_ID);
 
