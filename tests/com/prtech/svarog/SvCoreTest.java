@@ -39,8 +39,8 @@ public class SvCoreTest {
 			if (j == null || !j.contains("search_form")) {
 				objFromDb.setVal(Sv.GUI_METADATA, badJson);
 				svw.saveObject(objFromDb, true);
-				SvCore.initSvCore();
-				objFromInit = SvCore.getDbt(svCONST.OBJECT_TYPE_TABLE);
+				SvCore.initSvCore(true);
+				objFromInit = SvCore.getDbt(svCONST.OBJECT_TYPE_USER);
 			}
 			JsonObject js = (JsonObject) objFromInit.getVal(Sv.GUI_METADATA);
 			if (!js.has("search_form"))
