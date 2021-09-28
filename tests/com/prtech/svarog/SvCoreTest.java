@@ -24,13 +24,38 @@ public class SvCoreTest {
 			fail("Exception was thrown");
 		}
 	}
-	
+
 	@Test
-	public void guiMetaTest() 
-	{
-		String badJson ="{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"idtable\":PUBLIC_CALL,\"idgetfield\":{COLNAME}}}";
-		try(SvReader svr = new SvReader())
-		{
+	public void guiMetaTableTest() {
+		String badJson = "{\"search_form\":[{\"field\":\"CODE\",\"table\":\"IPARD_APPLICANT\"},{\"field\":\"NAME\",\"table\":\"PERSON\"},{\"field\":\"ID_NO\",\"table\":\"PERSON\"},{\"field\":\"TAX_NO\",\"table\":\"PERSON\"}]}";
+		try (SvWriter svw = new SvWriter(); SvReader svr = new SvReader()) {
+			DbDataObject dbt = SvCore.getDbt(svCONST.OBJECT_TYPE_TABLE);
+
+			DbDataObject objFromInit = SvCore.getDbt(svCONST.OBJECT_TYPE_USER);
+
+			DbDataObject objFromDb = svr.getObjectById(svCONST.OBJECT_TYPE_USER, dbt, null, true);
+
+			String j = (String) objFromDb.getVal(Sv.GUI_METADATA);
+			if (j == null || !j.contains("search_form")) {
+				objFromDb.setVal(Sv.GUI_METADATA, badJson);
+				svw.saveObject(objFromDb, true);
+				SvCore.initSvCore(true);
+				objFromInit = SvCore.getDbt(svCONST.OBJECT_TYPE_USER);
+			}
+			JsonObject js = (JsonObject) objFromInit.getVal(Sv.GUI_METADATA);
+			if (!js.has("search_form"))
+				fail("Can't find seachform");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	@Test
+	public void guiMetaTest() {
+		String badJson = "{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"idtable\":PUBLIC_CALL,\"idgetfield\":{COLNAME}}}";
+		try (SvReader svr = new SvReader()) {
 			DbDataArray fields = SvCore.getFields(svCONST.OBJECT_TYPE_SID_ACL);
 			DbDataObject dbo = fields.get(0);
 			DbDataObject dbt = SvCore.getDbt(dbo.getParentId());
@@ -44,13 +69,13 @@ public class SvCoreTest {
 			if (j != null) {
 				meta.remove(Sv.FIELDS);
 			}
-			
+
 			SvCore.prepareFields(fields);
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 
 }
