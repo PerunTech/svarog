@@ -522,7 +522,7 @@ public class SvGeometryTest {
 			coords[2] = new Coordinate(25, 25);
 			LineString line = SvUtil.sdiFactory.createLineString(coords);
 
-			Set<Geometry> copied = svg.splitGeometry(line, TEST_LAYER_TYPE_ID, false, true, false);
+			Set<Geometry> copied = svg.splitGeometryImpl(line, TEST_LAYER_TYPE_ID, false, true, null, null, false);
 
 			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
 			// 20, 20 15, 10 15))]
