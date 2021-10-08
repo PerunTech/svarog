@@ -345,17 +345,15 @@ public class SvGeometry extends SvWriter {
 		return result;
 	}
 
-
 	@SuppressWarnings("unchecked")
 
 	public Set<Geometry> splitGeometryImpl(LineString line, Long layerTypeId, boolean allowMultiGeometries,
-			 boolean preview, SvCharId filterFieldName, Object filterValue, boolean autoCommit)
-			throws SvException {
+			boolean preview, SvCharId filterFieldName, Object filterValue, boolean autoCommit) throws SvException {
 		if (!line.isSimple())
 			throw (new SvException("system.error.sdi.line_intersects_self", svCONST.systemUser, null, line));
 
-		Set<Geometry> intersected = this.getRelatedGeometries(line, layerTypeId, SDIRelation.INTERSECTS, filterFieldName, filterValue,
-				false);
+		Set<Geometry> intersected = this.getRelatedGeometries(line, layerTypeId, SDIRelation.INTERSECTS,
+				filterFieldName, filterValue, false);
 		Iterator<Geometry> iterator = intersected.iterator();
 		while (iterator.hasNext()) {
 			Geometry findGeom = iterator.next();
@@ -395,8 +393,9 @@ public class SvGeometry extends SvWriter {
 		}
 		return result;
 	}
-	
-	private void splitGeometryDbUpdate(Set<Geometry> newGeometries, Set<Geometry> deletedGeometries, boolean autoCommit) throws SvException {
+
+	private void splitGeometryDbUpdate(Set<Geometry> newGeometries, Set<Geometry> deletedGeometries, boolean autoCommit)
+			throws SvException {
 		// set autocommit to false to ensure all deletes and saves are in single
 		// transaction
 		try (SvWriter svw = new SvWriter(this)) {
@@ -412,11 +411,11 @@ public class SvGeometry extends SvWriter {
 				SvGeometry.setGeometry(dbo, g);
 				newDba.addDataItem(dbo);
 			}
-			this.saveGeometry(newDba,true,false);
+			this.saveGeometry(newDba, true, false);
 
 			if (autoCommit)
 				this.dbCommit();
-		} 
+		}
 
 	}
 
@@ -432,12 +431,14 @@ public class SvGeometry extends SvWriter {
 			// delete the others
 			for (Object dbd : deletedGeometries) {
 				dbo = (DbDataObject) dbd;
-				svw.deleteObject(dbo);
+				svw.deleteObject(dbo, false);
 			}
 			// now save the first updated, geometry
 			dbo = (DbDataObject) first.getUserData();
 			SvGeometry.setGeometry(dbo, first);
-			this.saveGeometry(dbo);
+			DbDataArray dba = new DbDataArray();
+			dba.addDataItem(dbo);
+			this.saveGeometry(dba);
 
 			if (autoCommit)
 				this.dbCommit();
@@ -450,7 +451,8 @@ public class SvGeometry extends SvWriter {
 	/**
 	 * Method to select a set of geometries from the database by seleting a point on
 	 * the map. Overloaded version for backwards compatibility which doesn't allow
-	 * filtering. See {@link #getGeometryByPoint(Point, Long, boolean, SvCharId, Object)}
+	 * filtering. See
+	 * {@link #getGeometryByPoint(Point, Long, boolean, SvCharId, Object)}
 	 * 
 	 * @param p                    The point which was selected on the map
 	 * @param layerTypeId          The layer ID from the geometries shall be
@@ -512,8 +514,7 @@ public class SvGeometry extends SvWriter {
 	 * @throws SvException
 	 */
 	public Geometry mergeGeometries(List<Point> points, Long layerTypeId, boolean allowMultiGeometries, boolean preview,
-			SvCharId filterFieldName,
-			Object filterValue, boolean autoCommit) throws SvException {
+			SvCharId filterFieldName, Object filterValue, boolean autoCommit) throws SvException {
 
 		ArrayList<Object> objectsToDelete = new ArrayList<>();
 		if (points.size() < 2)
@@ -522,9 +523,8 @@ public class SvGeometry extends SvWriter {
 		Geometry result = getGeometryByPoint(points.get(0), layerTypeId, allowMultiGeometries).iterator().next();
 
 		for (int i = 1; i < points.size(); i++) {
-			Iterator<Geometry> iterator = getGeometryByPoint(points.get(i), layerTypeId, allowMultiGeometries, filterFieldName,
-					filterValue)
-					.iterator();
+			Iterator<Geometry> iterator = getGeometryByPoint(points.get(i), layerTypeId, allowMultiGeometries,
+					filterFieldName, filterValue).iterator();
 
 			while (iterator.hasNext()) {
 				Geometry g = iterator.next();
@@ -1444,18 +1444,18 @@ public class SvGeometry extends SvWriter {
 	 * Method to save a DbDataArray of DbDataObjects which are of Geometry Type and
 	 * have set the flag hasGeometries. The method will perform basic saveObject on
 	 * the alphanumeric fields and further process the GEOMETRY columns
-
-	 * @param dba the array of objects to be saved in the database
-	 * @param isBatch     Flag to signal if the inserts in the DB should be batched
-	 * @param autoCommit  if autocommit is true, the connection will be committed if
-	 *                    no exception occurs. if exception occurs, a rollback will
-	 *                    be issued
+	 * 
+	 * @param dba        the array of objects to be saved in the database
+	 * @param isBatch    Flag to signal if the inserts in the DB should be batched
+	 * @param autoCommit if autocommit is true, the connection will be committed if
+	 *                   no exception occurs. if exception occurs, a rollback will
+	 *                   be issued
 	 * @throws SvException Throws system.error.sdi.non_sdi_type if the object not of
 	 *                     geometry type or system.error.sdi.geom_field_missing if
 	 *                     the object has no geometry field while SvGeometry has
 	 *                     allowNullGeometry set to false
-	 *                     	 
-	 */                     
+	 * 
+	 */
 	public void saveGeometry(DbDataArray dba, Boolean isBatch, boolean autoCommit) throws SvException {
 		this.isInternal = true; // flag it as internal so can save SDI types
 		Geometry currentGeom = null;
