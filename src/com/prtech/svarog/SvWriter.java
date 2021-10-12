@@ -1489,6 +1489,27 @@ public class SvWriter extends SvCore {
 		deleteImpl(dba, deleteChildren, deleteLinks, null, null);
 	}
 
+	/**
+	 * Method for deleting list of object from database. The delete method acts
+	 * depending on the deletion type of the reference type of the object which is
+	 * deleted
+	 * 
+	 * @param dba            The list of objects object which should be deleted
+	 * @param deleteChildren Flag to ensure the method will cascade the deletion to
+	 *                       child objects
+	 * @param deleteLinks    Flag to ensure the method will cascade the deletion to
+	 *                       link objects (It delete only the link, not the linking
+	 *                       object!)
+	 * @throws SvException
+	 */
+	public void deleteObjects(DbDataArray dba, boolean deleteChildren, boolean deleteLinks, boolean autoCommit)
+			throws SvException {
+
+		deleteImpl(dba, deleteChildren, deleteLinks, null, null);
+		if (autoCommit)
+			dbCommit();
+	}
+
 	void validateList(DbDataArray dba) throws SvException {
 		if (dba.size() < 1)
 			throw (new SvException(Sv.Exceptions.NULL_OBJECT, instanceUser, dba, null));
@@ -1506,6 +1527,18 @@ public class SvWriter extends SvCore {
 		}
 	}
 
+	/**
+	 * Method to perform the actual deletion of objects in the database. It allows
+	 * deletion of dependent objects, such as child objects and links
+	 * 
+	 * @param dba            The list of objects which is subject of deletion
+	 * @param deleteChildren Flag to allow deletion of child objects
+	 * @param deleteLinks    Flat to allow deletion of links to other objects
+	 * @param childTypes     Filter to allow only certain types of child objects to
+	 *                       be deleted (not working atm)
+	 * @param linkTypes      Filter to delete only certain types of links
+	 * @throws SvException Any underlying exception raised by the svarog core
+	 */
 	protected void deleteImpl(DbDataArray dba, boolean deleteChildren, boolean deleteLinks, ArrayList<Long> childTypes,
 			ArrayList<Long> linkTypes) throws SvException {
 
@@ -1629,7 +1662,9 @@ public class SvWriter extends SvCore {
 	 * A method that saves a DbDataObject object to the Database.
 	 * 
 	 * @param dbDataObject The DbDataObject object which needs to be saved.
-	 * @throws SvException
+	 * @param autoCommit   Auto commit flag. If its true, the method will commit the
+	 *                     operation to the database
+	 * @throws SvException Any underlying exception that is raised by Svarog
 	 */
 	public void deleteObject(DbDataObject dbDataObject, Boolean autoCommit) throws SvException {
 
