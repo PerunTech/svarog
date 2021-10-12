@@ -452,7 +452,7 @@ public class SvGeometry extends SvWriter {
 				for (Geometry g : relatedGeoms) {
 					// apply the filter by value
 					DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
-					if (filterFieldName != null && (!reverseFilter)
+					if (filterFieldName != null && (reverseFilter)
 							^ (!SvUtil.fieldMatchValue(relatedUserData, filterFieldName, filterValue)))
 						continue;
 					// exclude self if needed

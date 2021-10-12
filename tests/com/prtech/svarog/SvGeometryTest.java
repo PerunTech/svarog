@@ -441,11 +441,17 @@ public class SvGeometryTest {
 
 			Geometry g1 = copied.iterator().next();
 			Set<Geometry> intersected = svg.getRelatedGeometries(point, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS,
-					new SvCharId("PARENT_ID"), ((DbDataObject) g1.getUserData()).getParentId(), false);
+					new SvCharId("PARENT_ID"), ((DbDataObject) g1.getUserData()).getParentId(), false, true);
 
 			Geometry g2 = intersected.iterator().next();
 			if (g2 == null)
 				fail("Test did not return a copy of geometry");
+
+			intersected = svg.getRelatedGeometries(point, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS,
+					new SvCharId("PARENT_ID"), ((DbDataObject) g1.getUserData()).getParentId(), true, true);
+
+			if (intersected.iterator().hasNext())
+				fail("Test return a copy of geometry which was supposed to be reversed filter");
 
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
@@ -545,17 +551,18 @@ public class SvGeometryTest {
 
 	@Test
 	public void testGeomMerge() throws SvException {
-		//Geometry g[] = new Geometry[4];
-		//g[0] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20));
-		//g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30));
+		// Geometry g[] = new Geometry[4];
+		// g[0] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10,
+		// y1 + 20));
+		// g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20,
+		// y1 + 30));
 
 		initTestSDI();
 		try (SvGeometry svg = new SvGeometry()) {
 			Geometry g2_1 = SvUtil.sdiFactory
 					.toGeometry(new Envelope(gridX0 + 10, gridX0 + 20, gridY0 + 10, gridY0 + 30));
 
-
-			ArrayList<Point> pts= new ArrayList<Point>();
+			ArrayList<Point> pts = new ArrayList<Point>();
 
 			pts.add(SvUtil.sdiFactory.createPoint(new Coordinate(15, 15)));
 			pts.add(SvUtil.sdiFactory.createPoint(new Coordinate(15, 25)));
@@ -565,17 +572,16 @@ public class SvGeometryTest {
 			System.out.println(g1);
 			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
 			// 20, 20 15, 10 15))]
-			//Iterator<Geometry> it = copied.iterator();
-			//Geometry g1 = it.next();
-			if (!(g2_1.covers(g1)&& g1.covers(g2_1)))
+			// Iterator<Geometry> it = copied.iterator();
+			// Geometry g1 = it.next();
+			if (!(g2_1.covers(g1) && g1.covers(g2_1)))
 				fail("Test did not return a merged geometry");
-
 
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
-	
+
 	@Test
 	public void testDetectSpikes() throws SvException {
 
