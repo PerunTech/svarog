@@ -359,7 +359,7 @@ public class SvGeometryTest {
 	}
 
 	static Geometry[] testGeomsBaseG(double x1, double y1) {
-		Geometry g[] = new Geometry[4];
+		Geometry g[] = new Geometry[5];
 		g[0] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20));
 		g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30));
 		g[2] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 - 15, x1 + 5, y1 - 15, y1 + 5));
@@ -379,6 +379,8 @@ public class SvGeometryTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		g[4] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 20, y1 + 30));
+
 		return g;
 
 	}
@@ -521,8 +523,9 @@ public class SvGeometryTest {
 			coords[1] = new Coordinate(25, 15);
 			coords[2] = new Coordinate(25, 25);
 			LineString line = SvUtil.sdiFactory.createLineString(coords);
+			List<DbDataObject> toBeDeleted = new ArrayList<DbDataObject>();
 
-			Set<Geometry> copied = svg.splitGeometryImpl(line, TEST_LAYER_TYPE_ID, false, true, null, null, false);
+			Set<Geometry> copied = svg.splitGeometries(line, TEST_LAYER_TYPE_ID, toBeDeleted, true, null, null, false);
 
 			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
 			// 20, 20 15, 10 15))]
@@ -540,6 +543,39 @@ public class SvGeometryTest {
 			fail("You have a connection leak, you dirty animal!");
 	}
 
+	@Test
+	public void testGeomMerge() throws SvException {
+		//Geometry g[] = new Geometry[4];
+		//g[0] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 10, x1 + 20, y1 + 10, y1 + 20));
+		//g[1] = SvUtil.sdiFactory.toGeometry(new Envelope(x1 + 20, x1 + 30, y1 + 20, y1 + 30));
+
+		initTestSDI();
+		try (SvGeometry svg = new SvGeometry()) {
+			Geometry g2_1 = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 10, gridX0 + 20, gridY0 + 10, gridY0 + 30));
+
+
+			ArrayList<Point> pts= new ArrayList<Point>();
+
+			pts.add(SvUtil.sdiFactory.createPoint(new Coordinate(15, 15)));
+			pts.add(SvUtil.sdiFactory.createPoint(new Coordinate(15, 25)));
+			List<DbDataObject> toBeDeleted = new ArrayList<DbDataObject>();
+
+			Geometry g1 = svg.mergeGeometries(pts, TEST_LAYER_TYPE_ID, toBeDeleted, true, null, null, false);
+			System.out.println(g1);
+			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
+			// 20, 20 15, 10 15))]
+			//Iterator<Geometry> it = copied.iterator();
+			//Geometry g1 = it.next();
+			if (!(g2_1.covers(g1)&& g1.covers(g2_1)))
+				fail("Test did not return a merged geometry");
+
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+	
 	@Test
 	public void testDetectSpikes() throws SvException {
 
