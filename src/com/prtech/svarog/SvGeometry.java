@@ -1141,7 +1141,7 @@ public class SvGeometry extends SvWriter {
 	 * @param isRing  Flag to signify that the string is ring and we guarantee that
 	 *                we'll always close it
 	 */
-	void alignLineString(LineString oldLine, LineString newLine, boolean isRing) {
+	public void alignLineString(LineString oldLine, LineString newLine, boolean isRing) {
 		for (int i = 0; i < oldLine.getCoordinates().length; i++) {
 			Coordinate oc = oldLine.getCoordinates()[i];
 			for (int j = 0; j < newLine.getCoordinates().length; j++) {
@@ -1166,7 +1166,7 @@ public class SvGeometry extends SvWriter {
 	 * @param oldG The existing polygon
 	 * @param newG The new line polygon
 	 */
-	void alignPolygon(Polygon oldG, Polygon newG) {
+	public void alignPolygon(Polygon oldG, Polygon newG) {
 		alignLineString(oldG.getExteriorRing(), newG.getExteriorRing(), true);
 		for (int i = 0; i < oldG.getNumInteriorRing(); i++) {
 			for (int j = 0; j < newG.getNumInteriorRing(); j++) {
@@ -1183,7 +1183,7 @@ public class SvGeometry extends SvWriter {
 	 * @param oldG The existing polygon
 	 * @param newG The new line polygon
 	 */
-	void alignMultiPolygons(MultiPolygon oldG, MultiPolygon newG) {
+	public void alignMultiPolygons(MultiPolygon oldG, MultiPolygon newG) {
 		for (int i = 0; i < oldG.getNumGeometries(); i++) {
 			for (int j = 0; j < newG.getNumGeometries(); j++) {
 				alignPolygon((Polygon) oldG.getGeometryN(i), (Polygon) newG.getGeometryN(j));
