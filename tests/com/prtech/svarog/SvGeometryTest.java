@@ -543,7 +543,8 @@ public class SvGeometryTest {
 			g1 = it.next();
 			if (!g1.equalsNorm(g2_2))
 				fail("Test did not return a copy of geometry");
-
+			if(toBeDeleted.size()<1)
+				fail("Test did not return a geometry to be deleted");
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
