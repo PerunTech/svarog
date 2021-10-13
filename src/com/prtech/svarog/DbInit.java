@@ -6943,9 +6943,11 @@ public class DbInit {
 							dbi.add(c.newInstance());
 					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
 							| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-						log4j.error("Error loading class:" + className + ", faulty jar:" + pathToJar);
-						if (log4j.isDebugEnabled())
+
+						if (!isClassStandard(className)) {
+							log4j.error("Error loading class:" + className + ", faulty jar:" + pathToJar);
 							log4j.debug(ex);
+						}
 					}
 
 				}
@@ -6955,6 +6957,17 @@ public class DbInit {
 				log4j.trace("Error loading class", ex);
 		}
 		return dbi;
+	}
+
+	static boolean isClassStandard(String className) {
+		String[] standardClasses = new String[] { "org.apache", "com.fasterxml", "org.glassfish", "org.eclipse",
+				"org.osgi","com.eclipsesource" };
+
+		for (String prefix : standardClasses) {
+			if (className.startsWith(prefix))
+				return true;
+		}
+		return false;
 	}
 
 	/**
