@@ -625,7 +625,7 @@ public class SvGeometry extends SvWriter {
 					poly.setUserData(dbo);
 				}
 				//if (originalGeom.covers(poly))
-				//	result.add(poly);
+				result.add(poly);
 			}
 		}
 		return result;
