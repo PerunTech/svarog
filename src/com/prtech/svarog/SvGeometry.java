@@ -624,8 +624,8 @@ public class SvGeometry extends SvWriter {
 					dbo.setValuesMap(originalDbo.getValuesMap());
 					poly.setUserData(dbo);
 				}
-				if (originalGeom.covers(poly))
-					result.add(poly);
+				//if (originalGeom.covers(poly))
+				//	result.add(poly);
 			}
 		}
 		return result;
