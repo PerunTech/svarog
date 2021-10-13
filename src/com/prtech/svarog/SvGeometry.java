@@ -627,6 +627,8 @@ public class SvGeometry extends SvWriter {
 				//if (originalGeom.covers(poly))
 				result.add(poly);
 			}
+			if(originalDbo != null)
+				splitObjects.add(originalDbo);
 		}
 		return result;
 	}
