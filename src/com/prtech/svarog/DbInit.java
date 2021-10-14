@@ -6157,6 +6157,7 @@ public class DbInit {
 			dbo.setVal("config_type_id", dbt.getConfigTypeName());
 			dbo.setVal("config_relation_type", dbt.getConfigRelationType());
 			dbo.setVal("config_relation_id", dbt.getConfigRelatedTypeName());
+			dbo.setVal("gui_metadata", dbt.getGui_metadata());
 
 			if (dbt.getIsConfigTable()) {
 				if (dbt.getConfigColumnName() == null || dbt.getConfigColumnName().length() < 1) {
