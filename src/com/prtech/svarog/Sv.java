@@ -223,5 +223,6 @@ public class Sv {
 	public static final String PARENT_ID = "PARENT_ID";
 	public static final SvCharId UNQ_LEVEL = new SvCharId("UNQ_LEVEL");
 	public static final String PARENT_CODE_VALUE = "PARENT_CODE_VALUE";
+	public static final String INVALID_SESSION = "error.invalid_session";
 
 }
