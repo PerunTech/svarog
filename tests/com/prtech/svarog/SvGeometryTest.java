@@ -582,7 +582,8 @@ public class SvGeometryTest {
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
-
+	//TODO FIX THIS
+	//[POLYGON ((7588120.22 4590814.87, 7588137.99 4590826.51, 7588144.25 4590830.52, 7588157.15 4590838.77, 7588160.42 4590840.46, 7588173.42 4590810.19, 7588179.24 4590794.32, 7588106.21 4590746.56, 7588102.8 4590760.85, 7588106.22 4590746.58, 7588164.03 4590784.38, 7588120.22 4590814.87))]
 	@Test
 	public void testDetectSpikes() throws SvException {
 

@@ -1542,7 +1542,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 
 		if (svToken == null)
-			throw (new SvException("error.invalid_session", svCONST.systemUser));
+			throw (new SvException(Sv.INVALID_SESSION, svCONST.systemUser));
 
 		DbDataObject dbu = null;
 		// if the last refresh + the interval is in the past, send a refresh in

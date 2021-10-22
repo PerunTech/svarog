@@ -137,15 +137,12 @@ public class SvWorkflow extends SvCore {
 			DbDataArray dba = new DbDataArray();
 			dba.addDataItem(dbo);
 
-			SvWriter svw = new SvWriter(this);
-			try {
+			try(SvWriter svw = new SvWriter(this)) {
+				svw.setIsInternal(true);
 				svw.saveRepoData(dbt, dba, false, false);
-
 				SvWriter.cacheCleanup(dbo);
 				svw.executeAfterSaveCallbacks(dbo);
-			} finally {
-				svw.release();
-			}
+			} 
 		} else {
 			throw (new SvException("workflow_engine.error.movementNotAllowed", instanceUser,
 					new ExceptionString("movementNotAllowed in: " + newStatus), dbo));
