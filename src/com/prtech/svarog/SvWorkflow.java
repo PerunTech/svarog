@@ -138,7 +138,7 @@ public class SvWorkflow extends SvCore {
 			dba.addDataItem(dbo);
 
 			try(SvWriter svw = new SvWriter(this)) {
-				svw.setIsInternal(true);
+				svw.isInternal = true;
 				svw.saveRepoData(dbt, dba, false, false);
 				SvWriter.cacheCleanup(dbo);
 				svw.executeAfterSaveCallbacks(dbo);
