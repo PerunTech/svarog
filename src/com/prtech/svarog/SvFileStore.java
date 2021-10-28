@@ -31,22 +31,17 @@ import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
-import com.prtech.svarog_common.DbDataField;
-import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog_common.DbDataTable;
 import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
 import com.prtech.svarog_common.DbSearch;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
@@ -101,7 +96,6 @@ public class SvFileStore extends SvCore {
 		if (path != null)
 			log4j.info("Filestore path is:" + fPath.getAbsolutePath());
 
-		// TODO Auto-generated method stub
 		return path;
 	}
 
@@ -192,12 +186,9 @@ public class SvFileStore extends SvCore {
 	public void saveFile(DbDataObject fileDescriptor, Long objectId, Long objectType, byte[] fileData)
 			throws SvException {
 
-		SvReader svr = new SvReader(this);
-		try {
+		try (SvReader svr = new SvReader(this)) {
 			DbDataObject linkedObject = svr.getObjectById(objectId, objectType, null);
 			saveFile(fileDescriptor, linkedObject, fileData, this.autoCommit);
-		} finally {
-			svr.release();
 		}
 	}
 
@@ -239,38 +230,33 @@ public class SvFileStore extends SvCore {
 	 * @param objectId   ID of the object to which the file is associated
 	 * @param objectType Type Id of the objectId (can be null)
 	 * @param fileData   Binary array (file content)
-	 * @return
-	 * @throws SvException
+	 * @throws SvException Throws system.error.cant_save_empty_file if the file data
+	 *                     is null, or system.error.filedata_type_err if data is
+	 *                     anything else than byte array or InputStream
 	 */
 	protected void saveFileImpl(DbDataObject fileDescriptor, DbDataObject linkedObject, Object fileData)
 			throws SvException {
 
 		if (fileData == null)
-			throw (new SvException("system.error.cant_save_empty_file", instanceUser, fileDescriptor, linkedObject));
+			throw (new SvException(Sv.Exceptions.EMPTY_FILE_SAVE, instanceUser, fileDescriptor, linkedObject));
 
 		if (!(fileData instanceof InputStream || fileData instanceof byte[]))
-			throw (new SvException("system.error.filedata_type_err", instanceUser, null, null));
-
-		SvWriter svw = new SvWriter(this);
-		svw.isInternal = true;
-		SvLink svl = new SvLink(this);
+			throw (new SvException(Sv.Exceptions.FILESAVE_TYPE_ERROR, instanceUser, null, null));
 
 		Connection fileConn = null;
-		try {
-			fileDescriptor.setObject_type(svCONST.OBJECT_TYPE_FILE);
+		try (SvWriter svw = new SvWriter(this); SvLink svl = new SvLink(this)) {
+			svw.isInternal = true;
+			fileDescriptor.setObjectType(svCONST.OBJECT_TYPE_FILE);
 			fileConn = this.dbGetConn();
 			fileConn.setAutoCommit(false);
-			Long fileId = setFileData(fileData, (Long) fileDescriptor.getVal("FILE_STORE_ID"));
-			fileDescriptor.setVal("FILE_ID", fileId);
+			Long fileId = setFileData(fileData, (Long) fileDescriptor.getVal(Sv.FILE_STORE_ID));
+			fileDescriptor.setVal(Sv.FILE_ID, fileId);
 			svw.saveObject(fileDescriptor, false);
 			if (linkedObject != null)
-				svl.linkObjects(linkedObject, fileDescriptor, "LINK_FILE", "", false);
+				svl.linkObjects(linkedObject, fileDescriptor, Sv.LINK_FILE, "", false);
 
 		} catch (SQLException e) {
-			throw (new SvException("system.error.sql_err", instanceUser, fileDescriptor, linkedObject, e));
-		} finally {
-			svw.release();
-			svl.release();
+			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, fileDescriptor, linkedObject, e));
 		}
 
 	}
@@ -284,18 +270,15 @@ public class SvFileStore extends SvCore {
 	 * @param fileTypes    The file types
 	 * @param refDate      The reference date on which the list of file descriptors
 	 *                     should be retrieved
-	 * @return
+	 * @return The list of file objects associated with the object identified by
+	 *         objectId and objectTypeId
 	 * @throws SvException
 	 */
 	public DbDataArray getFiles(Long objectId, Long objectTypeId, String fileTypes, DateTime refDate)
 			throws SvException {
-
-		SvReader dbu = new SvReader(this);
-		try {
-			DbDataObject linkedObject = dbu.getObjectById(objectId, objectTypeId, refDate);
+		try (SvReader svr = new SvReader(this)) {
+			DbDataObject linkedObject = svr.getObjectById(objectId, objectTypeId, refDate);
 			return getFiles(linkedObject, fileTypes, refDate);
-		} finally {
-			dbu.release();
 		}
 
 	}
@@ -308,26 +291,25 @@ public class SvFileStore extends SvCore {
 	 * @param fileTypes    The file types according to which a filter should be
 	 *                     applied
 	 * @param refDate      The reference date
-	 * @return
-	 * @throws SvException
+	 * @return The list of file objects associated with the object identified by
+	 *         objectId and objectTypeId
+	 * @throws SvException Any underlying svarog exception
 	 */
 	@SuppressWarnings("unchecked")
 	public DbDataArray getFiles(DbDataObject linkedObject, String fileTypes, DateTime refDate) throws SvException {
 
 		DbDataArray files = new DbDataArray();
-		SvReader svr = new SvReader(this);
-		try {
-			DbDataObject dbl = getLinkType("LINK_FILE", linkedObject.getObject_type(), svCONST.OBJECT_TYPE_FILE);
-			DbDataArray allFiles = svr.getObjectsByLinkedId(linkedObject.getObject_id(), dbl, refDate, 0, 0);
+
+		try (SvReader svr = new SvReader(this)) {
+			DbDataObject dbl = getLinkType(Sv.LINK_FILE, linkedObject.getObjectType(), svCONST.OBJECT_TYPE_FILE);
+			DbDataArray allFiles = svr.getObjectsByLinkedId(linkedObject.getObjectId(), dbl, refDate, 0, 0);
 			if (fileTypes != null && fileTypes.length() > 0) {
 				for (DbDataObject file : allFiles.getItems()) {
-					if (file.getVal("FILE_TYPE") != null && ((String) file.getVal("FILE_TYPE")).contains(fileTypes))
+					if (file.getVal(Sv.FILE_TYPE) != null && ((String) file.getVal(Sv.FILE_TYPE)).equals(fileTypes))
 						files.addDataItem(file);
 				}
 			} else
 				files.setItems((ArrayList<DbDataObject>) ((ArrayList<DbDataObject>) allFiles.getItems()).clone());
-		} finally {
-			svr.release();
 		}
 		return files;
 
@@ -341,24 +323,25 @@ public class SvFileStore extends SvCore {
 	 * @param refDate      The reference date on which the list of file descriptors
 	 *                     should be retrieved * @param fileSearch
 	 * @param fileSearch   A DbSearch object which contains the search parameters
-	 * @return
+	 * @return The list of file objects associated with the object identified by
+	 *         objectId and objectTypeId filtered by the fileSearch parameter
 	 * @throws SvException
 	 */
 	public DbDataArray getFilesBySearch(Long objectId, Long objectTypeId, DateTime refDate, DbSearch fileSearch)
 			throws SvException {
-		SvReader dbu = new SvReader(this);
-		try {
-			DbDataObject dbo = dbu.getObjectById(objectId, objectTypeId, refDate);
+
+		try (SvReader svr = new SvReader(this)) {
+			DbDataObject dbo = svr.getObjectById(objectId, objectTypeId, refDate);
 			return getFilesBySearch(dbo, fileSearch, refDate);
-		} finally {
-			dbu.release();
 		}
 	}
 
 	/**
 	 * Method to fetch a list of file descriptors associated via search criteria.
+	 * PERFORMANCE WARNING: This method doesn't use Svarog Cache, thus it executes a
+	 * query against the database.
 	 * 
-	 * @param linkedObject
+	 * @param linkedObject The object to which the files are linked
 	 * @param fileSearch
 	 * @param refDate
 	 * @return
@@ -367,32 +350,27 @@ public class SvFileStore extends SvCore {
 	public DbDataArray getFilesBySearch(DbDataObject linkedObject, DbSearch fileSearch, DateTime refDate)
 			throws SvException {
 		DbDataArray object = null;
-		SvReader dbu = new SvReader(this);
-
-		try {
-			DbDataObject dbl = getLinkType("LINK_FILE", linkedObject.getObject_type(), svCONST.OBJECT_TYPE_FILE);
+		try (SvReader svr = new SvReader(this)) {
+			DbDataObject dbl = getLinkType(Sv.LINK_FILE, linkedObject.getObjectType(), svCONST.OBJECT_TYPE_FILE);
 
 			if (dbl == null)
-				throw (new SvException("system.error.invalid_link_type", instanceUser, null, null));
+				throw (new SvException(Sv.Exceptions.INVALID_LINK_TYPE, instanceUser, null, null));
 
-			DbDataObject dbt = getDbt(linkedObject.getObject_type());
+			DbDataObject dbt = getDbt(linkedObject.getObjectType());
 			DbDataObject dbtFiles = getDbt(svCONST.OBJECT_TYPE_FILE);
 
-			DbSearch dbs = new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, linkedObject.getObject_id());
-			DbQueryObject qObjects = new DbQueryObject(repoDbt, repoDbtFields, dbt, getFields(dbt.getObject_id()), dbs,
-					DbJoinType.FULL, dbl, LinkType.DBLINK, null);
+			DbSearch dbs = new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, linkedObject.getObjectId());
+			DbQueryObject qObjects = new DbQueryObject(dbt, dbs, DbJoinType.FULL, dbl, LinkType.DBLINK, null, null);
 
-			DbQueryObject qFiles = new DbQueryObject(repoDbt, repoDbtFields, dbtFiles,
-					getFields(dbtFiles.getObject_id()), fileSearch, DbJoinType.FULL, null, LinkType.PARENT, null);
+			DbQueryObject qFiles = new DbQueryObject(dbtFiles, fileSearch, DbJoinType.FULL, null, LinkType.PARENT, null,
+					null);
 			qFiles.setIsReturnType(true);
 			DbQueryExpression q = new DbQueryExpression();
 
 			q.addItem(qObjects);
 			q.addItem(qFiles);
 
-			object = dbu.getObjects(q, null, null);
-		} finally {
-			dbu.release();
+			object = svr.getObjects(q, null, null);
 		}
 		return object;
 
@@ -414,7 +392,7 @@ public class SvFileStore extends SvCore {
 			IOUtils.write(data, output);
 			output.flush();
 		} catch (IOException e) {
-			throw (new SvException("system.error.filedata_fs_err", instanceUser, null, fileId, e));
+			throw (new SvException(Sv.Exceptions.FILEDATA_FS_ERROR, instanceUser, null, fileId, e));
 		} finally {
 			closeResource((AutoCloseable) output, instanceUser);
 		}
@@ -437,7 +415,7 @@ public class SvFileStore extends SvCore {
 			File fileStore = new File(rootFs.getCanonicalPath() + "/" + fileId.toString());
 			output = new FileOutputStream(fileStore);
 		} catch (IOException e) {
-			throw (new SvException("system.error.filedata_fs_err", instanceUser, null, rootFs, e));
+			throw (new SvException(Sv.Exceptions.FILEDATA_FS_ERROR, instanceUser, null, rootFs, e));
 		}
 		return output;
 
@@ -462,13 +440,13 @@ public class SvFileStore extends SvCore {
 			File fileStore = new File(rootFs.getCanonicalPath() + "/" + fileId.toString());
 			if (fileStore.exists()) {
 				if (extendedInfo != null)
-					extendedInfo.put("FILE_SIZE", new Long(fileStore.length()));
+					extendedInfo.put(Sv.FILE_SIZE, new Long(fileStore.length()));
 				input = new FileInputStream(fileStore);
 			} else
-				throw (new SvException("system.error.filestore_doesnt_exist", instanceUser, null, fileId));
+				throw (new SvException(Sv.Exceptions.FILESTORE_DOESNT_EXIST, instanceUser, null, fileId));
 
 		} catch (IOException e) {
-			throw (new SvException("system.error.filedata_fs_err", instanceUser, null, fileId, e));
+			throw (new SvException(Sv.Exceptions.FILEDATA_FS_ERROR, instanceUser, null, fileId, e));
 		}
 		return input;
 
@@ -485,14 +463,14 @@ public class SvFileStore extends SvCore {
 	private InputStream dataBaseGetStream(DbDataObject fileDescriptor, HashMap<String, Object> extendedInfo)
 			throws SvException {
 
-		String tblName = SvConf.getParam("filestore.table");
-		String schema = SvConf.getParam("filestore.conn.defaultSchema");
+		String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
+		String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA);
 
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		InputStream data = null;
-		String sqlStr = "select pkid, data from " + (schema != null ? schema : SvConf.getDefaultSchema()) + "."
-				+ tblName + " where pkid=?";
+		String sqlStr = String.format(Sv.SQL.SELECT_FILESTORE, (schema != null ? schema : SvConf.getDefaultSchema()),
+				tblName);
 
 		try {
 			Connection conn = this.dbGetConn();
@@ -500,24 +478,24 @@ public class SvFileStore extends SvCore {
 
 			ps = conn.prepareStatement(sqlStr);
 
-			ps.setLong(1, (Long) fileDescriptor.getVal("FILE_ID"));
+			ps.setLong(1, (Long) fileDescriptor.getVal(Sv.FILE_ID));
 			ps.execute();
 			rs = ps.getResultSet();
 			rs.next();
 			if (extendedInfo != null) {
 				Object size = 0;
-				if (SvConf.getParam("conn.dbType").equalsIgnoreCase("POSTGRES")) {
+				if (SvConf.getParam(Sv.DB_TYPE).equalsIgnoreCase(Sv.POSTGRES)) {
 					byte[] b = rs.getBytes(2);
 					size = b.length;
 				} else {
 					Blob b = rs.getBlob(2);
 					size = b.length();
 				}
-				extendedInfo.put("FILE_SIZE", size);
+				extendedInfo.put(Sv.FILE_SIZE, size);
 			}
 			data = rs.getBinaryStream(2);
 		} catch (SQLException e) {
-			throw (new SvException("system.error.files_db_err", instanceUser, fileDescriptor, sqlStr));
+			throw (new SvException(Sv.Exceptions.FILE_DB_ERROR, instanceUser, fileDescriptor, sqlStr));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -546,22 +524,20 @@ public class SvFileStore extends SvCore {
 			byteData = (byte[]) inputData;
 
 		if (streamData == null && byteData == null)
-			throw (new SvException("system.error.cant_save_empty_file", instanceUser, null, null));
+			throw (new SvException(Sv.Exceptions.EMPTY_FILE_SAVE, instanceUser, null, null));
 
 		PreparedStatement ps = null;
 		ResultSet rs = null;
-		String tblName = SvConf.getParam("filestore.table");
-		String seqName = tblName + "_pkid";
-		String schema = SvConf.getParam("filestore.conn.defaultSchema");
-		StringBuilder sqlQuery = new StringBuilder(100);
+		String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
+		String seqName = tblName + "_" + Sv.PKID.toLowerCase();
+		String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA) != null ? SvConf.getParam(Sv.FILESTORE_SCHEMA)
+				: SvConf.getDefaultSchema();
+		String sqlQuery = String.format(Sv.SQL.INSERT_FILESTORE, schema, tblName,
+				SvConf.getSqlkw().getString(Sv.SQL.SEQ_NEXTVAL).replace("{" + Sv.SQL.SEQUENCE_NAME + "}",schema+"."+seqName));
 
-		sqlQuery.append("insert into " + (schema != null ? schema : SvConf.getDefaultSchema()) + "." + tblName);
-		sqlQuery.append("(pkid, data) values(");
-		sqlQuery.append(SvConf.getSqlkw().getString("SEQ_NEXTVAL").replace("{SEQUENCE_NAME}",
-				(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName) + ",?)");
 		try {
 			Connection conn = this.dbGetConn();
-			ps = conn.prepareStatement(sqlQuery.toString(), new String[] { "pkid" });
+			ps = conn.prepareStatement(sqlQuery.toString(), new String[] { Sv.PKID.toLowerCase() });
 
 			if (streamData != null)
 				ps.setBinaryStream(1, streamData);
@@ -576,9 +552,9 @@ public class SvFileStore extends SvCore {
 				newFileId = rs.getLong(1);
 			}
 			if (newFileId == null || updatedRows != 1)
-				throw (new SvException("system.error.filesave_db_err", instanceUser, null, null));
+				throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null));
 		} catch (SQLException e) {
-			throw (new SvException("system.error.filesave_db_err", instanceUser, null, null, e));
+			throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null, e));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -600,23 +576,25 @@ public class SvFileStore extends SvCore {
 		ResultSet rs = null;
 		try {
 			Connection conn = this.dbGetConn();
-			String tblName = SvConf.getParam("filestore.table");
-			String seqName = tblName + "_pkid";
-			String schema = SvConf.getParam("filestore.conn.defaultSchema");
-			String strNextVal = SvConf.getSqlkw().getString("SEQ_NEXTVAL_SELECT").replace("{SEQUENCE_NAME}",
+			String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
+			String seqName = tblName + "_" + Sv.PKID.toLowerCase();
+			String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA);
+			String strNextVal = SvConf.getSqlkw().getString(Sv.SQL.SEQ_NEXTVAL_SELECT).replace(
+					"{" + Sv.SQL.SEQUENCE_NAME + "}",
 					(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName);
 
 			if (log4j.isDebugEnabled())
-				log4j.trace("Selecting a next val from file id sequence" + strNextVal);
+				log4j.trace(Sv.SQL.SQL_DEBUG + strNextVal);
+
 			ps = conn.prepareStatement(strNextVal);
 			rs = ps.executeQuery();
 			if (rs.next()) {
 				newFileId = rs.getLong(1);
 			}
 			if (newFileId == null)
-				throw (new SvException("system.error.filesave_db_err", instanceUser, null, null));
+				throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null));
 		} catch (SQLException e) {
-			throw (new SvException("system.error.filesave_db_err", instanceUser, null, null, e));
+			throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null, e));
 		} finally {
 			closeResource((AutoCloseable) rs, instanceUser);
 			closeResource((AutoCloseable) ps, instanceUser);
@@ -639,11 +617,11 @@ public class SvFileStore extends SvCore {
 
 		FileOutputStream fstr = null;
 		try {
-			String fsType = SvConf.getParam("filestore.type");
+			String fsType = SvConf.getParam(Sv.FILESTORE_TYPE);
 
-			if ((fileStoreId != null && fileStoreId == svCONST.SYSTEM_FILESTORE_ID) || fsType.equals("DATABASE")) {
+			if ((fileStoreId != null && fileStoreId == svCONST.SYSTEM_FILESTORE_ID) || fsType.equals(Sv.DATABASE)) {
 				fileId = dataBaseSaveFile(inputData);
-			} else if (fsType.equals("FILESYSTEM")) {
+			} else if (fsType.equals(Sv.FILESYSTEM)) {
 
 				fileId = getFileId();
 				if (inputData instanceof InputStream) {
@@ -654,10 +632,10 @@ public class SvFileStore extends SvCore {
 				if (inputData instanceof byte[])
 					fileSystemSaveByte(fileId, (byte[]) inputData);
 			} else
-				throw (new SvException("system.error.filedata_fs_err", instanceUser, null, fsType));
+				throw (new SvException(Sv.Exceptions.FILEDATA_FS_ERROR, instanceUser, null, fsType));
 
 		} catch (IOException e) {
-			throw (new SvException("system.error.filedata_fs_err", instanceUser, null, null, e));
+			throw (new SvException(Sv.Exceptions.FILEDATA_FS_ERROR, instanceUser, null, null, e));
 		} finally {
 			closeResource((Closeable) fstr, instanceUser);
 		}
@@ -693,12 +671,12 @@ public class SvFileStore extends SvCore {
 		InputStream fileData = null;
 		// Properties rbConfig = SvConf.getRbConfig();
 
-		String fsType = SvConf.getParam("filestore.type").toUpperCase();
-		if (!fsType.equals("FILESYSTEM") || (dboFile.getVal("FILE_STORE_ID") != null
-				&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID)) {
+		String fsType = SvConf.getParam(Sv.FILESTORE_TYPE).toUpperCase();
+		if (!fsType.equals(Sv.FILESYSTEM) || (dboFile.getVal(Sv.FILE_STORE_ID) != null
+				&& (Long) dboFile.getVal(Sv.FILE_STORE_ID) == svCONST.SYSTEM_FILESTORE_ID)) {
 			fileData = dataBaseGetStream(dboFile, extendedInfo);
-		} else if (fsType.equals("FILESYSTEM")) {
-			fileData = fileSystemGetStream((Long) dboFile.getVal("FILE_ID"), extendedInfo);
+		} else if (fsType.equals(Sv.FILESYSTEM)) {
+			fileData = fileSystemGetStream((Long) dboFile.getVal(Sv.FILE_ID), extendedInfo);
 		}
 		return fileData;
 	}
@@ -713,16 +691,14 @@ public class SvFileStore extends SvCore {
 
 	private byte[] getSystemFilestore(DbDataObject dboFile) {
 		byte[] data = null;
-		if (dboFile.getVal("FILE_STORE_ID") != null
-				&& (Long) dboFile.getVal("FILE_STORE_ID") == svCONST.SYSTEM_FILESTORE_ID) {
-			data = systemCache.getIfPresent((Long) dboFile.getVal("FILE_ID"));
+		if (dboFile.getVal(Sv.FILE_STORE_ID) != null
+				&& (Long) dboFile.getVal(Sv.FILE_STORE_ID) == svCONST.SYSTEM_FILESTORE_ID) {
+			data = systemCache.getIfPresent((Long) dboFile.getVal(Sv.FILE_ID));
 			if (data != null && (data.length / 1024 / 1024) <= max_cache_size)
-				systemCache.put((Long) dboFile.getVal("FILE_ID"), data);
+				systemCache.put((Long) dboFile.getVal(Sv.FILE_ID), data);
 			else
-				log4j.warn("System file " + dboFile.getVal("file_name") + " has size "
-						+ Integer.toString(data != null ? (data.length / 1024 / 1024) : 0)
-						+ " MB. The max file size to be cached is " + max_cache_size
-						+ ". The file will not be cached! Verify your file or your size limit");
+				log4j.warn(Sv.BIG_FILE_WARN, dboFile.getVal(Sv.FILE_NAME),
+						Integer.toString(data != null ? (data.length / 1024 / 1024) : 0), max_cache_size);
 		}
 		return data;
 
@@ -733,7 +709,7 @@ public class SvFileStore extends SvCore {
 	 * array.
 	 * 
 	 * @param dboFile The file descriptor
-	 * @return
+	 * @return Byte array containing the file data
 	 * @throws SvException
 	 */
 	public byte[] getFileAsByte(DbDataObject dboFile) throws SvException {
@@ -745,15 +721,13 @@ public class SvFileStore extends SvCore {
 				HashMap<String, Object> extendedInfo = new HashMap<String, Object>();
 				fstr = getFileAsStream(dboFile, extendedInfo);
 				if (fstr != null) {
-					// Integer curfilesize =
-					// Integer.parseInt((dboFile.getVal("FILE_SIZE").toString()));
-					data = new byte[Integer.valueOf(extendedInfo.get("FILE_SIZE").toString())];
+					data = new byte[Integer.valueOf(extendedInfo.get(Sv.FILE_SIZE).toString())];
 					IOUtils.read(fstr, data);
 				}
 			}
 
 		} catch (IOException e) {
-			throw (new SvException("system.error.filedata_fs_err", instanceUser, dboFile, null, e));
+			throw (new SvException(Sv.Exceptions.FILEDATA_FS_ERROR, instanceUser, dboFile, null, e));
 		} finally {
 			closeResource((Closeable) fstr, instanceUser);
 		}

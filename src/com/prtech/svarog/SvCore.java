@@ -1943,7 +1943,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				obj = new Timestamp(((DateTime) obj).getMillis());
 			if (log4j.isDebugEnabled())
 				log4j.trace("Bind Variable:" + paramIdx.toString() + ", value:"
-						+ (obj != null ? obj.toString() : Sv.SQL_NULL));
+						+ (obj != null ? obj.toString() : Sv.SQL.NULL));
 			ps.setObject(paramIdx, obj);
 			paramIdx++;
 		}
@@ -2924,7 +2924,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal(Sv.FIELD_TYPE));
 		if (log4j.isDebugEnabled())
 			log4j.trace("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
-					+ (value != null ? value.toString() : Sv.SQL_NULL) + " at position " + bindAtPosition
+					+ (value != null ? value.toString() : Sv.SQL.NULL) + " at position " + bindAtPosition
 					+ " as data type " + type.toString());
 
 		switch (type) {
