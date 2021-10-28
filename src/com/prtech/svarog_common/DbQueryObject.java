@@ -273,6 +273,7 @@ public class DbQueryObject extends DbQuery {
 	 * @param orderByFields
 	 * @throws SvException
 	 */
+	@Deprecated
 	public DbQueryObject(DbDataObject repo, DbDataArray repoFields, DbDataObject dbt, DbDataArray dbtFields,
 			DbSearch search, DateTime referenceDate, ArrayList<String> orderByFields) throws SvException {
 		this(dbt, search, referenceDate, null);

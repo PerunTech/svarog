@@ -755,23 +755,23 @@ public class SvConf {
 		if (sdiSrid == null) {
 			try {
 				String srid = config.getProperty("sys.gis.default_srid").trim();
-				if (srid == null || srid.isEmpty() || srid.equals(Sv.SQL_NULL)) {
+				if (srid == null || srid.isEmpty() || srid.equals(Sv.SQL.NULL)) {
 					switch (getDbType()) {
 					case POSTGRES:
 						srid = "0";
 						break;
 					case ORACLE:
-						srid = Sv.SQL_NULL;
+						srid = Sv.SQL.NULL;
 						break;
 					default:
 						srid = "0";
 					}
 				}
 
-				if (!srid.equals(Sv.SQL_NULL))
+				if (!srid.equals(Sv.SQL.NULL))
 					sdiSrid = Integer.toString(Integer.parseInt(srid));
 
-				if (srid.equals(Sv.SQL_NULL)) {
+				if (srid.equals(Sv.SQL.NULL)) {
 					log4j.warn("SRID is set to NULL");
 					sdiSrid = srid;
 				}
