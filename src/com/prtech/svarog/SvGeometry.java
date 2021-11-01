@@ -77,7 +77,8 @@ public class SvGeometry extends SvWriter {
 
 	private static volatile SvGrid sysGrid = null;
 	private static volatile SvSDITile sysBoundary = null;
-
+	private static volatile SvSDITile admUnitsTile = null; 
+			
 	static SvGrid getSysGrid() throws SvException {
 		if (sysGrid == null) {
 			synchronized (SvGeometry.class) {
@@ -89,6 +90,21 @@ public class SvGeometry extends SvWriter {
 		return sysGrid;
 	}
 
+	/**
+	 * Lazy initialization of the AdmUnits tile.
+	 * @return The administrative units tile
+	 * @throws SvException
+	 */
+	static SvSDITile getAdmUnitsTile() throws SvException {
+		if (admUnitsTile == null) {
+			synchronized (SvGeometry.class) {
+				if (admUnitsTile == null)
+					admUnitsTile = getSDIUnitBoundary(SvConf.getAdmUnitClass());
+					admUnitsTile.loadTile(); 
+			}
+		}
+		return admUnitsTile;
+	}
 	/**
 	 * This method shall be used only to enfore reset of the grid and boundary
 	 */
@@ -1260,8 +1276,7 @@ public class SvGeometry extends SvWriter {
 	 *                     units
 	 */
 	public DbDataObject getAdmUnit(Point geom) throws SvException {
-		SvSDITile admTile = getSDIUnitBoundary(SvConf.getAdmUnitClass());
-		Set<Geometry> units = admTile.getRelations(geom, SDIRelation.COVERS);
+		Set<Geometry> units = getAdmUnitsTile().getRelations(geom, SDIRelation.COVERS);
 		if (units.size() == 1) {
 			Iterator<Geometry> i = units.iterator();
 			return (DbDataObject) i.next().getUserData();
