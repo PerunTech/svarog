@@ -480,12 +480,21 @@ public class SvExecManager extends SvCore {
 			if (services[i] instanceof ISvExecutorGroup && services[i] != null
 					&& (getKeys((ISvExecutorGroup) services[i]).contains(key) || (key == null && execs == null))) {
 				ISvExecutorGroup svg = (ISvExecutorGroup) services[i];
-				ISvExecutor svge = new SvExecutorWrapper(svg, getName(svg.getCategory(), key));
-				svx = new SvExecInstance(svge, svge.getStartDate(), svge.getEndDate());
-				svx.setStatus(svCONST.STATUS_VALID);
-				SvExecInstance s = initExecInstance(svx);
-				if (execs != null)
-					execs.addIfAbsent(s);
+				List<String> keys = null;
+				if (key == null)
+					keys = getKeys(svg);
+				else {
+					keys = new ArrayList<String>();
+					keys.add(key);
+				}
+				for (String singleKey : keys) {
+					ISvExecutor svge = new SvExecutorWrapper(svg, getName(svg.getCategory(), singleKey));
+					svx = new SvExecInstance(svge, svge.getStartDate(), svge.getEndDate());
+					svx.setStatus(svCONST.STATUS_VALID);
+					SvExecInstance s = initExecInstance(svx);
+					if (execs != null)
+						execs.addIfAbsent(s);
+				}
 			}
 
 		}

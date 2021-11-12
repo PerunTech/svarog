@@ -168,10 +168,10 @@ public class SvClusterClient implements Runnable {
 				partBuffer.put(SvCluster.MSG_PART);
 				partBuffer.putLong(nodeId);
 				byte[] msgPart = null;
-				if (!hbClientSock.send(partBuffer.array()))
+				if (!SvCluster.zmqSend(hbClientSock, partBuffer.array(), 0))
 					log4j.error("Error sending part message to coordinator node");
 
-				msgPart = hbClientSock.recv(0);
+				msgPart = SvCluster.zmqRecv(hbClientSock, 0);
 				if (msgPart != null)
 					partBuffer = ByteBuffer.wrap(msgPart);
 				if (msgPart != null && partBuffer.get() != SvCluster.MSG_SUCCESS && partBuffer.getLong() != nodeId) {
@@ -235,7 +235,7 @@ public class SvClusterClient implements Runnable {
 	static void shutdown(boolean shouldPart) {
 		if (shouldPart) {
 			if (!isRunning.compareAndSet(true, false)) {
-				log4j.warn("Clieant thread is not running. Can't shut down inactive client");
+				log4j.warn("Client thread is not running. Can't shut down inactive client");
 				return;
 			}
 			try {
@@ -276,8 +276,9 @@ public class SvClusterClient implements Runnable {
 	 * 
 	 * @param dboToken The token which should be sent (in DbDataObject format)
 	 * @return True if the operation was successful
+	 * @throws SvException
 	 */
-	static public boolean putToken(DbDataObject dboToken) {
+	static public boolean putToken(DbDataObject dboToken) throws SvException {
 		if (dboToken == null || !isRunning.get()) {
 			return false;
 		}
@@ -290,9 +291,9 @@ public class SvClusterClient implements Runnable {
 			if (log4j.isDebugEnabled())
 				log4j.debug("Put token " + dboToken.toSimpleJson().toString() + " to coordinator from destination:"
 						+ Long.toString(nodeId));
-			if (!hbClientSock.send(msgBuffer.array()))
+			if (!SvCluster.zmqSend(hbClientSock, msgBuffer.array(), 0))
 				log4j.error("Error sending message to coordinator node");
-			byte[] msg = hbClientSock.recv(0);
+			byte[] msg = SvCluster.zmqRecv(hbClientSock, 0);
 			msgBuffer = ByteBuffer.wrap(msg);
 			byte msgType = msgBuffer.get();
 			return msgType == SvCluster.MSG_SUCCESS;
@@ -306,8 +307,9 @@ public class SvClusterClient implements Runnable {
 	 *                               "+lastContact.toString() String version of
 	 *                               token UUID
 	 * @return Returns a DbDataObject version of the token
+	 * @throws SvException
 	 */
-	static public DbDataObject getToken(String token) {
+	static public DbDataObject getToken(String token) throws SvException {
 		if (!isRunning.get()) {
 			return null;
 		}
@@ -323,9 +325,9 @@ public class SvClusterClient implements Runnable {
 			if (log4j.isDebugEnabled())
 				log4j.debug("Send token " + token + " for validation to coordinator from destination:"
 						+ Long.toString(nodeId));
-			if (!hbClientSock.send(msgBuffer.array()))
+			if (!SvCluster.zmqSend(hbClientSock, msgBuffer.array(), 0))
 				log4j.error("Error sending message to coordinator node");
-			byte[] msg = hbClientSock.recv(0);
+			byte[] msg = SvCluster.zmqRecv(hbClientSock, 0);
 			msgBuffer = ByteBuffer.wrap(msg);
 			byte msgType = msgBuffer.get();
 			if (msgType == SvCluster.MSG_SUCCESS) {
@@ -349,8 +351,9 @@ public class SvClusterClient implements Runnable {
 	 * 
 	 * @param token String version of token UUID
 	 * @return Returns a DbDataObject version of the token
+	 * @throws SvException
 	 */
-	static public boolean refreshToken(String token) {
+	static public boolean refreshToken(String token) throws SvException {
 		if (!isRunning.get()) {
 			return false;
 		}
@@ -367,9 +370,9 @@ public class SvClusterClient implements Runnable {
 			if (log4j.isDebugEnabled())
 				log4j.debug("Send token " + token + " for LRU refresh to coordinator from destination:"
 						+ Long.toString(nodeId));
-			if (!hbClientSock.send(msgBuffer.array()))
+			if (!SvCluster.zmqSend(hbClientSock, msgBuffer.array(), 0))
 				log4j.error("Error sending message to coordinator node");
-			byte[] msg = hbClientSock.recv(0);
+			byte[] msg = SvCluster.zmqRecv(hbClientSock, 0);
 			msgBuffer = ByteBuffer.wrap(msg);
 			msgType = msgBuffer.get();
 			if (log4j.isDebugEnabled())
@@ -391,8 +394,9 @@ public class SvClusterClient implements Runnable {
 	 * 
 	 * @param lockKey String version of token UUID
 	 * @return Returns a hashcode of the lock object
+	 * @throws SvException
 	 */
-	static public int getLock(String lockKey) {
+	static public int getLock(String lockKey) throws SvException {
 		int hashCode = 0;
 		if (!isRunning.get()) {
 			log4j.error("ClusterClient is not running, can't acquire distributed lock!");
@@ -410,9 +414,9 @@ public class SvClusterClient implements Runnable {
 			msgBuffer.put(SvCluster.MSG_LOCK);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.put(key);
-			if (!hbClientSock.send(msgBuffer.array()))
+			if (!SvCluster.zmqSend(hbClientSock, msgBuffer.array(), 0))
 				log4j.error("Error sending message to coordinator node");
-			byte[] msg = hbClientSock.recv(0);
+			byte[] msg = SvCluster.zmqRecv(hbClientSock, 0);
 			if (msg != null) {
 				msgBuffer = ByteBuffer.wrap(msg);
 				msgType = msgBuffer.get();
@@ -433,8 +437,9 @@ public class SvClusterClient implements Runnable {
 	 * 
 	 * @param lockHash the hash code of the lock which was acquired with getLock
 	 * @return Returns true if the lock was released
+	 * @throws SvException
 	 */
-	static public boolean releaseLock(int lockHash) {
+	static public boolean releaseLock(int lockHash) throws SvException {
 		boolean result = false;
 		if (!isRunning.get()) {
 			return result;
@@ -445,9 +450,9 @@ public class SvClusterClient implements Runnable {
 			msgBuffer.put(SvCluster.MSG_LOCK_RELEASE);
 			msgBuffer.putLong(nodeId);
 			msgBuffer.putInt(lockHash);
-			if (!hbClientSock.send(msgBuffer.array()))
+			if (!SvCluster.zmqSend(hbClientSock, msgBuffer.array(), 0))
 				log4j.error("Error sending message to coordinator node");
-			byte[] msg = hbClientSock.recv(0);
+			byte[] msg = SvCluster.zmqRecv(hbClientSock, 0);
 			msgBuffer = ByteBuffer.wrap(msg);
 			msgType = msgBuffer.get();
 			if (msgType == SvCluster.MSG_SUCCESS && msgBuffer.getLong() == nodeId) {
@@ -590,12 +595,12 @@ public class SvClusterClient implements Runnable {
 			byte[] msgJoin = null;
 			byte[] msgLock = null;
 			try {
-				if (hbClientSock.send(joinBuffer.array())) {
-					msgJoin = hbClientSock.recv(0);
+				if (SvCluster.zmqSend(hbClientSock, joinBuffer.array(), 0)) {
+					msgJoin = SvCluster.zmqRecv(hbClientSock, 0);
 					if (processJoin(msgJoin)) {
 						// check if lock info follows the join
 						while (hbClientSock.hasReceiveMore()) {
-							msgLock = hbClientSock.recv(0);
+							msgLock = SvCluster.zmqRecv(hbClientSock, 0);
 							processJoinLock(msgLock);
 						}
 					}
@@ -603,6 +608,7 @@ public class SvClusterClient implements Runnable {
 				}
 
 			} catch (Exception e) {
+				log4j.error("Error joining cluster:", e);
 				nodeId = 0L;
 				result = false;
 			}
@@ -652,9 +658,9 @@ public class SvClusterClient implements Runnable {
 				msgBuffer.put(SvCluster.MSG_HEARTBEAT);
 				msgBuffer.putLong(nodeId);
 
-				if (!hbClientSock.send(msgBuffer.array()))
+				if (!SvCluster.zmqSend(hbClientSock, msgBuffer.array(), 0))
 					log4j.error("Error sending message to coordinator node");
-				msg = hbClientSock.recv(0);
+				msg = SvCluster.zmqRecv(hbClientSock, 0);
 				if (msg == null)
 					failOver();
 			} catch (Exception e) {

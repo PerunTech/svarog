@@ -294,9 +294,9 @@ public class SvarogInstall {
 	 */
 	private static int upgradeGrid() {
 		if (!SvConf.isSdiEnabled()) {
-			log4j.error(
+			log4j.info(
 					"SDI is not enabled, can't generate grid. Enable SDI via svarog.properties parameter \"sys.gis.enable_spatial\"");
-			return -1;
+			return 0;
 		}
 		boolean gridExists = false;
 		Geometry boundary = DbInit.getSysBoundaryFromJson();
@@ -1261,6 +1261,91 @@ public class SvarogInstall {
 		return cfgs;
 	}
 
+<<<<<<< src/com/prtech/svarog/SvarogInstall.java
+=======
+	static void prepareConfig() {
+		if (iSvCfgs == null) {
+			iSvCfgs = new ArrayList<ISvConfiguration>();
+			log4j.info("Preparing list of Configuration classes");
+
+			// add the system implementation
+			iSvCfgs.add(new SvConfigurationImpl());
+
+			ArrayList<Object> cfgs = DbInit.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY),
+					ISvConfiguration.class);
+			if (cfgs != null)
+				for (Object o : cfgs)
+					if (o instanceof ISvConfiguration) {
+						log4j.info("Loaded class: " + o.getClass().getName());
+						iSvCfgs.add((ISvConfiguration) o);
+					}
+		}
+	}
+
+	static void executeConfiguration(ISvConfiguration.UpdateType updateType) throws Exception {
+		Connection conn = null;
+		String schema = null;
+		String msg = "";
+		ISvCore svc = null;
+		prepareConfig();
+
+		// pre-install db handler call
+		try {
+			conn = SvConf.getDBConnection();
+			schema = SvConf.getDefaultSchema();
+			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled()) {
+				svc = new SvReader();
+				svc.setInstanceUser(svCONST.serviceUser);
+			}
+			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
+				try {
+					switch (updateType) {
+					case SCHEMA:
+						msg = conf.beforeSchemaUpdate(conn, svc, schema);
+						break;
+					case LABELS:
+						msg = conf.beforeLabelsUpdate(conn, svc, schema);
+						break;
+					case CODES:
+						msg = conf.beforeCodesUpdate(conn, svc, schema);
+						break;
+					case TYPES:
+						msg = conf.beforeTypesUpdate(conn, svc, schema);
+						break;
+					case LINKTYPES:
+						msg = conf.beforeLinkTypesUpdate(conn, svc, schema);
+						break;
+					case ACL:
+						msg = conf.beforeAclUpdate(conn, svc, schema);
+						break;
+					case SIDACL:
+						msg = conf.beforeSidAclUpdate(conn, svc, schema);
+						break;
+					case FINAL:
+						msg = conf.afterUpdate(conn, svc, schema);
+						break;
+					default:
+						break;
+					}
+					if (msg != null && !msg.isEmpty())
+						log4j.info(msg);
+				} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+						| Exception ex) {
+					log4j.error(
+							"Error executing " + updateType.toString() + "configuration: " + conf.getClass().getName());
+					if (log4j.isDebugEnabled())
+						log4j.error(ex);
+				}
+			}
+		} finally {
+			if (svc != null)
+				svc.release();
+			if (conn != null)
+				conn.close();
+		}
+	}
+
+>>>>>>> src/com/prtech/svarog/SvarogInstall.java
 	/**
 	 * Method for install/upgrade svarog, to the latest config.
 	 * 
@@ -1822,6 +1907,29 @@ public class SvarogInstall {
 		return dbTables;
 	}
 
+	static void deleteClusterRogueRecord() throws SQLException, SvException {
+		if (!isSvarogInstalled())
+			return;
+
+		StringBuilder sbr = new StringBuilder(100);
+		sbr.append("DELETE FROM ");
+		sbr.append(SvConf.getDefaultSchema() + ".");
+		sbr.append((String) SvCore.getDbt(svCONST.OBJECT_TYPE_CLUSTER).getVal("REPO_NAME") + " WHERE ");
+		sbr.append(" OBJECT_TYPE=" + Long.toString(svCONST.OBJECT_TYPE_CLUSTER) + " AND OBJECT_ID="
+				+ Long.toString(svCONST.CLUSTER_COORDINATOR_ID));
+
+		try (SvReader svr = new SvReader(); Statement st = svr.dbGetConn().createStatement()) {
+			DbDataObject clusterCoordinator = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID,
+					svCONST.OBJECT_TYPE_CLUSTER, null);
+			if (clusterCoordinator == null) {
+				st.execute(sbr.toString());
+				svr.dbCommit();
+			}
+		} catch (SvException e) {
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * A method which creates all master configuration tables for Svarog. It
 	 * initializes the DB structure, to be further used by the framework.
@@ -1851,6 +1959,9 @@ public class SvarogInstall {
 					}
 				}
 			}
+			// sometimes due to bug we have a rogue cluster master record which we need to
+			// delete
+			deleteClusterRogueRecord();
 			// Create all other tables
 			if (retval)
 				for (DbDataTable dbt : dbTables) {
@@ -1925,9 +2036,13 @@ public class SvarogInstall {
 				sbt.append(SvConf.getSqlkw().getString("OBJECT_QUALIFIER_LEFT") + rdft.getDbFieldName()
 						+ SvConf.getSqlkw().getString("OBJECT_QUALIFIER_RIGHT") + ",");
 		}
+		String strTypeWhere = Sv.EMPTY_STRING;
+		if (dbt != null && dbt.getObjectId() != null)
+			strTypeWhere = " WHERE REP0.OBJECT_TYPE=" + Long.toString(dbt.getObjectId());
+
 		sbt.setLength(sbt.length() - 1);
 		sbt.append(" FROM " + dbt.getDbSchema() + "." + dbt.getDbRepoName() + " REP0 JOIN " + dbt.getDbSchema() + "."
-				+ dbt.getDbTableName() + " TBL0 ON REP0.META_PKID = TBL0.PKID ");
+				+ dbt.getDbTableName() + " TBL0 ON REP0.META_PKID = TBL0.PKID" + strTypeWhere);
 
 		return createView("V" + dbt.getDbTableName(), sbt.toString(), conn);
 	}
@@ -2289,6 +2404,10 @@ public class SvarogInstall {
 	 */
 	static synchronized Boolean createSpatialIndex(String idxName, String columnName, Envelope sysEnvelope,
 			String tableName, Connection conn) {
+		if (sysEnvelope == null) {
+			log4j.error("Creation of spatial index requires a system boundary in conf/sdi/boundary.json");
+			return false;
+		}
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("DB_TYPE", SvConf.getDbType().toString());
 		params.put("DB_USER", SvConf.getUserName());
@@ -2296,6 +2415,7 @@ public class SvarogInstall {
 		params.put("SCHEMA", SvConf.getDefaultSchema());
 		params.put("TABLE_NAME", tableName);
 		params.put("COLUMN_NAME", columnName);
+
 		params.put("MINX", Double.toString(sysEnvelope.getMinX()));
 		params.put("MINY", Double.toString(sysEnvelope.getMinY()));
 		params.put("MAXX", Double.toString(sysEnvelope.getMaxX()));
@@ -2303,7 +2423,6 @@ public class SvarogInstall {
 		params.put("SRID", SvConf.getParam("sys.gis.default_srid"));
 		return executeDbScript("create_spatial_index.sql", params, conn);
 
-		// return true;
 	}
 
 	static synchronized Boolean createView(String viewName, String selectQuery, Connection conn) {
@@ -3116,6 +3235,84 @@ public class SvarogInstall {
 		return retval;
 	}
 
+	static String getParentCode(DbDataObject dbc, HashMap<Long, DbDataObject> codesMap) {
+		String realParentCode = null;
+		String pc = (String) dbc.getVal(Sv.PARENT_CODE_VALUE);
+		if (!dbc.getParentId().equals(0L)) {
+			DbDataObject dbParent = codesMap.get(dbc.getParentId());
+			pc = (String) dbParent.getVal(Sv.CODE_VALUE);
+		}
+
+		if (pc != null && !pc.isEmpty())
+			realParentCode = pc;
+
+		return realParentCode;
+	}
+
+	static DbDataObject findParentDbo(String parentCode, HashMap<String, DbDataObject> map) {
+		DbDataObject parent = map.get(parentCode);
+		if (parent == null)
+			for (DbDataObject dbo : map.values()) {
+				@SuppressWarnings("unchecked")
+				HashMap<String, DbDataObject> cMap = (HashMap<String, DbDataObject>) dbo.getVal("CHILD_CODES");
+				if (cMap != null) {
+					parent = findParentDbo(parentCode, cMap);
+					if (parent != null)
+						break;
+				}
+			}
+		return parent;
+	}
+
+	static HashMap<String, DbDataObject> convertToTree(DbDataArray codes) {
+
+		HashMap<Long, DbDataObject> objIdMap = new HashMap<Long, DbDataObject>();
+		for (DbDataObject dbo : codes.getItems())
+			objIdMap.put(dbo.getObjectId(), dbo);
+
+		HashMap<String, DbDataObject> map = new HashMap<String, DbDataObject>();
+
+		ArrayList<DbDataObject> codeList = codes.getSortedItems("PARENT_ID", true);
+		int lastCount = codeList.size();
+		while (codeList.size() > 0) {
+			Iterator<DbDataObject> dbi = codeList.iterator();
+			while (dbi.hasNext()) {
+				DbDataObject dbc = dbi.next();
+				String parentCode = null;
+				try {
+					parentCode = getParentCode(dbc, objIdMap);
+				} catch (Exception e) {
+					log4j.warn("Can't find code's parent. Code ignored: " + dbc.toSimpleJson());
+					continue;
+				}
+				if (parentCode == null) {
+					map.put((String) dbc.getVal(Sv.CODE_VALUE), dbc);
+					dbi.remove();
+				} else {
+					DbDataObject parent = findParentDbo(parentCode, map);
+					if (parent != null) {
+						HashMap<String, DbDataObject> cMap = (HashMap<String, DbDataObject>) parent
+								.getVal("CHILD_CODES");
+						if (cMap == null) {
+							cMap = new HashMap<String, DbDataObject>();
+							parent.setVal("CHILD_CODES", cMap);
+						}
+						cMap.put((String) dbc.getVal(Sv.CODE_VALUE), dbc);
+						dbi.remove();
+					}
+				}
+			}
+			if (lastCount == codeList.size()) {
+				log4j.warn("Unresolved codes were found:");
+				for (DbDataObject c : codeList)
+					log4j.warn(c.toSimpleJson());
+				break;
+			} else
+				lastCount = codeList.size();
+		}
+		return map;
+	}
+
 	/**
 	 * Recursively called method to upgrade all codes with their respective children
 	 * 
@@ -3205,14 +3402,16 @@ public class SvarogInstall {
 					SvCore.getDbt(svCONST.OBJECT_TYPE_CODE), SvCore.getFields(svCONST.OBJECT_TYPE_CODE), null, null,
 					null);
 			DbDataArray oldCodes = dbu.getObjects(query, 0, 0);
-
-			oldCodes.rebuildIndex("CODE_VALUE");
-			newCodes.rebuildIndex("CODE_VALUE");
-
 			DbDataArray codeFields = SvCore.getFields(svCONST.OBJECT_TYPE_CODE);
 			codeFields.rebuildIndex("FIELD_NAME");
 
-			upgradeCode(newCodes, oldCodes, 0L, 0L, dbu, codeFields);
+			HashMap<String, DbDataObject> oldMap = convertToTree(oldCodes);
+			HashMap<String, DbDataObject> newMap = convertToTree(newCodes);
+			dbu.setAutoCommit(false);
+
+			List<DbDataObject> upgradedCodes = prepareUpgrade(newMap, oldMap, codeFields, 0L, dbu);
+			if (upgradedCodes.size() > 0)
+				dbu.saveObject(new DbDataArray(upgradedCodes));
 
 			dbu.dbCommit();
 
@@ -3221,6 +3420,63 @@ public class SvarogInstall {
 		}
 		log4j.info("Finished " + operation + " using records file: " + upgradeFile);
 
+	}
+
+	private static List<DbDataObject> prepareUpgrade(HashMap<String, DbDataObject> newCodes,
+			HashMap<String, DbDataObject> oldCodes, DbDataArray codeFields, Long parentId, SvWriter dbu)
+			throws SvException {
+		ArrayList<DbDataObject> upgradedCodes = new ArrayList<DbDataObject>();
+		HashMap<String, DbDataObject> existingChildren = null;
+		HashMap<String, DbDataObject> toUpgradeChildren = null;
+		// iterates over the new list
+		for (Entry<String, DbDataObject> en : newCodes.entrySet()) {
+			DbDataObject codeToUpgrade = en.getValue();
+			DbDataObject existingCode = null;
+			toUpgradeChildren = (HashMap<String, DbDataObject>) codeToUpgrade.getVal("CHILD_CODES");
+			existingChildren = null;
+
+			boolean updateRequired = false;
+
+			if (oldCodes != null)
+				existingCode = oldCodes.get(en.getKey());
+
+			if (existingCode != null) {
+				existingChildren = (HashMap<String, DbDataObject>) existingCode.getVal("CHILD_CODES");
+				// remove the item to mark it as processed
+				oldCodes.remove(en.getKey());
+
+				Long existingPkid = existingCode.getPkid();
+				Long existingOID = existingCode.getObjectId();
+				updateRequired = shouldUpgradeConfig(existingCode, codeToUpgrade, codeFields, true);
+				codeToUpgrade.setPkid(existingPkid);
+				codeToUpgrade.setObjectId(existingOID);
+				codeToUpgrade.setParentId(existingCode.getParentId());
+			} else {
+				updateRequired = true;
+				codeToUpgrade.setObjectId(0L);
+				codeToUpgrade.setParentId(parentId);
+			}
+			if (updateRequired && codeToUpgrade.getObjectId().equals(0L) && toUpgradeChildren != null
+					&& toUpgradeChildren.size() > 0) {
+				dbu.saveObject(codeToUpgrade, false);
+				updateRequired = false;
+			}
+			if (updateRequired)
+				upgradedCodes.add(codeToUpgrade);
+
+			if (toUpgradeChildren != null && toUpgradeChildren.size() > 0) {
+				List<DbDataObject> childList = prepareUpgrade(toUpgradeChildren, existingChildren, codeFields,
+						codeToUpgrade.getObjectId(), dbu);
+				upgradedCodes.addAll(childList);
+			}
+		}
+
+		if (!parentId.equals(0L) && oldCodes != null && oldCodes.size() > 0) {
+			if (SvConf.getIsDebugEnabled())
+				dbu.deleteObjects(new DbDataArray(new ArrayList(oldCodes.values())));
+		}
+
+		return upgradedCodes;
 	}
 
 	/**

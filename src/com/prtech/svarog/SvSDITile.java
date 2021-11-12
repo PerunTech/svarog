@@ -102,7 +102,8 @@ public abstract class SvSDITile {
 					tileIndex.insert(geom.getEnvelopeInternal(), getPreparedGeom(geom));
 					if (geom.getUserData() != null && geom.getUserData() instanceof DbDataObject) {
 						centroid = SvGeometry.getCentroid((DbDataObject) geom.getUserData());
-					} else
+					}
+					if (centroid == null)
 						centroid = SvGeometry.calculateCentroid(geom);
 
 					if (tileEnvelope.covers(centroid.getCoordinate()))

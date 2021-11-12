@@ -32,11 +32,32 @@ public class Sv {
 		public static final String OBJECT_NOT_FOUND = "system.error.object_not_found";
 		public static final String OBJECT_COUNT_ERROR = "system.error.wrong_row_count_update";
 		public static final String OBJECT_NOT_UPDATEABLE = "system.error.obj_not_updateable";
-		public static final String EMPTY_GRID = "system.error.gis_grid_empty";;
+		public static final String EMPTY_GRID = "system.error.gis_grid_empty";
+		public static final String CLUSTER_INACTIVE = "system.error.cluster_inactive";
+		public static final String CLUSTER_COMMUNICATION_ERROR = "system.error.cluster_socket_error";
+		public static final String IP_BLOCKED = "system.error.ip_blocked";
+		public static final String INVALID_LINK_TYPE = "system.error.invalid_link_type";
+		public static final String FILEDATA_FS_ERROR = "system.error.filedata_fs_err";
+		public static final String FILESAVE_DB_ERROR = "system.error.filesave_db_err";
+		public static final String FILESTORE_DOESNT_EXIST = "system.error.filestore_doesnt_exist";
+		public static final String FILE_DB_ERROR = "system.error.files_db_err";
+		public static final String EMPTY_FILE_SAVE = "system.error.cant_save_empty_file";
+		public static final String FILESAVE_TYPE_ERROR = "system.error.filedata_type_err";
 
 		private Exceptions() {
 		}
 
+	}
+	public static class SQL {
+
+		public static final String SEQ_NEXTVAL_SELECT = "SEQ_NEXTVAL_SELECT";
+		public static final String SEQUENCE_NAME = "SEQUENCE_NAME";
+		public static final String SEQ_NEXTVAL = "SEQ_NEXTVAL";
+		public static final String NULL = "NULL";
+		public static final String SELECT_FILESTORE = "select pkid, data from %s.%s where pkid=?";
+		public static final String SQL_DEBUG = "SQL QUERY DEBUG: ";
+		public static final String INSERT_FILESTORE = "insert into %s.%s (pkid, data) values(%s,?)";
+		
 	}
 
 	public static class Link {
@@ -52,6 +73,22 @@ public class Sv {
 		public static final SvCharId DEFER_SECURITY = new SvCharId("DEFER_SECURITY");
 
 		private Link() {
+		}
+
+	}
+
+	public static class Security {
+
+		/**
+		 * Different exception type constants
+		 */
+
+		public static final SvCharId FIRST_REQUEST_TIME = new SvCharId("FIRST_REQUEST_TIME");
+		public static final SvCharId REQUEST_COUNT = new SvCharId("REQUEST_COUNT");
+		public static final SvCharId BLOCKED_UNTIL = new SvCharId("BLOCKED_UNTIL");
+		public static final SvCharId BLOCKED_COUNT = new SvCharId("BLOCKED_COUNT");
+
+		private Security() {
 		}
 
 	}
@@ -91,7 +128,6 @@ public class Sv {
 	public static final String CENTROID = "CENTROID";
 	public static final String GEOMETRY = "GEOMETRY";
 	public static final String BOUNDS_AREA_HA = "bounds_area_ha";
-	public static final String SQL_NULL = "NULL";
 	public static final String EMPTY_STRING = "";
 	public static final String VALUE = "VALUE";
 	public static final String NVARCHAR = "NVARCHAR";
@@ -185,6 +221,10 @@ public class Sv {
 	public static final String SDI_MIN_POINT_DISTANCE = "SDI_MIN_POINT_DISTANCE";
 	public static final Integer DEFAULT_MIN_POINT_DISTANCE = 0;
 
+	public static final String SDI_VERTEX_ALIGN_TOLERANCE = "SDI_VERTEX_ALIGN_TOLERANCE";
+	public static final Double DEFAULT_VERTEX_ALIGN_TOLERANCE = 0.05;
+
+	
 	public static final String SDI_MIN_GEOM_DISTANCE = "SDI_MIN_GEOM_DISTANCE";
 	public static final Integer DEFAULT_MIN_GEOM_DISTANCE = 0;
 	public static final String ERROR = "ERROR:";
@@ -199,5 +239,21 @@ public class Sv {
 	public static final SvCharId IS_NULL = new SvCharId("IS_NULL");
 	public static final String PARENT_ID = "PARENT_ID";
 	public static final SvCharId UNQ_LEVEL = new SvCharId("UNQ_LEVEL");
+	public static final String PARENT_CODE_VALUE = "PARENT_CODE_VALUE";
+	public static final String INVALID_SESSION = "error.invalid_session";
+	public static final String LINK_FILE = "LINK_FILE";
+	public static final String FILE_SIZE = "FILE_SIZE";
+	public static final SvCharId FILE_STORE_ID = new SvCharId("FILE_STORE_ID");
+	public static final SvCharId FILE_ID = new SvCharId("FILE_ID");
+	public static final String BIG_FILE_WARN = "System file {} has size {} MB. The max file size to be cached is {}. The file will not be cached! Verify your file or your size limit";
+	public static final SvCharId FILE_NAME = new SvCharId("FILE_NAME");
+	public static final String FILESYSTEM = "FILESYSTEM";
+	public static final String FILESTORE_TYPE = "filestore.type";
+	public static final String DATABASE = "DATABASE";
+	public static final String FILESTORE_TABLE = "filestore.table";
+	public static final String FILESTORE_SCHEMA = "filestore.conn.defaultSchema";
+	public static final String DB_TYPE = "conn.dbType";
+	public static final String POSTGRES = "POSTGRES";
+	public static final SvCharId FILE_TYPE = new SvCharId("FILE_TYPE");
 
 }

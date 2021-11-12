@@ -33,7 +33,6 @@ install-postgres-ut:
   script:
     - mvn clean compile
     - cd .gitlab-ci
-    - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh ut $CI_PROJECT_DIR POSTGRES
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop-auto -P PostgreSQL
@@ -46,7 +45,6 @@ install-oracle-ut:
   script:
     - mvn clean compile
     - cd .gitlab-ci
-    - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh ut $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR
     - mvn exec:java@install-drop-auto -P Oracle
@@ -59,7 +57,6 @@ upgrade-postgres-pipeline:
   script:
     - mvn clean compile
     - cd .gitlab-ci
-    - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh $CI_COMMIT_REF_NAME $CI_PROJECT_DIR POSTGRES
     - cd $CI_PROJECT_DIR  
     - mvn exec:java@upgrade-force-auto -P PostgreSQL
@@ -77,21 +74,10 @@ upgrade-oracle-pipeline:
   script:
     - mvn clean compile
     - cd .gitlab-ci
-    - ansible -m ping gitlab-ci-runner -i hosts/gitlabci.yml
     - ./ansible-svarog.sh $CI_COMMIT_REF_NAME $CI_PROJECT_DIR ORACLE
     - cd $CI_PROJECT_DIR  
     - mvn exec:java@upgrade-force-auto -P Oracle
     - mvn test -P Oracle
-    
-    - cd $CI_PROJECT_DIR
-    - cd target/surefire-reports
-    - zip -r surefire-reports.zip *
-  artifacts:
-    name: "${CI_JOB_NAME}_${CI_COMMIT_REF_NAME}_${CI_PIPELINE_ID}"
-    when: always
-    paths:
-    - $CI_PROJECT_DIR/target/surefire-reports/surefire-reports.zip
-    expire_in: 15 days
   environment:
     name: $CI_COMMIT_REF_NAME
   only:
@@ -104,7 +90,8 @@ svarog-sonarqube:
   stage: code_analysis
   script:
     - mvn sonar:sonar -Dsonar.analysis.mode=preview -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_BUILD_REF -Dsonar.gitlab.ref_name=$CI_BUILD_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
-
+  when: manual
+  
 svarog-sonarqube_publish:
   stage: code_analysis
   script:
@@ -120,7 +107,7 @@ svarog-install:
   stage: mvn_install
   script:  
     - pwd
-    - mvn install -DskipTests
+    - mvn clean package org.apache.maven.plugins:maven-deploy-plugin:3.0.0-M1:deploy -DskipTests
   only:
     - master
     - staging

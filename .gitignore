@@ -8,6 +8,7 @@
 /build/
 /doc/
 /target/
+/bin/
 /osgi-bundles/
 /osgi-cache/
 /osgi-bundles-default.zip
@@ -15,6 +16,5 @@
 /conf/records
 /sv_batch_fs/
 /svarog_filestore/
-/bin/
 /svarog.properties
 /svarog.properties.bkp

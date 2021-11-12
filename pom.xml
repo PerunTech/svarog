@@ -13,7 +13,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>svarog</groupId>
 	<artifactId>svarog</artifactId>
-	<version>3.3.0-SNAPSHOT</version>
+	<version>3.2.28</version>
 	<name>Svarog Business Platform Core</name>
 	<description>This is the core library of the Svarog Business Platform</description>
 	<properties>
@@ -25,18 +25,6 @@
 		<tag>HEAD</tag>
 		<url>https://github.com/PerunTech/svarog.git</url>
 	</scm>
-	<distributionManagement>
-		<repository>
-			<id>archiva.internal</id>
-			<name>Internal Release Repository</name>
-			<url>http://maven.prtech.mk:8080/repository/internal/</url>
-		</repository>
-		<snapshotRepository>
-			<id>archiva.snapshots</id>
-			<name>Internal Snapshot Repository</name>
-			<url>http://maven.prtech.mk:8080/repository/snapshots/</url>
-		</snapshotRepository>
-	</distributionManagement>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>tests</testSourceDirectory>
@@ -49,6 +37,11 @@
 			</resource>
 		</resources>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>3.0.0-M1</version>
+			</plugin>
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
@@ -273,12 +266,12 @@
 		<dependency>
 			<groupId>svarog</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>[3.3.0,)</version>
+			<version>[3.2.7,3.2.99]</version>
 		</dependency>
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
 			<artifactId>svarog-jts-io</artifactId>
-			<version>[1.14.0,)</version>
+			<version>[1.14.0,1.15.0]</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
@@ -303,7 +296,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>24.1.1-jre</version>
+			<version>29.0-jre</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/junit/junit -->
@@ -367,7 +360,7 @@
 				<dependency>
 					<groupId>svarog</groupId>
 					<artifactId>svarog-io</artifactId>
-					<version>1.0.4.1</version>
+					<version>1.0.4.3</version>
 				</dependency>
 			</dependencies>
 		</profile>

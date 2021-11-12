@@ -254,9 +254,10 @@ public class SvLock {
 	 * @param key The key to identify the lock with
 	 * @return hash code of the acquired lock. If the value is 0, the lock wasn't
 	 *         acquired
+	 * @throws SvException 
 	 * 
 	 */
-	public static int getDistributedLock(String lockKey) {
+	public static int getDistributedLock(String lockKey) throws SvException {
 		return getDistributedLockImpl(lockKey, SvCluster.isCoordinator(),
 				SvCluster.isCoordinator() ? SvCluster.getCoordinatorNode().getObjectId() : SvClusterClient.nodeId);
 
@@ -272,9 +273,10 @@ public class SvLock {
 	 * @param nodeId        The node under which this lock shall be registered
 	 * @return hash code of the acquired lock. If the value is 0, the lock wasn't
 	 *         acquired
+	 * @throws SvException
 	 * 
 	 */
-	static int getDistributedLockImpl(String lockKey, boolean isCoordinator, Long nodeId) {
+	static int getDistributedLockImpl(String lockKey, boolean isCoordinator, Long nodeId) throws SvException {
 		if (!SvCluster.getIsActive().get()) {
 			log4j.error("Can't acquire a distributed lock when cluster is not active");
 			return 0;
@@ -322,9 +324,10 @@ public class SvLock {
 	 * 
 	 * @param key The key to identify the lock with
 	 * @return False if the lock wasn't acquired
+	 * @throws SvException 
 	 * 
 	 */
-	public static boolean releaseDistributedLock(int lockHash) {
+	public static boolean releaseDistributedLock(int lockHash) throws SvException {
 		return releaseDistributedLockImpl(lockHash, SvCluster.isCoordinator(),
 				SvCluster.isCoordinator() ? SvCluster.getCoordinatorNode().getObjectId() : SvClusterClient.nodeId);
 	}
@@ -337,9 +340,10 @@ public class SvLock {
 	 * @param isCoordinator Flag if the lock is to be acquired by a worker or
 	 *                      coordinator node
 	 * @return False if the lock wasn't acquired
+	 * @throws SvException 
 	 * 
 	 */
-	static boolean releaseDistributedLockImpl(int lockHash, boolean isCoordinator, Long nodeId) {
+	static boolean releaseDistributedLockImpl(int lockHash, boolean isCoordinator, Long nodeId) throws SvException {
 		if (!SvCluster.getIsActive().get()) {
 			log4j.error("Can't release a distributed lock when cluster is not active");
 			return false;

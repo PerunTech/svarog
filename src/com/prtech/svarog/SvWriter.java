@@ -120,6 +120,10 @@ public class SvWriter extends SvCore {
 	 * Map to store pre-built queries
 	 */
 	static HashMap<Long, String> queryCache = new HashMap<Long, String>();
+	/**
+	 * Map to store pre-built queries
+	 */
+	static HashMap<Long, String> querySDICache = new HashMap<Long, String>();
 
 	/**
 	 * Constant for the keyword update
@@ -184,84 +188,167 @@ public class SvWriter extends SvCore {
 		}
 	}
 
-	StringBuilder getRepoSQLString(DbDataObject dbt, DbDataArray dba, boolean includingChildren, boolean includingLinks,
-			ArrayList<Long> linkTypes) {
+	/**
+	 * Method to fetch the PKID of all dependent objects. The flags allow to control
+	 * if we want to get the child object or the linked objects. The linked objects
+	 * shall be filtered according to the list of link types
+	 * 
+	 * @param dbt               The object type descriptor matching the object types
+	 *                          in the DBA array.
+	 * @param dba               The list of objects whose dependents we need to
+	 *                          delete.
+	 * @param includingChildren Shall the method include the child objects in the
+	 *                          result
+	 * @param includingLinks    Shall the method include link objects in the result.
+	 * @param linkTypes         The link types which should be included in the
+	 *                          result
+	 * @return List of PKIDs of the resulting objects
+	 * @throws SvException  Any underlying exception which may be raised.
+	 * @throws SQLException Any SQL exception which was raised by the database while
+	 *                      reading the objects
+	 */
+	private ArrayList<Long> getPKIDs(DbDataObject dbt, DbDataArray dba, boolean includingChildren,
+			boolean includingLinks, ArrayList<Long> linkTypes) throws SvException, SQLException {
+		// TODO Auto-generated method stub
 		StringBuilder strParam = new StringBuilder();
 		for (int i = 0; i < dba.getItems().size(); i++)
 			strParam.append("?,");
 
 		strParam.setLength(strParam.length() - 1);
-		StringBuilder strSQL = new StringBuilder();
-		strSQL.append("SELECT pkid,object_id,parent_id, object_type, meta_pkid, dt_insert, dt_delete, status FROM "
-				+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE (PKID in (");
-		strSQL.append(strParam);
-		strSQL.append(") AND OBJECT_ID in (");
-		strSQL.append(strParam);
-		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE) ");
-		if (includingChildren) {
-			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
-					+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE ");
-			strSQL.append(" PARENT_ID in (");
-			strSQL.append(strParam);
-			strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
-		}
-		if (includingLinks) {
-			strSQL.append("OR ((pkid, object_id) IN (SELECT 	max(pkid) pkid ,object_id	FROM "
-					+ dbt.getVal("schema") + "." + "VSVAROG_LINK WHERE ");
-			strSQL.append(" (LINK_OBJ_ID_1 in (");
-			strSQL.append(strParam);
-			strSQL.append(") OR ");
-			strSQL.append(" LINK_OBJ_ID_2 in (");
-			strSQL.append(strParam);
-			strSQL.append(")) ");
-			if (linkTypes != null && !linkTypes.isEmpty()) {
-				strSQL.append(" AND LINK_TYPE_ID  in (");
-				for (int i = 0; i < linkTypes.size(); i++)
-					strSQL.append("?,");
-				strSQL.setLength(strSQL.length() - 1);
-				strSQL.append(") ");
-			}
-			strSQL.append(" AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id))");
+		String sqlParam = strParam.toString();
 
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+
+		ArrayList<Long> supportingObjectPKIDs = new ArrayList<>();
+		if (includingChildren)
+			try {
+				String strSQL = getChildIdSQLString(dbt, sqlParam).toString();
+				ps = this.dbGetConn().prepareStatement(strSQL.toString());
+				bindChildObjectId(ps, dba);
+				if (log4j.isDebugEnabled())
+					log4j.trace("Executing SQL:" + strSQL.toString());
+				rs = ps.executeQuery();
+
+				while (rs.next()) {
+					supportingObjectPKIDs.add(rs.getLong(1));
+				}
+			} finally {
+				SvCore.closeResource(rs, dbt);
+				SvCore.closeResource(ps, dbt);
+			}
+
+		if (includingLinks)
+			try {
+				String strSQL = getLinksIdSQLString(dbt, linkTypes, sqlParam).toString();
+				ps = this.dbGetConn().prepareStatement(strSQL.toString());
+				bindLinkObjectId(ps, dba, linkTypes);
+				if (log4j.isDebugEnabled())
+					log4j.trace("Executing SQL:" + strSQL.toString());
+				rs = ps.executeQuery();
+				while (rs.next()) {
+					supportingObjectPKIDs.add(rs.getLong(1));
+				}
+			} finally {
+				SvCore.closeResource(rs, dbt);
+				SvCore.closeResource(ps, dbt);
+			}
+
+		return supportingObjectPKIDs;
+	}
+
+	StringBuilder getChildIdSQLString(DbDataObject dbt, String sqlParam) {
+		StringBuilder strSQL = new StringBuilder(50);
+		strSQL.append("SELECT 	max(pkid) pkid ,object_id	FROM " + dbt.getVal("schema") + "."
+				+ dbt.getVal("repo_name") + " WHERE ");
+		strSQL.append(" PARENT_ID in (");
+		strSQL.append(sqlParam);
+		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id");
+		return strSQL;
+
+	}
+
+	void bindChildObjectId(PreparedStatement ps, DbDataArray dba) throws SQLException {
+		int paramPos = 1;
+		for (DbDataObject dbo : dba.getItems()) {
+			ps.setLong(paramPos, dbo.getObjectId());
+			paramPos++;
 		}
+	}
+
+	StringBuilder getLinksIdSQLString(DbDataObject dbt, ArrayList<Long> linkTypes, String sqlParam) {
+		StringBuilder strSQL = new StringBuilder(50);
+
+		strSQL.append(
+				"SELECT 	max(pkid) pkid ,object_id	FROM " + dbt.getVal("schema") + "." + "VSVAROG_LINK WHERE ");
+		strSQL.append(" (LINK_OBJ_ID_1 in (");
+		strSQL.append(sqlParam);
+		strSQL.append(") OR ");
+		strSQL.append(" LINK_OBJ_ID_2 in (");
+		strSQL.append(sqlParam);
+		strSQL.append(")) ");
+		if (linkTypes != null && !linkTypes.isEmpty()) {
+			strSQL.append(" AND LINK_TYPE_ID  in (");
+			for (int i = 0; i < linkTypes.size(); i++)
+				strSQL.append("?,");
+			strSQL.setLength(strSQL.length() - 1);
+			strSQL.append(") ");
+		}
+		strSQL.append(" AND CURRENT_TIMESTAMP<DT_DELETE GROUP BY object_id");
 
 		return strSQL;
 
 	}
 
-	void bindObjectId(PreparedStatement ps, DbDataArray dba, boolean includingChildren, boolean includingLinks,
-			ArrayList<Long> linkTypes) throws SQLException {
+	void bindLinkObjectId(PreparedStatement ps, DbDataArray dba, ArrayList<Long> linkTypes) throws SQLException {
 		int paramPos = 1;
 		for (DbDataObject dbo : dba.getItems()) {
-			ps.setLong(paramPos, dbo.getPkid());
+			ps.setLong(paramPos, dbo.getObjectId());
 			paramPos++;
 		}
 		for (DbDataObject dbo : dba.getItems()) {
 			ps.setLong(paramPos, dbo.getObjectId());
 			paramPos++;
 		}
-
-		if (includingChildren)
-			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObjectId());
-				paramPos++;
-			}
-		if (includingLinks) {
-			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObjectId());
-				paramPos++;
-			}
-			for (DbDataObject dbo : dba.getItems()) {
-				ps.setLong(paramPos, dbo.getObjectId());
-				paramPos++;
-			}
-			if (linkTypes != null && !linkTypes.isEmpty()) {
-				for (Long type : linkTypes)
-					ps.setLong(paramPos, type);
-				paramPos++;
-			}
+		if (linkTypes != null && !linkTypes.isEmpty()) {
+			for (Long type : linkTypes)
+				ps.setLong(paramPos, type);
+			paramPos++;
 		}
+	}
 
+	StringBuilder getRepoSQLString(DbDataObject dbt, DbDataArray dba, ArrayList<Long> supportingPKIDs) {
+		StringBuilder strSQL = new StringBuilder();
+		strSQL.append("SELECT pkid,object_id,parent_id, object_type, meta_pkid, dt_insert, dt_delete, status FROM "
+				+ dbt.getVal("schema") + "." + dbt.getVal("repo_name") + " WHERE ((PKID in (");
+		for (int i = 0; i < dba.getItems().size(); i++)
+			strSQL.append("?,");
+		strSQL.setLength(strSQL.length() - 1);
+
+		strSQL.append(") ");
+		if (supportingPKIDs != null && supportingPKIDs.size() > 0) {
+			strSQL.append("OR PKID in (");
+			for (int i = 0; i < supportingPKIDs.size(); i++)
+				strSQL.append("?,");
+			strSQL.setLength(strSQL.length() - 1);
+			strSQL.append(")");
+		}
+		strSQL.append(") AND CURRENT_TIMESTAMP<DT_DELETE) ");
+
+		return strSQL;
+
+	}
+
+	void bindObjectId(PreparedStatement ps, DbDataArray dba, ArrayList<Long> supportingPKIDs) throws SQLException {
+		int paramPos = 1;
+		for (DbDataObject dbo : dba.getItems()) {
+			ps.setLong(paramPos, dbo.getPkid());
+			paramPos++;
+		}
+		for (Long pkid : supportingPKIDs) {
+			ps.setLong(paramPos, pkid);
+			paramPos++;
+		}
 	}
 
 	/**
@@ -288,13 +375,15 @@ public class SvWriter extends SvCore {
 		Object[] repoObjects = null;
 
 		try {
-			StringBuilder strSQL = getRepoSQLString(dbt, dba, includingChildren, includingLinks, linkTypes);
+			ArrayList<Long> supportingObjectPKIDs = getPKIDs(dbt, dba, includingChildren, includingLinks, linkTypes);
+
+			StringBuilder strSQL = getRepoSQLString(dbt, dba, supportingObjectPKIDs);
 			// for mssql do not use FOR UPDATE
 			if (!SvConf.getDbType().equals(SvDbType.MSSQL))
 				strSQL.append(" FOR UPDATE");
 
 			ps = this.dbGetConn().prepareStatement(strSQL.toString());
-			bindObjectId(ps, dba, includingChildren, includingLinks, linkTypes);
+			bindObjectId(ps, dba, supportingObjectPKIDs);
 			rs = ps.executeQuery();
 			if (log4j.isDebugEnabled())
 				log4j.trace("Executing SQL:" + strSQL.toString());
@@ -394,12 +483,18 @@ public class SvWriter extends SvCore {
 	 * @throws SvException
 	 */
 	protected String getQryInsertTableData(DbDataObject dbt, DbDataArray objectFields, Boolean isUpdate,
-			Boolean hasPKID) throws SvException {
+			Boolean hasPKID, boolean hasNullGeometry) throws SvException {
 		String sql = null;
-		if (!isUpdate)
-			sql = queryCache.get(dbt.getObjectId());
+		HashMap<Long, String> qCache = null;
+		if (SvCore.hasGeometries(dbt.getObjectId()) && !hasNullGeometry)
+			qCache = querySDICache;
 		else
-			sql = queryCache.get(-dbt.getObjectId());
+			qCache = queryCache;
+
+		if (!isUpdate)
+			sql = qCache.get(dbt.getObjectId());
+		else
+			sql = qCache.get(-dbt.getObjectId());
 		if (sql != null)
 			return sql;
 
@@ -417,13 +512,8 @@ public class SvWriter extends SvCore {
 			// maybe add field level checks in 2020?
 			// if (!isFieldWriteable(obj, "Replace with User", status)) {
 			// fieldVals.append((String) obj.getVal("field_name"));
-			// else
-			if (((String) obj.getVal("field_type")).equals("GEOMETRY")) // add
-																		// specifics
-																		// for
-																		// GIS
-																		// data
-			{
+
+			if (((String) obj.getVal("field_type")).equals("GEOMETRY") && !hasNullGeometry) {
 				ISvDatabaseIO gio = SvConf.getDbHandler();
 				fieldVals.append(gio.getGeomWriteSQL() + ",");
 			} else
@@ -437,11 +527,11 @@ public class SvWriter extends SvCore {
 
 		if (!isUpdate) {
 			sql += "VALUES(" + fieldVals + ")";
-			queryCache.put(dbt.getObjectId(), sql);
+			qCache.put(dbt.getObjectId(), sql);
 		} else {
 			sql += "SELECT " + fieldVals + " FROM " + (String) dbt.getVal("schema") + "."
 					+ (String) dbt.getVal("table_name") + " WHERE pkid=?";
-			queryCache.put(-dbt.getObjectId(), sql);
+			qCache.put(-dbt.getObjectId(), sql);
 		}
 		if (log4j.isDebugEnabled())
 			log4j.trace(sql);
@@ -977,16 +1067,19 @@ public class SvWriter extends SvCore {
 		// get the table columns (object fields) to generate the insert
 		DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
 
-		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true);
+		DbDataObject dboFirst = arrayToSave.get(0);
+		boolean hasNullGeometry = SvGeometry.getGeometry(dboFirst) == null;
+		String sql = getQryInsertTableData(dbt, objectFields, isUpdate, true, hasNullGeometry);
 		if (log4j.isDebugEnabled())
 			log4j.trace("Executing SQL:" + sql);
 
 		try (SvLob lob = new SvLob(this.dbGetConn()); PreparedStatement ps = this.dbGetConn().prepareStatement(sql)) {
 			for (DbDataObject objToSave : arrayToSave.getItems()) {
-
 				Object[] oldRepoData = isUpdate ? oldRepoObjs.get(objToSave.getObjectId()) : null;
 				// always bind the PKID at position one
 				ps.setBigDecimal(1, new BigDecimal(objToSave.getPkid()));
+				if ((SvGeometry.getGeometry(objToSave) == null) != hasNullGeometry)
+					throw (new SvException("system.error.null_geometry_mix", instanceUser, arrayToSave, dbt));
 				bindColumnValues(objToSave, isUpdate, objectFields, oldRepoData, ps, lob);
 			}
 			int[] insertedRows = ps.executeBatch();
@@ -1071,7 +1164,7 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
-	 * Method for validating the data for a specific field
+	 * cachCleanup Method for validating the data for a specific field
 	 * 
 	 * @param dbf   The descriptor of the field
 	 * @param value The value to which the field is set
@@ -1205,11 +1298,23 @@ public class SvWriter extends SvCore {
 				}
 			}
 
+		// finally invoce the cache clean up
+		cacheCleanup(dba);
+
+	}
+
+	private void cacheCleanup(DbDataArray dba) throws SvException {
+		DbDataObject dboFirst = dba.getItems().get(0);
+
 		for (DbDataObject dbo : dba.getItems()) {
 			cacheCleanup(dbo);
 			executeAfterSaveCallbacks(dbo);
 			dbo.setIsDirty(false);
 		}
+		// if we have geometry then clean the tile cache
+		if (dboFirst.isGeometryType())
+			SvGeometry.cacheCleanup(dba);
+
 		// broadcast the dirty objects to the cluster
 		// if we are coordinator, broadcast through the proxy otherwise
 		// broadcast through the client
@@ -1220,7 +1325,6 @@ public class SvWriter extends SvCore {
 				SvClusterNotifierProxy.publishDirtyArray(dba);
 
 		}
-
 	}
 
 	/**
@@ -1385,6 +1489,27 @@ public class SvWriter extends SvCore {
 		deleteImpl(dba, deleteChildren, deleteLinks, null, null);
 	}
 
+	/**
+	 * Method for deleting list of object from database. The delete method acts
+	 * depending on the deletion type of the reference type of the object which is
+	 * deleted
+	 * 
+	 * @param dba            The list of objects object which should be deleted
+	 * @param deleteChildren Flag to ensure the method will cascade the deletion to
+	 *                       child objects
+	 * @param deleteLinks    Flag to ensure the method will cascade the deletion to
+	 *                       link objects (It delete only the link, not the linking
+	 *                       object!)
+	 * @throws SvException
+	 */
+	public void deleteObjects(DbDataArray dba, boolean deleteChildren, boolean deleteLinks, boolean autoCommit)
+			throws SvException {
+
+		deleteImpl(dba, deleteChildren, deleteLinks, null, null);
+		if (autoCommit)
+			dbCommit();
+	}
+
 	void validateList(DbDataArray dba) throws SvException {
 		if (dba.size() < 1)
 			throw (new SvException(Sv.Exceptions.NULL_OBJECT, instanceUser, dba, null));
@@ -1402,6 +1527,18 @@ public class SvWriter extends SvCore {
 		}
 	}
 
+	/**
+	 * Method to perform the actual deletion of objects in the database. It allows
+	 * deletion of dependent objects, such as child objects and links
+	 * 
+	 * @param dba            The list of objects which is subject of deletion
+	 * @param deleteChildren Flag to allow deletion of child objects
+	 * @param deleteLinks    Flat to allow deletion of links to other objects
+	 * @param childTypes     Filter to allow only certain types of child objects to
+	 *                       be deleted (not working atm)
+	 * @param linkTypes      Filter to delete only certain types of links
+	 * @throws SvException Any underlying exception raised by the svarog core
+	 */
 	protected void deleteImpl(DbDataArray dba, boolean deleteChildren, boolean deleteLinks, ArrayList<Long> childTypes,
 			ArrayList<Long> linkTypes) throws SvException {
 
@@ -1525,7 +1662,9 @@ public class SvWriter extends SvCore {
 	 * A method that saves a DbDataObject object to the Database.
 	 * 
 	 * @param dbDataObject The DbDataObject object which needs to be saved.
-	 * @throws SvException
+	 * @param autoCommit   Auto commit flag. If its true, the method will commit the
+	 *                     operation to the database
+	 * @throws SvException Any underlying exception that is raised by Svarog
 	 */
 	public void deleteObject(DbDataObject dbDataObject, Boolean autoCommit) throws SvException {
 
@@ -1666,7 +1805,7 @@ public class SvWriter extends SvCore {
 			svr.instanceUser = svCONST.systemUser;
 
 			DbDataArray objectFields = DbCache.getObjectsByParentId(dbt.getObjectId(), svCONST.OBJECT_TYPE_FIELD_SORT);
-			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true);
+			String sql = getQryInsertTableData(dbt, objectFields, oldPkid != null && oldPkid != 0, true, false);
 			log4j.debug("Executing SQL:" + sql);
 
 			Connection conn = this.dbGetConn();

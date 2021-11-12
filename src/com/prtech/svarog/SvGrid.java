@@ -207,7 +207,7 @@ public class SvGrid extends SvSDITile {
 			String jtsJson = null;
 			GeoJsonWriter jtsWriter = new GeoJsonWriter();
 			jtsWriter.setUseFeatureType(true);
-			if (SvConf.getSDISrid().equals(Sv.SQL_NULL))
+			if (SvConf.getSDISrid().equals(Sv.SQL.NULL))
 				jtsWriter.setEncodeCRS(false);
 			jtsJson = jtsWriter.write(grid);
 			SvUtil.saveStringToFile(SvConf.getConfPath() + SvarogInstall.masterSDIPath + SvarogInstall.sdiGridFile,

@@ -28,7 +28,7 @@ import com.prtech.svarog_common.SvCalculator.SvCalcOperator;
  * @author PR01
  * 
  */
-public class SvCalculatorTests {
+public class SvCalculatorTest {
 
 	public class SvCalculatorSubA extends SvCalculator {
 
