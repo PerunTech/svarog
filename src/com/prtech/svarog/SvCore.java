@@ -79,7 +79,7 @@ import com.vividsolutions.jts.io.WKBWriter;
  * to management of Forms (except for reading forms which is assigned to the
  * SvReader). It also ensures that proper SvCore chaining is validated and
  * allows sharing JDBC connections between different cores. It also performs all
- * Svarog related authorization processes which in turn implement the security
+ * Svarog related authorization processes which turn implement the security
  * enforcement via SVAROG ACLs. Internally it provides the basic reading of data
  * from the database structure and transforming it into set of DbDataObject
  * POJOs.
@@ -99,6 +99,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * svarog shutdown hook.
 	 **/
 	public static final String SVAROG_SHUTDOWN_HOOK_PROP = "svarog.shutdown.hook";
+	public static final String SVAROG_STARTUP_HOOK_PROP = "svarog.startup.hook";
 
 	/**
 	 * Static block to set the shutdown hooks only once at boot
@@ -419,7 +420,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		if (SvConf.isClusterEnabled() && (SvarogDaemon.osgiFramework != null && !SvCluster.getIsActive().get())) {
 			if ((srcCore != null && !srcCore.isInternal))
-				throw (new SvException("system.error.cluster_inactive", instanceUser));
+				throw (new SvException(Sv.Exceptions.CLUSTER_INACTIVE, instanceUser));
 		}
 		// if the svarog core is not in valid state we should start the
 		// initialisation
@@ -1038,6 +1039,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				linkToParentDbt(dbo);
 			} catch (Exception e) {
 				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata", e);
+				if (log4j.isDebugEnabled())
+					log4j.warn(e);
 			}
 
 		}
@@ -1101,9 +1104,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 		assert (dbt != null);
 
-		JsonObject meta = (JsonObject) dbt.getVal(Sv.GUI_METADATA);
-		if (meta == null) {
-
+		Object gmeta = dbt.getVal(Sv.GUI_METADATA);
+		JsonObject meta = null;
+		if (gmeta != null && gmeta instanceof JsonObject) {
+			meta = (JsonObject) gmeta;
+		} else {
 			try (SvReader svr = new SvReader()) {
 				DboUnderground.revertReadOnly(dbt, svr);
 				meta = new JsonObject();
@@ -1156,8 +1161,18 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	private static void prepareTables(DbDataArray tables, DbDataArray fields, DbDataArray links) {
 		boolean found = false;
+		Gson gs = new Gson();
 		for (DbDataObject dbt : tables.getItems()) {
 			found = false;
+			if (dbt.getVal(Sv.GUI_METADATA) != null) {
+				JsonObject jo = gs.fromJson((String) dbt.getVal(Sv.GUI_METADATA), JsonObject.class);
+				dbt.setVal(Sv.GUI_METADATA, jo);
+				dbt.setIsDirty(false);
+			}
+
+			if (dbt.getVal(Sv.EXTENDED_PARAMS) != null)
+				prepareExtOpts(dbt);
+			
 			if (dbt.getVal(Sv.CONFIG_TYPE_ID) != null) {
 				Object cfgTypeId = dbt.getVal(Sv.CONFIG_TYPE_ID);
 
@@ -1278,34 +1293,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
-	 * Method to execute list of shut down executors loaded from svarog.properties.
-	 * 
-	 * @param shutDownExec List of key of svarog executors. Semicolon is the list
-	 *                     separator
-	 */
-	private static void execSvarogShutDownHooks(String shutDownExec) {
-		SvExecManager sve = null;
-		String[] list = shutDownExec.trim().split(";");
-		try {
-			sve = new SvExecManager();
-			for (int i = 0; i < list.length; i++) {
-				try {
-					sve.execute(list[i].toUpperCase(), null, new DateTime());
-					log4j.info("Executed shut down executor: " + list[i]);
-				} catch (Exception e) {
-					log4j.info("Could not execute shut down executor: " + list[i], e);
-				}
-			}
-		} catch (SvException e) {
-			log4j.info("Error Svarog shut down", e);
-		} finally {
-			if (sve != null) {
-				sve.release();
-			}
-		}
-	}
-
-	/**
 	 * Method to set a shutdown hook to the JVM in order to perform cleanup and
 	 * shutdown the osgi framework
 	 */
@@ -1315,9 +1302,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				try {
 					log4j.info("Shutting down svarog");
 					// Svarog shut down executing list of executors
-					String shutDownExec = (String) SvConf.getParam(SVAROG_SHUTDOWN_HOOK_PROP);
-					if (shutDownExec != null && !shutDownExec.isEmpty())
-						execSvarogShutDownHooks(shutDownExec);
 
 					log4j.info("Shutting down the cluster infrastructure");
 					SvCluster.shutdown(false);
@@ -1558,7 +1542,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		}
 
 		if (svToken == null)
-			throw (new SvException("error.invalid_session", svCONST.systemUser));
+			throw (new SvException(Sv.INVALID_SESSION, svCONST.systemUser));
 
 		DbDataObject dbu = null;
 		// if the last refresh + the interval is in the past, send a refresh in
@@ -1959,7 +1943,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				obj = new Timestamp(((DateTime) obj).getMillis());
 			if (log4j.isDebugEnabled())
 				log4j.trace("Bind Variable:" + paramIdx.toString() + ", value:"
-						+ (obj != null ? obj.toString() : Sv.SQL_NULL));
+						+ (obj != null ? obj.toString() : Sv.SQL.NULL));
 			ps.setObject(paramIdx, obj);
 			paramIdx++;
 		}
@@ -2940,7 +2924,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbFieldType type = DbFieldType.valueOf((String) dbf.getVal(Sv.FIELD_TYPE));
 		if (log4j.isDebugEnabled())
 			log4j.trace("For field:+" + dbf.getVal(Sv.FIELD_NAME) + ", binding value "
-					+ (value != null ? value.toString() : Sv.SQL_NULL) + " at position " + bindAtPosition
+					+ (value != null ? value.toString() : Sv.SQL.NULL) + " at position " + bindAtPosition
 					+ " as data type " + type.toString());
 
 		switch (type) {
@@ -2960,12 +2944,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			bindString(ps, dbf, bindAtPosition, value, lob, type);
 			break;
 		case GEOMETRY:
-			byte[] byteVal = getWKBWriter().write((Geometry) value);
-			try {
-				SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
-			} catch (Exception e) {
-				throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
-			}
+			if (value != null) {
+				byte[] byteVal = getWKBWriter().write((Geometry) value);
+				try {
+					SvConf.getDbHandler().setGeometry(ps, bindAtPosition, byteVal);
+				} catch (Exception e) {
+					throw (new SvException("system.error.bind_geometry", this.instanceUser, dbf, value, e));
+				}
+			} else
+				ps.setNull(bindAtPosition, java.sql.Types.STRUCT, SvGeometry.GEOM_STRUCT_TYPE);
 			break;
 		default:
 			ps.setString(bindAtPosition, (String) value);
@@ -3124,6 +3111,21 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 */
 	public DbDataObject getInstanceUser() {
 		return instanceUser;
+	}
+
+	/**
+	 * Method to set the current user of the SvCore. This is possible only for
+	 * System or Service users.
+	 * 
+	 * @param newInstanceUser The descriptor of the new instance user
+	 * @throws SvException "system.error.not_authorised" is thrown if the the
+	 *                     current user is not system or service
+	 */
+	public void setInstanceUser(DbDataObject newInstanceUser) throws SvException {
+		if (isSystem() || isService()) {
+			instanceUser = newInstanceUser;
+		} else
+			throw (new SvException("system.error.not_authorised", instanceUser));
 	}
 
 	public Boolean getIsDebugEnabled() {

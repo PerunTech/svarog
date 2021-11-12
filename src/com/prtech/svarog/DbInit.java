@@ -156,7 +156,14 @@ public class DbInit {
 		dbf10.setIsNull(false);
 		dbf10.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "" + Sv.SORT_ORDER.toLowerCase());
 
-		DbDataField[] dbTableFields = new DbDataField[10];
+		DbDataField dbf11 = new DbDataField();
+		dbf11.setDbFieldName("GUI_METADATA");
+		dbf11.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf11.setDbFieldSize(2000);
+		dbf11.setIsNull(true);
+		dbf11.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_VISIBLE_UI);
+
+		DbDataField[] dbTableFields = new DbDataField[11];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe2;
 		dbTableFields[2] = dbe3;
@@ -167,6 +174,7 @@ public class DbInit {
 		dbTableFields[7] = dbf8;
 		dbTableFields[8] = dbf9;
 		dbTableFields[9] = dbf10;
+		dbTableFields[10] = dbf11;
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
@@ -3856,7 +3864,7 @@ public class DbInit {
 			dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "code_type");
 			// f2
 			DbDataField dbf2_1 = new DbDataField();
-			dbf2_1.setDbFieldName("CODE_VALUE");
+			dbf2_1.setDbFieldName(Sv.CODE_VALUE);
 			dbf2_1.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf2_1.setDbFieldSize(50);
 			dbf2_1.setIsNull(false);
@@ -3881,7 +3889,7 @@ public class DbInit {
 
 			// f2
 			DbDataField dbf5 = new DbDataField();
-			dbf5.setDbFieldName("PARENT_CODE_VALUE");
+			dbf5.setDbFieldName(Sv.PARENT_CODE_VALUE);
 			dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 			dbf5.setDbFieldSize(50);
 			dbf5.setIsNull(true);
@@ -6210,6 +6218,7 @@ public class DbInit {
 			dbo.setVal("config_type_id", dbt.getConfigTypeName());
 			dbo.setVal("config_relation_type", dbt.getConfigRelationType());
 			dbo.setVal("config_relation_id", dbt.getConfigRelatedTypeName());
+			dbo.setVal("gui_metadata", dbt.getGui_metadata());
 
 			if (dbt.getIsConfigTable()) {
 				if (dbt.getConfigColumnName() == null || dbt.getConfigColumnName().length() < 1) {
@@ -6782,7 +6791,9 @@ public class DbInit {
 				log4j.info("Loading 'labels/codes.properties' from custom jar:" + jarPath);
 			}
 		} catch (Exception e1) {
-			log4j.error("Error loading codes from custom jar:" + jarPath, e1);
+			log4j.error("Error loading codes from custom jar:" + jarPath);
+			if (log4j.isDebugEnabled())
+				log4j.error(e1);
 			return;
 		}
 
@@ -6988,20 +6999,37 @@ public class DbInit {
 			while (en.hasMoreElements()) {
 				String className = getClassName(en);
 				if (className != null) {
-					Class<?> c = cl.loadClass(className);
-					if (clazz.isAssignableFrom(c)) {
-						dbi.add(c.newInstance());
+					try {
+						Class<?> c = cl.loadClass(className);
+						if (clazz.isAssignableFrom(c))
+							dbi.add(c.newInstance());
+					} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
+							| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
 
+						if (!isClassStandard(className)) {
+							log4j.error("Error loading class:" + className + ", faulty jar:" + pathToJar);
+							log4j.debug(ex);
+						}
 					}
-				}
 
+				}
 			}
-		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
-				| ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+		} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError ex) {
 			if (log4j.isDebugEnabled())
 				log4j.trace("Error loading class", ex);
 		}
 		return dbi;
+	}
+
+	static boolean isClassStandard(String className) {
+		String[] standardClasses = new String[] { "org.apache", "com.fasterxml", "org.glassfish", "org.eclipse",
+				"org.osgi","com.eclipsesource" };
+
+		for (String prefix : standardClasses) {
+			if (className.startsWith(prefix))
+				return true;
+		}
+		return false;
 	}
 
 	/**
