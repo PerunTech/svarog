@@ -412,6 +412,65 @@ public class DbInit {
 		return dbt;
 	}
 
+	// table Configuration Log
+	private static DbDataTable getConfigurationLog() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + "_config_log");
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.CONFIGURATION_LOG_TYPE);
+		dbt.setIsRepoTable(false);
+		dbt.setIsConfigTable(true);
+		dbt.setConfigColumnName(Sv.LABEL_CODE.toString());
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "config_log");
+		dbt.setUse_cache(false);
+
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+		DbDataField dbf9 = new DbDataField();
+		dbf9.setDbFieldName(Sv.VERSION);
+		dbf9.setDbFieldType(DbFieldType.NUMERIC);
+		dbf9.setDbFieldSize(3);
+		dbf9.setDbFieldScale(0);
+		dbf9.setIsNull(false);
+		dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "version");
+
+		// f2
+		// Column 5
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName("EXECUTION_TIME");
+		dbf5.setDbFieldType(DbFieldType.TIMESTAMP);
+		dbf5.setDbFieldSize(3);
+		dbf5.setIsNull(false);
+		dbf5.setLabel_code("event.dt_start");
+
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName("CONFIGURATION_CLASS");
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(500);
+		dbf4.setIsUnique(false);
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "configuration_class");
+
+		DbDataField[] dbTableFields = new DbDataField[4];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf4;
+		dbTableFields[2] = dbf9;
+		dbTableFields[3] = dbf5;
+		dbt.setDbTableFields(dbTableFields);
+		return dbt;
+	}
+
 	// table EXECUTOR_PACK
 	private static DbDataTable getExecutorPack() {
 		DbDataTable dbt = new DbDataTable();
@@ -5315,6 +5374,8 @@ public class DbInit {
 		dbtt = createMasterFormType();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = getMasterCodes();
+		dbtList.add(addSortOrder(dbtt));
+		dbtt = getConfigurationLog();
 		dbtList.add(addSortOrder(dbtt));
 
 		return dbtList;
