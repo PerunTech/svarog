@@ -3,7 +3,9 @@ package com.prtech.svarog;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,9 +14,10 @@ import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbDataTable;
 import com.prtech.svarog_interfaces.ISvConfiguration;
+import com.prtech.svarog_interfaces.ISvConfigurationMulti;
 import com.prtech.svarog_interfaces.ISvCore;
 
-public class SvConfigurationImpl implements ISvConfiguration {
+public class SvConfigurationImpl implements ISvConfigurationMulti {
 	private static final Logger log4j = SvConf.getLogger(SvConfigurationImpl.class);
 
 	@Override
@@ -118,6 +121,19 @@ public class SvConfigurationImpl implements ISvConfiguration {
 	@Override
 	public String afterUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
 		return "";
+	}
+
+	@Override
+	public int getVersion(int currentVersion) {
+		//version 1 of the switch to multi configuration
+		return 1;
+	}
+
+	@Override
+	public List<UpdateType> getUpdateTypes() {
+		List<UpdateType> types = new ArrayList<UpdateType>();
+		types.add(UpdateType.SCHEMA);
+		return types;
 	}
 
 }
