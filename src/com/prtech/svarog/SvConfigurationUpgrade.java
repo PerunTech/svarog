@@ -185,7 +185,8 @@ public class SvConfigurationUpgrade {
 		String schema = null;
 		String msg = "";
 		ISvCore svc = null;
-
+		if (!SvarogInstall.isSvarogInstalled())
+			return;
 		// pre-install db handler call
 		try {
 
