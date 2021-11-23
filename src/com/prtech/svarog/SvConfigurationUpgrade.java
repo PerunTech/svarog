@@ -45,15 +45,20 @@ public class SvConfigurationUpgrade {
 	 * Static block to initialise the upgrade history
 	 */
 	static DbDataArray getUpgradeHistory() {
-		DbDataArray history = null;
-		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr)) {
-			DbQueryObject q = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_CONFIGURATION_LOG), null, null, null);
-			history = svr.getObjects(q, null, null);
-			history.rebuildIndex(Sv.CONFIGURATION_CLASS, true);
-		} catch (SvException e) {
-			log4j.fatal("Failed reading upgrade history", e);
-		}
-		return history;
+		if (SvarogInstall.isSvarogInstalled()) {
+			DbDataArray history = null;
+			try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr)) {
+				DbQueryObject q = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_CONFIGURATION_LOG), null, null,
+						null);
+				history = svr.getObjects(q, null, null);
+				history.rebuildIndex(Sv.CONFIGURATION_CLASS, true);
+			} catch (SvException e) {
+				log4j.fatal("Failed reading upgrade history", e);
+			}
+			return history;
+		} else
+			return new DbDataArray();
+
 	}
 
 	/**
