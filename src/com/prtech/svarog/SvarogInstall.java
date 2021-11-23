@@ -129,6 +129,9 @@ public class SvarogInstall {
 
 	static ArrayList<Option> sysCoreOpts = new ArrayList<Option>();
 
+	/**
+	 * List of SvConfigurations available in the system
+	 */
 	public static final String labelsFilePrefix = "20. master_labels_";
 	public static final String codesFile = "30. master_codes.json";
 	public static final String usersFile = "999. default_users.json";
@@ -1217,7 +1220,7 @@ public class SvarogInstall {
 	 * 
 	 * @return True if the installation is valid, false if it isn't
 	 */
-	private static boolean isSvarogInstalled() {
+	 static boolean isSvarogInstalled() {
 		if (mIsAlreadyInstalled == null) {
 			mIsAlreadyInstalled = new Boolean(true);
 			Connection conn = null;
@@ -1244,108 +1247,6 @@ public class SvarogInstall {
 		return mIsAlreadyInstalled;
 	}
 
-	/**
-	 * Method to sort an array of ISvConfiguration objects by different update types
-	 * 
-	 * @param cfgs       The array of ISvConfiguration objects
-	 * @param updateType The specific update type to be used for sorting
-	 * @return The sorted ArrayList
-	 */
-	static ArrayList<ISvConfiguration> getSortedCfgs(ArrayList<ISvConfiguration> cfgs,
-			final ISvConfiguration.UpdateType updateType) {
-		Collections.sort(cfgs, new Comparator<ISvConfiguration>() {
-			public int compare(ISvConfiguration o1, ISvConfiguration o2) {
-				return o1.executionOrder(updateType) - o2.executionOrder(updateType);
-			}
-		});
-		return cfgs;
-	}
-
-<<<<<<< src/com/prtech/svarog/SvarogInstall.java
-=======
-	static void prepareConfig() {
-		if (iSvCfgs == null) {
-			iSvCfgs = new ArrayList<ISvConfiguration>();
-			log4j.info("Preparing list of Configuration classes");
-
-			// add the system implementation
-			iSvCfgs.add(new SvConfigurationImpl());
-
-			ArrayList<Object> cfgs = DbInit.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY),
-					ISvConfiguration.class);
-			if (cfgs != null)
-				for (Object o : cfgs)
-					if (o instanceof ISvConfiguration) {
-						log4j.info("Loaded class: " + o.getClass().getName());
-						iSvCfgs.add((ISvConfiguration) o);
-					}
-		}
-	}
-
-	static void executeConfiguration(ISvConfiguration.UpdateType updateType) throws Exception {
-		Connection conn = null;
-		String schema = null;
-		String msg = "";
-		ISvCore svc = null;
-		prepareConfig();
-
-		// pre-install db handler call
-		try {
-			conn = SvConf.getDBConnection();
-			schema = SvConf.getDefaultSchema();
-			if (!updateType.equals(UpdateType.SCHEMA) || isSvarogInstalled()) {
-				svc = new SvReader();
-				svc.setInstanceUser(svCONST.serviceUser);
-			}
-			for (ISvConfiguration conf : getSortedCfgs(iSvCfgs, updateType)) {
-				try {
-					switch (updateType) {
-					case SCHEMA:
-						msg = conf.beforeSchemaUpdate(conn, svc, schema);
-						break;
-					case LABELS:
-						msg = conf.beforeLabelsUpdate(conn, svc, schema);
-						break;
-					case CODES:
-						msg = conf.beforeCodesUpdate(conn, svc, schema);
-						break;
-					case TYPES:
-						msg = conf.beforeTypesUpdate(conn, svc, schema);
-						break;
-					case LINKTYPES:
-						msg = conf.beforeLinkTypesUpdate(conn, svc, schema);
-						break;
-					case ACL:
-						msg = conf.beforeAclUpdate(conn, svc, schema);
-						break;
-					case SIDACL:
-						msg = conf.beforeSidAclUpdate(conn, svc, schema);
-						break;
-					case FINAL:
-						msg = conf.afterUpdate(conn, svc, schema);
-						break;
-					default:
-						break;
-					}
-					if (msg != null && !msg.isEmpty())
-						log4j.info(msg);
-				} catch (java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.VerifyError
-						| Exception ex) {
-					log4j.error(
-							"Error executing " + updateType.toString() + "configuration: " + conf.getClass().getName());
-					if (log4j.isDebugEnabled())
-						log4j.error(ex);
-				}
-			}
-		} finally {
-			if (svc != null)
-				svc.release();
-			if (conn != null)
-				conn.close();
-		}
-	}
-
->>>>>>> src/com/prtech/svarog/SvarogInstall.java
 	/**
 	 * Method for install/upgrade svarog, to the latest config.
 	 * 
@@ -1392,8 +1293,7 @@ public class SvarogInstall {
 				isRunning = svp.getParamString("svarog.upgrade.running");
 				svp.release();
 			}
-			if (runConfigurationTest)
-				prepareConfigurationTest();
+
 			// pre-install db handler call
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.SCHEMA);
 
@@ -1450,11 +1350,6 @@ public class SvarogInstall {
 		}
 
 		return 0;
-	}
-
-	private static void prepareConfigurationTest() {
-		SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
-		SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
 	}
 
 	/**
@@ -2839,7 +2734,7 @@ public class SvarogInstall {
 			if (isSvarogInstalled())
 				SvCore.initSvCoreImpl(true);
 
-			executeConfiguration(ISvConfiguration.UpdateType.CODES);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.CODES);
 			// run the upgrade of the codes
 			upgradeCodes(SvConf.getConfPath() + masterRecordsPath + codesFile);
 
@@ -2847,7 +2742,7 @@ public class SvarogInstall {
 			if (labelsOnly)
 				return true;
 
-			executeConfiguration(ISvConfiguration.UpdateType.TYPES);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.TYPES);
 			// for each config file run the upgrade against the database
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("4")) {
@@ -2878,7 +2773,7 @@ public class SvarogInstall {
 				installLocalData(allNonProcessed);
 			}
 
-			executeConfiguration(ISvConfiguration.UpdateType.SIDACL);
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.SIDACL);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("91")) {
 					String upgradeFile = confPath + confFiles[i].getName();

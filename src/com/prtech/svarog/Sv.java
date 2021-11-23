@@ -255,5 +255,8 @@ public class Sv {
 	public static final String DB_TYPE = "conn.dbType";
 	public static final String POSTGRES = "POSTGRES";
 	public static final SvCharId FILE_TYPE = new SvCharId("FILE_TYPE");
+	public static final String CONFIGURATION_CLASS = "CONFIGURATION_CLASS";
+	public static final String EXECUTION_TIME = "EXECUTION_TIME";
+	public static final String IS_SUCCESSFUL = "IS_SUCCESSFUL";
 
 }

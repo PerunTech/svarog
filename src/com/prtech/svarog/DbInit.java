@@ -419,7 +419,7 @@ public class DbInit {
 		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
 		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbt.setIsSystemTable(true);
-		dbt.setObjectId(svCONST.CONFIGURATION_LOG_TYPE);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_CONFIGURATION_LOG);
 		dbt.setIsRepoTable(false);
 		dbt.setIsConfigTable(true);
 		dbt.setConfigColumnName(Sv.LABEL_CODE.toString());
@@ -428,7 +428,7 @@ public class DbInit {
 
 		// f1
 		DbDataField dbf1 = new DbDataField();
-		dbf1.setDbFieldName("PKID");
+		dbf1.setDbFieldName(Sv.PKID);
 		dbf1.setIsPrimaryKey(true);
 		dbf1.setDbFieldType(DbFieldType.NUMERIC);
 		dbf1.setDbFieldSize(18);
@@ -442,31 +442,30 @@ public class DbInit {
 		dbf9.setDbFieldSize(3);
 		dbf9.setDbFieldScale(0);
 		dbf9.setIsNull(false);
-		dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "version");
-
-		// f2
-		// Column 5
-		DbDataField dbf5 = new DbDataField();
-		dbf5.setDbFieldName("EXECUTION_TIME");
-		dbf5.setDbFieldType(DbFieldType.TIMESTAMP);
-		dbf5.setDbFieldSize(3);
-		dbf5.setIsNull(false);
-		dbf5.setLabel_code("event.dt_start");
+		dbf9.setIsUnique(false);
+		dbf9.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.VERSION.toLowerCase());
 
 		// f4
 		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName("CONFIGURATION_CLASS");
+		dbf4.setDbFieldName(Sv.CONFIGURATION_CLASS);
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf4.setDbFieldSize(500);
-		dbf4.setIsUnique(false);
+		dbf4.setDbFieldSize(200);
+		dbf4.setIsUnique(true);
 		dbf4.setIsNull(true);
-		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "configuration_class");
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.CONFIGURATION_CLASS.toLowerCase());
 
+		DbDataField dbf6 = new DbDataField();
+		dbf6.setDbFieldName(Sv.IS_SUCCESSFUL);
+		dbf6.setDbFieldType(DbFieldType.BOOLEAN);
+		dbf6.setIsUnique(false);
+		dbf6.setIsNull(true);
+		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_SUCCESSFUL.toLowerCase());
+		
 		DbDataField[] dbTableFields = new DbDataField[4];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf4;
 		dbTableFields[2] = dbf9;
-		dbTableFields[3] = dbf5;
+		dbTableFields[3] = dbf6;
 		dbt.setDbTableFields(dbTableFields);
 		return dbt;
 	}
@@ -487,7 +486,7 @@ public class DbInit {
 
 		// f1
 		DbDataField dbf1 = new DbDataField();
-		dbf1.setDbFieldName("PKID");
+		dbf1.setDbFieldName(Sv.PKID);
 		dbf1.setIsPrimaryKey(true);
 		dbf1.setDbFieldType(DbFieldType.NUMERIC);
 		dbf1.setDbFieldSize(18);
@@ -5561,11 +5560,17 @@ public class DbInit {
 		return (ArrayList<Object>) loadClass(subDir, IDbInit.class);
 	}
 
+	/**
+	 * Method to load a cpecific class type from all jar files available in the specified directory
+	 * @param subDir Directory containing the jar's
+	 * @param clazz The class type
+	 * @return Object instances of the specified class type
+	 */
 	static ArrayList<Object> loadClass(String subDir, Class<?> clazz) {
 		File customFolder = new File(subDir);
-		ArrayList<Object> dbiResult = new ArrayList<>();
+		ArrayList<Object> objectResults = new ArrayList<>();
 		if (!customFolder.exists())
-			return dbiResult;
+			return objectResults;
 		File[] customJars = customFolder.listFiles();
 		if (customJars != null) {
 			Arrays.sort(customJars);
@@ -5573,14 +5578,14 @@ public class DbInit {
 				try {
 					if (customJars[i].getName().endsWith(".jar")) {
 						ArrayList<Object> dbi = DbInit.loadClassFromJar(customJars[i].getAbsolutePath(), clazz);
-						dbiResult.addAll((Collection<?>) dbi);
+						objectResults.addAll((Collection<?>) dbi);
 					}
 				} catch (Exception e) {
-					log4j.error("Loading IDbInit instance failed! File: " + customJars[i].getName(), e);
+					log4j.error("Loading "+clazz.getSimpleName()+" instance failed! File: " + customJars[i].getName(), e);
 				}
 			}
 		}
-		return dbiResult;
+		return objectResults;
 	}
 
 	public static String createJsonMasterRepo() {
@@ -6200,7 +6205,6 @@ public class DbInit {
 			DbDataTable dbt = dbtList.get(i);
 			DbDataObject dbo = new DbDataObject();
 			dbo.setObjectType(svCONST.OBJECT_TYPE_TABLE);
-
 			dbo.setObjectId(dbt.getObjectId());
 			dbo.setStatus(svCONST.STATUS_VALID);
 			dbo.setDtInsert(new DateTime(Sv.Y2K_START_DATE));
