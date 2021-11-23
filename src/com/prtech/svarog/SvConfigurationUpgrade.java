@@ -124,7 +124,7 @@ public class SvConfigurationUpgrade {
 		DbDataObject executionLog = upgradeHistory
 				.getItemByIdx(conf.getClass().getName() + "-" + updateType.toString());
 
-		DbDataObject dbo = new DbDataObject();
+		DbDataObject dbo = executionLog != null ? executionLog : new DbDataObject();
 		dbo.setObjectType(svCONST.OBJECT_TYPE_CONFIGURATION_LOG);
 		dbo.setVal(Sv.CONFIGURATION_CLASS, conf.getClass().getName() + "-" + updateType.toString());
 		int version = 1;
