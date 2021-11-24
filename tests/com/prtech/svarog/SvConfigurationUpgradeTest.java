@@ -89,7 +89,7 @@ public class SvConfigurationUpgradeTest {
 	}
 
 	@Test
-	public void testMultiSchemaExecution() {
+	public void testMultiTypesExecution() {
 		try {
 			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
 			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
@@ -108,27 +108,53 @@ public class SvConfigurationUpgradeTest {
 			SvConfigurationUpgrade.upgradeHistory = SvConfigurationUpgrade.getUpgradeHistory();
 
 			DbDataObject executionLog = SvConfigurationUpgrade.upgradeHistory.getItemByIdx(SvConfigurationDryRunMulti.class.getName() + "-" + ISvConfiguration.UpdateType.SCHEMA.toString());
-			if(executionLog==null || (Long)executionLog.getVal(Sv.VERSION)!=1L)
-				fail("Schema was not executed properly");
-			//ensure we trigger refresh of the history for the sake of testing
+			if(executionLog!=null)
+				fail("Schema registered in the log!");
+			
 			
 			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
-			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(2, up));
-			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.SCHEMA);
+			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
+			up = Arrays.asList(ISvConfiguration.UpdateType.TYPES);
+			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(1, up));
+
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.TYPES);
 
 			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
 				if (svc instanceof ISvConfigurationMulti) {
 					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
-					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.SCHEMA))
+					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.TYPES))
+						fail("Schema was not executed under dry run");
+				}
+			}
+			SvConfigurationUpgrade.upgradeHistory = SvConfigurationUpgrade.getUpgradeHistory();
+
+			executionLog = SvConfigurationUpgrade.upgradeHistory.getItemByIdx(SvConfigurationDryRunMulti.class.getName() + "-" + ISvConfiguration.UpdateType.TYPES.toString());
+			if(executionLog==null || (Long)executionLog.getVal(Sv.VERSION)!=1L)
+				fail("Types was not executed properly");
+			//also check if the schema from the first step is available now after flushing
+			executionLog = SvConfigurationUpgrade.upgradeHistory.getItemByIdx(SvConfigurationDryRunMulti.class.getName() + "-" + ISvConfiguration.UpdateType.SCHEMA.toString());
+			if(executionLog==null)
+				fail("Schema didn't show in the log even after flush!");
+			
+			//ensure we trigger refresh of the history for the sake of testing
+			
+			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
+			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(2, up));
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.TYPES);
+
+			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+				if (svc instanceof ISvConfigurationMulti) {
+					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
+					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.TYPES))
 						fail("Schema was not executed under dry run");
 				}
 			}
 
 			SvConfigurationUpgrade.upgradeHistory = SvConfigurationUpgrade.getUpgradeHistory();
 
-			executionLog = SvConfigurationUpgrade.upgradeHistory.getItemByIdx(SvConfigurationDryRunMulti.class.getName() + "-" + ISvConfiguration.UpdateType.SCHEMA.toString());
+			executionLog = SvConfigurationUpgrade.upgradeHistory.getItemByIdx(SvConfigurationDryRunMulti.class.getName() + "-" + ISvConfiguration.UpdateType.TYPES.toString());
 			if(executionLog==null || (Long)executionLog.getVal(Sv.VERSION)!=2L)
-				fail("Schema was not executed properly");
+				fail("Types was not executed properly");
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
