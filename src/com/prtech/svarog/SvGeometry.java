@@ -77,8 +77,8 @@ public class SvGeometry extends SvWriter {
 
 	private static volatile SvGrid sysGrid = null;
 	private static volatile SvSDITile sysBoundary = null;
-	private static volatile SvSDITile admUnitsTile = null; 
-			
+	private static volatile SvSDITile admUnitsTile = null;
+
 	static SvGrid getSysGrid() throws SvException {
 		if (sysGrid == null) {
 			synchronized (SvGeometry.class) {
@@ -92,6 +92,7 @@ public class SvGeometry extends SvWriter {
 
 	/**
 	 * Lazy initialization of the AdmUnits tile.
+	 * 
 	 * @return The administrative units tile
 	 * @throws SvException
 	 */
@@ -100,11 +101,12 @@ public class SvGeometry extends SvWriter {
 			synchronized (SvGeometry.class) {
 				if (admUnitsTile == null)
 					admUnitsTile = getSDIUnitBoundary(SvConf.getAdmUnitClass());
-					admUnitsTile.loadTile(); 
+				admUnitsTile.loadTile();
 			}
 		}
 		return admUnitsTile;
 	}
+
 	/**
 	 * This method shall be used only to enfore reset of the grid and boundary
 	 */
@@ -139,6 +141,7 @@ public class SvGeometry extends SvWriter {
 					HashMap<String, Object> params = new HashMap<String, Object>();
 					params.put("FILE_PATH", "conf/sdi/boundary.json");
 					sysBoundary = getTile(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE, Sv.SDI_SYSTEM_BOUNDARY, params);
+					sysBoundary.loadTile();
 				}
 			}
 		}
@@ -640,10 +643,10 @@ public class SvGeometry extends SvWriter {
 					dbo.setValuesMap(originalDbo.getValuesMap());
 					poly.setUserData(dbo);
 				}
-				//if (originalGeom.covers(poly))
+				// if (originalGeom.covers(poly))
 				result.add(poly);
 			}
-			if(originalDbo != null)
+			if (originalDbo != null)
 				splitObjects.add(originalDbo);
 		}
 		return result;

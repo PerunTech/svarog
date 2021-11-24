@@ -460,7 +460,7 @@ public class DbInit {
 		dbf6.setIsUnique(false);
 		dbf6.setIsNull(true);
 		dbf6.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.IS_SUCCESSFUL.toLowerCase());
-		
+
 		DbDataField[] dbTableFields = new DbDataField[4];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf4;
@@ -5374,8 +5374,6 @@ public class DbInit {
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = getMasterCodes();
 		dbtList.add(addSortOrder(dbtt));
-		dbtt = getConfigurationLog();
-		dbtList.add(addSortOrder(dbtt));
 
 		return dbtList;
 	}
@@ -5514,6 +5512,9 @@ public class DbInit {
 		dbtt = getSysParams();
 		dbtList.add(addSortOrder(dbtt));
 
+		dbtt = getConfigurationLog();
+		dbtList.add(addSortOrder(dbtt));
+
 		// Add SDI structure
 		if (SvConf.isSdiEnabled()) {
 			dbtt = getSDIMasterRepoObject();
@@ -5561,9 +5562,11 @@ public class DbInit {
 	}
 
 	/**
-	 * Method to load a cpecific class type from all jar files available in the specified directory
+	 * Method to load a cpecific class type from all jar files available in the
+	 * specified directory
+	 * 
 	 * @param subDir Directory containing the jar's
-	 * @param clazz The class type
+	 * @param clazz  The class type
 	 * @return Object instances of the specified class type
 	 */
 	static ArrayList<Object> loadClass(String subDir, Class<?> clazz) {
@@ -5581,7 +5584,9 @@ public class DbInit {
 						objectResults.addAll((Collection<?>) dbi);
 					}
 				} catch (Exception e) {
-					log4j.error("Loading "+clazz.getSimpleName()+" instance failed! File: " + customJars[i].getName(), e);
+					log4j.error(
+							"Loading " + clazz.getSimpleName() + " instance failed! File: " + customJars[i].getName(),
+							e);
 				}
 			}
 		}
@@ -5592,9 +5597,13 @@ public class DbInit {
 
 		ArrayList<DbDataTable> dbtList = getDedupTables(getMasterObjectsImpl());
 		ArrayList<Object> dbiResult = new ArrayList<Object>();
+
 		// load all dbinit instances from the legacy custom folder
-		dbiResult.addAll(getCustomDbInit("custom/"));
-		dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
+		// Disable DbInit objects if svarog is not installed
+		if (SvarogInstall.isSvarogInstalled()) {
+			dbiResult.addAll(getCustomDbInit("custom/"));
+			dbiResult.addAll(getCustomDbInit(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY)));
+		}
 
 		for (Object idb : dbiResult) {
 			if (idb instanceof IDbInit)
@@ -6662,12 +6671,14 @@ public class DbInit {
 			return errMsg.toString();
 
 		// load custom objects as well as from the OSGI bundles dir
-		svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes, customObjests);
-		customObjestsAll.getItems().addAll(customObjests.getItems());
-
-		saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
-				customObjests);
-		customObjestsAll.getItems().addAll(customObjests.getItems());
+		// if svarog installed, otherwhise skip
+		if (SvarogInstall.isSvarogInstalled()) {
+			svObjectId = saveCustomToJson("custom/", svObjectId, defaultCodes, customObjests);
+			customObjestsAll.getItems().addAll(customObjests.getItems());
+			saveCustomToJson(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY), svObjectId, defaultCodes,
+					customObjests);
+			customObjestsAll.getItems().addAll(customObjests.getItems());
+		}
 
 		DbDataArray arrWF = new DbDataArray();
 		addDefaultUnitsUsers(arrWF, svObjectId);
@@ -7027,7 +7038,7 @@ public class DbInit {
 
 	static boolean isClassStandard(String className) {
 		String[] standardClasses = new String[] { "org.apache", "com.fasterxml", "org.glassfish", "org.eclipse",
-				"org.osgi","com.eclipsesource" };
+				"org.osgi", "com.eclipsesource" };
 
 		for (String prefix : standardClasses) {
 			if (className.startsWith(prefix))

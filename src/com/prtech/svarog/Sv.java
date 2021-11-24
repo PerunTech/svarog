@@ -43,6 +43,7 @@ public class Sv {
 		public static final String FILE_DB_ERROR = "system.error.files_db_err";
 		public static final String EMPTY_FILE_SAVE = "system.error.cant_save_empty_file";
 		public static final String FILESAVE_TYPE_ERROR = "system.error.filedata_type_err";
+		public static final String NO_DBT_FOUND = "system.error.no_dbt_found";
 
 		private Exceptions() {
 		}

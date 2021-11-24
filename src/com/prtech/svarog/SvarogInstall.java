@@ -196,9 +196,9 @@ public class SvarogInstall {
 					else if (line.hasOption("gd"))
 						returnStatus = upgradeGrid();
 					else if (line.hasOption("i")) {
-						returnStatus = validateInstall();
 						if (returnStatus == 0 && line.hasOption("d"))
 							returnStatus = SvarogInstall.cleanDb() == true ? 0 : -1;
+						returnStatus = validateInstall();
 						if (returnStatus == 0) {
 							if (line.hasOption("a"))
 								returnStatus = generateJsonCfg();
@@ -1179,7 +1179,7 @@ public class SvarogInstall {
 	private static int generateJsonCfg() {
 		// we should not connect to database at all and check if svarog is
 		// installed therefore we fix the mIsAlreadyInstalled to false
-		mIsAlreadyInstalled = false;
+		//mIsAlreadyInstalled = false;
 
 		try {
 			File confDir = new File(SvConf.getConfPath());
@@ -1254,7 +1254,6 @@ public class SvarogInstall {
 	 */
 	public static int upgradeSvarog(boolean labelsOnly) {
 		// forse reset of the flag.
-		mIsAlreadyInstalled = null;
 		operation = (isSvarogInstalled() ? "install" : "upgrade");
 
 		/*
@@ -1854,8 +1853,8 @@ public class SvarogInstall {
 					}
 				}
 			}
-			// sometimes due to bug we have a rogue cluster master record which we need to
-			// delete
+			// sometimes due to bug we have a rogue cluster master 
+			// record which we need to delete
 			deleteClusterRogueRecord();
 			// Create all other tables
 			if (retval)
@@ -2752,6 +2751,7 @@ public class SvarogInstall {
 					upgradeObjectCfg(upgradeFile, allNonProcessed);
 				}
 			}
+			SvCore.initSvCore(true);
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.LINKTYPES);
 			for (int i = 0; i < confFiles.length; i++) {
 				if (confFiles[i].getName().startsWith("4")) {
@@ -2855,8 +2855,7 @@ public class SvarogInstall {
 			try {
 				mt.close();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				log4j.error("Multi threaded Writer failed to close",e);
 			}
 		}
 		return true;
