@@ -37,9 +37,20 @@ public class SvConfigurationUpgrade {
 	 */
 	static final Logger log4j = SvConf.getLogger(SvConfigurationUpgrade.class);
 	/**
+	 * Flag to mark the availability of configuration log tables
+	 */
+	static boolean confLogAvailable = true;
+
+	/**
 	 * The list of previous upgrades
 	 */
 	static DbDataArray upgradeHistory = getUpgradeHistory();
+
+	/**
+	 * The pre-schema configurations can't access the writer in order to save the
+	 * data so we store them in pending schema list
+	 */
+	static DbDataArray pendingSchemaLog = new DbDataArray();
 
 	/**
 	 * Static block to initialise the upgrade history
@@ -48,12 +59,16 @@ public class SvConfigurationUpgrade {
 		if (SvarogInstall.isSvarogInstalled()) {
 			DbDataArray history = null;
 			try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr)) {
-				DbQueryObject q = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_CONFIGURATION_LOG), null, null,
-						null);
+				DbDataObject configDbt = SvCore.getDbt(svCONST.OBJECT_TYPE_CONFIGURATION_LOG);
+
+				DbQueryObject q = new DbQueryObject(configDbt, null, null, null);
 				history = svr.getObjects(q, null, null);
 				history.rebuildIndex(Sv.CONFIGURATION_CLASS, true);
 			} catch (SvException e) {
-				log4j.fatal("Failed reading upgrade history", e);
+				if (e.getLabelCode().equals(Sv.Exceptions.NO_DBT_FOUND))
+					confLogAvailable = false;
+				else
+					log4j.fatal("Failed reading upgrade history", e);
 			}
 			return history;
 		} else
@@ -135,15 +150,21 @@ public class SvConfigurationUpgrade {
 		dbo.setVal(Sv.VERSION, version);
 		dbo.setVal(Sv.IS_SUCCESSFUL, isSuccessful);
 		dbo.setVal(Sv.EXECUTION_TIME, DateTime.now());
-		try (SvWriter svw = new SvWriter(svc); SvNote note = new SvNote(svw)) {
-			svw.isInternal = true;
-			svw.saveObject(dbo, false);
-			if (!isSuccessful) {
-				note.setAutoCommit(false);
-				note.setNote(dbo.getObjectId(), "EXECUTION_ERROR", errorMsg);
+		dbo.setVal("EXECUTION_ERROR", errorMsg);
+
+		// if the log is of SCHEMA type, add it to pending changes
+		if (updateType.equals(UpdateType.SCHEMA))
+			pendingSchemaLog.addDataItem(dbo);
+		else
+			try (SvWriter svw = new SvWriter(svc); SvNote note = new SvNote(svw)) {
+				svw.isInternal = true;
+				svw.saveObject(dbo, false);
+				if (!isSuccessful) {
+					note.setAutoCommit(false);
+					note.setNote(dbo.getObjectId(), "EXECUTION_ERROR", errorMsg);
+				}
+				svw.dbCommit();
 			}
-			svw.dbCommit();
-		}
 	}
 
 	/**
@@ -175,7 +196,9 @@ public class SvConfigurationUpgrade {
 
 	/**
 	 * Static method which executes all existing configurations for the required
-	 * updateType. See {@link ISvConfiguration.UpdateType}
+	 * updateType. See {@link ISvConfiguration.UpdateType}. If svarog is not
+	 * installed or configuration log table is not available, the configuration will
+	 * not be executed
 	 * 
 	 * @param updateType The update type to be executed
 	 * @throws SQLException in case any connection issues arise
@@ -185,15 +208,20 @@ public class SvConfigurationUpgrade {
 		String schema = null;
 		String msg = "";
 		ISvCore svc = null;
-		if (!SvarogInstall.isSvarogInstalled())
+		// make sure we have svarog installed and the configuration tables are
+		// available in the database
+		if (!SvarogInstall.isSvarogInstalled() || !confLogAvailable)
 			return;
+
 		// pre-install db handler call
 		try {
 
 			schema = SvConf.getDefaultSchema();
-			if (!updateType.equals(UpdateType.SCHEMA) || SvarogInstall.isSvarogInstalled()) {
+			if (!updateType.equals(UpdateType.SCHEMA)) {
 				svc = new SvReader();
 				conn = svc.dbGetConn();
+				// flush all previous logs
+				flushPendingLogs((SvCore) svc);
 			} else
 				conn = SvConf.getDBConnection();
 
@@ -249,5 +277,20 @@ public class SvConfigurationUpgrade {
 			if (conn != null)
 				conn.close();
 		}
+	}
+
+	private static void flushPendingLogs(SvCore svc) throws SvException {
+		try (SvWriter svw = new SvWriter(svc); SvNote note = new SvNote(svw)) {
+			svw.isInternal = true;
+			for (DbDataObject dbo : pendingSchemaLog.getItems()) {
+				svw.saveObject(dbo, false);
+				if (!(boolean) dbo.getVal(Sv.IS_SUCCESSFUL)) {
+					note.setAutoCommit(false);
+					note.setNote(dbo.getObjectId(), "EXECUTION_ERROR", (String) dbo.getVal("EXECUTION_ERROR"));
+				}
+			}
+			svw.dbCommit();
+		}
+
 	}
 }

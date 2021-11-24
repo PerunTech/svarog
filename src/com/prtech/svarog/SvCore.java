@@ -662,7 +662,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		DbDataObject dbt = null;
 		dbt = DbCache.getObject(objectTypeId, svCONST.OBJECT_TYPE_TABLE);
 		if (dbt == null) {
-			String exceptionMessage = "system.error.no_dbt_found";
+			String exceptionMessage = Sv.Exceptions.NO_DBT_FOUND;
 			throw (new SvException(exceptionMessage, svCONST.systemUser, null, objectTypeId));
 		}
 		return dbt;
