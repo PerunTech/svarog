@@ -290,6 +290,7 @@ public class SvConfigurationUpgrade {
 				}
 			}
 			svw.dbCommit();
+			pendingSchemaLog.getItems().clear();
 		}
 
 	}
