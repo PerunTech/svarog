@@ -1,9 +1,11 @@
 package com.prtech.svarog;
 
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Array;
 import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -441,12 +443,12 @@ public class SvCluster extends SvCore {
 		try {
 			result = socket.send(data, socketFlags);
 			if (!result)
-				log4j.error("Error sending message:" + data.toString());
+				log4j.error("Error sending message:" + Arrays.toString(data));
 		} catch (ZMQException e) {
 			if (e.getErrorCode() == zmq.ZError.ETERM)
 				throw (new SvException(Sv.Exceptions.CLUSTER_INACTIVE, svCONST.systemUser, e));
 			else
-				throw (new SvException(Sv.Exceptions.CLUSTER_COMMUNICATION_ERROR, svCONST.systemUser, e));
+				throw (new SvException(Sv.Exceptions.CLUSTER_COMMUNICATION_ERROR, svCONST.systemUser, null, data, e));
 		}
 		return result;
 	}

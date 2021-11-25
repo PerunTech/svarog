@@ -202,7 +202,7 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 						isMTRunning.wait();
 					}
 				} catch (InterruptedException e) {
-					new SvException("system.err.thread_interrupted", svCONST.systemUser, e);
+					throw (new SvException("system.err.thread_interrupted", svCONST.systemUser, e));
 
 				}
 		}
@@ -213,7 +213,7 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 					isMTRunning.wait(10);
 				}
 			} catch (InterruptedException e) {
-				new SvException("system.err.thread_interrupted", svCONST.systemUser, e);
+				throw (new SvException("system.err.thread_interrupted", svCONST.systemUser, e));
 			}
 
 		SvException svx = null;
@@ -228,7 +228,7 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 
 	}
 
-	public void shutdown() {
+	public void shutdown() throws SvException {
 		if (isMTRunning.compareAndSet(true, false)) {
 			boolean completeShut = false;
 			while (!completeShut) {
@@ -248,7 +248,7 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 						if (!t.isAlive())
 							it.remove();
 					} catch (InterruptedException e) {
-						log4j.warn("Thread waiting interrupted", e);
+						throw (new SvException("system.err.thread_interrupted", svCONST.systemUser, e));
 					}
 				}
 				if (threads.isEmpty())
