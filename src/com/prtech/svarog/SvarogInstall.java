@@ -196,9 +196,11 @@ public class SvarogInstall {
 					else if (line.hasOption("gd"))
 						returnStatus = upgradeGrid();
 					else if (line.hasOption("i")) {
-						if (returnStatus == 0 && line.hasOption("d"))
+						if (returnStatus == 0 && line.hasOption("d")) {
 							returnStatus = SvarogInstall.cleanDb() == true ? 0 : -1;
-						returnStatus = validateInstall();
+							if (returnStatus == 0)
+								returnStatus = validateInstall();
+						}
 						if (returnStatus == 0) {
 							if (line.hasOption("a"))
 								returnStatus = generateJsonCfg();
@@ -282,9 +284,8 @@ public class SvarogInstall {
 					errStatus = 0;
 			} catch (SvException e) {
 				log4j.debug("System boundary is invalid:", e);
-			}
-			if (c == null)
 				errStatus = -3;
+			}
 		}
 		return errStatus;
 	}
@@ -1179,7 +1180,7 @@ public class SvarogInstall {
 	private static int generateJsonCfg() {
 		// we should not connect to database at all and check if svarog is
 		// installed therefore we fix the mIsAlreadyInstalled to false
-		//mIsAlreadyInstalled = false;
+		// mIsAlreadyInstalled = false;
 
 		try {
 			File confDir = new File(SvConf.getConfPath());
@@ -1220,7 +1221,7 @@ public class SvarogInstall {
 	 * 
 	 * @return True if the installation is valid, false if it isn't
 	 */
-	 static boolean isSvarogInstalled() {
+	static boolean isSvarogInstalled() {
 		if (mIsAlreadyInstalled == null) {
 			mIsAlreadyInstalled = new Boolean(true);
 			Connection conn = null;
@@ -1820,7 +1821,7 @@ public class SvarogInstall {
 				svr.dbCommit();
 			}
 		} catch (SvException e) {
-			e.printStackTrace();
+			log4j.error("Deletion of Svarog Cluster record raised exception!", e);
 		}
 	}
 
@@ -1853,7 +1854,7 @@ public class SvarogInstall {
 					}
 				}
 			}
-			// sometimes due to bug we have a rogue cluster master 
+			// sometimes due to bug we have a rogue cluster master
 			// record which we need to delete
 			deleteClusterRogueRecord();
 			// Create all other tables
@@ -2853,9 +2854,10 @@ public class SvarogInstall {
 			mt.commit();
 		} finally {
 			try {
-				mt.close();
+				if (mt != null)
+					mt.close();
 			} catch (Exception e) {
-				log4j.error("Multi threaded Writer failed to close",e);
+				log4j.error("Multi threaded Writer failed to close", e);
 			}
 		}
 		return true;

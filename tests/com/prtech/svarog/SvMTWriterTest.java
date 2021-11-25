@@ -2,19 +2,15 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.fail;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
-import com.prtech.svarog_common.DboUnderground;
 
 public class SvMTWriterTest {
 
@@ -76,7 +72,12 @@ public class SvMTWriterTest {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			mt.shutdown();
+			try {
+				mt.shutdown();
+			} catch (SvException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		if (SvConnTracker.hasTrackedConnections(true, false))
 			fail("You have a connection leak, you dirty animal!");

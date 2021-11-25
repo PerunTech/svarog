@@ -311,9 +311,10 @@ public class SvWriter extends SvCore {
 			paramPos++;
 		}
 		if (linkTypes != null && !linkTypes.isEmpty()) {
-			for (Long type : linkTypes)
+			for (Long type : linkTypes) {
 				ps.setLong(paramPos, type);
-			paramPos++;
+				paramPos++;
+			}
 		}
 	}
 

@@ -40,7 +40,7 @@ public class SvConfigurationUpgradeTest {
 	void testSingleExec(ISvConfiguration.UpdateType upType, int executionCount) throws Exception {
 		SvConfigurationUpgrade.executeConfiguration(upType);
 
-		for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+		for (ISvConfiguration svc : SvConfigurationUpgrade.getiSvCfgs()) {
 			SvConfigurationDryRun dr = (SvConfigurationDryRun) svc;
 			if (!dr.typesExecuted().contains(upType) || dr.typesExecuted().size() != executionCount)
 				fail(upType.toString() + " was not executed under dry run");
@@ -50,9 +50,9 @@ public class SvConfigurationUpgradeTest {
 	@Test
 	public void testSingleExecution() {
 		try {
-			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
+			SvConfigurationUpgrade.setiSvCfgs(new ArrayList<ISvConfiguration>());
 			ISvConfiguration svcDryRun = new SvConfigurationDryRun();
-			SvConfigurationUpgrade.iSvCfgs.add(svcDryRun);
+			SvConfigurationUpgrade.getiSvCfgs().add(svcDryRun);
 			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti());
 			testSingleExec(ISvConfiguration.UpdateType.SCHEMA, 1);
 			testSingleExec(ISvConfiguration.UpdateType.CODES, 2);
@@ -91,14 +91,14 @@ public class SvConfigurationUpgradeTest {
 	@Test
 	public void testMultiTypesExecution() {
 		try {
-			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
+			SvConfigurationUpgrade.setiSvCfgs(new ArrayList<ISvConfiguration>());
 			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
 			List<ISvConfiguration.UpdateType> up = Arrays.asList(ISvConfiguration.UpdateType.SCHEMA);
-			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(1, up));
+			SvConfigurationUpgrade.getiSvCfgs().add(new SvConfigurationDryRunMulti(1, up));
 
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.SCHEMA);
 
-			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+			for (ISvConfiguration svc : SvConfigurationUpgrade.getiSvCfgs()) {
 				if (svc instanceof ISvConfigurationMulti) {
 					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
 					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.SCHEMA))
@@ -112,14 +112,14 @@ public class SvConfigurationUpgradeTest {
 				fail("Schema registered in the log!");
 			
 			
-			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
+			SvConfigurationUpgrade.setiSvCfgs(new ArrayList<ISvConfiguration>());
 			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
 			up = Arrays.asList(ISvConfiguration.UpdateType.TYPES);
-			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(1, up));
+			SvConfigurationUpgrade.getiSvCfgs().add(new SvConfigurationDryRunMulti(1, up));
 
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.TYPES);
 
-			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+			for (ISvConfiguration svc : SvConfigurationUpgrade.getiSvCfgs()) {
 				if (svc instanceof ISvConfigurationMulti) {
 					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
 					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.TYPES))
@@ -138,11 +138,11 @@ public class SvConfigurationUpgradeTest {
 			
 			//ensure we trigger refresh of the history for the sake of testing
 			
-			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
-			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(2, up));
+			SvConfigurationUpgrade.setiSvCfgs(new ArrayList<ISvConfiguration>());
+			SvConfigurationUpgrade.getiSvCfgs().add(new SvConfigurationDryRunMulti(2, up));
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.TYPES);
 
-			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+			for (ISvConfiguration svc : SvConfigurationUpgrade.getiSvCfgs()) {
 				if (svc instanceof ISvConfigurationMulti) {
 					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
 					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.TYPES))
@@ -165,14 +165,14 @@ public class SvConfigurationUpgradeTest {
 	@Test
 	public void testMultiWrongUpdateExecution() {
 		try {
-			SvConfigurationUpgrade.iSvCfgs = new ArrayList<ISvConfiguration>();
+			SvConfigurationUpgrade.setiSvCfgs(new ArrayList<ISvConfiguration>());
 			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
 			List<ISvConfiguration.UpdateType> up = Arrays.asList(ISvConfiguration.UpdateType.ACL);
-			SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRunMulti(1, up));
+			SvConfigurationUpgrade.getiSvCfgs().add(new SvConfigurationDryRunMulti(1, up));
 
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.SCHEMA);
 
-			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+			for (ISvConfiguration svc : SvConfigurationUpgrade.getiSvCfgs()) {
 				if (svc instanceof ISvConfigurationMulti) {
 					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
 					if (dr.typesExecuted().contains(ISvConfiguration.UpdateType.SCHEMA))
@@ -181,7 +181,7 @@ public class SvConfigurationUpgradeTest {
 			}
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.ACL);
 
-			for (ISvConfiguration svc : SvConfigurationUpgrade.iSvCfgs) {
+			for (ISvConfiguration svc : SvConfigurationUpgrade.getiSvCfgs()) {
 				if (svc instanceof ISvConfigurationMulti) {
 					SvConfigurationDryRunMulti dr = (SvConfigurationDryRunMulti) svc;
 					if (!dr.typesExecuted().contains(ISvConfiguration.UpdateType.ACL))

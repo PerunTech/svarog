@@ -79,7 +79,7 @@ public class SvConfigurationUpgrade {
 	/**
 	 * List of SvConfigurations available in the system
 	 */
-	static ArrayList<ISvConfiguration> iSvCfgs = null;
+	private static volatile ArrayList<ISvConfiguration> iSvCfgs = null;
 
 	/**
 	 * Lazy loader of the ISvconfiguration instances from the directory used for
@@ -88,23 +88,23 @@ public class SvConfigurationUpgrade {
 	 * @return List of objects implementing the {@link ISvConfiguration} interface
 	 */
 	static List<ISvConfiguration> getConfig() {
-		if (iSvCfgs == null) {
+		if (getiSvCfgs() == null) {
 			synchronized (SvConfigurationUpgrade.class) {
-				if (iSvCfgs == null) {
+				if (getiSvCfgs() == null) {
 					iSvCfgs = new ArrayList<ISvConfiguration>();
 					// add the system implementation
-					iSvCfgs.add(new SvConfigurationImpl());
+					getiSvCfgs().add(new SvConfigurationImpl());
 
 					ArrayList<Object> cfgs = DbInit.loadClass(SvConf.getParam(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY),
 							ISvConfiguration.class);
 					if (cfgs != null)
 						for (Object o : cfgs)
 							if (o instanceof ISvConfiguration)
-								iSvCfgs.add((ISvConfiguration) o);
+								getiSvCfgs().add((ISvConfiguration) o);
 				}
 			}
 		}
-		return iSvCfgs;
+		return getiSvCfgs();
 	}
 
 	/**
@@ -294,4 +294,13 @@ public class SvConfigurationUpgrade {
 		}
 
 	}
+
+	static ArrayList<ISvConfiguration> getiSvCfgs() {
+		return iSvCfgs;
+	}
+
+	static void setiSvCfgs(ArrayList<ISvConfiguration> isv) {
+		iSvCfgs = isv;
+	}
+
 }

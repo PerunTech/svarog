@@ -168,14 +168,14 @@ public class SvClusterServer implements Runnable {
 
 		lastGCTime = DateTime.now();
 		log4j.info("Heartbeat server started");
-		long nodeId = 0L;
+		
 		while (isRunning.get()) {
 			try {
 				byte[] msg = SvCluster.zmqRecv(hbServerSock, 0);
 				if (msg != null) {
 					ByteBuffer msgBuffer = ByteBuffer.wrap(msg);
 					byte msgType = msgBuffer.get();
-					nodeId = msgBuffer.getLong();
+					long nodeId = msgBuffer.getLong();
 					int sockFlag;
 					if (msgType == SvCluster.MSG_JOIN) {
 						Iterator<ByteBuffer> iterator = processJoin(nodeId, msgBuffer).iterator();
@@ -194,7 +194,7 @@ public class SvClusterServer implements Runnable {
 					clusterMaintenance();
 			} catch (SvException e) {
 				if (!e.getLabelCode().equals(Sv.Exceptions.CLUSTER_INACTIVE))
-					log4j.error("Exception in sending message to node:" + Long.toString(nodeId), e);
+					log4j.error("Exception in sending message:" + Arrays.toString((byte[])e.getConfigData()), e);
 				else
 					isRunning.set(false);
 			}
