@@ -95,6 +95,13 @@ svarog-sonarqube:
 svarog-sonarqube_publish:
   stage: code_analysis
   script:
+    - mvn clean compile
+    - cd .gitlab-ci
+    - ./ansible-svarog.sh ut $CI_PROJECT_DIR POSTGRES
+    - cd $CI_PROJECT_DIR
+    - mvn exec:java@install-drop-auto -P PostgreSQL
+    - mvn exec:java@upgrade-force-auto -P PostgreSQL
+    - mvn test -P PostgreSQL  
     - mvn sonar:sonar -Dsonar.analysis.mode=publish -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_BUILD_REF -Dsonar.gitlab.ref_name=$CI_BUILD_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID -Donar.gitlab.user_token access=a18878c7b5beb401ce2f847537c296b46a3902b8 
   environment:
     name: $CI_COMMIT_REF_NAME
