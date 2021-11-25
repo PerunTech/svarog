@@ -19,7 +19,6 @@ import com.prtech.svarog_common.DbSearch.DbLogicOperand;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
@@ -53,7 +52,6 @@ public class I18n extends SvCore implements II18n {
 	 * 
 	 * @throws SvException
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	I18n() throws SvException {
 		super(svCONST.systemUser, null);
 	}
@@ -65,31 +63,23 @@ public class I18n extends SvCore implements II18n {
 	 * @return
 	 * @throws SvException
 	 */
-	private static Boolean loadLabels(String localeId) throws SvException {
+	static Boolean loadLabels(String localeId) throws SvException {
 		DbDataArray labels = null;
-		SvReader svr = null;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
 			labels = svr.getObjects(new DbSearchCriterion("LOCALE_ID", DbCompareOperand.EQUAL, localeId),
 					SvCore.getDbt(svCONST.OBJECT_TYPE_LABEL), null, null, null);
-
-			DbCache.addArrayByParentId(labels, svCONST.OBJECT_TYPE_LABEL, getLocaleId(localeId).getObject_id());
+			DbCache.addArrayByParentId(labels, svCONST.OBJECT_TYPE_LABEL, getLocaleId(localeId).getObjectId());
 			for (DbDataObject dbo : labels.getItems())
 				DbCache.addObject(dbo, dbo.getVal("label_code") + "." + dbo.getVal("locale_id"));
 			return true;
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 	}
 
 	/**
 	 * Method to ensure the cache key for labels is always the same
 	 * 
-	 * @param localeId
-	 *            The string version of the locale ID
-	 * @param labelCode
-	 *            The code of the label (ASCII mnemonic)
+	 * @param localeId  The string version of the locale ID
+	 * @param labelCode The code of the label (ASCII mnemonic)
 	 * @return The label object key
 	 */
 	static String getKey(String localeId, String labelCode) {
@@ -99,8 +89,7 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * Method to ensure the cache key for labels is always the same
 	 * 
-	 * @param label
-	 *            The DbDataObject version of the label
+	 * @param label The DbDataObject version of the label
 	 * @return The label object key
 	 */
 	static String getKey(DbDataObject label) {
@@ -110,10 +99,8 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * Method to ensure the group code for labels is always the same
 	 * 
-	 * @param labelCode
-	 *            The code of the label (ASCII mnemonic)
-	 * @param locale
-	 *            The string version of the locale ID
+	 * @param labelCode The code of the label (ASCII mnemonic)
+	 * @param locale    The string version of the locale ID
 	 * @return The label group code
 	 */
 	static public String getGroupCode(String labelCode) {
@@ -127,8 +114,7 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * Method to ensure the group code for labels is always the same
 	 * 
-	 * @param label
-	 *            The DbDataObject version of the label
+	 * @param label The DbDataObject version of the label
 	 * @return The label group code
 	 */
 	static public String getGroupCode(DbDataObject label) {
@@ -136,16 +122,13 @@ public class I18n extends SvCore implements II18n {
 	}
 
 	/**
-	 * Method to return an array of labels for specific group code (label code
-	 * up to the last point.)
+	 * Method to return an array of labels for specific group code (label code up to
+	 * the last point.)
 	 * 
-	 * @param localeId
-	 *            The requested locale
-	 * @param labelGroupCode
-	 *            The group code of the labels
+	 * @param localeId       The requested locale
+	 * @param labelGroupCode The group code of the labels
 	 * @return The resulting array of labels in the same group code
-	 * @throws SvException
-	 *             Underlying exception
+	 * @throws SvException Underlying exception
 	 */
 	public static DbDataArray getLabels(String localeId, String labelGroupCode) throws SvException {
 		DbDataArray labels = null;
@@ -163,30 +146,23 @@ public class I18n extends SvCore implements II18n {
 	}
 
 	/**
-	 * Method to return an array of labels for specific group code (label code
-	 * up to the last point.)
+	 * Method to return an array of labels for specific group code (label code up to
+	 * the last point.)
 	 * 
-	 * @param localeId
-	 *            The requested locale
-	 * @param labelCode
-	 *            The label code of the label
+	 * @param localeId  The requested locale
+	 * @param labelCode The label code of the label
 	 * @return The resulting array of labels in the same group code
-	 * @throws SvException
-	 *             Underlying exception
+	 * @throws SvException Underlying exception
 	 */
 	private static DbDataArray loadLabels(String localeId, String labelCode) throws SvException {
 		DbDataArray labels = null;
-		SvReader svr = null;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
+
 			DbSearchExpression dbs = new DbSearchExpression();
 			dbs.addDbSearchItem(
 					new DbSearchCriterion("LOCALE_ID", DbCompareOperand.EQUAL, localeId, DbLogicOperand.AND));
 			dbs.addDbSearchItem(new DbSearchCriterion("LABEL_CODE", DbCompareOperand.LIKE, labelCode + '%'));
 			labels = svr.getObjects(dbs, SvCore.getDbt(svCONST.OBJECT_TYPE_LABEL), null, null, null);
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 		return labels;
 	}
@@ -194,12 +170,11 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * This method is dead! Use getLabels(languageId, labelCategory)!!
 	 * 
-	 * The method returns a HashMap<String, String> with pairs of label codes
-	 * and localised text for the requested locale
+	 * The method returns a HashMap<String, String> with pairs of label codes and
+	 * localised text for the requested locale
 	 * 
-	 * @param languageId
-	 *            the id of the locale for which we would like to get a table of
-	 *            labels
+	 * @param languageId the id of the locale for which we would like to get a table
+	 *                   of labels
 	 * @return HashMap<String, String> containing label/text pairs
 	 */
 	@Deprecated
@@ -212,12 +187,11 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * This method is dead! Use getLabels(languageId, labelCategory)!!
 	 * 
-	 * The method returns a HashMap<String, String> with pairs of label codes
-	 * and localised text for the requested locale
+	 * The method returns a HashMap<String, String> with pairs of label codes and
+	 * localised text for the requested locale
 	 * 
-	 * @param languageId
-	 *            the id of the locale for which we would like to get a table of
-	 *            labels
+	 * @param languageId the id of the locale for which we would like to get a table
+	 *                   of labels
 	 * @return HashMap<String, String> containing label/text pairs
 	 */
 	@Deprecated
@@ -229,9 +203,8 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * The method returns a DbDataObject descriptor for the locale
 	 * 
-	 * @param languageId
-	 *            the string id of the locale for which we would like to get a
-	 *            table of labels
+	 * @param languageId the string id of the locale for which we would like to get
+	 *                   a table of labels
 	 * @return HashMap<String, String> containing label/text pairs
 	 */
 	public static DbDataObject getLocaleId(String languageId) {
@@ -239,13 +212,12 @@ public class I18n extends SvCore implements II18n {
 	}
 
 	/**
-	 * The method getText returns a text representation in the specified locale
-	 * for the requested label code
+	 * The method getText returns a text representation in the specified locale for
+	 * the requested label code
 	 * 
-	 * @param languageId
-	 *            the locale which i18n use to localise the label
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param languageId the locale which i18n use to localise the label
+	 * @param labelCode  the label code for which i18n will return a localised
+	 *                   string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -264,10 +236,9 @@ public class I18n extends SvCore implements II18n {
 	 * The method returns a text representation for a label code in the default
 	 * configured locale
 	 * 
-	 * @param languageId
-	 *            the locale which i18n use to localise the label
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param languageId the locale which i18n use to localise the label
+	 * @param labelCode  the label code for which i18n will return a localised
+	 *                   string
 	 * @return String representation of the label
 	 */
 	@Override
@@ -278,13 +249,12 @@ public class I18n extends SvCore implements II18n {
 	}
 
 	/**
-	 * The method getLongText returns a text description in the specified locale
-	 * for the requested label code
+	 * The method getLongText returns a text description in the specified locale for
+	 * the requested label code
 	 * 
-	 * @param languageId
-	 *            the locale which i18n use to localise the label
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param languageId the locale which i18n use to localise the label
+	 * @param labelCode  the label code for which i18n will return a localised
+	 *                   string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -302,10 +272,9 @@ public class I18n extends SvCore implements II18n {
 	 * The method returns a text description for a label code in the default
 	 * configured locale
 	 * 
-	 * @param languageId
-	 *            the locale which i18n use to localise the label
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param languageId the locale which i18n use to localise the label
+	 * @param labelCode  the label code for which i18n will return a localised
+	 *                   string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -335,7 +304,7 @@ public class I18n extends SvCore implements II18n {
 						+ "Svarog will not try to load the object again!");
 
 			} else {
-				dbo = lblGroup.getItemByIdx(labelCode, locale.getObject_id());
+				dbo = lblGroup.getItemByIdx(labelCode, locale.getObjectId());
 			}
 		}
 		return dbo;
@@ -354,8 +323,7 @@ public class I18n extends SvCore implements II18n {
 	 * The method getText returns a text representation for a label code in the
 	 * default configured locale
 	 * 
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param labelCode the label code for which i18n will return a localised string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -366,8 +334,7 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * Method to provide I18 through the standard interface
 	 * 
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param labelCode the label code for which i18n will return a localised string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -381,8 +348,7 @@ public class I18n extends SvCore implements II18n {
 	 * The method getLongText returns a text description for a label code in the
 	 * default configured locale
 	 * 
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param labelCode the label code for which i18n will return a localised string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -394,8 +360,7 @@ public class I18n extends SvCore implements II18n {
 	 * The method returns a text description for a label code in the default
 	 * configured locale
 	 * 
-	 * @param labelCode
-	 *            the label code for which i18n will return a localised string
+	 * @param labelCode the label code for which i18n will return a localised string
 	 * @return String representation of the label
 	 * @throws SvException
 	 */
@@ -437,7 +402,7 @@ class OnSaveCallBackI18n implements ISvOnSave {
 	public boolean beforeSave(SvCore parentCore, DbDataObject dbo) throws SvException {
 
 		DbDataObject locale = SvarogInstall.getLocaleList().getItemByIdx((String) dbo.getVal("LOCALE_ID"));
-		dbo.setParent_id(locale.getObject_id());
+		dbo.setParentId(locale.getObjectId());
 		return true;
 	}
 

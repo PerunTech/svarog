@@ -104,7 +104,7 @@ public class SvarogInstall {
 	/**
 	 * Local variable holding all system locales
 	 */
-	static private DbDataArray sysLocales = null;
+	static private volatile DbDataArray sysLocales = null;
 
 	/**
 	 * Flag to mark if there is valid configuration in the database
@@ -459,20 +459,19 @@ public class SvarogInstall {
 
 		} else
 			return -3;
-		SvWriter svw = null;
-		SvSecurity svs = null;
 		String screenText = "User registration/update. Username:";
-		try {
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter();) {
 			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
-			if (line.hasOption("p"))
-				password = SvUtil.getMD5(password).toUpperCase();
+			try (SvSecurity svs = new SvSecurity(svw)) {
+				if (line.hasOption("p"))
+					password = SvUtil.getMD5(password).toUpperCase();
+				svs.createUser(userName, password, firstName, surName, email, userPin, "", sidType, status, true);
+				writeToScreen(screenText + userName + " successfully finished");
+				returnStatus = 0;
+			}
+		} catch (
 
-			svs.createUser(userName, password, firstName, surName, email, userPin, "", sidType, status, true);
-			writeToScreen(screenText + userName + " successfully finished");
-			returnStatus = 0;
-		} catch (Exception ex) {
+		Exception ex) {
 			writeToScreen(Sv.ERROR + screenText + userName);
 			if (ex instanceof SvException)
 				writeToScreen(((SvException) ex).getFormattedMessage());
@@ -482,11 +481,6 @@ public class SvarogInstall {
 			}
 
 			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 	}
@@ -518,31 +512,32 @@ public class SvarogInstall {
 		if (status == "")
 			status = null;
 
-		try (SvWriter svw = new SvWriter(); SvSecurity svs = new SvSecurity(svw);) {
-
+		try (SvWriter svw = new SvWriter()) {
 			svw.switchUser(Sv.ADMIN);
-			DbDataObject groupDbo = null;
-			try {
-				groupDbo = svs.getSid(groupName, svCONST.OBJECT_TYPE_GROUP);
-			} catch (SvException ex) {
-				if (!ex.getLabelCode().equals("system.error.no_user_found"))
-					throw (ex);
-				else
-					groupDbo = null;
+			try (SvSecurity svs = new SvSecurity(svw)) {
+				DbDataObject groupDbo = null;
+				try {
+					groupDbo = svs.getSid(groupName, svCONST.OBJECT_TYPE_GROUP);
+				} catch (SvException ex) {
+					if (!ex.getLabelCode().equals("system.error.no_user_found"))
+						throw (ex);
+					else
+						groupDbo = null;
+				}
+				if (groupDbo == null) {
+					groupDbo = new DbDataObject(svCONST.OBJECT_TYPE_GROUP);
+					groupDbo.setVal("group_uid", SvUtil.getUUID());
+				}
+				groupDbo.setStatus(status);
+				groupDbo.setVal("group_type", sidType);
+				groupDbo.setVal("group_name", groupName);
+				groupDbo.setVal("group_name", groupName);
+				groupDbo.setVal("group_security_type", securityType);
+				groupDbo.setVal("e_mail", email);
+				svw.saveObject(groupDbo);
+				writeToScreen(screenText + groupName + " successfully finished");
+				returnStatus = 0;
 			}
-			if (groupDbo == null) {
-				groupDbo = new DbDataObject(svCONST.OBJECT_TYPE_GROUP);
-				groupDbo.setVal("group_uid", SvUtil.getUUID());
-			}
-			groupDbo.setStatus(status);
-			groupDbo.setVal("group_type", sidType);
-			groupDbo.setVal("group_name", groupName);
-			groupDbo.setVal("group_name", groupName);
-			groupDbo.setVal("group_security_type", securityType);
-			groupDbo.setVal("e_mail", email);
-			svw.saveObject(groupDbo);
-			writeToScreen(screenText + groupName + " successfully finished");
-			returnStatus = 0;
 		} catch (Exception ex) {
 			writeToScreen(Sv.ERROR + screenText + groupName);
 			if (ex instanceof SvException)
@@ -568,21 +563,18 @@ public class SvarogInstall {
 		writeToScreen("Exporting group " + group + " config to " + exportFile);
 
 		int returnStatus = 0;
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
 
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter();) {
 			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
-			DbDataObject groupDbo = null;
-			groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
-			DbDataArray acls = svw.getPermissions(groupDbo, svw);
-			groupDbo.setVal(Sv.ACLS, acls);
-			SvUtil.saveStringToFile(exportFile, groupDbo.toJson().toString());
-			returnStatus = 0;
-			writeToScreen("Successfully exported " + group + " config to " + exportFile);
-
+			try (SvSecurity svs = new SvSecurity(svw)) {
+				DbDataObject groupDbo = null;
+				groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
+				DbDataArray acls = svw.getPermissions(groupDbo, svw);
+				groupDbo.setVal(Sv.ACLS, acls);
+				SvUtil.saveStringToFile(exportFile, groupDbo.toJson().toString());
+				returnStatus = 0;
+				writeToScreen("Successfully exported " + group + " config to " + exportFile);
+			}
 		} catch (Exception ex) {
 			writeToScreen("Error, can not get user groups for user " + group);
 			if (ex instanceof SvException)
@@ -592,11 +584,6 @@ public class SvarogInstall {
 				log4j.error("Error, can not get user groups for user " + group, ex);
 			}
 			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 
@@ -722,31 +709,28 @@ public class SvarogInstall {
 		if (user == null || user == "")
 			user = getOptionFromCmd("user");
 		int returnStatus = 0;
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
-
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter();) {
 			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
-			DbDataObject userDbo = svs.getUser(user);
-			DbDataArray defaultGroup = svw.getAllUserGroups(userDbo, true);
-			String printDefault = " has NO default group configured!";
-			if (defaultGroup != null && defaultGroup.size() > 0) {
-				printDefault = " has configured a default group:" + defaultGroup.get(0).getVal("GROUP_NAME");
+			try (SvSecurity svs = new SvSecurity(svw)) {
+				DbDataObject userDbo = svs.getUser(user);
+				DbDataArray defaultGroup = svw.getAllUserGroups(userDbo, true);
+				String printDefault = " has NO default group configured!";
+				if (defaultGroup != null && defaultGroup.size() > 0) {
+					printDefault = " has configured a default group:" + defaultGroup.get(0).getVal("GROUP_NAME");
 
+				}
+				writeToScreen("User " + user + printDefault);
+
+				defaultGroup = svw.getAllUserGroups(userDbo, false);
+				writeToScreen("User " + user + " is member of the following groups:");
+				writeToScreen("----------");
+				for (DbDataObject dbg : defaultGroup.getItems()) {
+					writeToScreen((String) dbg.getVal("GROUP_NAME"));
+				}
+				writeToScreen("Total of " + defaultGroup.size() + " groups associated to the user");
+
+				returnStatus = 0;
 			}
-			writeToScreen("User " + user + printDefault);
-
-			defaultGroup = svw.getAllUserGroups(userDbo, false);
-			writeToScreen("User " + user + " is member of the following groups:");
-			writeToScreen("----------");
-			for (DbDataObject dbg : defaultGroup.getItems()) {
-				writeToScreen((String) dbg.getVal("GROUP_NAME"));
-			}
-			writeToScreen("Total of " + defaultGroup.size() + " groups associated to the user");
-
-			returnStatus = 0;
 		} catch (Exception ex) {
 			writeToScreen("Error, can not get user groups for user " + user);
 			if (ex instanceof SvException)
@@ -756,11 +740,6 @@ public class SvarogInstall {
 				log4j.error("Error, can not get user groups for user " + user, ex);
 			}
 			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 	}
@@ -777,21 +756,18 @@ public class SvarogInstall {
 		boolean removeFromGroup = line.hasOption("remove-group");
 		String groupOperation = removeFromGroup ? "removed from" : "added to";
 		int returnStatus = 0;
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
-
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter();) {
 			svw.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svw);
-			DbDataObject userDbo = svs.getUser(user);
-			DbDataObject groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
-			if (removeFromGroup)
-				svs.removeUserFromGroup(userDbo, groupDbo);
-			else
-				svs.addUserToGroup(userDbo, groupDbo, isDefaultGroup);
-			writeToScreen("User " + user + " successfully " + groupOperation + " group: " + group);
-			returnStatus = 0;
+			try (SvSecurity svs = new SvSecurity(svw)) {
+				DbDataObject userDbo = svs.getUser(user);
+				DbDataObject groupDbo = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
+				if (removeFromGroup)
+					svs.removeUserFromGroup(userDbo, groupDbo);
+				else
+					svs.addUserToGroup(userDbo, groupDbo, isDefaultGroup);
+				writeToScreen("User " + user + " successfully " + groupOperation + " group: " + group);
+				returnStatus = 0;
+			}
 		} catch (Exception ex) {
 			writeToScreen(Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + groupOperation + " group:" + group);
 			if (ex instanceof SvException)
@@ -801,11 +777,6 @@ public class SvarogInstall {
 				log4j.error(Sv.ERROR + Sv.USER_NAME_LABEL + user + Sv.CANNOT + groupOperation + " group:" + group, ex);
 			}
 			returnStatus = -1;
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 	}
@@ -829,34 +800,32 @@ public class SvarogInstall {
 		boolean isGrant = line.hasOption("g");
 		String permissionOperation = isGrant ? " is granted " : " is revoked ";
 		int returnStatus = 0;
-		SvReader svr = null;
-		SvSecurity svs = null;
-		try {
-			svr = new SvReader();
-			svr.switchUser(Sv.ADMIN);
-			svs = new SvSecurity(svr);
-			svs.setAutoCommit(false);
-			DbDataArray permissions = svs.getPermissions(permissionMask);
+		try (SvWriter svw = new SvWriter();) {
+			svw.switchUser(Sv.ADMIN);
+			try (SvSecurity svs = new SvSecurity(svw)) {
+				svs.setAutoCommit(false);
+				DbDataArray permissions = svs.getPermissions(permissionMask);
 
-			DbDataObject sid = null;
-			if (isGroup)
-				sid = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
-			else
-				sid = svs.getUser(user);
+				DbDataObject sid = null;
+				if (isGroup)
+					sid = svs.getSid(group, svCONST.OBJECT_TYPE_GROUP);
+				else
+					sid = svs.getUser(user);
 
-			if (sid != null) {
-				for (DbDataObject perm : permissions.getItems()) {
-					if (isGrant)
-						svs.grantPermission(sid, (String) perm.getVal(Sv.LABEL_CODE));
-					else
-						svs.revokePermission(sid, (String) perm.getVal(Sv.LABEL_CODE));
-					writeToScreen("User " + user + " successfully " + permissionOperation + " permission: "
-							+ (String) perm.getVal(Sv.LABEL_CODE));
+				if (sid != null) {
+					for (DbDataObject perm : permissions.getItems()) {
+						if (isGrant)
+							svs.grantPermission(sid, (String) perm.getVal(Sv.LABEL_CODE));
+						else
+							svs.revokePermission(sid, (String) perm.getVal(Sv.LABEL_CODE));
+						writeToScreen("User " + user + " successfully " + permissionOperation + " permission: "
+								+ (String) perm.getVal(Sv.LABEL_CODE));
+					}
+					svs.dbCommit();
+				} else {
+					writeToScreen("Error, sid " + (isGroup ? group : user) + Sv.CANNOT + " found");
+					returnStatus = -5;
 				}
-				svs.dbCommit();
-			} else {
-				writeToScreen("Error, sid " + (isGroup ? group : user) + Sv.CANNOT + " found");
-				returnStatus = -5;
 			}
 
 		} catch (Exception ex) {
@@ -871,11 +840,6 @@ public class SvarogInstall {
 						ex);
 			}
 			returnStatus = -1;
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svs != null)
-				svs.release();
 		}
 		return returnStatus;
 	}
@@ -1267,7 +1231,7 @@ public class SvarogInstall {
 					+ (isSvarogInstalled() ? "valid" : "invalid") + "! Can't run LABELS_ONLY upgrade!");
 			return -2;
 		}
-		SvParameter svp = null;
+
 		try {
 
 			// pre-install db handler call
@@ -1283,15 +1247,17 @@ public class SvarogInstall {
 			// if this isn't first time install then we can't set the upgrade
 			// running param
 			if (isSvarogInstalled()) {
-				svp = new SvParameter();
-				String isRunning = svp.getParamString("svarog.upgrade.running");
-				if (isRunning != null && isRunning.equals("true") && !forceUpgrade) {
-					log4j.error("Svarog " + operation + " is already running");
-					return -2;
+
+				try (SvParameter svp = new SvParameter()) {
+					String isRunning = svp.getParamString("svarog.upgrade.running");
+					if (isRunning != null && isRunning.equals("true") && !forceUpgrade) {
+						log4j.error("Svarog " + operation + " is already running");
+						return -2;
+					}
+					svp.setParamString("svarog.upgrade.running", "true");
+					isRunning = svp.getParamString("svarog.upgrade.running");
 				}
-				svp.setParamString("svarog.upgrade.running", "true");
-				isRunning = svp.getParamString("svarog.upgrade.running");
-				svp.release();
+
 			}
 
 			// pre-install db handler call
@@ -1325,7 +1291,7 @@ public class SvarogInstall {
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.FINAL);
 
 			if (isSvarogInstalled())
-				try {
+				try (SvParameter svp = new SvParameter()) {
 					svp.setParamString("svarog.upgrade.running", "false");
 				} catch (SvException e) {
 					log4j.error("Can't set upgrade running flag to false", e);
@@ -1343,10 +1309,6 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			log4j.error("Svarog install/upgrade failed", e);
 			return -2;
-		} finally {
-			if (svp != null) {
-				svp.release();
-			}
 		}
 
 		return 0;
@@ -1450,9 +1412,7 @@ public class SvarogInstall {
 	static void rebuildIndexes(String tableName) {
 		log4j.info("Rebuilding indexes for table:" + tableName);
 
-		SvReader svr = null;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
 			Connection conn = svr.dbGetConn();
 			ArrayList<DbDataTable> dbts = readTablesFromConf();
 			DbDataTable tableDescriptor = null;
@@ -1469,11 +1429,7 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			log4j.error("Can't rebuild indexes for table:" + tableName, e);
 
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
-
 	}
 
 	static boolean refreshIndexes(String tableName, String schemaName) {
@@ -1525,10 +1481,8 @@ public class SvarogInstall {
 
 	static boolean dropIndexes(String tableName, String schemaName) {
 		log4j.info("Dropping indexes for table:" + tableName);
-		SvReader svr = null;
 
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
 			Connection conn = svr.dbGetConn();
 			HashMap<String, String> indexNames = getIndexListFromDb(conn, tableName, schemaName);
 
@@ -1542,10 +1496,6 @@ public class SvarogInstall {
 		} catch (Exception e) {
 			log4j.error("Can't drop indexes for table:" + tableName, e);
 			return false;
-		} finally {
-
-			if (svr != null)
-				svr.release();
 		}
 	}
 
@@ -2014,26 +1964,6 @@ public class SvarogInstall {
 					}
 				}
 
-				// spatial indices
-				// for (Entry<String, String> entry :
-				// dbt.getSQLSpatialIndices().entrySet()) {
-				// String idxName = entry.getKey();
-				// String columns = entry.getValue();
-				// String idxDbName = dbt.getDbTableName() + idxName;
-				// if (idxDbName.length() > 30)
-				// idxDbName = dbt.getDbTableName().substring(0, 30 -
-				// idxName.length()) + idxName;
-				//
-				// if (idxDbName != null && !idxDbName.equals("")) {
-				// if (!dbObjectExists(idxDbName, conn)) {
-				// retval = createIndex(idxDbName,
-				// columns,sqlKw.getString("SPATIAL_INDEX_OPTS"),
-				// dbt.getDbTableName(), conn);
-				// if (!retval)
-				// break;
-				// }
-				// }
-				// }
 			}
 		}
 		if (retval)
@@ -2993,10 +2923,7 @@ public class SvarogInstall {
 		HashMap<DbDataObject, DbDataObject> misconfiguredDbt = new HashMap<DbDataObject, DbDataObject>();
 		DbDataArray dbTables = null;
 		DbDataArray dbRepos = new DbDataArray();
-		SvReader svr = null;
-
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
 			dbTables = svr.getObjects(null, svCONST.OBJECT_TYPE_TABLE, null, 0, 0);
 			Iterator<DbDataObject> it = dbTables.getItems().iterator();
 			while (it.hasNext()) {
@@ -3023,10 +2950,6 @@ public class SvarogInstall {
 
 		} catch (Exception e) {
 			log4j.error("Sync of the repo tables failed with exception", e);
-		} finally {
-
-			if (svr != null)
-				svr.release();
 		}
 		log4j.info("Number of misconfigured objects:" + misconfiguredDbt.size());
 		if (misconfiguredDbt.size() > 0)
@@ -3043,10 +2966,7 @@ public class SvarogInstall {
 		if (tables2Sync.size() < 1) {
 			log4j.error("The instance doesn't contain misconfigured objects to migrate!");
 		} else {
-
-			SvReader svr = null;
-			try {
-				svr = new SvReader();
+			try (SvReader svr = new SvReader()) {
 				DbDataArray repoTables = svr.getObjects(
 						new DbSearchCriterion("repo_table", DbCompareOperand.EQUAL, true), svCONST.OBJECT_TYPE_TABLE,
 						null, 0, 0);
@@ -3122,10 +3042,6 @@ public class SvarogInstall {
 			} catch (Exception e) {
 				log4j.error("Sync of the repo tables failed with exception", e);
 				retval = -3;
-			} finally {
-
-				if (svr != null)
-					svr.release();
 			}
 		}
 		return retval;
@@ -3374,59 +3290,7 @@ public class SvarogInstall {
 
 		return upgradedCodes;
 	}
-
-	/**
-	 * A method to upgrade the svarog link types according to a JSON config file
-	 * 
-	 * @param linkTypes DbDataArray holding the link types
-	 * @throws SvException static void upgradeTypeCfg(DbDataArray linkTypes) throws
-	 *                     SvException { // default upgrade file "conf/records/40.
-	 *                     master_records.json" SvWriter dbu = null; SvReader svr =
-	 *                     null; try { // init the table configs
-	 * 
-	 *                     log4j.info("Processing base table upgrades: " +
-	 *                     upgradeFile); dbu = new SvWriter(); dbu.initSvCore(true);
-	 *                     dbu.isInternal = true; dbu.dbSetAutoCommit(false); svr =
-	 *                     new SvReader(dbu);
-	 * 
-	 * 
-	 *                     DbQueryObject query = new DbQueryObject(SvCore.repoDbt,
-	 *                     SvCore.repoDbtFields,
-	 *                     SvCore.getDbt(svCONST.OBJECT_TYPE_LINK_TYPE),
-	 *                     SvCore.getFields(svCONST.OBJECT_TYPE_LINK_TYPE), null,
-	 *                     null, null);
-	 * 
-	 *                     DbDataArray dbLinkTypes = dbu.getObjects(query, 0, 0);
-	 * 
-	 *                     Boolean updateRequired = true; Long existingPkid = 0L;
-	 *                     Long existingOID = 0L;
-	 * 
-	 *                     // dbTablesUpgrade.rebuildIndex("OBJECT_ID"); for
-	 *                     (DbDataObject dboUpgrade : dbTablesUpgrade.getItems()) {
-	 *                     DbDataObject existingTbl = dbTables.getItemByIdx((String)
-	 *                     dboUpgrade.getVal("TABLE_NAME"), 0L); updateRequired =
-	 *                     true;
-	 * 
-	 *                     if (existingTbl != null) { existingPkid =
-	 *                     existingTbl.getPkid(); existingOID =
-	 *                     existingTbl.getObjectId(); updateRequired =
-	 *                     shouldUpgradeConfig(existingTbl, dboUpgrade,
-	 *                     tableFields); dboUpgrade.setPkid(existingPkid);
-	 *                     dboUpgrade.setObjectId(existingOID); //
-	 *                     dboUpgrade.setPkid(existingTbl.getPkid()); //
-	 *                     dboUpgrade.setObjectId(existingTbl.getObjectId()); } if
-	 *                     (updateRequired) { dbu.saveObject(dboUpgrade, false);
-	 *                     log4j.info( "Successful upgrade of object: " +
-	 *                     dboUpgrade.toJson()); } }
-	 * 
-	 *                     dbu.dbCommit(); } catch (IOException e) { throw (new
-	 *                     SvException("system.error.upgrade_no_records_conf",
-	 *                     dbu.instanceUser, null, linkTypes, e)); } finally { if
-	 *                     (svr != null) svr.release(); if (dbu != null)
-	 *                     dbu.release(); } log4j.info( "Upgrade finished using
-	 *                     records file: " +linkTypes); }
-	 */
-
+	
 	/**
 	 * Method to delete all svarog fields which aren't found in the upgraded table
 	 * structure
@@ -3467,45 +3331,56 @@ public class SvarogInstall {
 	 */
 	static DbDataArray getLocaleList() {
 		if (sysLocales == null) {
-			if (!isSvarogInstalled()) {
-				DbDataArray locales = new DbDataArray();
-				InputStream fis = SvCore.class.getResourceAsStream(LOCALE_PATH);
-				String json;
-				try {
-					json = IOUtils.toString(fis, "UTF-8");
-					json = json.replace("{OBJECT_TYPE_LOCALE}", Long.toString(svCONST.OBJECT_TYPE_LOCALE));
-					Gson gson = new GsonBuilder().create();
-					JsonObject jobj = gson.fromJson(json, JsonObject.class);
-					locales.fromJson(jobj);
-					locales.rebuildIndex("LOCALE_ID", true);
-
-					sysLocales = locales;
-				} catch (IOException e) {
-					log4j.error("Error loading locale list", e);
-					sysLocales = null;
-				}
-			} else {
-				SvReader svr = null;
-				try {
-					svr = new SvReader();
-					DbSearchCriterion dbs = new DbSearchCriterion("OBJECT_TYPE", DbCompareOperand.EQUAL,
-							svCONST.OBJECT_TYPE_LOCALE);
-					DbDataArray locales = svr.getObjects(dbs, svCONST.OBJECT_TYPE_LOCALE, null, 0, 0);
-					locales.rebuildIndex("LOCALE_ID", true);
-					// ensure that the local list is read-only
-					for (DbDataObject locale : locales.getItems())
-						DboFactory.makeDboReadOnly(locale);
-					sysLocales = locales;
-
-				} catch (SvException e) {
-					log4j.error("Repo seems valid, but system locales aren't loaded", e);
-				} finally {
-					if (svr != null)
-						svr.release();
-				}
+			synchronized (DbInit.class) {
+				if (sysLocales == null)
+					sysLocales = getLocaleList(false);
 			}
 		}
 		return sysLocales;
+	}
+
+	/**
+	 * Method to load get DbDataArray with all system locales
+	 * 
+	 * @return The object containing the locales
+	 */
+	static DbDataArray getLocaleList(boolean forceJson) {
+		DbDataArray result = null;
+		if (!isSvarogInstalled() || forceJson) {
+			DbDataArray locales = new DbDataArray();
+			InputStream fis = SvCore.class.getResourceAsStream(LOCALE_PATH);
+			String json;
+			try {
+				json = IOUtils.toString(fis, "UTF-8");
+				json = json.replace("{OBJECT_TYPE_LOCALE}", Long.toString(svCONST.OBJECT_TYPE_LOCALE));
+				Gson gson = new GsonBuilder().create();
+				JsonObject jobj = gson.fromJson(json, JsonObject.class);
+				locales.fromJson(jobj);
+				locales.rebuildIndex("LOCALE_ID", true);
+
+				result = locales;
+			} catch (IOException e) {
+				log4j.error("Error loading locale list", e);
+				result = null;
+			}
+		} else {
+			
+			try (SvReader svr = new SvReader()) {
+				DbSearchCriterion dbs = new DbSearchCriterion("OBJECT_TYPE", DbCompareOperand.EQUAL,
+						svCONST.OBJECT_TYPE_LOCALE);
+				DbDataArray locales = svr.getObjects(dbs, svCONST.OBJECT_TYPE_LOCALE, null, 0, 0);
+				locales.rebuildIndex("LOCALE_ID", true);
+				// ensure that the local list is read-only
+				for (DbDataObject locale : locales.getItems())
+					DboFactory.makeDboReadOnly(locale);
+				result = locales;
+
+			} catch (SvException e) {
+				log4j.error("Repo seems valid, but system locales aren't loaded", e);
+			} 
+		}
+		return result;
+
 	}
 
 	/**

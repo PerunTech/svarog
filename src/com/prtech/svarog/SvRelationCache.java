@@ -437,7 +437,6 @@ public class SvRelationCache {
 		dqo.setLinkToNext(cache.dblt);
 		dqo.setReturnLinkObjects(cache.returnLinkObjects);
 		dqo.setIsReturnType(cache.isReturnType);
-
 		if (traverseChildren && cache.cacheList != null && cacheList.size() > 0) { // traversing
 																					// children
 																					// means

@@ -37,6 +37,14 @@ public class SvMaintenance implements Runnable {
 	 */
 	static DateTime nextMaintenance = new DateTime();
 
+	/**
+	 * Boolean object to be used as semaphone for thread sync in the cluster
+	 */
+	static final Boolean maintenanceSemaphore = new Boolean(true);
+
+	/**
+	 * Reference the maintenance thread object
+	 */
 	static Thread maintenanceThread = null;
 
 	/**
@@ -60,7 +68,7 @@ public class SvMaintenance implements Runnable {
 	 */
 	public static void shutdown() {
 		if (isRunning.compareAndSet(true, false)) {
-			if (SvMaintenance.maintenanceThread != null)
+			if (SvMaintenance.maintenanceSemaphore != null)
 				synchronized (SvMaintenance.maintenanceRunning) {
 					SvMaintenance.maintenanceRunning.notifyAll();
 				}
@@ -69,11 +77,12 @@ public class SvMaintenance implements Runnable {
 
 	public static void initMaintenance() {
 		if (isRunning.compareAndSet(false, true)) {
-			maintenanceThread = new Thread(new SvMaintenance());
-			maintenanceThread.setName(svCONST.maintenanceThreadId);
+			Thread maintenanceThrd = new Thread(new SvMaintenance());
+			maintenanceThrd.setName(svCONST.maintenanceThreadId);
 			// do we actually want to know when the cleaner finished?
 			// Can we have multiple active cleaners? right?
-			maintenanceThread.start();
+			maintenanceThrd.start();
+			setMaintenanceThread(maintenanceThrd);
 		}
 	}
 
@@ -305,6 +314,22 @@ public class SvMaintenance implements Runnable {
 
 	public static AtomicBoolean getMaintenanceInProgress() {
 		return maintenanceInProgress;
+	}
+
+	/**
+	 * Getter for the thread which is executing the maintenance
+	 * 
+	 * @return maintenance thread
+	 */
+	static Thread getMaintenanceThread() {
+		return maintenanceThread;
+	}
+
+	/**
+	 * Setter for the thread which is executing the maintenance
+	 */
+	static void setMaintenanceThread(Thread thrd) {
+		maintenanceThread = thrd;
 	}
 
 }
