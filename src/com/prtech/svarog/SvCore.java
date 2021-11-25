@@ -53,6 +53,7 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQuery;
 import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
+import com.prtech.svarog_common.DbSearch;
 import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearch.DbLogicOperand;
@@ -1038,7 +1039,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				// meta
 				linkToParentDbt(dbo);
 			} catch (Exception e) {
-				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata", e);
+				log4j.warn("Field :" + dbo.getVal(Sv.FIELD_NAME) + " has non-JSON gui metadata");
 				if (log4j.isDebugEnabled())
 					log4j.warn(e);
 			}
@@ -1172,7 +1173,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 			if (dbt.getVal(Sv.EXTENDED_PARAMS) != null)
 				prepareExtOpts(dbt);
-			
+
 			if (dbt.getVal(Sv.CONFIG_TYPE_ID) != null) {
 				Object cfgTypeId = dbt.getVal(Sv.CONFIG_TYPE_ID);
 
@@ -1321,6 +1322,92 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		});
 	}
 
+	static void loadCoreObjects(SvCore svc) throws Exception {
+		Connection conn = null;
+		conn = svc.dbGetConn();
+		// Svarog base objects which are permanently in memory.
+		// If a new object type is added here make sure you configure it
+		// in the DbInit.initCoreRecords
+
+		// load field types from the DB
+		DbQueryObject query = new DbQueryObject(getDbt(svCONST.OBJECT_TYPE_TABLE), null, null, null);
+		// new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_TABLE),
+		// getFields(svCONST.OBJECT_TYPE_TABLE), null, null, null);
+
+		query.setDbtFields(getDbFields(conn, svCONST.OBJECT_TYPE_TABLE));
+		DbDataArray objectTypes = svc.getObjects(query, null, null);
+
+		// load field types from the DB
+		query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_FIELD),
+				getFields(svCONST.OBJECT_TYPE_FIELD), null, null, null);
+		query.setDbtFields(getDbFields(conn, svCONST.OBJECT_TYPE_FIELD));
+		DbDataArray fieldTypes = svc.getObjects(query, null, null);
+
+		// load link types from the DB
+		query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_LINK_TYPE),
+				getFields(svCONST.OBJECT_TYPE_LINK_TYPE), null, null, null);
+		DbDataArray linkTypes = svc.getObjects(query, null, null);
+
+		// load form types from the DB
+		query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_FORM_TYPE),
+				getFields(svCONST.OBJECT_TYPE_FORM_TYPE), null, null, null);
+		DbDataArray formTypes = svc.getObjects(query, null, null);
+
+		// before purging the cache check that we at least have loaded
+		// the config from database
+		if (objectTypes == null || fieldTypes == null || linkTypes == null)
+			throw (new SvException("system.error.misconfigured_dbt", svCONST.systemUser));
+
+		// Purge the initial config from the cache
+		DbCache.clean();
+
+		// initialise the system objects from the Database configuration
+		initSysObjects(objectTypes, fieldTypes, linkTypes);
+
+		prepareCache(objectTypes, linkTypes, formTypes);
+	}
+
+	/**
+	 * Method to ensure all system objects are read-only and the base cache is
+	 * populated so we execute database queries
+	 * 
+	 * @param objectTypes The list of object types defined in the system
+	 * @param linkTypes   The list of link types defined in the system
+	 * @param formTypes   The list of form types defined in the system
+	 */
+	static void prepareCache(DbDataArray objectTypes, DbDataArray linkTypes, DbDataArray formTypes) {
+		for (DbDataObject dbo : linkTypes.getItems()) {
+			DboFactory.makeDboReadOnly(dbo);
+			String type = (String) dbo.getVal(Sv.Link.LINK_TYPE);
+			String uqVals = type + "." + dbo.getVal(Sv.Link.LINK_OBJ_TYPE_1).toString() + "."
+					+ dbo.getVal(Sv.Link.LINK_OBJ_TYPE_2).toString();
+			DbCache.addObject(dbo, uqVals, true);
+			if (type != null && type.equals(Sv.POA))
+				poaDbLinkTypes.addDataItem(dbo);
+		}
+
+		for (DbDataObject dbo : formTypes.getItems()) {
+			DboFactory.makeDboReadOnly(dbo);
+			DbCache.addObject(dbo, null, true);
+		}
+		// init the default DbLink type
+		DbQueryExpression.setDblt(DbCache.getObject(svCONST.OBJECT_TYPE_LINK, svCONST.OBJECT_TYPE_TABLE));
+		repoDbt = DbCache.getObject(svCONST.OBJECT_TYPE_REPO, svCONST.OBJECT_TYPE_TABLE);
+		repoDbtFields = DbCache.getObjectsByParentId(svCONST.OBJECT_TYPE_REPO, svCONST.OBJECT_TYPE_FIELD_SORT);
+		for (DbDataObject currentDbt : objectTypes.getItems()) {
+			try {
+				SvObjectConstraints constr = new SvObjectConstraints(currentDbt);
+				if (constr.getConstraints().size() > 0)
+					uniqueConstraints.put(currentDbt.getObjectId(), constr);
+			} catch (SvException ex) {
+				log4j.warn("Constraints disabled on object: " + (String) currentDbt.getVal(Sv.TABLE_NAME));
+				log4j.warn(ex.getFormattedMessage());
+			}
+		}
+		if (SvWriter.queryCache != null)
+			SvWriter.queryCache.clear();
+	}
+
 	/**
 	 * Default method for initialising the system. It first uses the JSON config
 	 * files for temporary initialisation, then loads the configuration from the
@@ -1350,83 +1437,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			baseInitialisation = initSvCoreNoCfg(coreObjects, coreCodes);
 
 		if (baseInitialisation) {
-			Connection conn = null;
-			SvCore svc = null;
-			try {
+			try (SvCore svc = new SvReader()) {
 				repoDbtMap.clear();
 				repoDbtMap.put(SvConf.getMasterRepo(), repoDbt);
-				svc = new SvReader();
-				conn = svc.dbGetConn();
-				if (!masterRepoExistsInDb(conn))
+				if (!masterRepoExistsInDb(svc.dbGetConn()))
 					return true;
-				// Svarog base objects which are permanently in memory.
-				// If a new object type is added here make sure you configure it
-				// in the DbInit.initCoreRecords
-
-				// load field types from the DB
-				DbQueryObject query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_TABLE),
-						getFields(svCONST.OBJECT_TYPE_TABLE), null, null, null);
-				query.setDbtFields(getDbFields(conn, svCONST.OBJECT_TYPE_TABLE));
-				DbDataArray objectTypes = svc.getObjects(query, null, null);
-
-				// load field types from the DB
-				query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_FIELD),
-						getFields(svCONST.OBJECT_TYPE_FIELD), null, null, null);
-				query.setDbtFields(getDbFields(conn, svCONST.OBJECT_TYPE_FIELD));
-				DbDataArray fieldTypes = svc.getObjects(query, null, null);
-
-				// load link types from the DB
-				query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_LINK_TYPE),
-						getFields(svCONST.OBJECT_TYPE_LINK_TYPE), null, null, null);
-				DbDataArray linkTypes = svc.getObjects(query, null, null);
-
-				// load form types from the DB
-				query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_FORM_TYPE),
-						getFields(svCONST.OBJECT_TYPE_FORM_TYPE), null, null, null);
-				DbDataArray formTypes = svc.getObjects(query, null, null);
-
-				// before purging the cache check that we at least have loaded
-				// the config from database
-				if (objectTypes == null || fieldTypes == null || linkTypes == null)
-					throw (new SvException("system.error.misconfigured_dbt", svCONST.systemUser));
-
-				// Purge the initial config from the cache
-				DbCache.clean();
-
-				// initialise the system objects from the Database configuration
-				initSysObjects(objectTypes, fieldTypes, linkTypes);
-
-				for (DbDataObject dbo : linkTypes.getItems()) {
-					DboFactory.makeDboReadOnly(dbo);
-					String type = (String) dbo.getVal(Sv.Link.LINK_TYPE);
-					String uqVals = type + "." + dbo.getVal(Sv.Link.LINK_OBJ_TYPE_1).toString() + "."
-							+ dbo.getVal(Sv.Link.LINK_OBJ_TYPE_2).toString();
-					DbCache.addObject(dbo, uqVals, true);
-					if (type != null && type.equals(Sv.POA))
-						poaDbLinkTypes.addDataItem(dbo);
-				}
-
-				for (DbDataObject dbo : formTypes.getItems()) {
-					DboFactory.makeDboReadOnly(dbo);
-					DbCache.addObject(dbo, null, true);
-				}
-				// init the default DbLink type
-				DbQueryExpression.setDblt(DbCache.getObject(svCONST.OBJECT_TYPE_LINK, svCONST.OBJECT_TYPE_TABLE));
-				repoDbt = DbCache.getObject(svCONST.OBJECT_TYPE_REPO, svCONST.OBJECT_TYPE_TABLE);
-				repoDbtFields = DbCache.getObjectsByParentId(svCONST.OBJECT_TYPE_REPO, svCONST.OBJECT_TYPE_FIELD_SORT);
-				for (DbDataObject currentDbt : objectTypes.getItems()) {
-					try {
-						SvObjectConstraints constr = new SvObjectConstraints(currentDbt);
-						if (constr.getConstraints().size() > 0)
-							uniqueConstraints.put(currentDbt.getObjectId(), constr);
-					} catch (SvException ex) {
-						log4j.warn("Constraints disabled on object: " + (String) currentDbt.getVal(Sv.TABLE_NAME));
-						log4j.warn(ex.getFormattedMessage());
-					}
-				}
-				if (SvWriter.queryCache != null)
-					SvWriter.queryCache.clear();
-
+				//we have the master repo in the database so lets load the core
+				loadCoreObjects(svc); 
+				
+				// calculate the session debounce interval
 				DbDataObject sessionDbt = getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
 				// the cache expiry is in minutes, convert to milis 60*1000
 				Long ttlMilis = (Long) sessionDbt.getVal("cache_expiry") * 60 * 1000;
@@ -1445,19 +1464,15 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 				isCfgInDb = true;
 				svarogState = true;
+			} catch (SvException ex) {
+				log4j.fatal("Can't load basic configurations! Svarog not loaded!" + ex.getFormattedMessage(), ex);
 			} catch (Exception ex) {
-				log4j.error("Can't load basic configurations! Svarog not loaded!");
-				if (ex instanceof SvException)
-					log4j.error(((SvException) ex).getFormattedMessage());
+				log4j.fatal("Can't load basic configurations! Svarog not loaded!");
 				log4j.debug("System loading error", ex);
-
 				svarogState = false;
-			} finally {
-				if (svc != null)
-					svc.release();
 			}
 		} else {
-			log4j.error("Can't load basic configurations! System not loaded!");
+			log4j.fatal("Can't load basic configurations! System not loaded!");
 			svarogState = false;
 		}
 		if (svarogState)

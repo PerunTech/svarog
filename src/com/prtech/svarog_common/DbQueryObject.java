@@ -133,6 +133,9 @@ public class DbQueryObject extends DbQuery {
 		this.dbtFields = SvCore.getFields(dbt.getObjectId());
 		this.repo = SvCore.getRepoDbt(dbt.getObjectId());
 		this.repoFields = SvCore.getFields(repo.getObjectId());
+		assert (dbtFields != null);
+		assert (repoFields  != null);
+		assert (repo  != null);
 	}
 
 	/**
@@ -342,6 +345,7 @@ public class DbQueryObject extends DbQuery {
 	 * @throws SvException
 	 */
 	StringBuilder getFieldList(String repoPrefix, String tblPrefix, Boolean includeGeometries) throws SvException {
+		assert (dbtFields != null);
 		StringBuilder retval = null;
 		String finalPrefix = (sqlTablePrefix != null) ? sqlTablePrefix : tblPrefix;
 
@@ -379,6 +383,7 @@ public class DbQueryObject extends DbQuery {
 	 */
 	public StringBuilder getFieldList(String sqlTblAlias, DbDataArray repoFields, DbDataArray dbtFields,
 			Boolean includeGeometries, boolean useColumnPrefix) throws SvException {
+		assert (dbtFields != null);
 		ResourceBundle sqlKw = SvConf.getSqlkw();
 		StringBuilder retval = new StringBuilder(400);
 		String tmpAlias = sqlTblAlias.length() > 0 ? sqlTblAlias + "." : "";
@@ -391,7 +396,6 @@ public class DbQueryObject extends DbQuery {
 				retval.append("," + tmpAlias + sqlKw.getString("OBJECT_QUALIFIER_LEFT") + obj.getVal("field_name")
 						+ sqlKw.getString("OBJECT_QUALIFIER_RIGHT") + " as " + tmpPrefix + obj.getVal("field_name"));
 			}
-
 			for (DbDataObject obj : dbtFields.getItems()) {
 				// add specifics for GIS data
 				if (((String) obj.getVal("field_type")).equals("GEOMETRY")) {

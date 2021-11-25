@@ -139,7 +139,7 @@ public class CodeList extends SvCore implements ISvCodeList {
 		DbDataArray object = null;
 		try {
 			svr = new SvReader(this);
-			object = svr.getObjectsByParentId(codeListObjectId.longValue(), svCONST.OBJECT_TYPE_CODE, null, null, null,
+			object = svr.getObjectsByParentId(codeListObjectId, svCONST.OBJECT_TYPE_CODE, null, null, null,
 					"SORT_ORDER");
 		} catch (SvException e) {
 			log4j.error("Error loading the code list " + codeListObjectId + ":" + e.getFormattedMessage());

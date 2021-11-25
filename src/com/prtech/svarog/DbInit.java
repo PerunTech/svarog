@@ -6098,7 +6098,8 @@ public class DbInit {
 			HashMap<String, DbDataObject> mLabels = new HashMap<String, DbDataObject>();
 			DbDataArray arr = new DbDataArray();
 
-			DbDataArray locales = SvarogInstall.getLocaleList();
+			// non thread-safe loading of JSON from disk
+			DbDataArray locales = SvarogInstall.getLocaleList(true);
 			if (locales == null)
 				return "Error loading system locales";
 

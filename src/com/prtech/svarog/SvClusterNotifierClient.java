@@ -157,9 +157,9 @@ public class SvClusterNotifierClient implements Runnable {
 			context = null;
 		}
 		// notify the maintenance thread
-		if (SvMaintenance.maintenanceThread != null)
-			synchronized (SvMaintenance.maintenanceThread) {
-				SvMaintenance.maintenanceThread.notifyAll();
+		if (SvMaintenance.maintenanceSemaphore != null)
+			synchronized (SvMaintenance.maintenanceSemaphore) {
+				SvMaintenance.maintenanceSemaphore.notifyAll();
 			}
 
 	}

@@ -248,7 +248,7 @@ public class SvarogDaemon {
 			// Prepare the maintenance thread. If we are daemon we will run in
 			// this thread and the osgi Framework will do wait. So we dont wait
 			// and we set the current thread as maintenance
-			SvMaintenance.maintenanceThread = Thread.currentThread();
+			SvMaintenance.setMaintenanceThread(Thread.currentThread());
 			// Set the proxy to process the notifications it self
 			SvClusterNotifierProxy.processNotification = true;
 			// set the client to rejoin on failed beat

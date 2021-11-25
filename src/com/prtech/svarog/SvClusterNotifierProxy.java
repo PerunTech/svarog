@@ -206,9 +206,9 @@ public class SvClusterNotifierProxy implements Runnable {
 			log4j.info("Notifier Proxy is shut down");
 		}
 		// notify the maintenance thread
-		if (SvMaintenance.maintenanceThread != null)
-			synchronized (SvMaintenance.maintenanceThread) {
-				SvMaintenance.maintenanceThread.notifyAll();
+		if (SvMaintenance.maintenanceSemaphore != null)
+			synchronized (SvMaintenance.maintenanceSemaphore) {
+				SvMaintenance.maintenanceSemaphore.notifyAll();
 			}
 
 	}

@@ -407,47 +407,38 @@ public class SvExecManager extends SvCore {
 	SvExecInstance initExecInstance(SvExecInstance exeInstance) {
 		ISvExecutor executor = exeInstance.getExecutor();
 
-		SvWriter svw = null;
-		SvSecurity svs = null;
-		try {
+		try (SvWriter svw = new SvWriter();) {
 
 			DbDataObject dbo = getExecutorDbo(executor.getName(), executor.getCategory(), executor.versionUID());
-			svw = new SvWriter();
 			svw.switchUser(svCONST.serviceUser);
-			svs = new SvSecurity(svw);
 			svw.setAutoCommit(false);
-
-			if (dbo != null) {
-				exeInstance.setStartDate((DateTime) dbo.getVal("START_DATE"));
-				exeInstance.setEndDate((DateTime) dbo.getVal("END_DATE"));
-				exeInstance.setStatus(dbo.getStatus());
-			} else {
-				dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTORS);
-				dbo.setVal("CATEGORY", executor.getCategory());
-				dbo.setVal("NAME", executor.getName());
-				dbo.setVal("JAVA_TYPE", executor.getReturningType().getClass().getCanonicalName());
-				dbo.setVal("DESCRIPTION", executor.getDescription());
-				dbo.setVal("START_DATE", executor.getStartDate());
-				dbo.setVal("END_DATE", executor.getEndDate());
-				dbo.setVal(Sv.VERSION, executor.versionUID());
-				svw.saveObject(dbo);
-				String executorKey = getKey(executor);
-				DbDataArray perms = svs.getPermissions(executorKey);
-				if (perms.size() < 1)
-					svs.addPermission(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), executorKey, executorKey,
-							SvAccess.EXECUTE);
-				svw.dbCommit();
+			try (SvSecurity svs = new SvSecurity(svw);) {
+				if (dbo != null) {
+					exeInstance.setStartDate((DateTime) dbo.getVal("START_DATE"));
+					exeInstance.setEndDate((DateTime) dbo.getVal("END_DATE"));
+					exeInstance.setStatus(dbo.getStatus());
+				} else {
+					dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTORS);
+					dbo.setVal("CATEGORY", executor.getCategory());
+					dbo.setVal("NAME", executor.getName());
+					dbo.setVal("JAVA_TYPE", executor.getReturningType().getClass().getCanonicalName());
+					dbo.setVal("DESCRIPTION", executor.getDescription());
+					dbo.setVal("START_DATE", executor.getStartDate());
+					dbo.setVal("END_DATE", executor.getEndDate());
+					dbo.setVal(Sv.VERSION, executor.versionUID());
+					svw.saveObject(dbo);
+					String executorKey = getKey(executor);
+					DbDataArray perms = svs.getPermissions(executorKey);
+					if (perms.size() < 1)
+						svs.addPermission(SvCore.getDbt(svCONST.OBJECT_TYPE_EXECUTORS), executorKey, executorKey,
+								SvAccess.EXECUTE);
+					svw.dbCommit();
+				}
 			}
 		} catch (SvException e) {
 			log4j.error("Error loading executor data from db. Executor:'" + getKey(executor) + "', version:"
 					+ executor.versionUID(), e);
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
-
 		return exeInstance;
 	}
 

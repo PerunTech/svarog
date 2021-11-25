@@ -225,11 +225,13 @@ public class SvCluster extends SvCore {
 			if (!e.getLabelCode().equals("system.error.obj_not_updateable"))
 				throw (e);
 			else {
-				// If we failed to promote lets try to refresh the coordinator node info
-				DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
-				coordinatorNode = null;
-				log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
-						+ coordinatorNode.getVal(NEXT_MAINTENANCE));
+				if (coordinatorNode != null) {
+					// If we failed to promote lets try to refresh the coordinator node info
+					DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
+					coordinatorNode = null;
+					log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
+							+ coordinatorNode.getVal(NEXT_MAINTENANCE));
+				}
 			}
 		}
 		return coordinatorNode != null;
@@ -246,20 +248,17 @@ public class SvCluster extends SvCore {
 	 */
 	static boolean resignCoordinator() throws SvException {
 
-		SvWriter svw = null;
-		SvReader svr = null;
 		boolean success = false;
-		try {
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
 			if (isCoordinator) {
-				svr = new SvReader();
 				svr.isInternal = true;
-				svw = new SvWriter(svr);
+				svw.isInternal = true;
+
 				DbCache.removeObject(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER);
 				coordinatorNode = svr.getObjectById(svCONST.CLUSTER_COORDINATOR_ID, svCONST.OBJECT_TYPE_CLUSTER, null);
 				coordinatorNode.setVal(LAST_MAINTENANCE, DateTime.now());
 				coordinatorNode.setVal(NEXT_MAINTENANCE, DateTime.now());
 				coordinatorNode.setVal(PART_TIME, DateTime.now());
-				svw.isInternal = true;
 				svw.saveObject(coordinatorNode, true);
 				success = true;
 			} else
@@ -272,12 +271,7 @@ public class SvCluster extends SvCore {
 			else
 				success = false;
 
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
-		}
+		} 
 		return success;
 	}
 
@@ -355,10 +349,10 @@ public class SvCluster extends SvCore {
 		} else
 			log4j.info("SvCluster is starting");
 		isActive.set(false);
-		SvReader svr = null;
+		
 		isCoordinator = false;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader();){
+			
 			svr.isInternal = true;
 			// do try to get a valid coordinator
 			// force purge of the cache to get the coordinator
@@ -394,9 +388,6 @@ public class SvCluster extends SvCore {
 		} catch (Exception e) {
 			log4j.error("Svarog cluster could not be initialised. Cluster not running!", e);
 			shutdown();
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 		// if start was successful execute the startup hooks in nonblocking thread
 		if (isActive.get()) {
@@ -522,8 +513,8 @@ public class SvCluster extends SvCore {
 					joinHb.join(1);
 				if (joinNf != null && joinNf.isAlive())
 					joinNf.join(1);
-				synchronized (SvMaintenance.maintenanceThread) {
-					SvMaintenance.maintenanceThread.wait(100);
+				synchronized (SvMaintenance.maintenanceSemaphore) {
+					SvMaintenance.maintenanceSemaphore.wait(100);
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
