@@ -219,6 +219,7 @@ public class SvConfigurationUpgrade {
 			schema = SvConf.getDefaultSchema();
 			if (!updateType.equals(UpdateType.SCHEMA)) {
 				svc = new SvReader();
+				svc.setInstanceUser(svCONST.serviceUser);
 				conn = svc.dbGetConn();
 				// flush all previous logs
 				flushPendingLogs((SvCore) svc);

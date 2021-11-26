@@ -67,7 +67,11 @@ public class SvConfigurationDryRunMulti implements ISvConfigurationMulti {
 
 	@Override
 	public String beforeAclUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
-		execs.add(ISvConfiguration.UpdateType.ACL);
+		
+		try (SvSecurity svs = new SvSecurity((SvCore)svc)) {
+			svs.switchUser(Sv.ADMIN);
+			execs.add(ISvConfiguration.UpdateType.ACL);
+		}
 		return "Dry-run before ACL  update executed" + (svc == null ? " IN valid" : " valid") + " SvCore";
 	}
 
