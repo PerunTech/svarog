@@ -255,15 +255,12 @@ public class SvPerunManager extends SvCore {
 	 * @return SvExecInstance object to be stored in the execution cache
 	 */
 	private static void reloadPluginInstances(List<IPerunPlugin> plugins) {
-		SvReader svr = null;
-		SvWriter svw = null;
-		SvSecurity svs = null;
 		String unqNameField = CONTEXT_NAME;
-		try {
-
-			svr = new SvReader();
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
 			svr.switchUser(svCONST.serviceUser);
-			svr.isInternal = true;
+			svw.isInternal = true;
+			svw.setAutoCommit(false);
+
 			// add all plugin names in one big OR list
 			DbSearchExpression search = new DbSearchExpression();
 			for (IPerunPlugin plugin : plugins) {
@@ -276,9 +273,6 @@ public class SvPerunManager extends SvCore {
 			// build gui meta data for each
 			buildGuiMetaData(dboPlugins);
 			// switch to service user in order to be able to manage permissions
-			svw = new SvWriter(svr);
-			svs = new SvSecurity(svw);
-			svw.setAutoCommit(false);
 			dboPlugins.rebuildIndex(unqNameField, true);
 
 			DbDataArray upgradedList = configurePlugins(plugins, dboPlugins);
@@ -287,13 +281,6 @@ public class SvPerunManager extends SvCore {
 		} catch (SvException e) {
 			log4j.error("Error registering list of plugins", e);
 
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svw != null)
-				svw.release();
-			if (svs != null)
-				svs.release();
 		}
 	}
 

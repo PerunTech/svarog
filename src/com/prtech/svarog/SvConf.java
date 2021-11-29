@@ -169,7 +169,7 @@ public class SvConf {
 	/**
 	 * The internal static geometry handler instance
 	 */
-	private static ISvDatabaseIO dbHandler = null;
+	private static volatile ISvDatabaseIO dbHandler = null;
 
 	/**
 	 * The connection type JDBC or JNDI
@@ -324,8 +324,23 @@ public class SvConf {
 	 * @throws SvException
 	 */
 	public static ISvDatabaseIO getDbHandler() throws SvException {
-		if (dbHandler != null)
-			return dbHandler;
+		if (dbHandler == null) {
+			synchronized (SvConf.class) {
+				if (dbHandler == null) {
+					dbHandlerInit();
+				}
+			}
+		}
+		return dbHandler;
+	}
+
+	/**
+	 * Method to load the Database Handler implementing all methods needed for
+	 * database handling via the ISvDatabaseIO interface
+	 * 
+	 * @throws SvException
+	 */
+	private static void dbHandlerInit() throws SvException {
 		String dbHandlerClass = SvConf.getParam("conn.dbHandlerClass");
 		if (dbHandlerClass == null || dbHandlerClass.equals("")) {
 			dbHandlerClass = SvPostgresIO.class.getName();
@@ -359,8 +374,6 @@ public class SvConf {
 				// TODO fix srid
 			}
 		}
-
-		return dbHandler;
 	}
 
 	/**

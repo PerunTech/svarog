@@ -466,39 +466,30 @@ public class SvFileStore extends SvCore {
 		String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
 		String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA);
 
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		InputStream data = null;
 		String sqlStr = String.format(Sv.SQL.SELECT_FILESTORE, (schema != null ? schema : SvConf.getDefaultSchema()),
 				tblName);
 
-		try {
-			Connection conn = this.dbGetConn();
-			conn = this.dbGetConn();
-
-			ps = conn.prepareStatement(sqlStr);
-
+		try (PreparedStatement ps = this.dbGetConn().prepareStatement(sqlStr)) {
 			ps.setLong(1, (Long) fileDescriptor.getVal(Sv.FILE_ID));
 			ps.execute();
-			rs = ps.getResultSet();
-			rs.next();
-			if (extendedInfo != null) {
-				Object size = 0;
-				if (SvConf.getParam(Sv.DB_TYPE).equalsIgnoreCase(Sv.POSTGRES)) {
-					byte[] b = rs.getBytes(2);
-					size = b.length;
-				} else {
-					Blob b = rs.getBlob(2);
-					size = b.length();
+			try (ResultSet rs = ps.getResultSet()) {
+				rs.next();
+				if (extendedInfo != null) {
+					Object size = 0;
+					if (SvConf.getParam(Sv.DB_TYPE).equalsIgnoreCase(Sv.POSTGRES)) {
+						byte[] b = rs.getBytes(2);
+						size = b.length;
+					} else {
+						Blob b = rs.getBlob(2);
+						size = b.length();
+					}
+					extendedInfo.put(Sv.FILE_SIZE, size);
 				}
-				extendedInfo.put(Sv.FILE_SIZE, size);
+				data = rs.getBinaryStream(2);
 			}
-			data = rs.getBinaryStream(2);
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.FILE_DB_ERROR, instanceUser, fileDescriptor, sqlStr));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
 		return data;
 
@@ -526,18 +517,15 @@ public class SvFileStore extends SvCore {
 		if (streamData == null && byteData == null)
 			throw (new SvException(Sv.Exceptions.EMPTY_FILE_SAVE, instanceUser, null, null));
 
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
 		String seqName = tblName + "_" + Sv.PKID.toLowerCase();
 		String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA) != null ? SvConf.getParam(Sv.FILESTORE_SCHEMA)
 				: SvConf.getDefaultSchema();
-		String sqlQuery = String.format(Sv.SQL.INSERT_FILESTORE, schema, tblName,
-				SvConf.getSqlkw().getString(Sv.SQL.SEQ_NEXTVAL).replace("{" + Sv.SQL.SEQUENCE_NAME + "}",schema+"."+seqName));
+		String sqlQuery = String.format(Sv.SQL.INSERT_FILESTORE, schema, tblName, SvConf.getSqlkw()
+				.getString(Sv.SQL.SEQ_NEXTVAL).replace("{" + Sv.SQL.SEQUENCE_NAME + "}", schema + "." + seqName));
 
-		try {
-			Connection conn = this.dbGetConn();
-			ps = conn.prepareStatement(sqlQuery.toString(), new String[] { Sv.PKID.toLowerCase() });
+		try (PreparedStatement ps = this.dbGetConn().prepareStatement(sqlQuery.toString(),
+				new String[] { Sv.PKID.toLowerCase() })) {
 
 			if (streamData != null)
 				ps.setBinaryStream(1, streamData);
@@ -546,18 +534,15 @@ public class SvFileStore extends SvCore {
 
 			int updatedRows = ps.executeUpdate();
 
-			rs = ps.getGeneratedKeys();
-
-			if (rs.next()) {
-				newFileId = rs.getLong(1);
+			try (ResultSet rs = ps.getGeneratedKeys()) {
+				if (rs.next()) {
+					newFileId = rs.getLong(1);
+				}
 			}
 			if (newFileId == null || updatedRows != 1)
 				throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null));
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null, e));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
 		return newFileId;
 	}
@@ -572,32 +557,26 @@ public class SvFileStore extends SvCore {
 	Long getFileId() throws SvException {
 		Long newFileId = null;
 
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			Connection conn = this.dbGetConn();
-			String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
-			String seqName = tblName + "_" + Sv.PKID.toLowerCase();
-			String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA);
-			String strNextVal = SvConf.getSqlkw().getString(Sv.SQL.SEQ_NEXTVAL_SELECT).replace(
-					"{" + Sv.SQL.SEQUENCE_NAME + "}",
-					(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName);
+		String tblName = SvConf.getParam(Sv.FILESTORE_TABLE);
+		String seqName = tblName + "_" + Sv.PKID.toLowerCase();
+		String schema = SvConf.getParam(Sv.FILESTORE_SCHEMA);
+		String strNextVal = SvConf.getSqlkw().getString(Sv.SQL.SEQ_NEXTVAL_SELECT).replace(
+				"{" + Sv.SQL.SEQUENCE_NAME + "}",
+				(schema != null ? schema : SvConf.getDefaultSchema()) + "." + seqName);
 
-			if (log4j.isDebugEnabled())
-				log4j.trace(Sv.SQL.SQL_DEBUG + strNextVal);
+		if (log4j.isDebugEnabled())
+			log4j.trace(Sv.SQL.SQL_DEBUG + strNextVal);
 
-			ps = conn.prepareStatement(strNextVal);
-			rs = ps.executeQuery();
-			if (rs.next()) {
-				newFileId = rs.getLong(1);
+		try (PreparedStatement ps = this.dbGetConn().prepareStatement(strNextVal)) {
+			try (ResultSet rs = ps.executeQuery()) {
+				if (rs.next()) {
+					newFileId = rs.getLong(1);
+				}
 			}
 			if (newFileId == null)
 				throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null));
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.FILESAVE_DB_ERROR, instanceUser, null, null, e));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
 		return newFileId;
 	}

@@ -1442,9 +1442,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				repoDbtMap.put(SvConf.getMasterRepo(), repoDbt);
 				if (!masterRepoExistsInDb(svc.dbGetConn()))
 					return true;
-				//we have the master repo in the database so lets load the core
-				loadCoreObjects(svc); 
-				
+				// we have the master repo in the database so lets load the core
+				loadCoreObjects(svc);
+
 				// calculate the session debounce interval
 				DbDataObject sessionDbt = getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
 				// the cache expiry is in minutes, convert to milis 60*1000
@@ -1977,34 +1977,24 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @return A ResultSet containing the results from the DB
 	 * @throws SvException Any underlying exception is re-thrown
 	 */
-	private PreparedStatement getDbPreparedStatement(DbQuery query, Connection conn, Integer rowLimit, Integer offset)
-			throws SvException {
-		PreparedStatement ps = null;
-		try {
-			StringBuilder sqlQry = query.getSQLExpression(false, includeGeometries);
-			if (rowLimit != null && offset != null && (rowLimit > 0 || offset > 0)) {
-				String sRowLimit = SvConf.getSqlkw().getString(Sv.LIMIT_OFFSET).replace(Sv.OFFSET, offset.toString())
-						.replace(Sv.LIMIT, rowLimit.toString());
-				int orderPos = sqlQry.indexOf(Sv.ORDER_BY);
-				if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
-					if (orderPos > 0)
-						sqlQry.insert(orderPos,
-								Sv.SPACE + Sv.AND + Sv.SPACE + sRowLimit + Sv.SPACE + Sv.AND + Sv.SPACE);
-					else
-						sqlQry.append(Sv.SPACE + Sv.AND + Sv.SPACE + sRowLimit);
-				} else
-					sqlQry.append(Sv.SPACE + sRowLimit);
-			}
-			if (log4j.isDebugEnabled())
-				log4j.trace("Executing SQL: " + sqlQry);
-			ps = conn.prepareStatement(sqlQry.toString());
-			bindQueryVals(ps, query.getSQLParamVals());
-		} catch (SQLException ex) {
-			if (log4j.isDebugEnabled())
-				log4j.debug("General SQL Exception", ex);
-			throw (new SvException("system.error.sql_statement_err", instanceUser, null, query, ex.getCause()));
+	private StringBuilder getSQLStatement(DbQuery query, Integer rowLimit, Integer offset) throws SvException {
+		StringBuilder sqlQry;
+		sqlQry = query.getSQLExpression(false, includeGeometries);
+		if (rowLimit != null && offset != null && (rowLimit > 0 || offset > 0)) {
+			String sRowLimit = SvConf.getSqlkw().getString(Sv.LIMIT_OFFSET).replace(Sv.OFFSET, offset.toString())
+					.replace(Sv.LIMIT, rowLimit.toString());
+			int orderPos = sqlQry.indexOf(Sv.ORDER_BY);
+			if (SvConf.getDbType().equals(SvDbType.ORACLE)) {
+				if (orderPos > 0)
+					sqlQry.insert(orderPos, Sv.SPACE + Sv.AND + Sv.SPACE + sRowLimit + Sv.SPACE + Sv.AND + Sv.SPACE);
+				else
+					sqlQry.append(Sv.SPACE + Sv.AND + Sv.SPACE + sRowLimit);
+			} else
+				sqlQry.append(Sv.SPACE + sRowLimit);
 		}
-		return ps;
+		if (log4j.isDebugEnabled())
+			log4j.trace("Generating SQL: " + sqlQry);
+		return sqlQry;
 	}
 
 	/**
@@ -2283,13 +2273,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * @throws SvException any underlying SvException
 	 */
 	public String getUserLocaleId(DbDataObject userObject) throws SvException {
-		SvParameter svp = null;
 		String locale = null;
 		if (userObject != null) {
-			try {
+			try (SvParameter svp = new SvParameter()) {
 
 				if (userObject.getVal(Sv.LOCALE) == null) {
-					svp = new SvParameter();
+					;
 					locale = svp.getParamString(userObject, Sv.LOCALE);
 					if (locale == null)
 						locale = SvConf.getDefaultLocale();
@@ -2299,9 +2288,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				} else
 					locale = (String) userObject.getVal(Sv.LOCALE);
 
-			} finally {
-				if (svp != null)
-					svp.release();
 			}
 		}
 		return locale;
@@ -2825,7 +2811,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		try {
 			conn = this.dbGetConn();
 			// execute the db query to fetch data for the requested item
-			ps = getDbPreparedStatement(fullQuery, conn, rowLimit, offset);
+			ps = conn.prepareStatement(getSQLStatement(fullQuery, rowLimit, offset).toString());
+			// bind the parameters
+			bindQueryVals(ps, query.getSQLParamVals());
 			// System.out.println("Before exec "+new DateTime().toString());
 			rs = ps.executeQuery();
 			// System.out.println("After exec "+new DateTime().toString());

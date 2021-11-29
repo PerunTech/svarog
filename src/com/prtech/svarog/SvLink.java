@@ -103,36 +103,30 @@ public class SvLink extends SvCore {
 	private boolean objectsExist(Long objectId1, Long objectId2, DbDataObject dbt1, DbDataObject dbt2)
 			throws SvException {
 
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			Connection conn = this.dbGetConn();
-			boolean retVal = false;
+		boolean retVal = false;
 
-			String sqlQry = "SELECT pkid,object_id,status FROM " + dbt1.getVal("schema") + "."
-					+ dbt1.getVal("repo_name") + " WHERE OBJECT_ID=? AND CURRENT_TIMESTAMP<DT_DELETE"
-					+ " UNION ALL SELECT pkid,object_id,status FROM " + dbt2.getVal("schema") + "."
-					+ dbt2.getVal("repo_name") + " WHERE OBJECT_ID=? AND CURRENT_TIMESTAMP<DT_DELETE";
-			ps = conn.prepareStatement(sqlQry);
+		String sqlQry = "SELECT pkid,object_id,status FROM " + dbt1.getVal("schema") + "." + dbt1.getVal("repo_name")
+				+ " WHERE OBJECT_ID=? AND CURRENT_TIMESTAMP<DT_DELETE" + " UNION ALL SELECT pkid,object_id,status FROM "
+				+ dbt2.getVal("schema") + "." + dbt2.getVal("repo_name")
+				+ " WHERE OBJECT_ID=? AND CURRENT_TIMESTAMP<DT_DELETE";
+
+		try (PreparedStatement ps = this.dbGetConn().prepareStatement(sqlQry)) {
 			if (log4j.isDebugEnabled())
 				log4j.debug(sqlQry);
 			ps.setLong(1, objectId1);
 			ps.setLong(2, objectId2);
-			rs = ps.executeQuery();
-			if (rs.next()) {
+			try (ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
-					retVal = true;
+					if (rs.next()) {
+						retVal = true;
+					}
 				}
 			}
 
 			return retVal;
 		} catch (SQLException e) {
 			throw (new SvException("system.error.sql_err", instanceUser, dbt1, dbt2));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
-
 	}
 
 	/**

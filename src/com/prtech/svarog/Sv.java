@@ -44,6 +44,11 @@ public class Sv {
 		public static final String EMPTY_FILE_SAVE = "system.error.cant_save_empty_file";
 		public static final String FILESAVE_TYPE_ERROR = "system.error.filedata_type_err";
 		public static final String NO_DBT_FOUND = "system.error.no_dbt_found";
+		public static final String BAD_JDBC_HANDLER = "system.error.jdbc_bad_database_handler";
+		public static final String JDBC_CANT_RELEASE = "system.error.jdbc_cant_release";
+		public static final String REPOSAVE_ERR = "system.error.reposave_err";
+		public static final String BATCH_SIZE_ERR = "system.error.batch_size_err";
+		public static final String SDI_TYPE_LIMIT = "system.error.sdi.sdi_type_limit";
 
 		private Exceptions() {
 		}
