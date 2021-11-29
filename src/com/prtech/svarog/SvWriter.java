@@ -621,6 +621,99 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
+	 * Method to perform final preparations of the batch save.
+	 * 
+	 * @param dbt                The type descriptor
+	 * @param dba                The list of objects to be saved to the DB
+	 * @param oldRepoData        The existing repo data (if its update operation)
+	 * @param withMetaUpdate     Flag, if we need to update the object metadata
+	 * @param isUpdate           Flag is its update operation
+	 * @param skipPreSaveChecks  Flag if pre-save checks shall be skipped
+	 * @param psInvalidate       The prepared statement used for invalidation of
+	 *                           existing records
+	 * @param psInsert           The prepared statement used for insertion of new
+	 *                           records
+	 * @param extendedRepoStruct The extender sql structure supporting the insert
+	 *                           (for some SQL engines)
+	 * @throws SvException  "system.error.sdi.sdi_type_limit" is raised if we try to
+	 *                      save SDI object but no geometries have been found
+	 * @throws SQLException any other underlying sql exception
+	 */
+	void prepareRepoBatch(DbDataObject dbt, DbDataArray dba, HashMap<Long, Object[]> oldRepoData,
+			Boolean withMetaUpdate, Boolean isUpdate, Boolean skipPreSaveChecks, PreparedStatement psInvalidate,
+			PreparedStatement psInsert, Object extendedRepoStruct) throws SvException, SQLException {
+		// sort the milis of the ending/starting time
+		long milis = new DateTime().getMillis();
+		Timestamp dtEndPrev = new Timestamp(milis - 1);
+		Timestamp dtInsert = new Timestamp(milis);
+		int rowIndex = 0;
+		for (DbDataObject dbo : dba.getItems()) {
+			// execute the call backs
+			executeOnSaveCallbacks(dbo);
+
+			// make sure we save SDI objects only when SvWriter is used
+			// internally by SvGeometry
+			if (!isInternal && hasGeometries(dbo.getObjectType()))
+				throw (new SvException(Sv.Exceptions.SDI_TYPE_LIMIT, instanceUser, dbo, dbt));
+
+			// perform the basic repo checks over the object before saving
+			checkRepoData(dbo, isUpdate, skipPreSaveChecks);
+
+			// if the object is a new object, make sure we assign the
+			// default status to it.
+			if ((dbo.getPkid() == 0 || dbo.getObjectId() == 0) && (dbo.getStatus() == null || dbo.getStatus() == ""))
+				dbo.setStatus(getDefaultStatus(dbt));
+			// get the old repo objects if any
+			Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObjectId()) : null;
+
+			// ensure the object is batched for saving
+			addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidate, psInsert, dtInsert, dtEndPrev,
+					extendedRepoStruct, rowIndex);
+			rowIndex++;
+
+		}
+	}
+
+	/**
+	 * Method to execute the insertion of repo data into the svarog database and
+	 * update the list of objects with the corresponding database keys
+	 * 
+	 * @param dba                The list of objects subject to database save
+	 *                           operation. They primary keys will be loaded into
+	 *                           this list
+	 * @param psInsRepo          The prepared statement used for performing the SQL
+	 *                           insert/call
+	 * @param extendedRepoStruct The extended repo structure needed for certain SQL
+	 *                           servers (like MSMSQL)
+	 * @return Returns count of loaded primary keys
+	 * @throws SQLException any underlyding SQL exception
+	 * @throws SvException  "system.error.jdbc_bad_database_handler" if the database
+	 *                      handler doesn't return the database primary keys
+	 */
+	int loadRepoKeys(DbDataArray dba, PreparedStatement psInsRepo, Object extendedRepoStruct)
+			throws SQLException, SvException {
+		int objectIndex = 0;
+		if (!SvConf.getDbHandler().getOverrideInsertRepo()) {
+			psInsRepo.executeBatch();
+			try (ResultSet rsGenKeys = psInsRepo.getGeneratedKeys()) {
+				while (rsGenKeys.next()) {
+					setKeys(dba, rsGenKeys.getLong(1), rsGenKeys.getLong(2), objectIndex);
+					objectIndex++;
+				}
+			}
+		} else {
+			Map<Long, Long> repoKeys = SvConf.getDbHandler().repoSaveGetKeys(psInsRepo, extendedRepoStruct);
+			if (repoKeys == null)
+				throw (new SvException(Sv.Exceptions.BAD_JDBC_HANDLER, instanceUser));
+			for (Entry<Long, Long> entry : repoKeys.entrySet()) {
+				setKeys(dba, entry.getKey(), entry.getValue(), objectIndex);
+				objectIndex++;
+			}
+		}
+		return objectIndex;
+	}
+
+	/**
 	 * Method to save the base repo data for the object.
 	 * 
 	 * @param dbt               The object type descriptor
@@ -636,105 +729,71 @@ public class SvWriter extends SvCore {
 	HashMap<Long, Object[]> saveRepoData(DbDataObject dbt, DbDataArray dba, Boolean withMetaUpdate,
 			Boolean skipPreSaveChecks) throws SvException {
 
-		PreparedStatement psInvalidateOld = null;
-		PreparedStatement psInsRepo = null;
+		PreparedStatement psInvalidate = null;
+		PreparedStatement psInsert = null;
 		Object extendedRepoStruct = null;
-		ResultSet rsGenKeys = null;
 		HashMap<Long, Object[]> oldRepoData = null;
+		int[] updatedRows = null;
 
 		try {
 			// get the system configured DB handler
-			ISvDatabaseIO dbHandler = SvConf.getDbHandler();
-
 			String schema = dbt.getVal("schema").toString();
 			String repoName = dbt.getVal("repo_name").toString();
 			Boolean isUpdate = dba.getItems().get(0).getObjectId() != 0L;
 			String sqlInsRepo = getRepoInsertSQL(isUpdate, withMetaUpdate, schema, repoName);
-
 			if (log4j.isDebugEnabled())
 				log4j.trace(sqlInsRepo);
-			// sort the milis of the ending/starting time
-			long milis = new DateTime().getMillis();
-			Timestamp dtEndPrev = new Timestamp(milis - 1);
-			Timestamp dtInsert = new Timestamp(milis);
 
 			Connection conn = this.dbGetConn();
 
 			// prepare the repo insert statements
-			if (!dbHandler.getOverrideInsertRepo())
-				psInsRepo = conn.prepareStatement(sqlInsRepo, genKeyIds);
+			if (!SvConf.getDbHandler().getOverrideInsertRepo())
+				psInsert = conn.prepareStatement(sqlInsRepo, genKeyIds);
 			else {// if the handler overrides the repo insert, pass the
 					// generation of the statement to the handler
-				psInsRepo = dbHandler.getInsertRepoStatement(conn, sqlInsRepo, schema, repoName);
-				if (psInsRepo == null)
+				psInsert = SvConf.getDbHandler().getInsertRepoStatement(conn, sqlInsRepo, schema, repoName);
+				if (psInsert == null)
 					throw (new SvException("system.error.jdbc_bad_database_handler", instanceUser));
-				extendedRepoStruct = dbHandler.getInsertRepoStruct(conn, dba.size());
+				extendedRepoStruct = SvConf.getDbHandler().getInsertRepoStruct(conn, dba.size());
 			}
-
-			if (!skipPreSaveChecks || isUpdate) {
+			// execute pre-save checks if needed
+			if (!skipPreSaveChecks || isUpdate)
 				oldRepoData = preSaveChecks(dbt, dba, isUpdate, skipPreSaveChecks);
-			}
 
-			int rowIndex = 0;
-			for (DbDataObject dbo : dba.getItems()) {
-				// execute the call backs
-				executeOnSaveCallbacks(dbo);
+			// if we are updating, invalidate the old versions
+			if (isUpdate)
+				psInvalidate = conn.prepareStatement(getUpdateRepoSql(schema, repoName));
 
-				// make sure we save SDI objects only when SvWriter is used
-				// internally by SvGeometry
-				if (!isInternal && hasGeometries(dbo.getObjectType()))
-					throw (new SvException("system.error.sdi.sdi_type_limit", instanceUser, dbo, dbt));
+			// prepare the insert and invalidate and bind all params.
+			prepareRepoBatch(dbt, dba, oldRepoData, withMetaUpdate, isUpdate, skipPreSaveChecks, psInvalidate, psInsert,
+					extendedRepoStruct);
 
-				// perform the basic repo checks over the object before saving
-				checkRepoData(dbo, isUpdate, skipPreSaveChecks);
+			// if we have valid invalidate statement execute it
+			updatedRows = psInvalidate != null ? psInvalidate.executeBatch() : null;
 
-				// if the object is a new object, make sure we assign the
-				// default status to it.
-				if ((dbo.getPkid() == 0 || dbo.getObjectId() == 0)
-						&& (dbo.getStatus() == null || dbo.getStatus() == ""))
-					dbo.setStatus(getDefaultStatus(dbt));
-				// get the old repo objects if any
-				Object[] repoObjects = isUpdate ? oldRepoData.get(dbo.getObjectId()) : null;
-				if (dbo.getPkid() != 0L && psInvalidateOld == null)
-					psInvalidateOld = conn.prepareStatement(getUpdateRepoSql(schema, repoName));
+			// finally execute the repo insert and load the keys back into the objects
+			int objectIndex = loadRepoKeys(dba, psInsert, extendedRepoStruct);
 
-				// ensure the object is batched for saving
-				addRepoBatch(dbt, dbo, withMetaUpdate, repoObjects, psInvalidateOld, psInsRepo, dtInsert, dtEndPrev,
-						extendedRepoStruct, rowIndex);
-				rowIndex++;
-
-			}
-
-			int[] updatedRows = psInvalidateOld != null ? psInvalidateOld.executeBatch() : null;
-
-			int objectIndex = 0;
-			if (!dbHandler.getOverrideInsertRepo()) {
-				psInsRepo.executeBatch();
-				rsGenKeys = psInsRepo.getGeneratedKeys();
-				while (rsGenKeys.next()) {
-					setKeys(dba, rsGenKeys.getLong(1), rsGenKeys.getLong(2), objectIndex);
-					objectIndex++;
-				}
-			} else {
-				Map<Long, Long> repoKeys = dbHandler.repoSaveGetKeys(psInsRepo, extendedRepoStruct);
-				if (repoKeys == null)
-					throw (new SvException("system.error.jdbc_bad_database_handler", instanceUser));
-				for (Entry<Long, Long> entry : repoKeys.entrySet()) {
-					setKeys(dba, entry.getKey(), entry.getValue(), objectIndex);
-					objectIndex++;
-				}
-			}
-
+			// basic sanity check
 			if (dba.getItems().size() != objectIndex || (isUpdate && !isInternal
 					&& objectIndex != (updatedRows != null ? updatedRows.length : objectIndex)))
-				throw (new SvException("system.error.batch_size_err", instanceUser, dba, dbt));
+				throw (new SvException(Sv.Exceptions.BATCH_SIZE_ERR, instanceUser, dba, dbt));
 
 		} catch (SQLException ex) {
-			throw (new SvException("system.error.reposave_err", instanceUser, null, dba, ex));
+			throw (new SvException(Sv.Exceptions.REPOSAVE_ERR, instanceUser, null, dba, ex));
 		} finally {
-			closeResource((AutoCloseable) rsGenKeys, instanceUser);
-			closeResource((AutoCloseable) psInsRepo, instanceUser);
-			closeResource((AutoCloseable) psInvalidateOld, instanceUser);
+			try {
+				if (psInvalidate != null)
+					psInvalidate.close();
+			} catch (Exception e) {
+				throw (new SvException(Sv.Exceptions.JDBC_CANT_RELEASE, instanceUser, null, null, e));
+			}
+			try {
+				if (psInsert != null)
+					psInsert.close();
+			} catch (Exception e) {
+				throw (new SvException(Sv.Exceptions.JDBC_CANT_RELEASE, instanceUser, null, null, e));
+			}
 
 		}
 		return oldRepoData;
@@ -910,31 +969,26 @@ public class SvWriter extends SvCore {
 		StringBuilder sqlStrB = oConstr.getSQLQueryString(dba);
 		if (log4j.isDebugEnabled())
 			log4j.trace("Executing unique constraints check:" + sqlStrB.toString());
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			Connection conn = getConstraintsConn();
-			ps = conn.prepareStatement(sqlStrB.toString());
+
+		try (PreparedStatement ps = getConstraintsConn().prepareStatement(sqlStrB.toString())) {
 			bindQueryVals(ps, oConstr.getSQLParamVals(dba));
-			rs = ps.executeQuery();
-			StringBuilder strb = new StringBuilder();
-			String constraintName = null;
-			if (rs.next()) {
-				constraintName = rs.getString("constr_name");
-				strb.append("Constraint violated:" + rs.getString("constr_name") + ", values:"
-						+ rs.getString("existing_unq_vals") + ";");
-			}
-			if (strb.length() > 0) {
-				strb.setLength(strb.length() - 1);
-				throw (new SvException("system.error.unq_constraint_violated", instanceUser,
-						oConstr.getConstraints().get(constraintName).getConstraintFields(),
-						dba.toSimpleJson().toString() + strb.toString()));
+			try (ResultSet rs = ps.executeQuery()) {
+				StringBuilder strb = new StringBuilder();
+				String constraintName = null;
+				if (rs.next()) {
+					constraintName = rs.getString("constr_name");
+					strb.append("Constraint violated:" + rs.getString("constr_name") + ", values:"
+							+ rs.getString("existing_unq_vals") + ";");
+				}
+				if (strb.length() > 0) {
+					strb.setLength(strb.length() - 1);
+					throw (new SvException("system.error.unq_constraint_violated", instanceUser,
+							oConstr.getConstraints().get(constraintName).getConstraintFields(),
+							dba.toSimpleJson().toString() + strb.toString()));
+				}
 			}
 		} catch (SQLException ex) {
 			throw (new SvException("system.error.sql_statement_err", instanceUser, dba, sqlStrB.toString(), ex));
-		} finally {
-			closeResource((AutoCloseable) rs, svCONST.systemUser);
-			closeResource((AutoCloseable) ps, svCONST.systemUser);
 		}
 	}
 
@@ -1797,9 +1851,7 @@ public class SvWriter extends SvCore {
 	 */
 	void saveFormData(DbDataObject objToSave, DbDataObject dbt, Long oldPkid, Long newPkid, String status)
 			throws SvException {
-
-		PreparedStatement ps = null;
-		PreparedStatement psInvalidate = null;
+		Integer resultCnt = 0;
 
 		try (SvLob lob = new SvLob(this.dbGetConn()); SvReader svr = new SvReader(this)) {
 
@@ -1812,29 +1864,26 @@ public class SvWriter extends SvCore {
 			Connection conn = this.dbGetConn();
 
 			int pCount = 1;
-			ps = conn.prepareStatement(sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
-			// save does not work with this check.. f.r*
-			// if (oldPkid == 0)
-			ps.setBigDecimal(pCount, new BigDecimal(newPkid));
-
-			String fName = "";
-			pCount++;
-			for (DbDataObject dbf : objectFields.getItems()) {
-				fName = (String) dbf.getVal("FIELD_NAME");
-				if (fName.equals("PKID"))
-					continue;
-				Object value = objToSave.getVal(fName);
-				validateFieldData(dbf, value, false);
-				bindInsertQueryVars(ps, dbf, pCount, value, lob);
-
+				ps.setBigDecimal(pCount, new BigDecimal(newPkid));
+				String fName = "";
 				pCount++;
+				for (DbDataObject dbf : objectFields.getItems()) {
+					fName = (String) dbf.getVal("FIELD_NAME");
+					if (fName.equals("PKID"))
+						continue;
+					Object value = objToSave.getVal(fName);
+					validateFieldData(dbf, value, false);
+					bindInsertQueryVars(ps, dbf, pCount, value, lob);
+
+					pCount++;
+				}
+				if (oldPkid != 0)
+					ps.setBigDecimal(pCount, new BigDecimal(oldPkid));
+
+				resultCnt = ps.executeUpdate();
 			}
-			if (oldPkid != 0)
-				ps.setBigDecimal(pCount, new BigDecimal(oldPkid));
-
-			Integer resultCnt = ps.executeUpdate();
-
 			if (resultCnt != 1)
 				throw (new SvException("system.error.sql_update_err", instanceUser, objToSave, dbt));
 
@@ -1853,12 +1902,13 @@ public class SvWriter extends SvCore {
 				if (log4j.isDebugEnabled())
 					log4j.debug("Executing SQL:" + sqlUpdate);
 
-				psInvalidate = conn.prepareStatement(sqlUpdate);
-				psInvalidate.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
-				psInvalidate.setLong(2, objToSave.getObjectId());
-				psInvalidate.setLong(3, svCONST.OBJECT_TYPE_FORM_FIELD);
-				psInvalidate.setTimestamp(4, SvConf.MAX_DATE_SQL);
-				psInvalidate.executeUpdate();
+				try (PreparedStatement psInvalidate = conn.prepareStatement(sqlUpdate)) {
+					psInvalidate.setTimestamp(1, new Timestamp(dt_insert.getMillis() - 1));
+					psInvalidate.setLong(2, objToSave.getObjectId());
+					psInvalidate.setLong(3, svCONST.OBJECT_TYPE_FORM_FIELD);
+					psInvalidate.setTimestamp(4, SvConf.MAX_DATE_SQL);
+					psInvalidate.executeUpdate();
+				}
 
 			}
 			saveFormFields(objToSave, formType, oldPkid, dt_insert, formFields);
@@ -1869,9 +1919,6 @@ public class SvWriter extends SvCore {
 			else
 				throw (new SvException("system.error.form_data_save_err", instanceUser, objToSave, dbt, ex));
 
-		} finally {
-			closeResource((AutoCloseable) ps, instanceUser);
-			closeResource((AutoCloseable) psInvalidate, instanceUser);
 		}
 
 	}
@@ -2007,19 +2054,16 @@ public class SvWriter extends SvCore {
 
 	public HashMap<Long, Long> cloneForms(DbDataObject dbo, Long oldOID) throws SvException {
 		HashMap<Long, Long> oldNewOIDPairs = new HashMap<Long, Long>();
-		Connection conn = dbGetConn();
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		SvReader svr = new SvReader(this);
-		try {
-			ps = conn.prepareStatement(
-					"select distinct (form_type_id) from vsvarog_form  sv where sv.parent_id=? and dt_delete=?");
+		String sqlSelect = "select distinct (form_type_id) from vsvarog_form  sv where sv.parent_id=? and dt_delete=?";
+
+		try (SvReader svr = new SvReader(this); PreparedStatement ps = this.dbGetConn().prepareStatement(sqlSelect)) {
 			ps.setLong(1, oldOID);
 			ps.setTimestamp(2, new Timestamp(SvConf.MAX_DATE.getMillis()));
-			rs = ps.executeQuery();
 			ArrayList<Long> formTypeIds = new ArrayList<Long>();
-			while (rs.next()) {
-				formTypeIds.add(rs.getLong(1));
+			try (ResultSet rs = ps.executeQuery()) {
+				while (rs.next()) {
+					formTypeIds.add(rs.getLong(1));
+				}
 			}
 			Long currentOID = 0L;
 			DbDataArray forms = svr.getFormsByParentId(oldOID, formTypeIds, null, null, true);
@@ -2033,10 +2077,6 @@ public class SvWriter extends SvCore {
 			}
 		} catch (SQLException e) {
 			throw (new SvException("system.error.children_clone_err", instanceUser, dbo, null, e));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
-			svr.release();
 		}
 		return oldNewOIDPairs;
 	}
@@ -2106,11 +2146,8 @@ public class SvWriter extends SvCore {
 		;
 
 		DbDataArray dbarr = new DbDataArray();
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			Connection conn = this.dbGetConn();
-			ps = conn.prepareStatement(findLinksSql);
+
+		try (PreparedStatement ps = this.dbGetConn().prepareStatement(findLinksSql)) {
 			ps.setTimestamp(1, new Timestamp(SvConf.MAX_DATE.getMillis()));
 			ps.setTimestamp(2, new Timestamp(SvConf.MAX_DATE.getMillis()));
 			ps.setLong(3, objectId);
@@ -2122,37 +2159,35 @@ public class SvWriter extends SvCore {
 			ps.setLong(9, childObjectType);
 			ps.setTimestamp(10, new Timestamp(SvConf.MAX_DATE.getMillis()));
 			log4j.debug("Executing SQL:" + findLinksSql);
-			rs = ps.executeQuery();
-			Long oVal = null;
-			Boolean isFound = false;
-			while (rs.next()) {
-				DbDataObject dbo = new DbDataObject();
-				isFound = false;
-				dbo.setObjectType(rs.getLong("OBJECT_TYPE"));
-				dbo.setVal("LINK_TYPE_ID", rs.getLong("LINK_TYPE_ID"));
-				dbo.setVal("LINK_OBJ_ID_2", rs.getLong("LINK_OBJ_ID_2"));
+			try (ResultSet rs = ps.executeQuery()) {
+				Long oVal = null;
+				Boolean isFound = false;
+				while (rs.next()) {
+					DbDataObject dbo = new DbDataObject();
+					isFound = false;
+					dbo.setObjectType(rs.getLong("OBJECT_TYPE"));
+					dbo.setVal("LINK_TYPE_ID", rs.getLong("LINK_TYPE_ID"));
+					dbo.setVal("LINK_OBJ_ID_2", rs.getLong("LINK_OBJ_ID_2"));
 
-				oVal = rs.getLong("LINK_OBJ_ID_1");
-				if (oVal != null && oldNewOIDPairs.containsKey(oVal)) {
-					dbo.setVal("LINK_OBJ_ID_1", oldNewOIDPairs.get(oVal));
-					isFound = true;
-				}
+					oVal = rs.getLong("LINK_OBJ_ID_1");
+					if (oVal != null && oldNewOIDPairs.containsKey(oVal)) {
+						dbo.setVal("LINK_OBJ_ID_1", oldNewOIDPairs.get(oVal));
+						isFound = true;
+					}
 
-				oVal = rs.getLong("LINK_OBJ_ID_2");
-				if (oVal != null && oldNewOIDPairs.containsKey(oVal)) {
-					dbo.setVal("LINK_OBJ_ID_2", oldNewOIDPairs.get(oVal));
-					isFound = true;
+					oVal = rs.getLong("LINK_OBJ_ID_2");
+					if (oVal != null && oldNewOIDPairs.containsKey(oVal)) {
+						dbo.setVal("LINK_OBJ_ID_2", oldNewOIDPairs.get(oVal));
+						isFound = true;
+					}
+					if (isFound)
+						dbarr.addDataItem(dbo);
 				}
-				if (isFound)
-					dbarr.addDataItem(dbo);
 			}
 			if (dbarr != null && dbarr.getItems().size() > 0)
 				this.saveObject(dbarr, true, false);
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbarr, null, e));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
 
 	}
@@ -2170,41 +2205,34 @@ public class SvWriter extends SvCore {
 	 */
 	void cloneChildren(DbDataObject dbo, Long oldOID, Boolean cloneChildrenLinks) throws SvException {
 
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			Connection conn = this.dbGetConn();
-			// find all different object types under the source object
-			ps = conn.prepareStatement("select distinct object_type from " + repoDbt.getVal("SCHEMA")
-					+ ".svarog sv where sv.parent_id=? and dt_delete=?");
+		String sqlSelect = "select distinct object_type from " + repoDbt.getVal("SCHEMA")
+				+ ".svarog sv where sv.parent_id=? and dt_delete=?";
+		try (PreparedStatement ps = this.dbGetConn().prepareStatement(sqlSelect);) {
 			ps.setLong(1, oldOID);
 			ps.setTimestamp(2, new Timestamp(SvConf.MAX_DATE.getMillis()));
-			rs = ps.executeQuery();
-			ArrayList<Long> objectTypesToClone = new ArrayList<Long>();
-			// hold the old/new OIDs, just in case we need to clone the links
-			HashMap<Long, Long> oldNewOIDPairs = null;
-			while (rs.next()) {
-				objectTypesToClone.add(rs.getLong(1));
-			}
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
+			try (ResultSet rs = ps.executeQuery()) {
+				ArrayList<Long> objectTypesToClone = new ArrayList<Long>();
+				// hold the old/new OIDs, just in case we need to clone the links
+				HashMap<Long, Long> oldNewOIDPairs = null;
+				while (rs.next()) {
+					objectTypesToClone.add(rs.getLong(1));
+				}
+				closeResource((AutoCloseable) rs, instanceUser);
+				closeResource((AutoCloseable) ps, instanceUser);
 
-			for (Long objectTypeToClone : objectTypesToClone) {
-				if (objectTypeToClone.equals(svCONST.OBJECT_TYPE_FORM))
-					oldNewOIDPairs = cloneForms(dbo, oldOID);
-				else
-					oldNewOIDPairs = cloneObjects(dbo, oldOID, objectTypeToClone);
-				if (cloneChildrenLinks)
-					cloneLinkObjects(oldOID, objectTypeToClone, oldNewOIDPairs);
+				for (Long objectTypeToClone : objectTypesToClone) {
+					if (objectTypeToClone.equals(svCONST.OBJECT_TYPE_FORM))
+						oldNewOIDPairs = cloneForms(dbo, oldOID);
+					else
+						oldNewOIDPairs = cloneObjects(dbo, oldOID, objectTypeToClone);
+					if (cloneChildrenLinks)
+						cloneLinkObjects(oldOID, objectTypeToClone, oldNewOIDPairs);
+				}
 			}
 
 		} catch (SQLException e) {
 			throw (new SvException(Sv.Exceptions.SQL_ERR, instanceUser, dbo, null));
-		} finally {
-			closeResource((AutoCloseable) rs, instanceUser);
-			closeResource((AutoCloseable) ps, instanceUser);
 		}
-
 	}
 
 	/**

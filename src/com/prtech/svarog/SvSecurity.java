@@ -211,15 +211,10 @@ public class SvSecurity extends SvCore {
 	 */
 	public String getPublicParam(String label) throws SvException {
 
-		SvParameter svp = null;
 		String result = null;
-		try {
-			svp = new SvParameter();
+		try (SvParameter svp = new SvParameter()) {
 			DbDataObject securityDbt = SvCore.getDbt(svCONST.OBJECT_TYPE_SECURITY_LOG);
 			result = svp.getParamString(securityDbt, label);
-		} finally {
-			if (svp != null)
-				svp.release();
 		}
 		return result;
 	}
@@ -236,15 +231,12 @@ public class SvSecurity extends SvCore {
 	 */
 	public DbDataArray getPOAObjects(Long userObjectId, String poaObjectTypeName) throws SvException {
 		DbDataArray poaObjects = null;
-		SvReader svr = new SvReader();
 
-		try {
+		try (SvReader svr = new SvReader()) {
 			DbDataObject dbl = getLinkType("POA", svCONST.OBJECT_TYPE_USER, getTypeIdByName(poaObjectTypeName));
 			poaObjects = svr.getObjectsByLinkedId(userObjectId, svCONST.OBJECT_TYPE_USER, dbl,
 					getTypeIdByName(poaObjectTypeName), false, null, 0, 0);
 			return poaObjects;
-		} finally {
-			svr.release();
 		}
 
 	}
@@ -324,8 +316,8 @@ public class SvSecurity extends SvCore {
 			critU = new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, sidId);
 
 		expr.addDbSearchItem(critU);
-		SvReader svr = new SvReader();
-		try {
+
+		try (SvReader svr = new SvReader()) {
 			DbDataArray ret = (svr).getObjects(expr, sidType, null, 1, 0);
 
 			if (ret != null && ret.getItems().size() > 0) {
@@ -340,8 +332,6 @@ public class SvSecurity extends SvCore {
 			}
 			if (sid != null)
 				DbCache.addObject(sid, (String) sid.getVal(sidTypeName));
-		} finally {
-			svr.release();
 		}
 
 		if (sid == null)
@@ -382,12 +372,8 @@ public class SvSecurity extends SvCore {
 		if (secureObject == null)
 			throw (new SvException("system.error.no_dbt_found", instanceUser));
 
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
+		try (SvWriter svw = new SvWriter(); SvReader svr = new SvReader(svw)) {
 
-			svw = new SvWriter();
-			svr = new SvReader(svw);
 			DbQueryObject dqoAcl = new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_ACL), null, null,
 					DbJoinType.INNER);
 			DbSearchExpression dbx = new DbSearchExpression();
@@ -420,11 +406,6 @@ public class SvSecurity extends SvCore {
 				aclDbo.setVal("acl_object_type", secureObject.getObject_type());
 				svw.saveObject(aclDbo);
 			}
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
 		}
 
 	}
@@ -447,12 +428,9 @@ public class SvSecurity extends SvCore {
 			throw (new SvException("system.error.no_sid_found", instanceUser));
 
 		DbDataObject acl = null;
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
 
-			svw = new SvWriter();
-			svr = new SvReader(svw);
+		try (SvWriter svw = new SvWriter(); SvReader svr = new SvReader(svw);) {
+
 			DbDataArray permissions = svw.getPermissions(sid, svr);
 			permissions.rebuildIndex("LABEL_CODE", true);
 			if (permissions.getItemByIdx(permissionKey) == null) {
@@ -473,11 +451,6 @@ public class SvSecurity extends SvCore {
 				aclSid.setVal("ACL_OBJECT_ID", acl.getObjectId());
 				svw.saveObject(aclSid);
 			}
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
 		}
 
 	}
@@ -501,12 +474,9 @@ public class SvSecurity extends SvCore {
 			throw (new SvException("system.error.no_sid_found", instanceUser));
 
 		DbDataObject acl = null;
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
 
-			svw = new SvWriter();
-			svr = new SvReader(svw);
+		try (SvWriter svw = new SvWriter(); SvReader svr = new SvReader(svw);) {
+
 			DbDataArray permissions = svw.getPermissions(sid, svr);
 			permissions.rebuildIndex("LABEL_CODE", true);
 			acl = permissions.getItemByIdx(permissionKey);
@@ -528,11 +498,6 @@ public class SvSecurity extends SvCore {
 					svw.deleteObject(aclSid);
 				}
 			}
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
 		}
 
 	}
@@ -549,22 +514,14 @@ public class SvSecurity extends SvCore {
 			throw (new SvException("system.error.sysuser_cant_manage_security", instanceUser));
 
 		DbDataArray acls = null;
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
 
-			svw = new SvWriter();
-			svr = new SvReader(svw);
+		try (SvWriter svw = new SvWriter(); SvReader svr = new SvReader(svw);) {
+
 			DbSearchExpression dbx = new DbSearchExpression()
 					.addDbSearchItem(new DbSearchCriterion("LABEL_CODE", DbCompareOperand.LIKE, permissionMask));
 
 			acls = svr.getObjects(dbx, svCONST.OBJECT_TYPE_ACL, null, 0, 0);
 
-		} finally {
-			if (svw != null)
-				svw.release();
-			if (svr != null)
-				svr.release();
 		}
 		return acls;
 
@@ -583,18 +540,15 @@ public class SvSecurity extends SvCore {
 	String logonImpl(String user, String pass, SvWriter svw) throws SvException {
 		String sessionToken = null;
 
-		SvReader svr = new SvReader(svw);
-		try {
+		try (SvReader svr = new SvReader(svw);) {
 			DbSearchExpression expr = new DbSearchExpression();
 			DbSearchCriterion critU = new DbSearchCriterion("user_name", DbCompareOperand.EQUAL, user,
 					DbLogicOperand.AND);
 			DbSearchCriterion critP = new DbSearchCriterion("password_hash", DbCompareOperand.EQUAL,
 					SvUtil.getMD5(pass), DbLogicOperand.AND);
-			// DbSearchCriterion critS = new DbSearchCriterion("STATUS",
-			// DbCompareOperand.EQUAL, svCONST.STATUS_VALID);
+
 			expr.addDbSearchItem(critU);
 			expr.addDbSearchItem(critP);
-			// expr.addDbSearchItem(critS);
 
 			DbDataObject userData = null;
 			DbDataArray ret = svr.getObjects(expr, svCONST.OBJECT_TYPE_USER, null, 1, 0);
@@ -628,8 +582,6 @@ public class SvSecurity extends SvCore {
 				throw (new SvException("system.error.no_user_found", instanceUser, ret, expr));
 			}
 			return sessionToken;
-		} finally {
-			svr.release();
 		}
 
 	}
@@ -701,13 +653,11 @@ public class SvSecurity extends SvCore {
 	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void activateExternalUser(String uuid) throws SvException {
-		SvReader svr = new SvReader();
-		SvWorkflow svw = new SvWorkflow(svr);
 		DbSearchExpression dse = new DbSearchExpression();
 		DbSearchCriterion searchByUID = new DbSearchCriterion("USER_UID", DbCompareOperand.EQUAL, uuid);
 		dse.addDbSearchItem(searchByUID);
 
-		try {
+		try (SvReader svr = new SvReader(); SvWorkflow svw = new SvWorkflow(svr);) {
 			Boolean userFound = false;
 			DbDataArray dba = svr.getObjects(dse, svCONST.OBJECT_TYPE_USER, null, 0, 0);
 			if (dba != null) {
@@ -715,16 +665,13 @@ public class SvSecurity extends SvCore {
 				if (user != null && user.getStatus().equals("PENDING")) {
 					(svw).moveObject(user, svCONST.STATUS_VALID);
 					userFound = true;
-				}  else if (user != null && user.getStatus().equals("VALID")) {
+				} else if (user != null && user.getStatus().equals("VALID")) {
 					userFound = true;
 				}
 			}
 
 			if (!userFound)
 				throw (new SvException("system.error.activate_no_user", instanceUser, null, dse));
-		} finally {
-			svr.release();
-			svw.release();
 		}
 	}
 
@@ -755,8 +702,7 @@ public class SvSecurity extends SvCore {
 		if (this.instanceUser.equals(svCONST.systemUser))
 			userType = "EXTERNAL";
 
-		SvReader svr = new SvReader(svw);
-		try {
+		try (SvReader svr = new SvReader(svw)) {
 			DbSearchExpression expr = new DbSearchExpression()
 					.addDbSearchItem(new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, userName));
 
@@ -799,8 +745,6 @@ public class SvSecurity extends SvCore {
 				linkUserToGroup(dboUser, svCONST.usersGroup, true, svr);
 			}
 			return dboUser;
-		} finally {
-			svr.release();
 		}
 
 	}
@@ -815,11 +759,8 @@ public class SvSecurity extends SvCore {
 	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject recoverPassword(String userName, String pin, String newPass) throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
-			svr = new SvReader();
-			svw = new SvWriter(svr);
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
+
 			svw.dbSetAutoCommit(false);
 			DbSearchExpression expr = new DbSearchExpression()
 					.addDbSearchItem(new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, userName));
@@ -838,14 +779,8 @@ public class SvSecurity extends SvCore {
 			dboUser.setVal("PASSWORD_HASH", SvUtil.getMD5(newPass.toUpperCase()));
 			svw.saveObject(dboUser, false);
 			svw.dbCommit();
-			DbDataObject refreshCacheUserObj = svr.getObjectById(dboUser.getObject_id(), svCONST.OBJECT_TYPE_USER,
-					null);
+			DbDataObject refreshCacheUserObj = svr.getObjectById(dboUser.getObjectId(), svCONST.OBJECT_TYPE_USER, null);
 			return refreshCacheUserObj;
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svw != null)
-				svw.release();
 		}
 	}
 
@@ -859,11 +794,9 @@ public class SvSecurity extends SvCore {
 	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public DbDataObject updatePassword(String userName, String oldPass, String newPass) throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
-			svr = new SvReader();
-			svw = new SvWriter(svr);
+
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
+
 			svw.dbSetAutoCommit(false);
 			DbSearchExpression expr = new DbSearchExpression()
 					.addDbSearchItem(new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, userName));
@@ -886,11 +819,6 @@ public class SvSecurity extends SvCore {
 			DbDataObject refreshCacheUserObj = svr.getObjectById(dboUser.getObject_id(), svCONST.OBJECT_TYPE_USER,
 					null);
 			return refreshCacheUserObj;
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svw != null)
-				svw.release();
 		}
 
 	}
@@ -942,9 +870,8 @@ public class SvSecurity extends SvCore {
 	 */
 	public Boolean checkIfUserExistsByUserName(String userName, String status) throws SvException {
 		Boolean result = false;
-		SvReader svr = null;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader();) {
+
 			DbSearchExpression getUserByUName = new DbSearchExpression();
 			DbSearchCriterion filterByUserName = new DbSearchCriterion("USER_NAME", DbCompareOperand.EQUAL, userName);
 			getUserByUName.addDbSearchItem(filterByUserName);
@@ -956,10 +883,6 @@ public class SvSecurity extends SvCore {
 			if (searchResult.getItems().size() > 0) {
 				result = true;
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
-
 		}
 		return result;
 	}
@@ -986,9 +909,8 @@ public class SvSecurity extends SvCore {
 	 */
 	public Boolean checkIfUserExistsByPin(String pinNo, String status) throws SvException {
 		Boolean result = false;
-		SvReader svr = null;
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
+
 			DbSearchExpression getUserByPin = new DbSearchExpression();
 			DbSearchCriterion filterByPin = new DbSearchCriterion("PIN", DbCompareOperand.EQUAL, pinNo);
 			getUserByPin.addDbSearchItem(filterByPin);
@@ -1000,10 +922,6 @@ public class SvSecurity extends SvCore {
 			if (searchResult.getItems().size() > 0) {
 				result = true;
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
-
 		}
 		return result;
 	}
@@ -1031,17 +949,13 @@ public class SvSecurity extends SvCore {
 			String pin, String tax_id, String userType, String status) throws SvException {
 
 		DbDataObject user = null;
-		SvWriter svw = null;
-		try {
-			svw = new SvWriter();
+		try (SvWriter svw = new SvWriter()) {
+
 			svw.dbSetAutoCommit(false);
 			user = createUserImpl(userName, password, firstName, lastName, e_mail, pin, tax_id, userType, status, false,
 					svw);
 
 			svw.dbCommit();
-		} finally {
-			if (svw != null)
-				svw.release();
 		}
 		return user;
 	}
@@ -1098,14 +1012,9 @@ public class SvSecurity extends SvCore {
 	public void empowerUser(DbDataObject userObj, String objectTypeName, DbSearch searchCriteria) throws SvException {
 
 		// find the object to which we should link
-		SvLink svl = null;
-		try {
-			svl = new SvLink();
+		try (SvLink svl = new SvLink()) {
 			empowerUser(userObj, objectTypeName, searchCriteria, svl);
 			svl.dbCommit();
-		} finally {
-			if (svl != null)
-				svl.release();
 		}
 
 	}
@@ -1295,11 +1204,8 @@ public class SvSecurity extends SvCore {
 		if (isSystem())
 			throw (new SvException("system.error.sysuser_cant_manage_security", instanceUser));
 
-		SvReader svr = null;
-		SvWriter svw = null;
-		try {
-			svr = new SvReader();
-			svw = new SvWriter(svr);
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr);) {
+
 			DbDataObject dblt = getLinkType("USER_GROUP", svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_GROUP);
 			DbDataObject dbltDefault = getLinkType("USER_DEFAULT_GROUP", svCONST.OBJECT_TYPE_USER,
 					svCONST.OBJECT_TYPE_GROUP);
@@ -1325,13 +1231,7 @@ public class SvSecurity extends SvCore {
 			} else
 				throw (new SvException("system.error.user_not_member_of_group", instanceUser, user, userGroup));
 
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svw != null)
-				svw.release();
-
-		}
+		} 
 	}
 
 	/**
@@ -1389,9 +1289,9 @@ public class SvSecurity extends SvCore {
 	 */
 	public Boolean checkIfExistsConditional(String objectTypeName, DbSearch searchCriteria, String columnToCompare,
 			String compareValue) throws SvException {
-		SvReader svReader = new SvReader();
+		
 		Boolean result = false;
-		try {
+		try (SvReader svReader = new SvReader()){
 			Long objectTypeId = getTypeIdByName(objectTypeName);
 			if (objectTypeId == null) {
 				return result;
@@ -1401,8 +1301,6 @@ public class SvSecurity extends SvCore {
 				if (dbArray.getItems().get(0).getVal(columnToCompare).equals(compareValue))
 					result = true;
 			}
-		} finally {
-			svReader.release();
 		}
 		return result;
 

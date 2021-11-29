@@ -121,13 +121,9 @@ public class SvNotification extends SvCore {
 	}
 
 	public DbDataArray getNotificationPerUser(DbDataObject userObj) throws SvException {
-		SvReader svr = null;
-		SvLink svl = null;
-		DbDataArray allNotificationsFound = new DbDataArray();
-		try {
-			svr = new SvReader(this);
-			svl = new SvLink(svr);
 
+		DbDataArray allNotificationsFound = new DbDataArray();
+		try (SvReader svr = new SvReader(this);SvLink svl = new SvLink(svr)){
 			DbDataArray notificationsFoundPerUser = new DbDataArray();
 			// get user from the current session
 			// DbDataObject userObj =
@@ -173,12 +169,6 @@ public class SvNotification extends SvCore {
 
 		}
 
-		finally {
-			if (svr != null)
-				svr.release();
-			if (svl != null)
-				svl.release();
-		}
 	}
 	
 	/**

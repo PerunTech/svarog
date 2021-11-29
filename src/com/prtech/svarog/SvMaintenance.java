@@ -40,7 +40,7 @@ public class SvMaintenance implements Runnable {
 	/**
 	 * Boolean object to be used as semaphone for thread sync in the cluster
 	 */
-	static final Boolean maintenanceSemaphore = new Boolean(true);
+	static final Object maintenanceSemaphore = new Object();
 
 	/**
 	 * Reference the maintenance thread object
@@ -278,11 +278,10 @@ public class SvMaintenance implements Runnable {
 		// we are the coordinator and the Heart Beat server is running
 		if (SvCluster.isCoordinator() && SvClusterServer.isRunning.get()) {
 			synchronized (SvCluster.isRunning()) {
-				SvReader svr = null;
-				SvWriter svw = null;
-				try {
-					svr = new SvReader();
-					svr.isInternal = true;
+				
+				
+				try (SvReader  svr = new SvReader(); SvWriter svw = new SvWriter(svr);){
+					
 					Connection conn = svr.dbGetConn();
 
 					DbDataArray nodeList = svr.getObjects(null, svCONST.OBJECT_TYPE_CLUSTER, null, 0, 0);
@@ -290,7 +289,8 @@ public class SvMaintenance implements Runnable {
 					DbDataArray updatedList = new DbDataArray();
 					updatedList = clusterListUpdateNode(nodeList);
 					clusterListDeleteHistory(conn, updatedList);
-					svw = new SvWriter(svr);
+					svw.isInternal = true;
+					
 					svw.saveObject(updatedList, false);
 					svw.dbCommit();
 					nextMaintenance = new DateTime().plusSeconds(SvConf.getClusterMaintenanceInterval());
@@ -301,12 +301,7 @@ public class SvMaintenance implements Runnable {
 						SvCluster.shutdown(false);
 						SvCluster.initCluster();
 					}
-				} finally {
-					if (svr != null)
-						svr.release();
-					if (svw != null)
-						svw.release();
-				}
+				} 
 			}
 
 		}
