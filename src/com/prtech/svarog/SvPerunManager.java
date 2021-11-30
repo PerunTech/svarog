@@ -59,6 +59,8 @@ public class SvPerunManager extends SvCore {
 	static final String MENU_CONF = "MENU_CONF";
 	static final String CONTEXT_MENU_CONF = "CONTEXT_MENU_CONF";
 
+	static final List<IPerunPlugin> pendingRegistration = new CopyOnWriteArrayList<IPerunPlugin>();
+
 	/**
 	 * Callback class to refresh the plugin according to changes in Svarog database
 	 * 
@@ -176,9 +178,16 @@ public class SvPerunManager extends SvCore {
 	 */
 	static void addPlugin(IPerunPlugin plugin) {
 		synchronized (SvPerunManager.class) {
-			List<IPerunPlugin> plugins = new ArrayList<IPerunPlugin>();
-			plugins.add(plugin);
-			reloadPluginInstances(plugins);
+			// if the cluster is active we just register the plugin, if it isn't we add it
+			// to the pending list
+			if (SvCluster.getIsActive().get()) {
+				List<IPerunPlugin> plugins = new ArrayList<IPerunPlugin>();
+				plugins.add(plugin);
+				reloadPluginInstances(plugins);
+			} else {
+				if (!pendingRegistration.contains(plugin))
+					pendingRegistration.add(plugin);
+			}
 		}
 	}
 
@@ -189,9 +198,33 @@ public class SvPerunManager extends SvCore {
 	 */
 	static void reloadPlugin(IPerunPlugin plugin) {
 		synchronized (SvPerunManager.class) {
-			List<IPerunPlugin> plugins = new ArrayList<IPerunPlugin>();
-			plugins.add(plugin);
-			reloadPluginInstances(plugins);
+			if (SvCluster.getIsActive().get()) {
+				List<IPerunPlugin> plugins = new ArrayList<IPerunPlugin>();
+				plugins.add(plugin);
+				reloadPluginInstances(plugins);
+			} else {
+				if (!pendingRegistration.contains(plugin))
+					pendingRegistration.add(plugin);
+			}
+
+		}
+	}
+
+	/**
+	 * Method to refresh/reload a plugin instance to the plugin map
+	 * 
+	 * @param name
+	 */
+	static void registerPendingPlugins() {
+		if (SvCluster.getIsActive().get() && pendingRegistration.size() > 0) {
+			synchronized (SvPerunManager.class) {
+				for (IPerunPlugin p : pendingRegistration) {
+					List<IPerunPlugin> plugins = new ArrayList<IPerunPlugin>();
+					plugins.add(p);
+					reloadPluginInstances(plugins);
+				}
+				pendingRegistration.clear();
+			}
 		}
 	}
 
