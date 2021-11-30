@@ -61,7 +61,7 @@ public class SvMTWriterTest {
 				fail("Multithreaded save failed");
 			}
 
-		} catch (SvException e) {
+		} catch (SvException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			fail("test failed because of exception");
@@ -74,7 +74,7 @@ public class SvMTWriterTest {
 			}
 			try {
 				mt.shutdown();
-			} catch (SvException e) {
+			} catch (SvException | InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}

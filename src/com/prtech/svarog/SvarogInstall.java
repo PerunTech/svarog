@@ -2712,6 +2712,10 @@ public class SvarogInstall {
 				}
 			}
 
+		} catch (InterruptedException ex) {
+			log4j.error("Multithreaded save was interrupted!", ex);
+			Thread.currentThread().interrupt();
+			return false;
 		} catch (Exception e) {
 			log4j.error("Upgrade failed!", e);
 			if (e instanceof SvException)
@@ -2766,9 +2770,10 @@ public class SvarogInstall {
 	 * Method to perform initial Locale install
 	 * 
 	 * @return True if there was no error
-	 * @throws SvException Raised exception from SvWriter
+	 * @throws SvException          Raised exception from SvWriter
+	 * @throws InterruptedException
 	 */
-	static Boolean installLocales() throws SvException {
+	static Boolean installLocales() throws SvException, InterruptedException {
 		log4j.info("Install of system locales started");
 		SvMTWriter mt = null;
 		DbDataArray locales = getLocaleList();
@@ -3290,7 +3295,7 @@ public class SvarogInstall {
 
 		return upgradedCodes;
 	}
-	
+
 	/**
 	 * Method to delete all svarog fields which aren't found in the upgraded table
 	 * structure
@@ -3364,7 +3369,7 @@ public class SvarogInstall {
 				result = null;
 			}
 		} else {
-			
+
 			try (SvReader svr = new SvReader()) {
 				DbSearchCriterion dbs = new DbSearchCriterion("OBJECT_TYPE", DbCompareOperand.EQUAL,
 						svCONST.OBJECT_TYPE_LOCALE);
@@ -3377,7 +3382,7 @@ public class SvarogInstall {
 
 			} catch (SvException e) {
 				log4j.error("Repo seems valid, but system locales aren't loaded", e);
-			} 
+			}
 		}
 		return result;
 
