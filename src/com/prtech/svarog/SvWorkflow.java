@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.prtech.svarog;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import com.prtech.svarog_common.DbDataArray;
@@ -34,24 +35,22 @@ import com.prtech.svarog_common.Jsonable;
 public class SvWorkflow extends SvCore {
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException
-	 *             Pass through of underlying exceptions
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvWorkflow(String session_id) throws SvException {
 		super(session_id);
 	}
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @throws SvException
-	 *             Pass through of underlying exceptions
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public SvWorkflow(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -79,13 +78,10 @@ public class SvWorkflow extends SvCore {
 
 	/**
 	 * Method to change the status of a DbDataObject and move it to a new state.
-	 * This overloaded version performs commit on success and rollback on
-	 * exception
+	 * This overloaded version performs commit on success and rollback on exception
 	 * 
-	 * @param dbo
-	 *            The DbDataObject which is subject of change
-	 * @param newStatus
-	 *            The status to which the object will be moved
+	 * @param dbo       The DbDataObject which is subject of change
+	 * @param newStatus The status to which the object will be moved
 	 * @throws SvException
 	 */
 	public void moveObject(DbDataObject dbo, String newStatus) throws SvException {
@@ -93,17 +89,13 @@ public class SvWorkflow extends SvCore {
 	}
 
 	/**
-	 * Method that moves an object from one status to another status, with
-	 * option to auto commit or rollback if exception occured.
+	 * Method that moves an object from one status to another status, with option to
+	 * auto commit or rollback if exception occured.
 	 * 
-	 * @param dbo
-	 *            The object to be moved to another status
-	 * @param newStatus
-	 *            The status to which the object should be moved
-	 * @param autoCommit
-	 *            Flag to enable/disable auto commit
-	 * @throws SvException
-	 *             Pass through of underlying exceptions
+	 * @param dbo        The object to be moved to another status
+	 * @param newStatus  The status to which the object should be moved
+	 * @param autoCommit Flag to enable/disable auto commit
+	 * @throws SvException Pass through of underlying exceptions
 	 */
 	public void moveObject(DbDataObject dbo, String newStatus, Boolean autoCommit) throws SvException {
 		try {
@@ -120,13 +112,10 @@ public class SvWorkflow extends SvCore {
 	}
 
 	/**
-	 * Implementation method that moves an object from one status to another
-	 * status
+	 * Implementation method that moves an object from one status to another status
 	 * 
-	 * @param dbo
-	 *            The object to be moved to another status
-	 * @param newStatus
-	 *            The status to which the object should be moved
+	 * @param dbo       The object to be moved to another status
+	 * @param newStatus The status to which the object should be moved
 	 * @throws Exception
 	 */
 	void moveObjectImpl(DbDataObject dbo, String newStatus) throws SvException {
@@ -137,12 +126,14 @@ public class SvWorkflow extends SvCore {
 			DbDataArray dba = new DbDataArray();
 			dba.addDataItem(dbo);
 
-			try(SvWriter svw = new SvWriter(this)) {
+			try (SvWriter svw = new SvWriter(this)) {
 				svw.isInternal = true;
 				svw.saveRepoData(dbt, dba, false, false);
 				SvWriter.cacheCleanup(dbo);
 				svw.executeAfterSaveCallbacks(dbo);
-			} 
+			} catch (SQLException e) {
+				throw (new SvException(Sv.Exceptions.JDBC_CANT_RELEASE, instanceUser, dba, dbt, e));
+			}
 		} else {
 			throw (new SvException("workflow_engine.error.movementNotAllowed", instanceUser,
 					new ExceptionString("movementNotAllowed in: " + newStatus), dbo));
@@ -162,25 +153,25 @@ public class SvWorkflow extends SvCore {
 			svr = new SvReader(this);
 			DbDataArray objectValidTransitions = svr.getObjectsByParentId(dbo.getObjectType(),
 					svCONST.OBJECT_TYPE_WORKFLOW, null);
-			//do we have workflow?
+			// do we have workflow?
 			boolean hasWflow = !(objectValidTransitions == null || objectValidTransitions.isEmpty());
 
-			//if we do, do we have permission?
-			if (hasWflow && !checkIfTransitionPermitable(objectValidTransitions.get(0), svr)) 
+			// if we do, do we have permission?
+			if (hasWflow && !checkIfTransitionPermitable(objectValidTransitions.get(0), svr))
 				throw (new SvException("workflow_engine.error.movementNotAllowed.userDoesNotHaveThePermissionRequired",
 						instanceUser, new ExceptionString("userDoesNotHaveThePermissionRequired"), dbo));
-			
-			//if we do, is the destination valid?
-			if (hasWflow && !checkIfStatusExists(newStatus, codeListName)) 
+
+			// if we do, is the destination valid?
+			if (hasWflow && !checkIfStatusExists(newStatus, codeListName))
 				throw (new SvException("workflow_engine.error.movementNotAllowed.DestinationStatusNotInCodeList",
 						instanceUser, new ExceptionString("DestinationStatusNotInstalledInCodeList- status:" + newStatus
 								+ ";codeList:" + codeListName),
 						dbo));
 			// all fine and dandy, lets find transition rules
 			DbDataObject requestedTransition = findRequestedTransition(dbo, newStatus, svr);
-			
-			//if we have workflow and there's transition rule, lets execute it
-			if (hasWflow && requestedTransition != null && requestedTransition.getVal("CHECKIN_RULE") != null) 
+
+			// if we have workflow and there's transition rule, lets execute it
+			if (hasWflow && requestedTransition != null && requestedTransition.getVal("CHECKIN_RULE") != null)
 				result = executeRuleEnginePerTransition(dbo, requestedTransition, newStatus);
 
 		} finally
@@ -262,7 +253,7 @@ public class SvWorkflow extends SvCore {
 
 	Boolean checkIfTransitionPermitable(DbDataObject dboTransition, SvReader svr) throws SvException {
 		Boolean result = true;
-		final String PERMISSION_CODE="PERMISSION_CODE";
+		final String PERMISSION_CODE = "PERMISSION_CODE";
 		if (dboTransition.getVal(PERMISSION_CODE) != null
 				&& !dboTransition.getVal(PERMISSION_CODE).toString().trim().equals("")) {
 			String permissionCode = dboTransition.getVal(PERMISSION_CODE).toString();

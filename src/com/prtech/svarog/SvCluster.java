@@ -228,9 +228,10 @@ public class SvCluster extends SvCore {
 				if (coordinatorNode != null) {
 					// If we failed to promote lets try to refresh the coordinator node info
 					DbCache.removeObject(coordinatorNode.getObjectId(), coordinatorNode.getObjectType());
+					Object nextMaintenance = coordinatorNode.getVal(NEXT_MAINTENANCE);
 					coordinatorNode = null;
 					log4j.warn("Coordinator record is invalid. Next maintenance in the past: "
-							+ coordinatorNode.getVal(NEXT_MAINTENANCE));
+							+ nextMaintenance.toString());
 				}
 			}
 		}
@@ -271,7 +272,7 @@ public class SvCluster extends SvCore {
 			else
 				success = false;
 
-		} 
+		}
 		return success;
 	}
 
@@ -349,10 +350,10 @@ public class SvCluster extends SvCore {
 		} else
 			log4j.info("SvCluster is starting");
 		isActive.set(false);
-		
+
 		isCoordinator = false;
-		try (SvReader svr = new SvReader();){
-			
+		try (SvReader svr = new SvReader();) {
+
 			svr.isInternal = true;
 			// do try to get a valid coordinator
 			// force purge of the cache to get the coordinator

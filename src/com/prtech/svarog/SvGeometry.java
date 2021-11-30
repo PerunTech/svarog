@@ -114,7 +114,8 @@ public class SvGeometry extends SvWriter {
 		sysGrid = null;
 		sysBoundary = null;
 		Cache<String, SvSDITile> cache = SvGeometry.getLayerCache(svCONST.OBJECT_TYPE_SDI_GEOJSONFILE);
-		cache.invalidate(Sv.SDI_SYSTEM_BOUNDARY);
+		if (cache != null)
+			cache.invalidate(Sv.SDI_SYSTEM_BOUNDARY);
 	}
 
 	/**
@@ -341,13 +342,14 @@ public class SvGeometry extends SvWriter {
 			throws SvException {
 		Cache<String, SvSDITile> cache = getLayerCache(tileTypeId);
 		SvSDITile svTile = null;
-		synchronized (cache) {
-			svTile = cache.getIfPresent(tileId);
-			if (svTile == null) {
-				svTile = createTile(tileTypeId, tileId, tileParams);
-				cache.put(tileId, svTile);
+		if (cache != null)
+			synchronized (cache) {
+				svTile = cache.getIfPresent(tileId);
+				if (svTile == null) {
+					svTile = createTile(tileTypeId, tileId, tileParams);
+					cache.put(tileId, svTile);
+				}
 			}
-		}
 		return svTile;
 
 	}
