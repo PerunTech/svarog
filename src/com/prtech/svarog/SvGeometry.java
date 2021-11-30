@@ -469,6 +469,8 @@ public class SvGeometry extends SvWriter {
 			List<Geometry> gridItems = getSysGrid().getGridIndex().query(geom.getEnvelopeInternal());
 			for (Geometry gridGeom : gridItems) {
 				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
+				if (tile == null)
+					continue;
 				Set<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
 				for (Geometry g : relatedGeoms) {
 					// apply the filter by value
@@ -863,6 +865,8 @@ public class SvGeometry extends SvWriter {
 		ArrayList<Geometry> geoms = new ArrayList<Geometry>();
 		for (Geometry tileGeom : result) {
 			SvSDITile tile = getTile(typeId, (String) tileGeom.getUserData(), null);
+			if (tile == null)
+				continue;
 			if (selector.covers(tileGeom)) {
 				geoms.addAll(tile.getInternalGeometries());
 			} else {
