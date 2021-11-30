@@ -110,6 +110,8 @@ public class SvMaintenance implements Runnable {
 		long timeout = SvConf.getCoreIdleTimeout();
 
 		if (SvCore.isValid.get() && maintenanceInProgress.compareAndSet(false, true)) {
+			//
+			
 			// if the cluster is not disabled and not active, do activate
 			if (SvConf.isClusterEnabled()) {
 				if (!SvCluster.getIsActive().get())
@@ -124,6 +126,9 @@ public class SvMaintenance implements Runnable {
 			// establish waiting period
 			timeout = SvCluster.getIsActive().get() ? (SvConf.getClusterMaintenanceInterval() - 2) * 1000
 					: SvConf.getHeartBeatTimeOut();
+			//finally check if any plugings are pending for registration
+			SvPerunManager.registerPendingPlugins();
+			
 			maintenanceInProgress.compareAndSet(true, false);
 		}
 
