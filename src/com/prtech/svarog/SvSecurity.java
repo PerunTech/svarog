@@ -609,19 +609,14 @@ public class SvSecurity extends SvCore {
 	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public String logon(String user, String pass) throws SvException {
-		SvWriter svw = new SvWriter();
-
 		String sessionToken = null;
-		try {
+		try (SvWriter svw = new SvWriter()) {
 			svw.dbSetAutoCommit(false);
 			sessionToken = logonImpl(user, pass, svw);
 			svw.dbCommit();
 		} catch (SvException e) {
-			svw.dbRollback();
 			throw (e);
 
-		} finally {
-			svw.release();
 		}
 		return sessionToken;
 
@@ -983,20 +978,14 @@ public class SvSecurity extends SvCore {
 			String pin, String tax_id, String userType, String status, Boolean overwrite) throws SvException {
 
 		DbDataObject user = null;
-		SvWriter svw = null;
-		try {
-			svw = new SvWriter();
+
+		try (SvWriter svw = new SvWriter()) {
 			svw.dbSetAutoCommit(false);
 			user = createUserImpl(userName, password, firstName, lastName, e_mail, pin, tax_id, userType, status,
 					overwrite, svw);
-
 			svw.dbCommit();
 		} catch (SvException e) {
-			svw.dbRollback();
 			throw (e);
-		} finally {
-			if (svw != null)
-				svw.release();
 		}
 		return user;
 	}
@@ -1060,14 +1049,10 @@ public class SvSecurity extends SvCore {
 	 * @throws SvException Re-throw any underlying Svarog exception
 	 */
 	public void empowerUser(DbDataObject userObj, DbDataObject empowerOverObject) throws SvException {
-
-		SvLink svl = new SvLink();
-		try {
+		try (SvLink svl = new SvLink()) {
 			svl.dbSetAutoCommit(false);
 			empowerUser(userObj, empowerOverObject, svl);
 			svl.dbCommit();
-		} finally {
-			svl.release();
 		}
 
 	}
@@ -1231,7 +1216,7 @@ public class SvSecurity extends SvCore {
 			} else
 				throw (new SvException("system.error.user_not_member_of_group", instanceUser, user, userGroup));
 
-		} 
+		}
 	}
 
 	/**
@@ -1289,9 +1274,9 @@ public class SvSecurity extends SvCore {
 	 */
 	public Boolean checkIfExistsConditional(String objectTypeName, DbSearch searchCriteria, String columnToCompare,
 			String compareValue) throws SvException {
-		
+
 		Boolean result = false;
-		try (SvReader svReader = new SvReader()){
+		try (SvReader svReader = new SvReader()) {
 			Long objectTypeId = getTypeIdByName(objectTypeName);
 			if (objectTypeId == null) {
 				return result;

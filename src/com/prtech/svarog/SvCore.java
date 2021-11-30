@@ -2275,10 +2275,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	public String getUserLocaleId(DbDataObject userObject) throws SvException {
 		String locale = null;
 		if (userObject != null) {
-			try (SvParameter svp = new SvParameter()) {
-
+			try (SvParameter svp = new SvParameter()){
 				if (userObject.getVal(Sv.LOCALE) == null) {
-					;
 					locale = svp.getParamString(userObject, Sv.LOCALE);
 					if (locale == null)
 						locale = SvConf.getDefaultLocale();
@@ -2288,7 +2286,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				} else
 					locale = (String) userObject.getVal(Sv.LOCALE);
 
-			}
+			} 
 		}
 		return locale;
 	}

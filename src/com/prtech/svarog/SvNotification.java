@@ -32,16 +32,13 @@ public class SvNotification extends SvCore {
 	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
 
 	/**
-	 * Constructor to create a SvNotification object according to a user
-	 * session. This is the default constructor available to the public, in
-	 * order to enforce the svarog security mechanisms based on the logged on
-	 * user.
+	 * Constructor to create a SvNotification object according to a user session.
+	 * This is the default constructor available to the public, in order to enforce
+	 * the svarog security mechanisms based on the logged on user.
 	 * 
-	 * @param session_id
-	 *            String UID of the user session under which the SvCore instance
-	 *            will run
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @param session_id String UID of the user session under which the SvCore
+	 *                   instance will run
+	 * @throws SvException Pass through exception from the super class constructor
 	 * 
 	 */
 	public SvNotification(String session_id) throws SvException {
@@ -49,15 +46,13 @@ public class SvNotification extends SvCore {
 	}
 
 	/**
-	 * SvCore chained constructor. This constructor will re-use the JDBC
-	 * connection from the chained SvCore
+	 * SvCore chained constructor. This constructor will re-use the JDBC connection
+	 * from the chained SvCore
 	 * 
 	 * 
-	 * @param sharedSvCore
-	 *            The SvCore instance which will be used for JDBC connection
-	 *            sharing (i.e. parent SvCore)
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @param sharedSvCore The SvCore instance which will be used for JDBC
+	 *                     connection sharing (i.e. parent SvCore)
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	public SvNotification(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -68,8 +63,7 @@ public class SvNotification extends SvCore {
 	 * package since it will run with system priveleges.
 	 * 
 	 * 
-	 * @throws SvException
-	 *             Pass through exception from the super class constructor
+	 * @throws SvException Pass through exception from the super class constructor
 	 */
 	SvNotification() throws SvException {
 		super(svCONST.systemUser, null);
@@ -123,7 +117,7 @@ public class SvNotification extends SvCore {
 	public DbDataArray getNotificationPerUser(DbDataObject userObj) throws SvException {
 
 		DbDataArray allNotificationsFound = new DbDataArray();
-		try (SvReader svr = new SvReader(this);SvLink svl = new SvLink(svr)){
+		try (SvReader svr = new SvReader(this); SvLink svl = new SvLink(svr)) {
 			DbDataArray notificationsFoundPerUser = new DbDataArray();
 			// get user from the current session
 			// DbDataObject userObj =
@@ -170,25 +164,20 @@ public class SvNotification extends SvCore {
 		}
 
 	}
-	
+
 	/**
 	 * Method to return an array of notification for specific notification type
 	 * 
-	 * @param type
-	 *            The type of the notifications
+	 * @param type The type of the notifications
 	 * 
 	 * @return The resulting array of notification in the same type
-	 * @throws SvException
-	 *             Underlying exception
+	 * @throws SvException Underlying exception
 	 */
 	public static DbDataArray getNotificationPerType(String type) throws SvException {
 		DbDataArray notifications = null;
-		SvReader svr = null;
 
-		try {
-			svr = new SvReader();
+		try (SvReader svr = new SvReader()) {
 			DateTime now = new DateTime();
-
 			DbSearchCriterion dscType = new DbSearchCriterion("TYPE", DbCompareOperand.EQUAL, type);
 			DbSearchCriterion dscValidFrom = new DbSearchCriterion("VALID_FROM", DbCompareOperand.LESS_EQUAL, now);
 			DbSearchCriterion dscValidTo = new DbSearchCriterion("VALID_TO", DbCompareOperand.GREATER_EQUAL, now);
@@ -197,9 +186,6 @@ public class SvNotification extends SvCore {
 
 			notifications = svr.getObjects(dse, svCONST.OBJECT_TYPE_NOTIFICATION, null, 0, 0);
 
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 
 		return notifications;

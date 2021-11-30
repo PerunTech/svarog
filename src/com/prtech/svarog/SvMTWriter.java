@@ -171,7 +171,7 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 		return exs;
 	}
 
-	public void saveObject(DbDataArray items, boolean isBatch) throws SvException {
+	public void saveObject(DbDataArray items, boolean isBatch) throws SvException, InterruptedException {
 		if (!isMTRunning.get() || threads.isEmpty())
 			throw (new SvException("system.err.writer_not_running", svCONST.systemUser));
 		if (!allDone())
@@ -197,23 +197,14 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 				} else
 					break;
 			} else
-				try {
-					synchronized (isMTRunning) {
-						isMTRunning.wait();
-					}
-				} catch (InterruptedException e) {
-					throw (new SvException("system.err.thread_interrupted", svCONST.systemUser, e));
-
+				synchronized (isMTRunning) {
+					isMTRunning.wait();
 				}
 		}
 		// wait for all threads to finish
 		while (!allDone())
-			try {
-				synchronized (isMTRunning) {
-					isMTRunning.wait(10);
-				}
-			} catch (InterruptedException e) {
-				throw (new SvException("system.err.thread_interrupted", svCONST.systemUser, e));
+			synchronized (isMTRunning) {
+				isMTRunning.wait(10);
 			}
 
 		SvException svx = null;
@@ -228,7 +219,7 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 
 	}
 
-	public void shutdown() throws SvException {
+	public void shutdown() throws SvException, InterruptedException {
 		if (isMTRunning.compareAndSet(true, false)) {
 			boolean completeShut = false;
 			while (!completeShut) {
@@ -243,13 +234,9 @@ public class SvMTWriter implements java.lang.AutoCloseable {
 				Iterator<Thread> it = threads.iterator();
 				while (it.hasNext()) {
 					Thread t = it.next();
-					try {
-						t.join(5);
-						if (!t.isAlive())
-							it.remove();
-					} catch (InterruptedException e) {
-						throw (new SvException("system.err.thread_interrupted", svCONST.systemUser, e));
-					}
+					t.join(5);
+					if (!t.isAlive())
+						it.remove();
 				}
 				if (threads.isEmpty())
 					completeShut = true;

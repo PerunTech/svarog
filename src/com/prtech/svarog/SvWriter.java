@@ -725,9 +725,10 @@ public class SvWriter extends SvCore {
 	 *                          be skipped.
 	 * @param oldRepoObjs
 	 * @throws SvException
+	 * @throws SQLException
 	 */
 	HashMap<Long, Object[]> saveRepoData(DbDataObject dbt, DbDataArray dba, Boolean withMetaUpdate,
-			Boolean skipPreSaveChecks) throws SvException {
+			Boolean skipPreSaveChecks) throws SvException, SQLException {
 
 		PreparedStatement psInvalidate = null;
 		PreparedStatement psInsert = null;
@@ -782,19 +783,10 @@ public class SvWriter extends SvCore {
 		} catch (SQLException ex) {
 			throw (new SvException(Sv.Exceptions.REPOSAVE_ERR, instanceUser, null, dba, ex));
 		} finally {
-			try {
-				if (psInvalidate != null)
-					psInvalidate.close();
-			} catch (Exception e) {
-				throw (new SvException(Sv.Exceptions.JDBC_CANT_RELEASE, instanceUser, null, null, e));
-			}
-			try {
-				if (psInsert != null)
-					psInsert.close();
-			} catch (Exception e) {
-				throw (new SvException(Sv.Exceptions.JDBC_CANT_RELEASE, instanceUser, null, null, e));
-			}
-
+			if (psInvalidate != null)
+				psInvalidate.close();
+			if (psInsert != null)
+				psInsert.close();
 		}
 		return oldRepoData;
 
@@ -1329,9 +1321,13 @@ public class SvWriter extends SvCore {
 		if (((dbt.getVal("repo_table") != null && (Boolean) dbt.getVal("repo_table"))))
 			throw (new SvException("system.error.repo_save_err", instanceUser, dba, dbt));
 
-		HashMap<Long, Object[]> oldRepoObjs = saveRepoData(dbt, dba, true, skipPreSaveChecks);
+		HashMap<Long, Object[]> oldRepoObjs;
+		try {
+			oldRepoObjs = saveRepoData(dbt, dba, true, skipPreSaveChecks);
+		} catch (SQLException e) {
+			throw (new SvException(Sv.Exceptions.JDBC_CANT_RELEASE, instanceUser, dba, dbt, e));
+		}
 
-		int objectIndex = 0;
 		// if we aren't saving a form
 		if (!dboFirst.getObjectType().equals(svCONST.OBJECT_TYPE_FORM)) {
 			if (isUpdate && dba.getItems().size() != oldRepoObjs.size())
@@ -1894,7 +1890,7 @@ public class SvWriter extends SvCore {
 					"FORM_FIELD_LINK", svCONST.OBJECT_TYPE_FORM_FIELD_TYPE, false, null, 0, 0);
 
 			DateTime dt_insert = new DateTime();
-			if (!oldPkid.equals(0L)) {
+			if (oldPkid != null && !oldPkid.equals(0L)) {
 				String sqlUpdate = UPDATE + " " + SvConf.getDefaultSchema() + "." + SvConf.getMasterRepo()
 						+ " set DT_DELETE=? where pkid in (SELECT fields.PKID FROM " + SvConf.getDefaultSchema() + "."
 						+ SvConf.getMasterRepo() + " fields where fields.parent_id=? "
