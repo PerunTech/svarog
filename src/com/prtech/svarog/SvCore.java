@@ -2811,7 +2811,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			// execute the db query to fetch data for the requested item
 			ps = conn.prepareStatement(getSQLStatement(fullQuery, rowLimit, offset).toString());
 			// bind the parameters
-			bindQueryVals(ps, query.getSQLParamVals());
+			bindQueryVals(ps, fullQuery.getSQLParamVals());
 			// System.out.println("Before exec "+new DateTime().toString());
 			rs = ps.executeQuery();
 			// System.out.println("After exec "+new DateTime().toString());
