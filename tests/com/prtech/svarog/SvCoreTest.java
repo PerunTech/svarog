@@ -2,6 +2,7 @@ package com.prtech.svarog;
 
 import static org.junit.Assert.*;
 
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import com.google.gson.JsonElement;
@@ -12,6 +13,25 @@ import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_common.DboUnderground;
 
 public class SvCoreTest {
+
+	@Test
+	public void poaTest() {
+		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
+			String token = svs.logon("00000343727", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(token)) {
+				DbDataObject farm = svr.getObjectById(35908L, SvCore.getDbtByName("FARMER"), null);
+
+			}
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_user_found")) {
+				e.printStackTrace();
+				fail("Exception was thrown");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was thrown");
+		}
+	}
 
 	@Test
 	public void noteTest() {

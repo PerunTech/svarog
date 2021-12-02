@@ -100,7 +100,7 @@ public class SvPerunManager extends SvCore {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvPerunManager.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvPerunManager.class.getName());
 
 	/**
 	 * Cache with all executors responding to a specific command string. The Key is

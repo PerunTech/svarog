@@ -20,7 +20,7 @@ public class SvServiceTracker implements ServiceTrackerCustomizer {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvServiceTracker.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvServiceTracker.class.getName());
 
 	@Override
 	public Object addingService(ServiceReference arg0) {

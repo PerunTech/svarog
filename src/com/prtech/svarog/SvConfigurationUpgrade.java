@@ -35,7 +35,7 @@ public class SvConfigurationUpgrade {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvConfigurationUpgrade.class);
+	private static final Logger log4j = SvConf.getLogger(SvConfigurationUpgrade.class);
 	/**
 	 * Flag to mark the availability of configuration log tables
 	 */
@@ -262,7 +262,7 @@ public class SvConfigurationUpgrade {
 					default:
 						break;
 					}
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					isSuccessful = false;
 					if (e instanceof SvException)
 						msg = ((SvException) e).getFormattedMessage();

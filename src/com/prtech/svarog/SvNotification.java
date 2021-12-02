@@ -29,7 +29,7 @@ public class SvNotification extends SvCore {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
 
 	/**
 	 * Constructor to create a SvNotification object according to a user session.

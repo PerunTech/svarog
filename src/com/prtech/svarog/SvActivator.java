@@ -24,7 +24,7 @@ public class SvActivator implements BundleActivator, BundleListener {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvActivator.class);
+	private static final Logger log4j = SvConf.getLogger(SvActivator.class);
 	private BundleContext bundleContext = null;
 
 	public void start(BundleContext context) {

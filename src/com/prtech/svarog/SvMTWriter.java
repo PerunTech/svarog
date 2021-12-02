@@ -11,7 +11,7 @@ import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 
 public class SvMTWriter implements java.lang.AutoCloseable {
-	static final Logger log4j = SvConf.getLogger(SvMTWriter.class);
+	private static final Logger log4j = SvConf.getLogger(SvMTWriter.class);
 
 	private final List<SvWriterThread> writerThreads;
 	private final List<Thread> threads;

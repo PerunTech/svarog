@@ -93,7 +93,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvCore.class);
+	private static final Logger log4j = SvConf.getLogger(SvCore.class);
 
 	/**
 	 * The property name used to specify whether the launcher should execute a

@@ -34,7 +34,7 @@ public class SvClusterNotifierClient implements Runnable {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvClusterNotifierClient.class);
+	private static final Logger log4j = SvConf.getLogger(SvClusterNotifierClient.class);
 
 	/**
 	 * The coordinator notification subscriber listens on port which 1 above the

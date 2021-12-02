@@ -134,7 +134,7 @@ public class SvCluster extends SvCore {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvCluster.class);
+	private static final Logger log4j = SvConf.getLogger(SvCluster.class);
 
 	/**
 	 * Reference to the coordinator node

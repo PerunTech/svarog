@@ -38,7 +38,7 @@ public class SvPostgresIO implements ISvDatabaseIO {
 	static final String sqlScriptsPackage = "DEFAULT/";
 	static final String sqlKeywordsBundle = sqlScriptsPath + sqlScriptsPackage + "sql_keywords.properties";
 
-	static final Logger logger = LogManager.getLogger(SvPostgresIO.class.getName());
+	private static final Logger logger = LogManager.getLogger(SvPostgresIO.class.getName());
 	static String systemSrid;
 
 	@Override

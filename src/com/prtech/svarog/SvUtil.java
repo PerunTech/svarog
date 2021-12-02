@@ -44,7 +44,7 @@ import com.vividsolutions.jts.geom.PrecisionModel;
 
 public class SvUtil {
 
-	static final Logger log4j = SvConf.getLogger(SvUtil.class);
+	private static final Logger log4j = SvConf.getLogger(SvUtil.class);
 
 	public static final PrecisionModel sdiPrecision = new PrecisionModel(SvConf.getSDIPrecision());
 	public static final GeometryFactory sdiFactory = initFactory();

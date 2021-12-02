@@ -37,7 +37,7 @@ public class CodeList extends SvCore implements ISvCodeList {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(CodeList.class);
+	private static final Logger log4j = SvConf.getLogger(CodeList.class);
 
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This

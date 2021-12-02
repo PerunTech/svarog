@@ -49,7 +49,7 @@ public class SvConfigurationDryRunMulti implements ISvConfigurationMulti {
 	@Override
 	public String beforeCodesUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
 		execs.add(ISvConfiguration.UpdateType.CODES);
-		return "Dry-run before CODES update executed" + (svc == null ? " IN valid" : " valid") + " SvCore";
+		throw new java.lang.NoSuchMethodError("Failed in run time");
 	}
 
 	@Override
@@ -67,8 +67,8 @@ public class SvConfigurationDryRunMulti implements ISvConfigurationMulti {
 
 	@Override
 	public String beforeAclUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
-		
-		try (SvSecurity svs = new SvSecurity((SvCore)svc)) {
+
+		try (SvSecurity svs = new SvSecurity((SvCore) svc)) {
 			svs.switchUser(Sv.ADMIN);
 			execs.add(ISvConfiguration.UpdateType.ACL);
 		}

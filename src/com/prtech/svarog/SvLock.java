@@ -40,7 +40,7 @@ public class SvLock {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvLock.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvLock.class.getName());
 
 	/**
 	 * Map holding locks over long running ops over objects.

@@ -32,7 +32,7 @@ import org.apache.logging.log4j.Logger;
  *
  */
 public abstract class SvCalculator {
-	static final Logger log4j = LogManager.getLogger(SvCalculator.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvCalculator.class.getName());
 
 	/**
 	 * Mathematical operator type, to specify the operation executed between two

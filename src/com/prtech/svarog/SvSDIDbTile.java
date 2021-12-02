@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearch;
@@ -38,6 +41,10 @@ import com.vividsolutions.jts.geom.GeometryCollection;
  *
  */
 public class SvSDIDbTile extends SvSDITile {
+	/**
+	 * Log4j instance used for logging
+	 */
+	private static final Logger log4j = LogManager.getLogger(SvSDIDbTile.class.getName());
 
 	DbSearch extSearch;
 

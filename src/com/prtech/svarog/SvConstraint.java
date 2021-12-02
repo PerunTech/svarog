@@ -28,7 +28,7 @@ public class SvConstraint {
 	SvObjectConstraints parent = null;
 	public static final ResourceBundle sqlKw = SvConf.getSqlkw();
 
-	static final Logger log4j = LogManager.getLogger(SvConstraint.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvConstraint.class.getName());
 
 	private final ArrayList<DbDataObject> fields = new ArrayList<>();
 	private String uniqueLevel = null;

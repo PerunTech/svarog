@@ -25,7 +25,7 @@ public class SvNote extends SvCore {
 	/**
 	 * Default log4j instance
 	 */
-	static final Logger log4j = LogManager.getLogger(SvNote.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvNote.class.getName());
 
 	/**
 	 * Constructor to create a SvNote object according to a user session. This

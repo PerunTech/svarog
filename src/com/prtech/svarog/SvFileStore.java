@@ -50,7 +50,7 @@ public class SvFileStore extends SvCore {
 	/**
 	 * Log4j instance
 	 */
-	static final Logger log4j = SvConf.getLogger(SvFileStore.class);
+	private static final Logger log4j = SvConf.getLogger(SvFileStore.class);
 
 	/**
 	 * Static cache instance to hold the system files.

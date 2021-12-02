@@ -38,7 +38,7 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
  *
  */
 public class SvSDIJsonTile extends SvSDITile {
-	static final Logger log4j = LogManager.getLogger(SvSDIJsonTile.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvSDIJsonTile.class.getName());
 
 	String jsonFilePath;
 
