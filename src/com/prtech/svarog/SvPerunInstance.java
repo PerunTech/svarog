@@ -22,7 +22,7 @@ public class SvPerunInstance {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvPerunInstance.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvPerunInstance.class.getName());
 
 	String status;
 	JsonObject mainMenu;

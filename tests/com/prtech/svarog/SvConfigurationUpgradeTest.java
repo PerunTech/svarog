@@ -228,4 +228,29 @@ public class SvConfigurationUpgradeTest {
 		}
 	}
 
+	
+	
+	@Test
+	public void testErrorHandling() {
+		try {
+			SvConfigurationUpgrade.setiSvCfgs(new ArrayList<ISvConfiguration>());
+			// SvConfigurationUpgrade.iSvCfgs.add(new SvConfigurationDryRun());
+			List<ISvConfiguration.UpdateType> up = Arrays.asList(ISvConfiguration.UpdateType.CODES);
+			SvConfigurationUpgrade.getiSvCfgs().add(new SvConfigurationDryRunMulti(1, up));
+
+			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.CODES);
+
+			SvConfigurationUpgrade.upgradeHistory = SvConfigurationUpgrade.getUpgradeHistory();
+
+			DbDataObject executionLog = SvConfigurationUpgrade.upgradeHistory.getItemByIdx(
+					SvConfigurationDryRunMulti.class.getName() + "-" + ISvConfiguration.UpdateType.CODES.toString());
+			if (executionLog == null || (Boolean) executionLog.getVal(Sv.IS_SUCCESSFUL))
+				fail("Types was not executed properly");
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 }

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import com.prtech.svarog.SvConf.SvDbType;
@@ -48,6 +49,8 @@ import com.prtech.svarog_common.SvCharId;
  */
 public class SvReader extends SvCore {
 
+	private static final Logger log4j = SvConf.getLogger(SvReader.class);
+	
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This
 	 * is the default constructor available to the public, in order to enforce

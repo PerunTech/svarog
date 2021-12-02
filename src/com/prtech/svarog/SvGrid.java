@@ -28,7 +28,7 @@ import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
 
 public class SvGrid extends SvSDITile {
-	static final Logger log4j = SvConf.getLogger(SvSDITile.class);
+	private static final Logger log4j = SvConf.getLogger(SvSDITile.class);
 	public static final String GRID_NAME = "GRID_NAME";
 	public static final String GRIDTILE_ID = "GRIDTILE_ID";
 	/**

@@ -38,7 +38,7 @@ public class SvLink extends SvCore {
 	/**
 	 * Default log4j instance
 	 */
-	static final Logger log4j = LogManager.getLogger(SvLink.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvLink.class.getName());
 
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This is

@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.logging.log4j.Logger;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.prtech.svarog.SvSDITile.SDIRelation;
@@ -61,7 +63,11 @@ import com.google.common.math.DoubleMath;
  *
  */
 public class SvGeometry extends SvWriter {
-
+	/**
+	 * Log4j instance
+	 */
+	private static final Logger log4j = SvConf.getLogger(SvGeometry.class);
+	
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 	public static final String GEOM_STRUCT_TYPE = initStructType();
 

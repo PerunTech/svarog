@@ -31,7 +31,7 @@ import org.joda.time.DateTime;
 
 public class SvMessage extends DbDataObject {
 
-	static final Logger log4j = LogManager.getLogger(SvMessage.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvMessage.class.getName());
 
 	public SvMessage() {
 	}

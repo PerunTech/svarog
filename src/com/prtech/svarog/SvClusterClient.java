@@ -23,7 +23,7 @@ public class SvClusterClient implements Runnable {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvClusterClient.class);
+	private static final Logger log4j = SvConf.getLogger(SvClusterClient.class);
 	/**
 	 * The object id of the node which is represented by this client
 	 */

@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.Logger;
+
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.google.common.cache.CacheBuilder;
@@ -31,6 +33,11 @@ import com.prtech.svarog.svCONST;
  *
  */
 public class DbCache {
+	/**
+	 * Log4j instance used for logging
+	 */
+	private static final Logger log4j = SvConf.getLogger(DbCache.class);
+
 
 	/**
 	 * Map containing all DbCacheTables defined in the system
@@ -290,7 +297,7 @@ public class DbCache {
 			if (obj != null)
 				DbCache.addObject(obj, null, true);
 			else
-				SvCore.log4j.warn(
+				log4j.warn(
 						"Bad system configuration! Adding system config objects to the cache contains null pointers");
 		}
 	}

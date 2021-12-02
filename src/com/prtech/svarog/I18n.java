@@ -35,7 +35,7 @@ public class I18n extends SvCore implements II18n {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(I18n.class);
+	private static final Logger log4j = SvConf.getLogger(I18n.class);
 
 	/**
 	 * Array holding the list of labels which were not successfully loaded

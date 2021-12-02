@@ -34,7 +34,7 @@ import com.prtech.svarog.svCONST;
 
 public class RuleEngine extends SvCore {
 
-	static final Logger log4j = SvConf.getLogger(RuleEngine.class);
+	private static final Logger log4j = SvConf.getLogger(RuleEngine.class);
 
 	/**
 	 * Private member holding reference to object implementing the save methods

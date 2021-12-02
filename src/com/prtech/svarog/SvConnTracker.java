@@ -36,7 +36,7 @@ class SvConnTracker {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvConnTracker.class);
+	private static final Logger log4j = SvConf.getLogger(SvConnTracker.class);
 
 	/**
 	 * Map holding soft references to each created SvCore instance

@@ -67,7 +67,7 @@ public class SvSecurity extends SvCore {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvSecurity.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvSecurity.class.getName());
 
 	/**
 	 * Constructor which allows SvCore chaining

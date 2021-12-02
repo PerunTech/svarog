@@ -61,7 +61,7 @@ public class SvWriter extends SvCore {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvWriter.class);
+	private static final Logger log4j = SvConf.getLogger(SvWriter.class);
 
 	/**
 	 * Constructor to create a SvWriter object according to a user session. This is

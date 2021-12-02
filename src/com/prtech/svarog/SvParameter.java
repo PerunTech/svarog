@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -50,6 +51,8 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
  *
  */
 public class SvParameter extends SvCore {
+	private static final Logger log4j = SvConf.getLogger(SvParameter.class);
+
 
 	static Cache<String, DbDataObject> paramsCache = initParamCache();
 

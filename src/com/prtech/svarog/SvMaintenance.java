@@ -32,6 +32,7 @@ import com.prtech.svarog_common.DbDataObject;
  *
  */
 public class SvMaintenance implements Runnable {
+	
 	/**
 	 * Timestamp of the next planned maintenance of the cluster table in the DB
 	 */
@@ -55,7 +56,7 @@ public class SvMaintenance implements Runnable {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvMaintenance.class);
+	private static final Logger log4j = SvConf.getLogger(SvMaintenance.class);
 	private static final AtomicBoolean isRunning = new AtomicBoolean(false);;
 
 	/**
@@ -140,8 +141,8 @@ public class SvMaintenance implements Runnable {
 	 */
 	public static void trackedConnCleanup() {
 		if (maintenanceRunning.compareAndSet(false, true)) {
-			if (SvCore.log4j.isDebugEnabled())
-				SvCore.log4j.trace("Performing SvCore cleanup");
+			if (log4j.isDebugEnabled())
+				log4j.trace("Performing SvCore cleanup");
 			// perform the general cleanup of the tracked cores.
 			SvConnTracker.cleanup();
 			// now check for any enqueued references by the GC

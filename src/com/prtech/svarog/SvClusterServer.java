@@ -59,7 +59,7 @@ public class SvClusterServer implements Runnable {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvClusterServer.class);
+	private static final Logger log4j = SvConf.getLogger(SvClusterServer.class);
 
 	/**
 	 * The ZMQ context which is used for creating the socket.

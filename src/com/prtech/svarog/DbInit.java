@@ -61,7 +61,7 @@ public class DbInit {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(DbInit.class);
+	private static final Logger log4j = SvConf.getLogger(DbInit.class);
 
 	private static JsonObject getDefaultSDIMetadata() {
 		JsonObject meta = new JsonObject();

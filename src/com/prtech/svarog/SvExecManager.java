@@ -149,7 +149,7 @@ public class SvExecManager extends SvCore {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvCore.class.getName());
 
 	/**
 	 * Cache with all executors responding to a specific command string. The Key is

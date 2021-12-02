@@ -36,7 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 public class SvConversation extends DbDataObject {
 
-	static final Logger log4j = LogManager.getLogger(SvConversation.class.getName());
+	private static final Logger log4j = LogManager.getLogger(SvConversation.class.getName());
 
 	public SvConversation() {
 	}

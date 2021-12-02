@@ -87,7 +87,7 @@ public class SvarogInstall {
 	/**
 	 * Log4j instance used for logging
 	 */
-	static final Logger log4j = SvConf.getLogger(SvarogInstall.class);
+	private static final Logger log4j = SvConf.getLogger(SvarogInstall.class);
 
 	static final String JDBC_ERR = "Can't close JDBC connection";
 	static final String TABLE_NAME = "table_name";
