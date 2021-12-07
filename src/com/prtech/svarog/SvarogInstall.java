@@ -74,9 +74,9 @@ import com.prtech.svarog_interfaces.ISvConfiguration;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvConfiguration.UpdateType;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
 
 /**
  * Main class for managing Svarog installation and upgrades

@@ -26,19 +26,19 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.prtech.svarog_common.DbDataObject;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.Lineal;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygonal;
-import com.vividsolutions.jts.geom.Puntal;
-import com.vividsolutions.jts.geom.prep.PreparedGeometry;
-import com.vividsolutions.jts.geom.prep.PreparedLineString;
-import com.vividsolutions.jts.geom.prep.PreparedPoint;
-import com.vividsolutions.jts.geom.prep.PreparedPolygon;
-import com.vividsolutions.jts.index.strtree.STRtree;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.Lineal;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygonal;
+import org.locationtech.jts.geom.Puntal;
+import org.locationtech.jts.geom.prep.PreparedGeometry;
+import org.locationtech.jts.geom.prep.PreparedLineString;
+import org.locationtech.jts.geom.prep.PreparedPoint;
+import org.locationtech.jts.geom.prep.PreparedPolygon;
+import org.locationtech.jts.index.strtree.STRtree;
+import com.prtech.svarog_geojson.GeoJsonWriter;
 
 /**
  * Abstract Spatial Data services are provided by this class. The SvSDITile

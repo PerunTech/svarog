@@ -66,10 +66,10 @@ import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.prtech.svarog_common.ISvOnSave;
 import com.prtech.svarog_common.SvCharId;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKBReader;
+import org.locationtech.jts.io.WKBWriter;
 
 /**
  * 
