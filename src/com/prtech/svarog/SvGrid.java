@@ -18,14 +18,14 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.index.strtree.STRtree;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.index.strtree.STRtree;
+import com.prtech.svarog_geojson.*;
+
 
 public class SvGrid extends SvSDITile {
 	private static final Logger log4j = SvConf.getLogger(SvSDITile.class);

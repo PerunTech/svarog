@@ -1,11 +1,7 @@
 package com.prtech.svarog;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.GeometryCollection;
 
-import java.util.ArrayList;
-
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class SvTestTile extends SvSDITile {
 

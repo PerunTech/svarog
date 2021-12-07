@@ -17,11 +17,12 @@ package com.prtech.svarog_common;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 
+import org.locationtech.jts.geom.Envelope;
+
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.svCONST;
-import com.vividsolutions.jts.geom.Envelope;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 
 /**

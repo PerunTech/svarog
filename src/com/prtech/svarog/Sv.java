@@ -49,11 +49,17 @@ public class Sv {
 		public static final String REPOSAVE_ERR = "system.error.reposave_err";
 		public static final String BATCH_SIZE_ERR = "system.error.batch_size_err";
 		public static final String SDI_TYPE_LIMIT = "system.error.sdi.sdi_type_limit";
+		public static final String NOT_AUTHORISED = "system.error.not_authorised";
+		public static final String WRONG_TYPE = "system.err.wrong_return_type";
+		public static final String EXECUTOR_NOT_FOUND = "system.err.exec_not_found";
+		public static final String EXECUTOR_FAILURE = "system.err.exec_failure";
+		public static final String EXECUTOR_NOT_VALID = "system.error.executor_not_valid";
 
 		private Exceptions() {
 		}
 
 	}
+
 	public static class SQL {
 
 		public static final String SEQ_NEXTVAL_SELECT = "SEQ_NEXTVAL_SELECT";
@@ -63,7 +69,7 @@ public class Sv {
 		public static final String SELECT_FILESTORE = "select pkid, data from %s.%s where pkid=?";
 		public static final String SQL_DEBUG = "SQL QUERY DEBUG: ";
 		public static final String INSERT_FILESTORE = "insert into %s.%s (pkid, data) values(%s,?)";
-		
+
 	}
 
 	public static class Link {
@@ -79,6 +85,20 @@ public class Sv {
 		public static final SvCharId DEFER_SECURITY = new SvCharId("DEFER_SECURITY");
 
 		private Link() {
+		}
+
+	}
+
+	public static class Msg {
+
+		/**
+		 * Different message contsants
+		 */
+		public static final String REFERENCE_DATE = "reference date";
+		public static final String RETURN_TYPE = "return type";
+		public static final String NO_TYPE = "no type";
+
+		private Msg() {
 		}
 
 	}
@@ -230,7 +250,6 @@ public class Sv {
 	public static final String SDI_VERTEX_ALIGN_TOLERANCE = "SDI_VERTEX_ALIGN_TOLERANCE";
 	public static final Double DEFAULT_VERTEX_ALIGN_TOLERANCE = 0.05;
 
-	
 	public static final String SDI_MIN_GEOM_DISTANCE = "SDI_MIN_GEOM_DISTANCE";
 	public static final Integer DEFAULT_MIN_GEOM_DISTANCE = 0;
 	public static final String ERROR = "ERROR:";
@@ -264,5 +283,12 @@ public class Sv {
 	public static final String CONFIGURATION_CLASS = "CONFIGURATION_CLASS";
 	public static final String EXECUTION_TIME = "EXECUTION_TIME";
 	public static final String IS_SUCCESSFUL = "IS_SUCCESSFUL";
+	public static final SvCharId CATEGORY = new SvCharId("CATEGORY");
+	public static final SvCharId NAME = new SvCharId("NAME");
+	public static final String LOADING = "LOADING";
+	public static final String JAVA_TYPE = "JAVA_TYPE";
+	public static final String DESCRIPTION = "DESCRIPTION";
+	public static final String START_DATE = "START_DATE";
+	public static final String END_DATE = "END_DATE";
 
 }

@@ -43,6 +43,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.felix.main.AutoProcessor;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.locationtech.jts.geom.Geometry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -50,12 +51,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
-import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
+import com.prtech.svarog_geojson.GeoJsonReader;
+
 
 public class DbInit {
 	/**
@@ -6942,9 +6939,9 @@ public class DbInit {
 			geo = jtsReader.read(geoJSONBounds);
 		} catch (IOException e) {
 			log4j.error("System bounds can not be read from file!", e);
-		} catch (ParseException e) {
+		} catch (org.locationtech.jts.io.ParseException e) {
 			log4j.error("System bounds is not in GeoJSON format!", e);
-		} finally {
+		}  finally {
 			if (is != null)
 				try {
 					is.close();

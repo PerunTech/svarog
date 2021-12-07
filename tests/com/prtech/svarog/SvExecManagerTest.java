@@ -385,6 +385,13 @@ public class SvExecManagerTest {
 			if (!o.toString().equals(name + "1"))
 				fail("Executor pack by pack/item label failed");
 
+			try {
+				o = sve.executePack("test.pack.child", "NonExistingTest.pack.item", null, null);
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.EXECUTOR_NOT_FOUND))
+					fail("Non existing executor did not raise proper exception");
+			}
+
 			sve.dbRollback();
 		} catch (Exception e) {
 			e.printStackTrace();

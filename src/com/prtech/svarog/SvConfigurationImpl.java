@@ -129,7 +129,6 @@ public class SvConfigurationImpl implements ISvConfigurationMulti {
 		return 1;
 	}
 
-	@Override
 	public List<UpdateType> getUpdateTypes() {
 		List<UpdateType> types = new ArrayList<UpdateType>();
 		types.add(UpdateType.SCHEMA);

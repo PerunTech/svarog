@@ -231,7 +231,7 @@ public class SvExecManager extends SvCore {
 
 			@Override
 			public void afterSave(SvCore parentCore, DbDataObject dbo) {
-				executorMap.invalidate(getKey((String) dbo.getVal("CATEGORY"), (String) dbo.getVal("NAME")));
+				executorMap.invalidate(getKey((String) dbo.getVal(Sv.CATEGORY), (String) dbo.getVal(Sv.NAME)));
 			}
 		}
 
@@ -332,7 +332,7 @@ public class SvExecManager extends SvCore {
 
 		if (executor == null) {
 			// if not, then look in the OSGI container and initialise
-			String lockKey = key + "-LOADING";
+			String lockKey = key + "-"+Sv.LOADING;
 			ReentrantLock lock = null;
 			try {
 				lock = SvLock.getLock(lockKey, true, SvConf.getMaxLockTimeout());
@@ -364,7 +364,7 @@ public class SvExecManager extends SvCore {
 			for (SvExecInstance sve : execs) {
 				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
 					if (!svCONST.STATUS_VALID.equals(sve.getStatus()))
-						throw (new SvException("system.error.executor_not_valid", this.getInstanceUser(), null, key));
+						throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_VALID, this.getInstanceUser(), null, key));
 					executor = sve.getExecutor();
 					break;
 				}
@@ -378,8 +378,8 @@ public class SvExecManager extends SvCore {
 		try (SvReader svr = new SvReader()) {
 			// switch to service user in order to be able to manage permissions
 			DbSearchExpression search = new DbSearchExpression();
-			search.addDbSearchItem(new DbSearchCriterion("NAME", DbCompareOperand.EQUAL, name));
-			search.addDbSearchItem(new DbSearchCriterion("CATEGORY", DbCompareOperand.EQUAL, category));
+			search.addDbSearchItem(new DbSearchCriterion(Sv.NAME.toString(), DbCompareOperand.EQUAL, name));
+			search.addDbSearchItem(new DbSearchCriterion(Sv.CATEGORY.toString(), DbCompareOperand.EQUAL, category));
 			if (version != null)
 				search.addDbSearchItem(new DbSearchCriterion(Sv.VERSION, DbCompareOperand.EQUAL, version));
 
@@ -414,17 +414,17 @@ public class SvExecManager extends SvCore {
 			svw.setAutoCommit(false);
 			try (SvSecurity svs = new SvSecurity(svw);) {
 				if (dbo != null) {
-					exeInstance.setStartDate((DateTime) dbo.getVal("START_DATE"));
-					exeInstance.setEndDate((DateTime) dbo.getVal("END_DATE"));
+					exeInstance.setStartDate((DateTime) dbo.getVal(Sv.START_DATE));
+					exeInstance.setEndDate((DateTime) dbo.getVal(Sv.END_DATE));
 					exeInstance.setStatus(dbo.getStatus());
 				} else {
 					dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTORS);
-					dbo.setVal("CATEGORY", executor.getCategory());
-					dbo.setVal("NAME", executor.getName());
-					dbo.setVal("JAVA_TYPE", executor.getReturningType().getClass().getCanonicalName());
-					dbo.setVal("DESCRIPTION", executor.getDescription());
-					dbo.setVal("START_DATE", executor.getStartDate());
-					dbo.setVal("END_DATE", executor.getEndDate());
+					dbo.setVal(Sv.CATEGORY, executor.getCategory());
+					dbo.setVal(Sv.NAME, executor.getName());
+					dbo.setVal(Sv.JAVA_TYPE, executor.getReturningType().getClass().getCanonicalName());
+					dbo.setVal(Sv.DESCRIPTION, executor.getDescription());
+					dbo.setVal(Sv.START_DATE, executor.getStartDate());
+					dbo.setVal(Sv.END_DATE, executor.getEndDate());
 					dbo.setVal(Sv.VERSION, executor.versionUID());
 					svw.saveObject(dbo);
 					String executorKey = getKey(executor);
@@ -513,7 +513,7 @@ public class SvExecManager extends SvCore {
 			for (SvExecInstance sve : execs) {
 				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
 					if (!svCONST.STATUS_VALID.equals(sve.getStatus()))
-						throw (new SvException("system.error.executor_not_valid", this.getInstanceUser(), null, key));
+						throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_VALID, this.getInstanceUser(), null, key));
 
 					executor = sve.getExecutor();
 					break;
@@ -541,7 +541,7 @@ public class SvExecManager extends SvCore {
 			for (SvExecInstance sve : execs) {
 				if (referenceDate.isAfter(sve.getStartDate()) && referenceDate.isBefore(sve.getEndDate())) {
 					if (!svCONST.STATUS_VALID.equals(sve.getStatus()))
-						throw (new SvException("system.error.executor_not_valid", this.getInstanceUser(), null, key));
+						throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_VALID, this.getInstanceUser(), null, key));
 					executor = sve.getExecutor();
 					break;
 				}
@@ -637,7 +637,7 @@ public class SvExecManager extends SvCore {
 			throws SvException {
 
 		if (!this.hasPermission(executorKey))
-			throw (new SvException("system.error.not_authorised", this.getInstanceUser(), null, executorKey));
+			throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, this.getInstanceUser(), null, executorKey));
 
 		Object result = null;
 		try {
@@ -645,14 +645,14 @@ public class SvExecManager extends SvCore {
 			ISvExecutor exec = getExecutor(executorKey, referenceDate);
 			if (exec != null) {
 				if (returnType != null && !exec.getReturningType().equals(returnType)) {
-					String error = getKey(exec) + ", return type:" + returnType.toString();
-					throw (new SvException("system.err.wrong_return_type", this.getInstanceUser(), null, error));
+					String error = getKey(exec) +  " - "+ Sv.Msg.RETURN_TYPE +" - " + returnType.toString();
+					throw (new SvException(Sv.Exceptions.WRONG_TYPE, this.getInstanceUser(), null, error));
 				}
 				result = exec.execute(params, this);
 			} else {
-				String error = executorKey + ", reference date:"
+				String error = executorKey + " - "+ Sv.Msg.REFERENCE_DATE +" - "
 						+ (referenceDate != null ? referenceDate.toString() : new DateTime().toString());
-				throw (new SvException("system.err.exec_not_found", this.getInstanceUser(), null, error));
+				throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_FOUND, this.getInstanceUser(), null, error));
 			}
 		} catch (Exception e) {
 			// if the exception is SvExection, then we consider it Svarog
@@ -664,9 +664,9 @@ public class SvExecManager extends SvCore {
 				// we will remove the faulty service from the cache and the wrap
 				// the exception in a SvException
 				executorMap.invalidate(executorKey);
-				String error = executorKey + ", return type:"
-						+ (returnType != null ? returnType.toString() : "no type");
-				throw (new SvException("system.err.exec_failure", this.getInstanceUser(), null, error, e));
+				String error = executorKey + " - "+ Sv.Msg.RETURN_TYPE +" - " 
+						+ (returnType != null ? returnType.toString() : Sv.Msg.NO_TYPE);
+				throw (new SvException(Sv.Exceptions.EXECUTOR_FAILURE, this.getInstanceUser(), null, error, e));
 			}
 		}
 		return result;
@@ -769,6 +769,8 @@ public class SvExecManager extends SvCore {
 
 			Map<String, ISvExecutor> packItems = this.getExecutorPackItems(pack, referenceDate);
 			ISvExecutor sve = packItems.get(executorPackItem);
+			if(sve==null)
+				throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_FOUND, this.getInstanceUser(), null, executorPackCode+" - "+executorPackItem)); 
 			result = execute(this.getKey(sve), params, referenceDate, null);
 		}
 		return result;
@@ -792,9 +794,9 @@ public class SvExecManager extends SvCore {
 		if (exec != null) {
 			result = exec.getReturningType();
 		} else {
-			String error = getKey(category, name) + ", reference date:"
+			String error = getKey(category, name) + " - "+ Sv.Msg.REFERENCE_DATE +" - "
 					+ (referenceDate != null ? referenceDate.toString() : new DateTime());
-			throw (new SvException("system.err.exec_not_found", this.getInstanceUser(), null, error));
+			throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_FOUND, this.getInstanceUser(), null, error));
 		}
 		return result;
 
@@ -817,8 +819,8 @@ public class SvExecManager extends SvCore {
 		if (exec != null) {
 			result = exec.getReturningType();
 		} else {
-			String error = getKey(exec) + ", reference date:" + referenceDate.toString();
-			throw (new SvException("system.err.exec_not_found", this.getInstanceUser(), null, error));
+			String error = getKey(exec) + " - "+ Sv.Msg.REFERENCE_DATE +" - " + referenceDate.toString();
+			throw (new SvException(Sv.Exceptions.EXECUTOR_NOT_FOUND, this.getInstanceUser(), null, error));
 		}
 		return result;
 
@@ -854,7 +856,7 @@ public class SvExecManager extends SvCore {
 	public DbDataObject createExecutorPack(String labelCode, String notes, Long parentPackId) throws SvException {
 		DbDataObject dbo = new DbDataObject(svCONST.OBJECT_TYPE_EXECUTOR_PACK);
 		dbo.setVal(Sv.LABEL_CODE, labelCode);
-		dbo.setVal("NOTES", labelCode);
+		dbo.setVal(Sv.NOTES, labelCode);
 		dbo.setParentId(parentPackId);
 		try (SvWriter svw = new SvWriter(this)) {
 			svw.saveObject(dbo);
@@ -920,7 +922,7 @@ public class SvExecManager extends SvCore {
 	 */
 	public Map<String, ISvExecutor> getExecutorPackItems(DbDataObject execPack, DateTime executorRefDate)
 			throws SvException {
-		Map<String, ISvExecutor> items = null;
+		Map<String, ISvExecutor> items = new HashMap<String, ISvExecutor>();
 		if (execPack.getObjectId() > 0L) {
 			try (SvReader svr = new SvReader(this)) {
 
@@ -930,9 +932,7 @@ public class SvExecManager extends SvCore {
 				}
 				if (parentPack != null)
 					items = getExecutorPackItems(parentPack, executorRefDate);
-				else {
-					items = new HashMap<String, ISvExecutor>();
-				}
+				
 				DbDataArray dba = svr.getObjectsByParentId(execPack.getObjectId(), svCONST.OBJECT_TYPE_EXECPACK_ITEM,
 						null);
 				for (DbDataObject dbo : dba.getItems()) {
