@@ -1418,7 +1418,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 *                   DbInit {@link #initSvCoreNoCfg(DbDataArray,DbDataArray)}
 	 * @return True if the system has been initialised properly.
 	 */
-	static synchronized Boolean initSvCoreImpl(Boolean useJsonCfg) {
+	private static synchronized Boolean initSvCoreImpl(Boolean useJsonCfg) {
 		// if Svarog is already initialised, simply return
 		if (!isInitialized.compareAndSet(false, true))
 			return true;

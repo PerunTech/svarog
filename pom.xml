@@ -385,7 +385,7 @@
 				<dependency>
 					<groupId>svarog</groupId>
 					<artifactId>svarog-io</artifactId>
-					<version>1.0.4.3</version>
+					<version>1.1.0-SNAPSHOT</version>
 				</dependency>
 			</dependencies>
 		</profile>

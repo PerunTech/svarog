@@ -2662,7 +2662,7 @@ public class SvarogInstall {
 			// if not first install, perform re-initialisation to refresh the
 			// labels
 			if (isSvarogInstalled())
-				SvCore.initSvCoreImpl(true);
+				SvCore.initSvCore(true);
 
 			SvConfigurationUpgrade.executeConfiguration(ISvConfiguration.UpdateType.CODES);
 			// run the upgrade of the codes
