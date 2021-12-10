@@ -138,6 +138,14 @@ public class SvConf {
 	private static boolean sdiEnabled = false;
 
 	/**
+	 * Flag to mark if Polygonal exterior rings should be saved in Counter Clock
+	 * Wise direction or not this is configured via the 'sys.gis.ccw_ring_rotation'
+	 * parameter in svarog properties
+	 */
+	private static boolean isRingCCW = false;
+	private static boolean isHoleCCW = true;
+
+	/**
 	 * Property holding the system spatial SRID
 	 */
 	private static String sdiSrid = null;
@@ -551,6 +559,8 @@ public class SvConf {
 			admUnitClass = getProperty(mainProperties, "sys.gis.legal_sdi_unit_type", "0");
 			intersectSysBoundary = getProperty(mainProperties, "sys.gis.allow_boundary_intersect", false);
 
+			isRingCCW = getProperty(mainProperties, Sv.Properties.IS_RING_CCW, false);
+			isHoleCCW = !isRingCCW;
 			svDbType = SvDbType.valueOf(mainProperties.getProperty("conn.dbType").trim().toUpperCase());
 			svDbConnType = SvDbConnType.valueOf(mainProperties.getProperty("conn.type").trim().toUpperCase());
 
@@ -570,7 +580,6 @@ public class SvConf {
 			mainProperties = null;
 		return mainProperties;
 	}
-
 	/**
 	 * Method to load a value from the version properties.
 	 * 
@@ -1080,5 +1089,23 @@ public class SvConf {
 	public static void setMaxRequestsPerMinute(int maxRequestsPerMinute) {
 		SvConf.maxRequestsPerMinute = maxRequestsPerMinute;
 	}
+
+	public static boolean isRingCCW() {
+		return isRingCCW;
+	}
+
+	static void setRingCCW(boolean isRingCCW) {
+		SvConf.isRingCCW = isRingCCW;
+		SvConf.isHoleCCW = !isRingCCW;
+	}
+
+	public static boolean isHoleCCW() {
+		return isHoleCCW;
+	}
+
+	static void setHoleCCW(boolean isHoleCCW) {
+		SvConf.isHoleCCW = isHoleCCW;
+	}
+
 
 }

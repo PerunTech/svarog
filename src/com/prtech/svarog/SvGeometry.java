@@ -36,6 +36,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.SvCharId;
 import org.locationtech.jts.algorithm.Angle;
+import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
@@ -65,7 +66,7 @@ public class SvGeometry extends SvWriter {
 	 * Log4j instance
 	 */
 	private static final Logger log4j = SvConf.getLogger(SvGeometry.class);
-	
+
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 	public static final String GEOM_STRUCT_TYPE = initStructType();
 
@@ -1677,7 +1678,76 @@ public class SvGeometry extends SvWriter {
 		if (dbo.getVal("PERIMETER") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("PERIMETER", geom.getLength());
 		setCentroid(dbo, centroid);
+		setGeometry(dbo, verifyRingDirection(geom));
 
+	}
+
+	/**
+	 * Method to ensure the ring direction of geometries is aligned with the system
+	 * parameter sys.gis.ccw_ring_rotation. If the parameter is set to true, this
+	 * method will ensure all external rings are CCW while holes are clockwise.
+	 * 
+	 * @param poly The geometry or geometry collection. Accepts Polygon,
+	 *             MultiPolygon or Geometry collection
+	 * @return A geometry with the rings rotation aligned to the system parameter
+	 */
+	public static Geometry verifyRingDirection(Geometry poly) {
+		Geometry[] gs = poly.getGeometryType() != Geometry.TYPENAME_MULTIPOLYGON ? new Geometry[poly.getNumGeometries()]
+				: new Polygon[poly.getNumGeometries()];
+		for (int i = 0; i < poly.getNumGeometries(); i++) {
+			Geometry g = poly.getGeometryN(i);
+			if (g.getGeometryType() == Geometry.TYPENAME_POLYGON
+					|| g.getGeometryType() == Geometry.TYPENAME_MULTIPOLYGON) {
+				gs[i] = reversePolygonal(g);
+			} else
+				gs[i] = verifyRingDirection(g);
+		}
+		if (poly.getGeometryType() == Geometry.TYPENAME_POLYGON)
+			return gs[0];
+		else if (poly.getGeometryType() == Geometry.TYPENAME_MULTIPOLYGON)
+			return SvUtil.sdiFactory.createMultiPolygon((Polygon[]) gs);
+		else if (poly instanceof GeometryCollection)
+			return SvUtil.sdiFactory.createGeometryCollection(gs);
+		return poly;
+	}
+
+	/**
+	 * Method to ensure the ring direction of polygonal POLYGON/MULTIPOLYGON
+	 * geometries is aligned with the system parameter sys.gis.ccw_ring_rotation. If
+	 * the parameter is set to true, this method will ensure all external rings are
+	 * CCW while holes are clockwise.
+	 * 
+	 * @param poly The polygonal geometries. Accepts Polygon, MultiPolygon
+	 * @return A geometry with the rings rotation aligned to the system parameter
+	 */
+	public static Geometry reversePolygonal(Geometry poly) {
+		Polygon[] p = new Polygon[poly.getNumGeometries()];
+		for (int i = 0; i < poly.getNumGeometries(); i++) {
+			Polygon g = (Polygon) poly.getGeometryN(i);
+			boolean createReversed = false;
+			LinearRing shell = g.getExteriorRing();
+			LinearRing[] holes = new LinearRing[g.getNumInteriorRing()];
+			// fix based on one meter distance
+			boolean isCCW = Orientation.isCCW(g.getExteriorRing().getCoordinateSequence());
+			if ((SvConf.isRingCCW() ^ isCCW)) {
+				shell = g.getExteriorRing().reverse();
+				createReversed = true;
+			}
+			// check if the rings are correct
+			for (int z = 0; z < g.getNumInteriorRing(); z++) {
+				LinearRing l = g.getInteriorRingN(0);
+				boolean isHoleCCW = Orientation.isCCW(l.getCoordinateSequence());
+				if ((SvConf.isHoleCCW() ^ isHoleCCW)) {
+					holes[z] = l.reverse();
+					createReversed = true;
+				}
+			}
+			p[i] = createReversed ? SvUtil.sdiFactory.createPolygon(shell, holes) : g;
+		}
+		if (poly.getGeometryType() == Geometry.TYPENAME_POLYGON)
+			return p[0];
+		else
+			return SvUtil.sdiFactory.createMultiPolygon(p);
 	}
 
 	/**
