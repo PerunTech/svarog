@@ -35,12 +35,15 @@ import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.SvCharId;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
+
+import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.ParseException;
@@ -540,7 +543,7 @@ public class SvGeometryTest {
 			g1 = it.next();
 			if (!g1.equalsNorm(g2_2))
 				fail("Test did not return a copy of geometry");
-			if(toBeDeleted.size()<1)
+			if (toBeDeleted.size() < 1)
 				fail("Test did not return a geometry to be deleted");
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
@@ -579,8 +582,13 @@ public class SvGeometryTest {
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
-	//TODO FIX THIS
-	//[POLYGON ((7588120.22 4590814.87, 7588137.99 4590826.51, 7588144.25 4590830.52, 7588157.15 4590838.77, 7588160.42 4590840.46, 7588173.42 4590810.19, 7588179.24 4590794.32, 7588106.21 4590746.56, 7588102.8 4590760.85, 7588106.22 4590746.58, 7588164.03 4590784.38, 7588120.22 4590814.87))]
+
+	// TODO FIX THIS
+	// [POLYGON ((7588120.22 4590814.87, 7588137.99 4590826.51, 7588144.25
+	// 4590830.52, 7588157.15 4590838.77, 7588160.42 4590840.46, 7588173.42
+	// 4590810.19, 7588179.24 4590794.32, 7588106.21 4590746.56, 7588102.8
+	// 4590760.85, 7588106.22 4590746.58, 7588164.03 4590784.38, 7588120.22
+	// 4590814.87))]
 	@Test
 	public void testDetectSpikes() throws SvException {
 
@@ -834,4 +842,67 @@ public class SvGeometryTest {
 
 	}
 
+	@Test
+	public void testGeomRingOrientation() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			Geometry hole = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 15, gridX0 + 17, gridY0 + 15, gridY0 + 17));
+			Geometry square = SvUtil.sdiFactory
+					.toGeometry(new Envelope(gridX0 + 5, gridX0 + 9.5, gridY0 + 15, gridY0 + 20));
+
+			Set<Geometry> gg = svg.getRelatedGeometries(hole, TEST_LAYER_TYPE_ID, SDIRelation.INTERSECTS, null, null,
+					false);
+			Geometry original = gg.iterator().next();
+			Double originalArea = original.getArea();
+			// this is with default values and should not raise any exceptions
+			Polygon result = (Polygon) svg.holeInPolygon(hole, TEST_LAYER_TYPE_ID, false);
+
+			if ((result.getArea() + hole.getArea()) != originalArea)
+				fail("Geometry was not cut off properly");
+			// fix based on one meter distance
+
+			boolean isCCW = Orientation.isCCW(result.getExteriorRing().getCoordinateSequence());
+			if (isCCW)
+				fail("Exterior is not default JTS Clockwise");
+			boolean isRingCCW = Orientation.isCCW(result.getInteriorRingN(0).getCoordinateSequence());
+			if (!isRingCCW)
+				fail("Hole is not default JTS CounterClockwise");
+
+			SvConf.setRingCCW(true);
+			Polygon reversedResult = (Polygon) SvGeometry.verifyRingDirection(result);
+			isCCW = Orientation.isCCW(reversedResult.getExteriorRing().getCoordinateSequence());
+			if (!isCCW)
+				fail("Exterior was not reversed!");
+			isRingCCW = Orientation.isCCW(reversedResult.getInteriorRingN(0).getCoordinateSequence());
+			if (isRingCCW)
+				fail("Hole was not reversed!");
+
+			SvConf.setRingCCW(false);
+			reversedResult = (Polygon) SvGeometry.verifyRingDirection(result);
+			isCCW = Orientation.isCCW(reversedResult.getExteriorRing().getCoordinateSequence());
+			if (isCCW)
+				fail("Exterior was not reversed back to JTS original CW");
+			isRingCCW = Orientation.isCCW(reversedResult.getInteriorRingN(0).getCoordinateSequence());
+			if (!isRingCCW)
+				fail("Hole was not reversed back to JTS original CCW");
+
+			Polygon[] pp = new Polygon[] { (Polygon) square, result };
+			MultiPolygon mp = SvUtil.sdiFactory.createMultiPolygon(pp);
+			// now test multi polygon
+			SvConf.setRingCCW(true);
+			MultiPolygon reversedMp = (MultiPolygon) SvGeometry.verifyRingDirection(mp);
+			reversedResult = (Polygon) reversedMp.getGeometryN(1);
+			isCCW = Orientation.isCCW(reversedResult.getExteriorRing().getCoordinateSequence());
+			if (!isCCW)
+				fail("Exterior was not reversed!");
+			isRingCCW = Orientation.isCCW(reversedResult.getInteriorRingN(0).getCoordinateSequence());
+			if (isRingCCW)
+				fail("Hole was not reversed!");
+
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
 }

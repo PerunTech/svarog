@@ -103,6 +103,13 @@ public class Sv {
 
 	}
 
+	public static class Properties {
+		public static final String IS_RING_CCW = "sys.gis.ccw_ring_rotation";
+
+		private Properties() {
+		}
+	}
+
 	public static class Security {
 
 		/**
