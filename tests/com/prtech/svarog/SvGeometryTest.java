@@ -846,7 +846,8 @@ public class SvGeometryTest {
 	public void testGeomRingOrientation() throws SvException {
 
 		try (SvGeometry svg = new SvGeometry()) {
-
+			initTestSDI();
+			
 			Geometry hole = SvUtil.sdiFactory
 					.toGeometry(new Envelope(gridX0 + 15, gridX0 + 17, gridY0 + 15, gridY0 + 17));
 			Geometry square = SvUtil.sdiFactory
