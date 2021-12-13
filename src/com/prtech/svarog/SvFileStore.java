@@ -360,9 +360,9 @@ public class SvFileStore extends SvCore {
 			DbDataObject dbtFiles = getDbt(svCONST.OBJECT_TYPE_FILE);
 
 			DbSearch dbs = new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, linkedObject.getObjectId());
-			DbQueryObject qObjects = new DbQueryObject(dbt, dbs, DbJoinType.FULL, dbl, LinkType.DBLINK, null, null);
+			DbQueryObject qObjects = new DbQueryObject(dbt, dbs, DbJoinType.INNER, dbl, LinkType.DBLINK, null, null);
 
-			DbQueryObject qFiles = new DbQueryObject(dbtFiles, fileSearch, DbJoinType.FULL, null, LinkType.PARENT, null,
+			DbQueryObject qFiles = new DbQueryObject(dbtFiles, fileSearch, DbJoinType.INNER, null, LinkType.PARENT, null,
 					null);
 			qFiles.setIsReturnType(true);
 			DbQueryExpression q = new DbQueryExpression();
