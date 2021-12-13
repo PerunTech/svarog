@@ -53,7 +53,6 @@ public class SvGrid extends SvSDITile {
 	static int maxYtile = 0;
 	static int maxXtile = 0;
 
-	protected Long tileTypeId = svCONST.OBJECT_TYPE_GRID;
 
 	protected String getTileId() {
 		return tileTypeId.toString() + "." + gridName;
@@ -68,6 +67,7 @@ public class SvGrid extends SvSDITile {
 	 * @throws SvException
 	 */
 	public SvGrid(String gridName) throws SvException {
+		tileTypeId = svCONST.OBJECT_TYPE_GRID;
 		this.gridName = gridName;
 		SvSDITile boundary = SvGeometry.getSysBoundary();
 		boundary.loadTile();
