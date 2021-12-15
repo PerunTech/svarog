@@ -17,6 +17,7 @@ package com.prtech.svarog;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -131,8 +132,18 @@ public abstract class SvSDITile {
 
 	public Set<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
 			throws SvException {
+		return (Set<Geometry>) getRelations(geom, relation, returnOnlyInternal, false);
+	}
+
+	public List<Geometry> getRelationsList(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal)
+			throws SvException {
+		return (List<Geometry>) getRelations(geom, relation, returnOnlyInternal, true);
+	}
+
+	public Collection<Geometry> getRelations(Geometry geom, SDIRelation relation, Boolean returnOnlyInternal,
+			Boolean returnDuplicates) throws SvException {
 		loadTile();
-		Set<Geometry> l = new HashSet<>();
+		Collection<Geometry> l = returnDuplicates ? new ArrayList<>() : new HashSet<>();
 		@SuppressWarnings("unchecked")
 		List<PreparedGeometry> geoms = tileIndex.query(geom.getEnvelopeInternal());
 		boolean relates = false;

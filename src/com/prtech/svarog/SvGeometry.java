@@ -67,7 +67,7 @@ public class SvGeometry extends SvWriter {
 	 * Log4j instance
 	 */
 	private static final Logger log4j = SvConf.getLogger(SvGeometry.class);
-	
+
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 	public static final String GEOM_STRUCT_TYPE = initStructType();
 
@@ -443,6 +443,7 @@ public class SvGeometry extends SvWriter {
 		return getRelatedGeometries(geom, layerTypeId, sdiRelation, filterFieldName, filterValue, false, excludeSelf);
 	}
 
+	
 	/**
 	 * Method to find all geometries from the layer identified with layerTypeId,
 	 * which have a spatial relation of type sdiRelation with Geometry specified by
@@ -460,13 +461,39 @@ public class SvGeometry extends SvWriter {
 	 * @param excludeSelf     Flag if you want to exclude the test against self
 	 *                        (requires that both geometries have been saved to the
 	 *                        DB and have valid object Id)
-	 * @return A set of related geometries
+	 * @return A collection of related geometries
 	 * @throws SvException Exception if raised by underlying methods
 	 */
 	public Set<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
-			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf)
-			throws SvException {
-		HashSet<Geometry> geoms = new HashSet<>();
+			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf) throws SvException {
+			return (Set<Geometry>)getRelatedGeometries(geom, layerTypeId, sdiRelation,filterFieldName, filterValue, reverseFilter, excludeSelf, false);
+		
+	}
+	/**
+	 * Method to find all geometries from the layer identified with layerTypeId,
+	 * which have a spatial relation of type sdiRelation with Geometry specified by
+	 * the geom parameter
+	 * 
+	 * @param geom            The related geometry
+	 * @param layerTypeId     The layer which is test for relation
+	 * @param sdiRelation     The spatial relation
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal. Geometries which
+	 *                        don't match the filters are not returned
+	 * @param reverseFilter   If this flag is true, the filter will return only
+	 *                        geometries which do not match
+	 * @param excludeSelf     Flag if you want to exclude the test against self
+	 *                        (requires that both geometries have been saved to the
+	 *                        DB and have valid object Id)
+	 * @param allowDuplicates If the method should return equal geometries
+	 * @return A collection of related geometries
+	 * @throws SvException Exception if raised by underlying methods
+	 */
+	public Collection<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
+			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf,
+			boolean allowDuplicates) throws SvException {
+		Collection<Geometry> geoms = allowDuplicates ? new ArrayList<>() : new HashSet<>();
 		SvCharId objectIdField = new SvCharId(Sv.OBJECT_ID);
 		if (geom != null) {
 			DbDataObject userData = (DbDataObject) geom.getUserData();
@@ -477,7 +504,7 @@ public class SvGeometry extends SvWriter {
 				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
 				if (tile == null)
 					continue;
-				Set<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false);
+				Collection<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false, allowDuplicates);
 				for (Geometry g : relatedGeoms) {
 					// apply the filter by value
 					DbDataObject relatedUserData = ((DbDataObject) g.getUserData());
@@ -488,13 +515,59 @@ public class SvGeometry extends SvWriter {
 					if (excludeSelf && SvUtil.fieldMatchValue(relatedUserData, objectIdField, geometryOid))
 						continue;
 
-					if (!geoms.contains(g))
-						geoms.add(g);
+					geoms.add(g);
 				}
 			}
 		}
 		return geoms;
 	}
+	/**
+	 * Method to create a geometry from point selector over layer identified with
+	 * layerTypeId. The geometries found in the base layer shall be cut off from the
+	 * diff layer and the result will be provided back to the caller
+	 * 
+	 * @param point                The point from which we can select the source
+	 *                             geometries
+	 * @param layerTypeId          The layer from which we shall load the geometries
+	 * @param diffLayer            The target layer over which we should do
+	 *                             difference
+	 * @param allowMultiGeometries Flag to allow one point to select more than one
+	 *                             geometry
+	 * @param allowDuplicates If the method should return equal geometries as separate objects
+	 * @return A collection of resulting geometries
+	 * @throws SvException if allowMulti geometries is false, and the base layer has
+	 *                     more than one geometry intersecting with the point, a
+	 *                     Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND exception will be
+	 *                     raised
+	 */
+	public Collection<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer, boolean allowMultiGeometries, boolean allowDuplicates)
+			throws SvException {
+		Collection<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null, false, allowDuplicates);
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, point));
+		Collection<Geometry> result = allowDuplicates ? new ArrayList<>() : new HashSet<>();
+		for (Geometry originalGeom : intersected) {
+			Set<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null, null,
+					false, allowDuplicates);
+			for (Geometry relatedGeom : related) {
+				originalGeom = originalGeom.difference(relatedGeom);
+			}
+			// if the difference resulted in multipolygon, we are interested only in the
+			// polygon which covers the point
+			if (originalGeom.getNumGeometries() > 1)
+				for (int i = 0; i < originalGeom.getNumGeometries(); i++) {
+					Geometry gp = originalGeom.getGeometryN(i);
+					if (gp.covers(point)) {
+						originalGeom = gp;
+						break;
+					}
+
+				}
+			result.add(originalGeom);
+		}
+		return result;
+	}
+
 
 	/**
 	 * Method to create a geometry from point selector over layer identified with
@@ -516,30 +589,7 @@ public class SvGeometry extends SvWriter {
 	 */
 	public Set<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer, boolean allowMultiGeometries)
 			throws SvException {
-		Set<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null, false);
-		if (intersected.size() > 1 && !allowMultiGeometries)
-			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, point));
-		Set<Geometry> result = new HashSet<>();
-		for (Geometry originalGeom : intersected) {
-			Set<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null, null,
-					false);
-			for (Geometry relatedGeom : related) {
-				originalGeom = originalGeom.difference(relatedGeom);
-			}
-			// if the difference resulted in multipolygon, we are interested only in the
-			// polygon which covers the point
-			if (originalGeom.getNumGeometries() > 1)
-				for (int i = 0; i < originalGeom.getNumGeometries(); i++) {
-					Geometry gp = originalGeom.getGeometryN(i);
-					if (gp.covers(point)) {
-						originalGeom = gp;
-						break;
-					}
-
-				}
-			result.add(originalGeom);
-		}
-		return result;
+		return (Set<Geometry>) geometryFromPoint(point, layerTypeId, diffLayer, allowMultiGeometries, false);
 	}
 
 	/**
