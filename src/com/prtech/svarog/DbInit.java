@@ -1144,6 +1144,7 @@ public class DbInit {
 		dbe8.setDbFieldName("ACHIEVED_SCORE");
 		dbe8.setDbFieldType(DbFieldType.NUMERIC);
 		dbe8.setDbFieldSize(18);
+		dbe8.setIsNull(true);
 		dbe8.setLabel_code("field.achieved_score");
 
 		DbDataField[] dbTableFields = new DbDataField[7];
@@ -1421,7 +1422,7 @@ public class DbInit {
 		dbe2.setDbFieldName("SCORE");
 		dbe2.setDbFieldType(DbFieldType.NUMERIC);
 		dbe2.setDbFieldSize(18);
-		dbe2.setIsNull(false);
+		dbe2.setIsNull(true);
 		dbe2.setLabel_code("fft_score.score");
 
 		// Column 3
@@ -1429,7 +1430,7 @@ public class DbInit {
 		dbe3.setDbFieldName("CODE_VALUE");
 		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe3.setDbFieldSize(100);
-		dbe3.setIsNull(false);
+		dbe3.setIsNull(true);
 		dbe3.setLabel_code("fft_score.code_value");
 
 		DbDataField[] dbTableFields = new DbDataField[3];
