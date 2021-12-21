@@ -48,11 +48,13 @@ public class SvSDIDbTile extends SvSDITile {
 
 	DbSearch extSearch;
 
-	public SvSDIDbTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public SvSDIDbTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) throws SvException {
 		this.tileTypeId = tileTypeId;
 		this.tilelId = tileId;
-		this.tileEnvelope = (Envelope) tileParams.get("ENVELOPE");
 		this.extSearch = (DbSearch) tileParams.get("DB_SEARCH");
+		Object envGeom = tileParams.get("ENVELOPE");
+		prepareEnvelope(envGeom);
+
 	}
 
 	/**
@@ -63,7 +65,7 @@ public class SvSDIDbTile extends SvSDITile {
 	GeometryCollection loadGeometries() throws SvException {
 
 		DbSearch dbs = new DbSearchCriterion(SvGeometry.getGeometryFieldName(tileTypeId), DbCompareOperand.BBOX,
-				tileEnvelope);
+				tileGeometry.getGeometry().getEnvelopeInternal());
 		if (extSearch != null) {
 			DbSearchExpression dbe = new DbSearchExpression();
 			dbe.addDbSearchItem(dbs);

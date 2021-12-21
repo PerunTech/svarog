@@ -11,8 +11,8 @@ public class SvTestTile extends SvSDITile {
 
 	final GeometryCollection testGeometries;
 
-	public SvTestTile(Envelope env, long typeTileId, GeometryCollection testGeometries) {
-		this.tileEnvelope = env;
+	public SvTestTile(Envelope env, long typeTileId, GeometryCollection testGeometries) throws SvException {
+		this.prepareEnvelope(env);
 		this.tileTypeId = typeTileId;
 		this.testGeometries = testGeometries;
 	}

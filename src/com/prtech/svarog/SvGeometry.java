@@ -443,7 +443,6 @@ public class SvGeometry extends SvWriter {
 		return getRelatedGeometries(geom, layerTypeId, sdiRelation, filterFieldName, filterValue, false, excludeSelf);
 	}
 
-	
 	/**
 	 * Method to find all geometries from the layer identified with layerTypeId,
 	 * which have a spatial relation of type sdiRelation with Geometry specified by
@@ -465,10 +464,13 @@ public class SvGeometry extends SvWriter {
 	 * @throws SvException Exception if raised by underlying methods
 	 */
 	public Set<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
-			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf) throws SvException {
-			return (Set<Geometry>)getRelatedGeometries(geom, layerTypeId, sdiRelation,filterFieldName, filterValue, reverseFilter, excludeSelf, false);
-		
+			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf)
+			throws SvException {
+		return (Set<Geometry>) getRelatedGeometries(geom, layerTypeId, sdiRelation, filterFieldName, filterValue,
+				reverseFilter, excludeSelf, false);
+
 	}
+
 	/**
 	 * Method to find all geometries from the layer identified with layerTypeId,
 	 * which have a spatial relation of type sdiRelation with Geometry specified by
@@ -521,6 +523,7 @@ public class SvGeometry extends SvWriter {
 		}
 		return geoms;
 	}
+
 	/**
 	 * Method to create a geometry from point selector over layer identified with
 	 * layerTypeId. The geometries found in the base layer shall be cut off from the
@@ -533,22 +536,24 @@ public class SvGeometry extends SvWriter {
 	 *                             difference
 	 * @param allowMultiGeometries Flag to allow one point to select more than one
 	 *                             geometry
-	 * @param allowDuplicates If the method should return equal geometries as separate objects
+	 * @param allowDuplicates      If the method should return equal geometries as
+	 *                             separate objects
 	 * @return A collection of resulting geometries
 	 * @throws SvException if allowMulti geometries is false, and the base layer has
 	 *                     more than one geometry intersecting with the point, a
 	 *                     Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND exception will be
 	 *                     raised
 	 */
-	public Collection<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer, boolean allowMultiGeometries, boolean allowDuplicates)
-			throws SvException {
-		Collection<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null, false, allowDuplicates);
+	public Collection<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer,
+			boolean allowMultiGeometries, boolean allowDuplicates) throws SvException {
+		Collection<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null,
+				false, false, allowDuplicates);
 		if (intersected.size() > 1 && !allowMultiGeometries)
 			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, point));
 		Collection<Geometry> result = allowDuplicates ? new ArrayList<>() : new HashSet<>();
 		for (Geometry originalGeom : intersected) {
-			Set<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null, null,
-					false, allowDuplicates);
+			Collection<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null,
+					null, false, false, allowDuplicates);
 			for (Geometry relatedGeom : related) {
 				originalGeom = originalGeom.difference(relatedGeom);
 			}
@@ -568,6 +573,61 @@ public class SvGeometry extends SvWriter {
 		return result;
 	}
 
+	/**
+	 * Method to create a geometry from point selector over layer identified with
+	 * layerTypeId. The geometries found in the base layer shall be cut off from the
+	 * diff layer and the result will be provided back to the caller
+	 * 
+	 * @param point                The point from which we can select the source
+	 *                             geometries
+	 * @param layerTypeId          The layer from which we shall load the geometries
+	 * @param diffLayer            The target layer over which we should do
+	 *                             difference
+	 * @param filterFieldName      The field name of the associated DbDataObject of
+	 *                             the layer geometry which should be filtered
+	 * @param filterValue          The which should be matched as equal. Geometries
+	 *                             which don't match the filters are not returned
+	 * @param reverseFilter        If this flag is true, the filter will return only
+	 *                             geometries which do not match
+	 * @param allowMultiGeometries Flag to allow one point to select more than one
+	 *                             geometry
+	 * @param allowDuplicates      If the method should return equal geometries as
+	 *                             separate objects
+	 * @return A collection of resulting geometries
+	 * @throws SvException if allowMulti geometries is false, and the base layer has
+	 *                     more than one geometry intersecting with the point, a
+	 *                     Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND exception will be
+	 *                     raised
+	 */
+	public Collection<Geometry> geometryFromPoint(Point point, Long layerTypeId, Long diffLayer,
+			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean allowMultiGeometries,
+			boolean allowDuplicates) throws SvException {
+		Collection<Geometry> intersected = getRelatedGeometries(point, layerTypeId, SDIRelation.INTERSECTS, null, null,
+				false, false, allowDuplicates);
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, point));
+		Collection<Geometry> result = allowDuplicates ? new ArrayList<>() : new HashSet<>();
+		for (Geometry originalGeom : intersected) {
+			Collection<Geometry> related = getRelatedGeometries(originalGeom, diffLayer, SDIRelation.INTERSECTS, null,
+					null, false, false, allowDuplicates);
+			for (Geometry relatedGeom : related) {
+				originalGeom = originalGeom.difference(relatedGeom);
+			}
+			// if the difference resulted in multipolygon, we are interested only in the
+			// polygon which covers the point
+			if (originalGeom.getNumGeometries() > 1)
+				for (int i = 0; i < originalGeom.getNumGeometries(); i++) {
+					Geometry gp = originalGeom.getGeometryN(i);
+					if (gp.covers(point)) {
+						originalGeom = gp;
+						break;
+					}
+
+				}
+			result.add(originalGeom);
+		}
+		return result;
+	}
 
 	/**
 	 * Method to create a geometry from point selector over layer identified with

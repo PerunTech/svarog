@@ -32,6 +32,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.Lineal;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.Polygonal;
 import com.vividsolutions.jts.geom.Puntal;
 import com.vividsolutions.jts.geom.prep.PreparedGeometry;
@@ -61,12 +62,27 @@ public abstract class SvSDITile {
 
 	protected Long tileTypeId = null;
 	protected String tilelId = null;
-	protected Envelope tileEnvelope = null;
+	protected PreparedGeometry tileGeometry = null;
 	protected Boolean isTileDirty = true;
 
-	protected Set<Geometry> internalGeometries = new HashSet<Geometry>();
-	protected Set<Geometry> borderGeometries = new HashSet<Geometry>();
+	protected Collection<Geometry> internalGeometries = new ArrayList<Geometry>();
+	protected Collection<Geometry> borderGeometries = new ArrayList<Geometry>();
 
+	void prepareEnvelope(Object envGeom) throws SvException
+	{
+		Geometry tempGeom = null;
+		if(envGeom instanceof Envelope)
+			tempGeom = SvUtil.sdiFactory.toGeometry((Envelope)envGeom);
+		else if (envGeom instanceof Geometry)
+			tempGeom = (Geometry)envGeom;
+		else throw (new SvException("sys.error.bad_tile_geometry", svCONST.systemUser));
+		
+		if (!(tempGeom instanceof Polygon))
+			throw (new SvException("sys.error.bad_tile_geometry", svCONST.systemUser));
+		
+		tileGeometry = new PreparedPolygon((Polygonal) tempGeom); 
+
+	}
 	PreparedGeometry getPreparedGeom(Geometry g) {
 		PreparedGeometry pg = null;
 		if (g instanceof Polygonal)
@@ -80,7 +96,7 @@ public abstract class SvSDITile {
 	}
 
 	public Envelope getEnvelope() {
-		return this.tileEnvelope;
+		return this.tileGeometry.getGeometry().getEnvelopeInternal();
 	}
 
 	abstract GeometryCollection loadGeometries() throws SvException;
@@ -107,7 +123,7 @@ public abstract class SvSDITile {
 					if (centroid == null)
 						centroid = SvGeometry.calculateCentroid(geom);
 
-					if (tileEnvelope.covers(centroid.getCoordinate()))
+					if (tileGeometry.covers(centroid))
 						internalGeometries.add(geom);
 					else
 						borderGeometries.add(geom);
@@ -191,12 +207,12 @@ public abstract class SvSDITile {
 		return l;
 	}
 
-	public Set<Geometry> getBorderGeometries() throws SvException {
+	public Collection<Geometry> getBorderGeometries() throws SvException {
 		loadTile();
 		return borderGeometries;
 	}
 
-	public Set<Geometry> getInternalGeometries() throws SvException {
+	public Collection<Geometry> getInternalGeometries() throws SvException {
 		loadTile();
 		return internalGeometries;
 	}
@@ -220,7 +236,7 @@ public abstract class SvSDITile {
 	}
 
 	public GeometryCollection getInternalGeomCollection() throws SvException {
-		Set<Geometry> geoms = this.getInternalGeometries();
+		Collection<Geometry> geoms = this.getInternalGeometries();
 		Geometry[] gArray = (Geometry[]) geoms.toArray(new Geometry[geoms.size()]);
 		GeometryCollection retGeometries = new GeometryCollection(gArray, SvUtil.sdiFactory);
 		return retGeometries;

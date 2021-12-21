@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -278,7 +279,7 @@ public class SvarogInstall {
 			SvSDITile c = null;
 			try {
 				c = SvGeometry.getSysBoundary();
-				Set<Geometry> gs = c.getInternalGeometries();
+				Collection<Geometry> gs = c.getInternalGeometries();
 				GeometryCollection gc = c.getInternalGeomCollection();
 				if (gs.size() > 0 && gc.getArea() > 1)
 					errStatus = 0;

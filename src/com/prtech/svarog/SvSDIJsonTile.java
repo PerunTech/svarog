@@ -27,6 +27,9 @@ import org.apache.logging.log4j.Logger;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.Polygonal;
+import com.vividsolutions.jts.geom.prep.PreparedPolygon;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 
 /**
@@ -42,11 +45,12 @@ public class SvSDIJsonTile extends SvSDITile {
 
 	String jsonFilePath;
 
-	public SvSDIJsonTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) {
+	public SvSDIJsonTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) throws SvException {
 		this.tileTypeId = tileTypeId;
 		this.tilelId = tileId;
 		this.jsonFilePath = (String) tileParams.get("FILE_PATH");
-		this.tileEnvelope = (Envelope) tileParams.get("ENVELOPE");
+		Object envGeom = tileParams.get("ENVELOPE");
+		prepareEnvelope(envGeom);
 	}
 
 	@Override
@@ -84,7 +88,7 @@ public class SvSDIJsonTile extends SvSDITile {
 		try {
 			jtsReader.setUseFeatureType(true);
 			layer = (GeometryCollection) jtsReader.read(geoJSONBounds);
-			tileEnvelope = layer.getEnvelopeInternal();
+			tileGeometry = new PreparedPolygon((Polygonal) layer.getEnvelope());
 		} catch (Exception e) {
 			log4j.error("Failed parsing JSON tile:" + jsonFilePath, e);
 
