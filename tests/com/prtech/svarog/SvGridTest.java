@@ -4,6 +4,9 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
+
 public class SvGridTest {
 
 	@Test
@@ -13,6 +16,18 @@ public class SvGridTest {
 			grid = new SvGrid(Sv.SDI_SYSGRID);
 			if (grid.getInternalGeometries().size() < 1)
 				fail("sys grid empty");
+		} catch (SvException e) {
+			fail("Exception with sys grid initialisation");
+		}
+
+	}
+
+	@Test
+	public void sysGridGenerate() {
+		Geometry boundary = DbInit.getSysBoundaryFromJson();
+		try (SvReader svr = new SvReader()) {
+				GeometryCollection grid = SvGrid.generateGrid(boundary, SvConf.getSdiGridSize(), svr);
+				SvGrid.saveGridToDatabase(grid, "KNT_2020", svr);
 		} catch (SvException e) {
 			fail("Exception with sys grid initialisation");
 		}

@@ -31,6 +31,7 @@ public class SvGrid extends SvSDITile {
 	private static final Logger log4j = SvConf.getLogger(SvSDITile.class);
 	public static final String GRID_NAME = "GRID_NAME";
 	public static final String GRIDTILE_ID = "GRIDTILE_ID";
+	private static final String IS_BORDER = "IS_BORDER";
 	/**
 	 * The main index of grid geometries.
 	 */
@@ -73,7 +74,7 @@ public class SvGrid extends SvSDITile {
 		boundary.loadTile();
 		Envelope env = boundary.getEnvelope();
 		env.expandBy(2000);
-		this.tileEnvelope = env;
+		prepareEnvelope(env);
 		buildGrid(this.getInternalGeomCollection(), gridName);
 	}
 
@@ -113,6 +114,7 @@ public class SvGrid extends SvSDITile {
 				gridMap.put(baseId[0], gridItem);
 				if (ud instanceof DbDataObject) {
 					((DbDataObject) ud).setVal(GRIDTILE_ID, baseId[0]);
+					((DbDataObject) ud).setVal(IS_BORDER, baseId[1]);
 					((DbDataObject) ud).setIsDirty(true);
 					gridDboList.addDataItem((DbDataObject) ud);
 				}

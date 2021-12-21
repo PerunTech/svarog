@@ -17,6 +17,7 @@ package com.prtech.svarog;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -140,7 +141,7 @@ public class SvGeometryTest {
 			Long tileTypeId = SvCore.getTypeIdByName("PHYSICAL_BLOCK");
 
 			SvSDITile tile = svg.createTile(tileTypeId, g.get(0).getUserData().toString(), null);
-			Set<Geometry> geoms = tile.getInternalGeometries();
+			Collection<Geometry> geoms = tile.getInternalGeometries();
 
 			System.out.println("Tile envelope from bbox:" + env.toString());
 			System.out.println("Area of envelope:" + env.getArea() / 10000 + "Ha");
