@@ -1028,7 +1028,33 @@ public class DbInit {
 		dbf14.setIsNull(true);
 		dbf14.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "field_" + Sv.SORT_ORDER);
 
-		DbDataField[] dbTableFields = new DbDataField[10];
+		DbDataField dbf15 = new DbDataField();
+		dbf15.setDbFieldName("IS_MULTI_OPT");
+		dbf15.setDbFieldType(DbFieldType.BOOLEAN);
+		dbf15.setIsNull(true);
+		dbf15.setLabel_code("form_field_type.field_ismultiopt");
+		
+		DbDataField dbf16 = new DbDataField();
+		dbf16.setDbFieldName("IS_NOTE");
+		dbf16.setDbFieldType(DbFieldType.BOOLEAN);
+		dbf16.setIsNull(true);
+		dbf16.setLabel_code("form_field_type.field_isnote");
+		
+		DbDataField dbf17 = new DbDataField();
+		dbf17.setDbFieldName("CODE_VALUE");
+		dbf17.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf17.setDbFieldSize(50);
+		dbf17.setIsNull(true);
+		dbf17.setLabel_code("form_field_type.code_value");
+		
+		DbDataField dbf18 = new DbDataField();
+		dbf18.setDbFieldName("MAX_SCORE");
+		dbf18.setDbFieldType(DbFieldType.NUMERIC);
+		dbf18.setDbFieldSize(18);
+		dbf18.setIsNull(true);
+		dbf18.setLabel_code("form_field_type.max_score");
+
+		DbDataField[] dbTableFields = new DbDataField[14];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe2;
 		dbTableFields[2] = dbe3;
@@ -1040,6 +1066,11 @@ public class DbInit {
 		dbTableFields[7] = dbf12;
 		dbTableFields[8] = dbf14;
 		dbTableFields[9] = dbf7_1;
+		
+		dbTableFields[10] = dbf15;
+		dbTableFields[11] = dbf16;
+		dbTableFields[12] = dbf17;
+		dbTableFields[13] = dbf18;
 
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
@@ -1111,14 +1142,23 @@ public class DbInit {
 		dbe7.setDbFieldType(DbFieldType.NVARCHAR);
 		dbe7.setDbFieldSize(200);
 		dbe7.setLabel_code("field.second_check");
+		
+		DbDataField dbe8 = new DbDataField();
+		dbe8.setDbFieldName("ACHIEVED_SCORE");
+		dbe8.setDbFieldType(DbFieldType.NUMERIC);
+		dbe8.setDbFieldSize(18);
+		dbe8.setIsNull(true);
+		dbe8.setLabel_code("field.achieved_score");
 
-		DbDataField[] dbTableFields = new DbDataField[6];
+		DbDataField[] dbTableFields = new DbDataField[7];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe1_0;
 		dbTableFields[2] = dbe1_1;
 		dbTableFields[3] = dbe5;
 		dbTableFields[4] = dbe6;
 		dbTableFields[5] = dbe7;
+		
+		dbTableFields[6] = dbe8;
 
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
@@ -1241,7 +1281,14 @@ public class DbInit {
 		dbe15.setLabel_code("form_type.maximum_number_of_entries");
 		dbe15.setIsNull(true);
 
-		DbDataField[] dbTableFields = new DbDataField[13];
+		DbDataField dbf16 = new DbDataField();
+		dbf16.setDbFieldName("MAX_SCORE");
+		dbf16.setDbFieldType(DbFieldType.NUMERIC);
+		dbf16.setDbFieldSize(18);
+		dbf16.setIsNull(true);
+		dbf16.setLabel_code("form_type.max_score");
+		
+		DbDataField[] dbTableFields = new DbDataField[14];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe2;
 		dbTableFields[2] = dbe4;
@@ -1255,6 +1302,8 @@ public class DbInit {
 		dbTableFields[10] = dbe10;
 		dbTableFields[11] = dbf11;
 		dbTableFields[12] = dbe15;
+		
+		dbTableFields[13] = dbf16;
 
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
@@ -1328,18 +1377,73 @@ public class DbInit {
 		dbe7.setDbFieldScale(0);
 		dbe7.setLabel_code("form.second_check");
 
-		DbDataField[] dbTableFields = new DbDataField[6];
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName("ACHIEVED_SCORE");
+		dbf8.setDbFieldType(DbFieldType.NUMERIC);
+		dbf8.setDbFieldSize(18);
+		dbf8.setIsNull(true);
+		dbf8.setLabel_code("form.achieved_score");
+		
+		DbDataField[] dbTableFields = new DbDataField[7];
 		dbTableFields[0] = dbe1;
 		dbTableFields[1] = dbe1_1;
 		dbTableFields[2] = dbe1_2;
 		dbTableFields[3] = dbe5;
 		dbTableFields[4] = dbe6;
 		dbTableFields[5] = dbe7;
+		dbTableFields[6] = dbf8;
 
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
 
+	private static DbDataTable createFftScore() {
+
+		DbDataTable dbe = new DbDataTable();
+		dbe.setDbTableName(Sv.REPO_TABLE_NAME + "_fft_score");
+		dbe.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbe.setIsSystemTable(true);
+		dbe.setIsRepoTable(false);
+		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "fft_score");
+		dbe.setUse_cache(false);
+		dbe.setParent_id(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
+
+		// Column 1
+		DbDataField dbe1 = new DbDataField();
+		dbe1.setDbFieldName("PKID");
+		dbe1.setIsPrimaryKey(true);
+		dbe1.setDbFieldType(DbFieldType.NUMERIC);
+		dbe1.setDbFieldSize(18);
+		dbe1.setDbFieldScale(0);
+		dbe1.setIsNull(false);
+		dbe1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+		// Column 2
+		DbDataField dbe2 = new DbDataField();
+		dbe2.setDbFieldName("SCORE");
+		dbe2.setDbFieldType(DbFieldType.NUMERIC);
+		dbe2.setDbFieldSize(18);
+		dbe2.setIsNull(true);
+		dbe2.setLabel_code("fft_score.score");
+
+		// Column 3
+		DbDataField dbe3 = new DbDataField();
+		dbe3.setDbFieldName("CODE_VALUE");
+		dbe3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbe3.setDbFieldSize(100);
+		dbe3.setIsNull(true);
+		dbe3.setLabel_code("fft_score.code_value");
+
+		DbDataField[] dbTableFields = new DbDataField[3];
+		dbTableFields[0] = dbe1;
+		dbTableFields[1] = dbe2;
+		dbTableFields[2] = dbe3;
+		
+		dbe.setDbTableFields(dbTableFields);
+		return dbe;
+	}
+	
 	// JOB_TYPE
 	private static DbDataTable createJobType() {
 
@@ -5438,6 +5542,8 @@ public class DbInit {
 		dbtt = createFormFieldType();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = createFormField();
+		dbtList.add(addSortOrder(dbtt));
+		dbtt = createFftScore();
 		dbtList.add(addSortOrder(dbtt));
 
 		// RULE ENGINE
