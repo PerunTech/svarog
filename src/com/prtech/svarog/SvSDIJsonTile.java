@@ -50,12 +50,12 @@ public class SvSDIJsonTile extends SvSDITile {
 		this.tilelId = tileId;
 		this.jsonFilePath = (String) tileParams.get("FILE_PATH");
 		Object envGeom = tileParams.get("ENVELOPE");
-		prepareEnvelope(envGeom);
+		if (envGeom != null)
+			prepareEnvelope(envGeom);
 	}
 
 	@Override
 	GeometryCollection loadGeometries() throws SvException {
-
 
 		if (log4j.isDebugEnabled())
 			log4j.trace("Loading JSON tile from:" + jsonFilePath);
