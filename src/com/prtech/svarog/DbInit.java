@@ -1402,7 +1402,6 @@ public class DbInit {
 		dbe.setDbSchema(Sv.DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(true);
 		dbe.setIsRepoTable(false);
-		dbe.setObjectId(svCONST.OBJECT_TYPE_FFT_SCORE);
 		dbe.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "fft_score");
 		dbe.setUse_cache(false);
 		dbe.setParent_id(svCONST.OBJECT_TYPE_FORM_FIELD_TYPE);
