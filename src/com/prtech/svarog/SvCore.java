@@ -1351,6 +1351,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		// load form types from the DB
 		query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_FORM_TYPE),
 				getFields(svCONST.OBJECT_TYPE_FORM_TYPE), null, null, null);
+		query.setDbtFields(getDbFields(conn, svCONST.OBJECT_TYPE_FORM_TYPE));
 		DbDataArray formTypes = svc.getObjects(query, null, null);
 
 		// before purging the cache check that we at least have loaded
