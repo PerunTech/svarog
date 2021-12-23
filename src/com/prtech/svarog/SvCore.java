@@ -1265,7 +1265,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				String key = ((String) baseType.getVal(Sv.SCHEMA)).toUpperCase() + Sv.DOT
 						+ ((String) baseType.getVal(Sv.TABLE_NAME)).toUpperCase();
 				if (!dbtMap.containsKey(key))
-					throw (new SvException("system.error.misconfigured_dbt", baseType));
+					throw (new SvException("Bad {REPO}_TABLES configuration. Check the database.".replace("{REPO}",
+							SvConf.getMasterRepo()), baseType));
 			}
 		}
 	}
@@ -1356,8 +1357,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		// before purging the cache check that we at least have loaded
 		// the config from database
-		if (objectTypes == null || fieldTypes == null || linkTypes == null)
-			throw (new SvException("system.error.misconfigured_dbt", svCONST.systemUser));
+		if (objectTypes == null || objectTypes.isEmpty() || fieldTypes == null || fieldTypes.isEmpty()
+				|| linkTypes == null || linkTypes.isEmpty())
+			throw (new SvException(
+					"Bad {REPO}_TABLES configuration. Check the database.".replace("{REPO}", SvConf.getMasterRepo()),
+					svCONST.systemUser));
 
 		// Purge the initial config from the cache
 		DbCache.clean();
@@ -2276,7 +2280,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	public String getUserLocaleId(DbDataObject userObject) throws SvException {
 		String locale = null;
 		if (userObject != null) {
-			try (SvParameter svp = new SvParameter()){
+			try (SvParameter svp = new SvParameter()) {
 				if (userObject.getVal(Sv.LOCALE) == null) {
 					locale = svp.getParamString(userObject, Sv.LOCALE);
 					if (locale == null)
@@ -2287,7 +2291,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				} else
 					locale = (String) userObject.getVal(Sv.LOCALE);
 
-			} 
+			}
 		}
 		return locale;
 	}
