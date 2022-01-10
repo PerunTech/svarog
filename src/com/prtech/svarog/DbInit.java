@@ -4556,7 +4556,7 @@ public class DbInit {
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(100);
 		dbf2.setIsNull(false);
-		dbf2.setIsUnique(true);
+		dbf2.setIsUnique(false);
 		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "grid_name");
 		dbf2.setGui_metadata(getDefaultSDIMetadata().toString());
 
@@ -4566,7 +4566,7 @@ public class DbInit {
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(100);
 		dbf3.setIsNull(true);
-		dbf2.setIsUnique(true);
+		dbf2.setIsUnique(false);
 		dbf3.setLabel_code(Sv.MASTER_REPO + Sv.DOT + "tile_id");
 
 		// f4
