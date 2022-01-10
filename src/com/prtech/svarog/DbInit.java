@@ -4538,7 +4538,7 @@ public class DbInit {
 		dbt.setObjectId(svCONST.OBJECT_TYPE_GRID);
 		dbt.setCacheType(Sv.LRU_TTL);
 		dbt.setIsConfigTable(true);
-		dbt.setConfigColumnName("GRID_NAME");
+		//dbt.setConfigColumnName("GRID_NAME");
 
 		// f1
 		DbDataField dbf1 = new DbDataField();
