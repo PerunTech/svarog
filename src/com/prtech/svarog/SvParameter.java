@@ -933,6 +933,9 @@ public class SvParameter extends SvCore {
 					dbParamValue.setVal(Sv.PARAM_NAME, key);
 					dbParamValue.setVal(Sv.PARAM_VALUE, defaultValue);
 					dbParamValue.setVal(Sv.PARAM_TYPE, paramType.getName());
+					try (SvWriter svw= new SvWriter()) {
+						svw.saveObject(dbParamValue,true);
+					}
 				} else
 					prepareParam(dbParamValue);
 				dbParamValue.setIsDirty(false);
