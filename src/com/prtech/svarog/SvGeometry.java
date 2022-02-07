@@ -307,7 +307,7 @@ public class SvGeometry extends SvWriter {
 		SvSDITile currentTile = null;
 
 		if (tileParams == null)
-			tileParams = new HashMap<String, Object>();
+			tileParams = new HashMap<>();
 
 		if (tileTypeId == svCONST.OBJECT_TYPE_SDI_GEOJSONFILE)
 			currentTile = new SvSDIJsonTile(tileTypeId, tileId, tileParams);
@@ -353,7 +353,7 @@ public class SvGeometry extends SvWriter {
 		if (cache != null)
 			synchronized (cache) {
 				String tempTileId = tileId;
-				if (tileParams!=null && tileParams.containsKey(Sv.REFERENCE_DATE)) {
+				if (tileParams != null && tileParams.containsKey(Sv.REFERENCE_DATE)) {
 					if (tileParams.get(Sv.REFERENCE_DATE) instanceof DateTime)
 						tempTileId = tileId + Long.toString(((DateTime) tileParams.get(Sv.REFERENCE_DATE)).getMillis());
 					else
@@ -505,15 +505,53 @@ public class SvGeometry extends SvWriter {
 	public Collection<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
 			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf,
 			boolean allowDuplicates) throws SvException {
+		return getRelatedGeometries(geom, layerTypeId, sdiRelation, filterFieldName, filterValue, reverseFilter,
+				excludeSelf, allowDuplicates, null);
+
+	}
+
+	/**
+	 * Method to find all geometries from the layer identified with layerTypeId,
+	 * which have a spatial relation of type sdiRelation with Geometry specified by
+	 * the geom parameter
+	 * 
+	 * @param geom            The related geometry
+	 * @param layerTypeId     The layer which is test for relation
+	 * @param sdiRelation     The spatial relation
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal. Geometries which
+	 *                        don't match the filters are not returned
+	 * @param reverseFilter   If this flag is true, the filter will return only
+	 *                        geometries which do not match
+	 * @param excludeSelf     Flag if you want to exclude the test against self
+	 *                        (requires that both geometries have been saved to the
+	 *                        DB and have valid object Id)
+	 * @param allowDuplicates If the method should return equal geometries
+	 * @param referenceDate   The reference date to be used for fetching the tile
+	 *                        data. Providing null reference will fetch the current
+	 *                        dataset.
+	 * @return A collection of related geometries
+	 * @throws SvException Exception if raised by underlying methods
+	 */
+	public Collection<Geometry> getRelatedGeometries(Geometry geom, Long layerTypeId, SDIRelation sdiRelation,
+			SvCharId filterFieldName, Object filterValue, boolean reverseFilter, boolean excludeSelf,
+			boolean allowDuplicates, DateTime referenceDate) throws SvException {
 		Collection<Geometry> geoms = allowDuplicates ? new ArrayList<>() : new HashSet<>();
 		SvCharId objectIdField = new SvCharId(Sv.OBJECT_ID);
+		HashMap<String, Object> tileParams = null;
 		if (geom != null) {
 			DbDataObject userData = (DbDataObject) geom.getUserData();
 			Object geometryOid = userData != null ? userData.getObjectId() : null;
+			if (referenceDate != null) {
+				tileParams = new HashMap<>(2);
+				tileParams.put(Sv.REFERENCE_DATE, referenceDate);
+			}
+
 			@SuppressWarnings("unchecked")
 			List<Geometry> gridItems = getSysGrid().getGridIndex().query(geom.getEnvelopeInternal());
 			for (Geometry gridGeom : gridItems) {
-				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), null);
+				SvSDITile tile = getTile(layerTypeId, (String) gridGeom.getUserData(), tileParams);
 				if (tile == null)
 					continue;
 				Collection<Geometry> relatedGeoms = tile.getRelations(geom, sdiRelation, false, allowDuplicates);
