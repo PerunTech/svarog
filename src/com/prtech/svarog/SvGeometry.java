@@ -353,7 +353,7 @@ public class SvGeometry extends SvWriter {
 		if (cache != null)
 			synchronized (cache) {
 				String tempTileId = tileId;
-				if (tileParams.containsKey(Sv.REFERENCE_DATE)) {
+				if (tileParams!=null && tileParams.containsKey(Sv.REFERENCE_DATE)) {
 					if (tileParams.get(Sv.REFERENCE_DATE) instanceof DateTime)
 						tempTileId = tileId + Long.toString(((DateTime) tileParams.get(Sv.REFERENCE_DATE)).getMillis());
 					else
