@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -47,12 +48,17 @@ public class SvSDIDbTile extends SvSDITile {
 	private static final Logger log4j = LogManager.getLogger(SvSDIDbTile.class.getName());
 
 	DbSearch extSearch;
+	DateTime referenceDate = null;
 
 	public SvSDIDbTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams) throws SvException {
 		this.tileTypeId = tileTypeId;
 		this.tilelId = tileId;
 		this.extSearch = (DbSearch) tileParams.get("DB_SEARCH");
 		Object envGeom = tileParams.get("ENVELOPE");
+		if(tileParams.containsKey("REFERENCE_DATE") && tileParams.get(Sv.REFERENCE_DATE) instanceof DateTime)
+			referenceDate = (DateTime)tileParams.get("REFERENCE_DATE"); 
+			
+			
 		prepareEnvelope(envGeom);
 
 	}
@@ -66,6 +72,7 @@ public class SvSDIDbTile extends SvSDITile {
 
 		DbSearch dbs = new DbSearchCriterion(SvGeometry.getGeometryFieldName(tileTypeId), DbCompareOperand.BBOX,
 				tileGeometry.getGeometry().getEnvelopeInternal());
+		
 		if (extSearch != null) {
 			DbSearchExpression dbe = new DbSearchExpression();
 			dbe.addDbSearchItem(dbs);
@@ -76,7 +83,7 @@ public class SvSDIDbTile extends SvSDITile {
 		Geometry[] glist = null;
 		try (SvReader svr = new SvReader()) {
 			svr.includeGeometries = true;
-			DbDataArray arr = svr.getObjects(dbs, tileTypeId, null, 0, 0);
+			DbDataArray arr = svr.getObjects(dbs, tileTypeId, referenceDate, 0, 0);
 			glist = new Geometry[arr.size()];
 			if (log4j.isDebugEnabled())
 				log4j.debug("Loaded " + arr.size() + " geometries for tile type:" + tileTypeId + ", with search:"

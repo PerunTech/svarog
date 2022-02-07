@@ -63,6 +63,7 @@ public class Sv {
 		public static final String SELECT_FILESTORE = "select pkid, data from %s.%s where pkid=?";
 		public static final String SQL_DEBUG = "SQL QUERY DEBUG: ";
 		public static final String INSERT_FILESTORE = "insert into %s.%s (pkid, data) values(%s,?)";
+		public static final String GEOMETRY_STRUCT_TYPE = "GEOMETRY_STRUCT_TYPE";
 		
 	}
 
@@ -264,5 +265,6 @@ public class Sv {
 	public static final String CONFIGURATION_CLASS = "CONFIGURATION_CLASS";
 	public static final String EXECUTION_TIME = "EXECUTION_TIME";
 	public static final String IS_SUCCESSFUL = "IS_SUCCESSFUL";
+	public static final String REFERENCE_DATE = "REFERENCE_DATE";
 
 }
