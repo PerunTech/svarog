@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -74,7 +75,7 @@ public class SvGeometry extends SvWriter {
 	static String initStructType() {
 		String geomStructType = Sv.EMPTY_STRING;
 		try {
-			geomStructType = SvCore.getDbHandler().getSQLKeyWordsBundle().getString("GEOMETRY_STRUCT_TYPE");
+			geomStructType = SvCore.getDbHandler().getSQLKeyWordsBundle().getString(Sv.SQL.GEOMETRY_STRUCT_TYPE);
 		} catch (SvException e) {
 			log4j.error("Can't get geometry struct type!", e);
 		}
@@ -304,6 +305,7 @@ public class SvGeometry extends SvWriter {
 	public static SvSDITile createTile(Long tileTypeId, String tileId, HashMap<String, Object> tileParams)
 			throws SvException {
 		SvSDITile currentTile = null;
+
 		if (tileParams == null)
 			tileParams = new HashMap<String, Object>();
 
@@ -350,10 +352,18 @@ public class SvGeometry extends SvWriter {
 		SvSDITile svTile = null;
 		if (cache != null)
 			synchronized (cache) {
-				svTile = cache.getIfPresent(tileId);
+				String tempTileId = tileId;
+				if (tileParams.containsKey(Sv.REFERENCE_DATE)) {
+					if (tileParams.get(Sv.REFERENCE_DATE) instanceof DateTime)
+						tempTileId = tileId + Long.toString(((DateTime) tileParams.get(Sv.REFERENCE_DATE)).getMillis());
+					else
+						log4j.warn("Tile parameter " + Sv.REFERENCE_DATE
+								+ " was not instance of DateTime. Using DateTime.Now()!");
+				}
+				svTile = cache.getIfPresent(tempTileId);
 				if (svTile == null) {
 					svTile = createTile(tileTypeId, tileId, tileParams);
-					cache.put(tileId, svTile);
+					cache.put(tempTileId, svTile);
 				}
 			}
 		return svTile;
