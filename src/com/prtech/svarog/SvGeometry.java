@@ -362,7 +362,7 @@ public class SvGeometry extends SvWriter {
 				}
 				svTile = cache.getIfPresent(tempTileId);
 				if (svTile == null) {
-					svTile = createTile(tileTypeId, tileId, tileParams);
+					svTile = createTile(tileTypeId, tempTileId, tileParams);
 					cache.put(tempTileId, svTile);
 				}
 			}
