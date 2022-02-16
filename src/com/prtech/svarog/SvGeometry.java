@@ -1777,6 +1777,62 @@ public class SvGeometry extends SvWriter {
 	}
 
 	/**
+	 * The method provides means to create/remove a hole from polygon. The polygon
+	 * is selected from the underlying layer identified via layerTypeId and assumes
+	 * that the underlying layer does not contain overlapping polygons.
+	 * 
+	 * @param hole        The geometry describing the hole
+	 * @param layerTypeId The layer from which we should get the polygon via
+	 *                    intersections
+	 * @param remove      Flag if we should remove a hole, or create a hole.
+	 * @return The modified polygon
+	 * @throws SvException
+	 */
+	public Geometry holeInPolygon(Geometry hole, Long layerTypeId, boolean remove, SvCharId filterFieldName,
+			Object filterValue, boolean reverseFilter, boolean excludeSelf, DateTime referenceDate) throws SvException {
+		Collection<Geometry> result = innerPolygon(hole, layerTypeId, remove, false, filterFieldName, filterValue,
+				reverseFilter, excludeSelf, referenceDate);
+		if (result != null && result.size() == 1)
+			return result.iterator().next();
+		else
+			return null;
+	}
+
+	/**
+	 * Method to perform filling of holes or cutting off holes from polygons.
+	 * 
+	 * @param geom                 The geometry of the hole (or cover)
+	 * @param layerTypeId          The layer from which we should get the base
+	 *                             polygon
+	 * @param operationFill        Flag to allow fill of hole or cutoff if false;
+	 * @param allowMultiGeometries Boolean flag to allow operation over multiple
+	 *                             overlapping geometries
+	 * @return Set of modified geometries
+	 * @throws SvException Any underlying exception
+	 */
+	Collection<Geometry> innerPolygon(Geometry geom, Long layerTypeId, boolean operationFill,
+			boolean allowMultiGeometries, SvCharId filterFieldName, Object filterValue, boolean reverseFilter,
+			boolean excludeSelf, DateTime referenceDate) throws SvException {
+
+		Collection<Geometry> intersected = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS,
+				filterFieldName, filterValue, reverseFilter, excludeSelf, true, referenceDate);
+		if (intersected.size() > 1 && !allowMultiGeometries)
+			throw (new SvException(Sv.Exceptions.SDI_MULTIPLE_GEOMS_FOUND, svCONST.systemUser, null, geom));
+
+		Collection<Geometry> result = new ArrayList<>();
+		for (Geometry g : intersected) {
+			Geometry r;
+			if (operationFill)
+				r = g.union(geom);
+			else
+				r = g.difference(geom);
+			r.setUserData(g.getUserData());
+			result.add(r);
+		}
+		return result;
+	}
+
+	/**
 	 * Method to perform filling of holes or cutting off holes from polygons.
 	 * 
 	 * @param geom                 The geometry of the hole (or cover)
