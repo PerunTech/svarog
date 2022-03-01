@@ -544,7 +544,7 @@ public class SvGeometryTest {
 			g1 = it.next();
 			if (!g1.equalsNorm(g2_2))
 				fail("Test did not return a copy of geometry");
-			if(toBeDeleted.size()<1)
+			if (toBeDeleted.size() < 1)
 				fail("Test did not return a geometry to be deleted");
 		}
 		if (SvConnTracker.hasTrackedConnections(false, false))
@@ -583,8 +583,13 @@ public class SvGeometryTest {
 		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
-	//TODO FIX THIS
-	//[POLYGON ((7588120.22 4590814.87, 7588137.99 4590826.51, 7588144.25 4590830.52, 7588157.15 4590838.77, 7588160.42 4590840.46, 7588173.42 4590810.19, 7588179.24 4590794.32, 7588106.21 4590746.56, 7588102.8 4590760.85, 7588106.22 4590746.58, 7588164.03 4590784.38, 7588120.22 4590814.87))]
+
+	// TODO FIX THIS
+	// [POLYGON ((7588120.22 4590814.87, 7588137.99 4590826.51, 7588144.25
+	// 4590830.52, 7588157.15 4590838.77, 7588160.42 4590840.46, 7588173.42
+	// 4590810.19, 7588179.24 4590794.32, 7588106.21 4590746.56, 7588102.8
+	// 4590760.85, 7588106.22 4590746.58, 7588164.03 4590784.38, 7588120.22
+	// 4590814.87))]
 	@Test
 	public void testDetectSpikes() throws SvException {
 
@@ -837,26 +842,41 @@ public class SvGeometryTest {
 		initFakeSysBoundary();
 
 	}
-	
-	
-	public void nonNodedTest() throws ParseException
-	{
-		try {
-		String wktPoly1="POLYGON ((7586187.736 4594603.617, 7586187.735 4594603.729, 7586192.732 4594570.022, 7586193.548 4594564.59, 7586199.697 4594567.218, 7586241.788 4594595.046, 7586284.901 4594628.218, 7586274.313 4594640.642, 7586265.454 4594641.202, 7586242.79 4594629.935, 7586230.318 4594632.34, 7586221.811 4594638.347, 7586201.357 4594616.887, 7586187.736 4594603.617))";
-		String wktPoly2="POLYGON ((7586187.77 4594603.68, 7586187.77 4594603.69, 7586192.72 4594570.1, 7586193.53 4594564.59, 7586199.7 4594567.2, 7586241.82 4594595.1, 7586284.91 4594628.18, 7586274.33 4594640.68, 7586265.48 4594641.26, 7586242.78 4594629.91, 7586230.28 4594632.41, 7586221.79 4594638.39, 7586201.32 4594616.94, 7586187.77 4594603.68))";
 
-		GeometryFactory gf = SvUtil.sdiFactory;
-		WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
-		Geometry geom1 = wkr.read(wktPoly1);
-		Geometry geom2 = wkr.read(wktPoly2);
-		assert(geom1.isValid());
-		assert(geom2.isValid());
-		Geometry r = geom1.intersection(geom2);
-		}catch (Exception e) {
+	public void nonNodedTest() throws ParseException {
+		try {
+			String wktPoly1 = "POLYGON ((7586187.736 4594603.617, 7586187.735 4594603.729, 7586192.732 4594570.022, 7586193.548 4594564.59, 7586199.697 4594567.218, 7586241.788 4594595.046, 7586284.901 4594628.218, 7586274.313 4594640.642, 7586265.454 4594641.202, 7586242.79 4594629.935, 7586230.318 4594632.34, 7586221.811 4594638.347, 7586201.357 4594616.887, 7586187.736 4594603.617))";
+			String wktPoly2 = "POLYGON ((7586187.77 4594603.68, 7586187.77 4594603.69, 7586192.72 4594570.1, 7586193.53 4594564.59, 7586199.7 4594567.2, 7586241.82 4594595.1, 7586284.91 4594628.18, 7586274.33 4594640.68, 7586265.48 4594641.26, 7586242.78 4594629.91, 7586230.28 4594632.41, 7586221.79 4594638.39, 7586201.32 4594616.94, 7586187.77 4594603.68))";
+
+			GeometryFactory gf = SvUtil.sdiFactory;
+			WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
+			Geometry geom1 = wkr.read(wktPoly1);
+			Geometry geom2 = wkr.read(wktPoly2);
+			assert (geom1.isValid());
+			assert (geom2.isValid());
+			Geometry r = geom1.intersection(geom2);
+		} catch (Exception e) {
 			e.printStackTrace();
-			
+
 		}
 	}
 
+	@Test
+	public void collapsingInnerRing() throws ParseException {
+		try (SvGeometry svg = new SvGeometry()) {
+			String wktPoly1 = "POLYGON ((7557152.881 4614283.725, 7557174.075 4614319.991, 7557197.619 4614302.076, 7557221.964 4614288.055, 7557248.372 4614276.383, 7557274.347 4614266.817, 7557289.961 4614251.282, 7557294.472 4614239.101, 7557251.264 4614248.084, 7557204.481 4614256.261, 7557139.653 4614261.295, 7557152.881 4614283.725), (7557274.347 4614266.817, 7557203.129 4614279.574, 7557274.347 4614266.817, 7557274.347 4614266.817))";
+
+			GeometryFactory gf = SvUtil.sdiFactory;
+			WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
+			Geometry geom1 = wkr.read(wktPoly1);
+			geom1 = svg.fixPolygonSpikes(geom1, 1.0);
+
+			assert (geom1.isValid());
+		} catch (Exception e) {
+			fail("exception was raised " + e.getMessage());
+			e.printStackTrace();
+
+		}
+	}
 
 }

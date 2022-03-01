@@ -1120,7 +1120,7 @@ public class SvGeometry extends SvWriter {
 	 *                      source geometry
 	 * @return
 	 */
-	Geometry calcGeomDiff(Geometry geom, Set<Geometry> intersections) {
+	Geometry calcGeomDiff(Geometry geom, Collection<Geometry> intersections) {
 		DbDataObject userData = (DbDataObject) geom.getUserData();
 		Geometry result = geom;
 
@@ -1136,8 +1136,8 @@ public class SvGeometry extends SvWriter {
 	private Geometry cutLayerFromGeomImpl(Geometry geom, Long layerTypeId, boolean testOnly, SvCharId filterFieldName,
 			Object filterValue) throws SvException {
 		Geometry updatedGeometry = null;
-		Set<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS, filterFieldName,
-				filterValue, true);
+		Collection<Geometry> intersections = getRelatedGeometries(geom, layerTypeId, SDIRelation.INTERSECTS,
+				filterFieldName, filterValue, true);
 
 		if (!testOnly)
 			updatedGeometry = calcGeomDiff(geom, intersections);
@@ -1594,16 +1594,22 @@ public class SvGeometry extends SvWriter {
 			Polygon p = (Polygon) g.getGeometryN(i);
 
 			LinearRing fixedShellCoordinates = fixPolygonCoordinates(p.getExteriorRing(), maxAngle);
-			LinearRing[] fixedInternalRingCoordinates = new LinearRing[p.getNumInteriorRing()];
+			List<LinearRing> fixedInternalRingCoordinates = new ArrayList<LinearRing>(p.getNumInteriorRing());
 
 			for (int j = 0; j < p.getNumInteriorRing(); j++) {
 				LineString ls = p.getInteriorRingN(j);
-				fixedInternalRingCoordinates[j] = fixPolygonCoordinates(ls, maxAngle);
+				try {
+					fixedInternalRingCoordinates.add(fixPolygonCoordinates(ls, maxAngle));
+				} catch (Exception e) {
+					// ignore the illegal ring
+					// fixedInternalRingCoordinates[j] = null;
+				}
 			}
 			if (!testOnly) {
 				Polygon pDst = null;
 				try {
-					pDst = SvUtil.sdiFactory.createPolygon(fixedShellCoordinates, fixedInternalRingCoordinates);
+					pDst = SvUtil.sdiFactory.createPolygon(fixedShellCoordinates,
+							fixedInternalRingCoordinates.toArray(new LinearRing[fixedInternalRingCoordinates.size()]));
 				} catch (Exception e) {
 					throw (new SvException(Sv.Exceptions.SDI_SPIKE_FIX_FAILED, instanceUser, null, null, e));
 				}
