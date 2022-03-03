@@ -116,6 +116,8 @@ public abstract class SvSDITile {
 				GeometryCollection gcl = loadGeometries();
 				for (int i = 0; i < gcl.getNumGeometries(); i++) {
 					Geometry geom = gcl.getGeometryN(i);
+					if(geom==null)
+						continue;
 					tileIndex.insert(geom.getEnvelopeInternal(), getPreparedGeom(geom));
 					if (geom.getUserData() != null && geom.getUserData() instanceof DbDataObject) {
 						centroid = SvGeometry.getCentroid((DbDataObject) geom.getUserData());
