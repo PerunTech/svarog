@@ -31,6 +31,8 @@ import org.junit.Test;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.prtech.svarog.SvSDITile.SDIRelation;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -45,10 +47,13 @@ import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.io.WKTWriter;
+import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonWriter;
+import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
 
 public class SvGeometryTest {
 	private static final Long TEST_LAYER_TYPE_ID = 999L;
@@ -843,6 +848,7 @@ public class SvGeometryTest {
 
 	}
 
+	@Test
 	public void nonNodedTest() throws ParseException {
 		try {
 			String wktPoly1 = "POLYGON ((7586187.736 4594603.617, 7586187.735 4594603.729, 7586192.732 4594570.022, 7586193.548 4594564.59, 7586199.697 4594567.218, 7586241.788 4594595.046, 7586284.901 4594628.218, 7586274.313 4594640.642, 7586265.454 4594641.202, 7586242.79 4594629.935, 7586230.318 4594632.34, 7586221.811 4594638.347, 7586201.357 4594616.887, 7586187.736 4594603.617))";
@@ -855,6 +861,147 @@ public class SvGeometryTest {
 			assert (geom1.isValid());
 			assert (geom2.isValid());
 			Geometry r = geom1.intersection(geom2);
+		} catch (Exception e) {
+			e.printStackTrace();
+
+		}
+	}
+
+	@Test
+	public void nonNodedTest2() throws ParseException {
+		try (SvGeometry svg = new SvGeometry()) {
+			String wktPoly1 = "POLYGON ((7586187.77 4594603.68, 7586187.77 4594603.69, 7586192.72 4594570.1, 7586193.53 4594564.59, 7586199.7 4594567.2, 7586241.82 4594595.1, 7586284.91 4594628.18, 7586274.33 4594640.68, 7586265.48 4594641.26, 7586242.78 4594629.91, 7586230.28 4594632.41, 7586221.79 4594638.39, 7586201.32 4594616.94, 7586187.77 4594603.68))";
+			String wktPoly2 = "POLYGON ((7586187.736 4594603.617, 7586193.548 4594564.59, 7586199.697 4594567.218, 7586241.788 4594595.046, 7586284.901 4594628.218, 7586274.313 4594640.642, 7586265.454 4594641.202, 7586242.79 4594629.935, 7586230.318 4594632.34, 7586221.811 4594638.347, 7586201.357 4594616.887, 7586187.736 4594603.617))";
+
+			GeometryFactory gf = SvUtil.sdiFactory;
+			WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
+			Geometry geom1 = wkr.read(wktPoly1);
+			geom1 = svg.fixPolygonSpikes(geom1, 1.0);
+			geom1 = TopologyPreservingSimplifier.simplify(geom1, 0.02);
+			assert (geom1.isValid());
+			Geometry geom2 = wkr.read(wktPoly2);
+			assert (geom2.isValid());
+			Geometry r = geom2.intersection(geom1);
+		} catch (Exception e) {
+			e.printStackTrace();
+
+		}
+	}
+
+	public boolean prepareGeometry(Geometry geom, DbDataObject oldDbo, SvGeometry svg) throws SvException {
+		Geometry oldGeometry = SvGeometry.getGeometry(oldDbo);
+		// Init geom
+
+		geom = TopologyPreservingSimplifier.simplify(geom, 0.1);
+
+		boolean isGeomUpdated = true;
+		if (oldDbo.getObjectId() > 0L && oldGeometry != null) {
+			if (oldGeometry.getGeometryType().equals("MultiPolygon"))
+				svg.alignMultiPolygons((MultiPolygon) oldGeometry, (MultiPolygon) geom);
+			else
+				svg.alignPolygon((Polygon) oldGeometry, (Polygon) geom);
+			if (oldGeometry.equalsTopo(geom))
+				isGeomUpdated = false;
+
+		}
+		geom.setUserData(oldDbo); // append spatial control dbo as user
+
+		boolean hasSpikes = true;
+		// data to geom
+		Geometry g = geom;
+		if (g.isEmpty() || g.getArea() < 1)
+			g = null;
+		else
+			while (hasSpikes) {
+				try {
+					svg.testPolygonSpikes(g, 1.0);
+					hasSpikes = false;
+				} catch (SvException e) {
+					if (e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED)) {
+						g = svg.fixPolygonSpikes(g, 1.0);
+					}
+				}
+			}
+
+		geom.setUserData(oldDbo); // append spatial control dbo as user
+		// data to geom
+
+		if (g != null) {
+			SvGeometry.setGeometry(oldDbo, g);
+		} else {
+			SvGeometry.setGeometry(oldDbo, geom);
+		}
+		return isGeomUpdated;
+	}
+
+	@Test
+	public void spikeTest2() throws ParseException {
+		try (SvGeometry svg = new SvGeometry()) {
+			String wktPoly1 = "POLYGON ((7556938.664 4615280.162, 7556938.664 4615280.162, 7556939.004 4615279.276, 7556976.25 4615286.237, 7556978.239 4615256.154, 7556975.34 4615254.243, 7556950.721 4615250.826, 7556945.955 4615253.453, 7556938.291 4615264.388, 7556939.344 4615278.39, 7556938.664 4615280.162))";
+			String wktPoly2 = "POLYGON ((7556976.27 4615286.22, 7556939.02 4615279.26, 7556931.94 4615298.43, 7556929.3 4615306.41, 7556932.25 4615311.99, 7556947.8 4615314.33, 7556963.68 4615317.79, 7556974.26 4615316.99, 7556976.27 4615286.22))";
+
+			GeometryFactory gf = SvUtil.sdiFactory;
+			WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
+			Geometry geom1 = wkr.read(wktPoly1);
+			System.out.println(geom1.isValid());
+			System.out.println(geom1.getCoordinates().length);
+			try {
+				geom1 = TopologyPreservingSimplifier.simplify(geom1, 0.1);
+				svg.testPolygonSpikes(geom1, 1.0);
+				fail("spike was not detected");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED))
+					fail("spike was not detected");
+			}
+
+			DbDataObject dbo = new DbDataObject();
+			prepareGeometry(geom1, dbo, svg);
+			geom1 = SvGeometry.getGeometry(dbo);
+			System.out.println(geom1.getCoordinates().length);
+			svg.testPolygonSpikes(geom1, 1.0);
+			geom1 = TopologyPreservingSimplifier.simplify(geom1, 0.1);
+			System.out.println(geom1.getCoordinates().length);
+			geom1 = svg.fixPolygonSpikes(geom1, 1.0);
+			geom1 = TopologyPreservingSimplifier.simplify(geom1, 0.02);
+			assert (geom1.isValid());
+			Geometry geom2 = wkr.read(wktPoly2);
+			assert (geom2.isValid());
+			Geometry r = geom2.intersection(geom1);
+		} catch (Exception e) {
+			e.printStackTrace();
+
+		}
+	}
+
+	@Test
+	public void dedupeTest() throws ParseException {
+		try (SvGeometry svg = new SvGeometry()) {
+			String geojsonpoly = "{\"type\":\"Polygon\",\"coordinates\":[[[7556938.6642,4615280.1621],[7556938.6642,4615280.1621],[7556939.0043,4615279.2763],[7556976.2504,4615286.2374],[7556978.239,4615256.1544],[7556975.34,4615254.2432],[7556950.7215,4615250.8258],[7556945.9546,4615253.4534],[7556938.2905,4615264.3878],[7556939.3444,4615278.3905],[7556938.6642,4615280.1621]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:0\"}}}";
+			Gson g = new Gson();
+			JsonObject jo = g.fromJson(geojsonpoly, JsonObject.class);
+			GeometryFactory gff = new GeometryFactory(new PrecisionModel(10));
+			GeoJsonReader gjr = new GeoJsonReader(gff);
+			Geometry geomJ = gjr.read(geojsonpoly);
+
+			if (geomJ.isValid() && geomJ.getCoordinates().length < 11)
+				fail("Polygon is already valid, test is not good");
+
+			Geometry dedupeGeom = svg.deduplicatePolygon((Polygon) geomJ);
+
+			if (!dedupeGeom.isValid() && dedupeGeom.getCoordinates().length > 10)
+				fail("Polygon wasn't deduplicated correctly");
+
+			try {
+				svg.testPolygonSpikes(dedupeGeom, 1.0);
+				fail("spike was not detected");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_DETECTED))
+					fail("spike was not detected");
+			}
+
+			dedupeGeom = svg.fixPolygonSpikes(dedupeGeom, 1.0);
+			dedupeGeom = TopologyPreservingSimplifier.simplify(dedupeGeom, 0.1);
+
 		} catch (Exception e) {
 			e.printStackTrace();
 

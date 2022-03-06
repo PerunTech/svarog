@@ -1350,6 +1350,101 @@ public class SvGeometry extends SvWriter {
 	}
 
 	/**
+	 * Method to deduplicate vertices
+	 * 
+	 * @param line   The existing line string
+	 * @param isRing Flag to signify that the string is ring and we guarantee that
+	 *               we'll always close it
+	 * @return Deduplicated line string or the same object if the line does not have
+	 *         duplicate vertices
+	 */
+	public LineString deduplicateLineString(LineString line, boolean isRing) {
+
+		int dedupEnd = line.getCoordinates().length;
+
+		boolean hasDuplicates = false;
+		for (int i = 1; i < dedupEnd; i++) {
+			Coordinate prevCoord = line.getCoordinates()[i - 1];
+			Coordinate oc = line.getCoordinates()[i];
+			if (oc.equals2D(prevCoord, this.vertexAlignmentTolerance)) {
+				hasDuplicates = true;
+				break;
+			}
+		}
+		if (hasDuplicates) {
+			ArrayList<Coordinate> newCoords = new ArrayList<>(line.getCoordinates().length - 1);
+			Coordinate prevCoord, cuurentCoord = null;
+			for (int i = 1; i < dedupEnd; i++) {
+				prevCoord = line.getCoordinates()[i - 1];
+				cuurentCoord = line.getCoordinates()[i];
+				if (!cuurentCoord.equals2D(prevCoord, this.vertexAlignmentTolerance)) {
+					newCoords.add(prevCoord);
+				}
+			}
+			// after we iterated to the end, we add the current coordinate
+			if (cuurentCoord != null) {
+				if (isRing) {
+					newCoords.add(line.getCoordinates()[0]);
+					line = SvUtil.sdiFactory.createLinearRing(newCoords.toArray(new Coordinate[newCoords.size()]));
+				} else {
+					newCoords.add(cuurentCoord);
+					line = SvUtil.sdiFactory.createLineString(newCoords.toArray(new Coordinate[newCoords.size()]));
+				}
+			}
+
+		}
+
+		return line;
+		// ensure the first and last are the same
+	}
+
+	/**
+	 * Method to deduplicate polygon geometries, line ring by line ring to ensure
+	 * that all vertices are within SDI_VERTEX_ALIGN_TOLERANCE parameter
+	 * 
+	 * @param oldG The existing polygon
+	 * @return the new polygon with deduplicated vertices
+	 */
+	public Polygon deduplicatePolygon(Polygon poly) {
+		LinearRing shell = (LinearRing) deduplicateLineString(poly.getExteriorRing(), true);
+		boolean isModified = !shell.equalsExact(poly.getExteriorRing());
+		LinearRing[] holes = new LinearRing[poly.getNumInteriorRing()];
+		for (int i = 0; i < poly.getNumInteriorRing(); i++) {
+			holes[i] = (LinearRing) deduplicateLineString(poly.getInteriorRingN(i), true);
+			if (!isModified)
+				isModified = !holes[i].equalsExact(poly.getInteriorRingN(i));
+		}
+		if (isModified)
+			return SvUtil.sdiFactory.createPolygon(shell, holes);
+		else
+			return poly;
+
+	}
+
+	/**
+	 * Method to deduplicate multi polygon geometries, polygon by polygon to ensure
+	 * that all polygons have vertices are within SDI_VERTEX_ALIGN_TOLERANCE
+	 * parameter
+	 * 
+	 * @param mpoly The existing polygon
+	 * @return the new polygon with deduplicated vertices
+	 */
+	public MultiPolygon deduplicateMultiPolygons(MultiPolygon mpoly) {
+		boolean isModified = false;
+		Polygon[] polys = new Polygon[mpoly.getNumGeometries()];
+		for (int i = 0; i < mpoly.getNumGeometries(); i++) {
+			polys[i] = deduplicatePolygon((Polygon) mpoly.getGeometryN(i));
+			if (!isModified)
+				isModified = !polys[i].equalsExact(mpoly.getGeometryN(i));
+		}
+		if (isModified)
+			return SvUtil.sdiFactory.createMultiPolygon(polys);
+		else
+			return mpoly;
+
+	}
+
+	/**
 	 * Method to align two polygon geometries, vertex by vertex to ensure that
 	 * conversion between different projects didn't cause shift in the vertexes,
 	 * which would cause re-creation of new geometries
