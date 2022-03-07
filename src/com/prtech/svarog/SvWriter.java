@@ -1291,7 +1291,7 @@ public class SvWriter extends SvCore {
 			if (!dbt.getObjectId().equals(dbo.getObjectType()))
 				dbt = getDbt(dbo);
 			if (!hasDbtAccess(dbt, null, SvAccess.WRITE))
-				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt,
 						SvAccess.WRITE.toString()));
 		}
 	}
@@ -1599,7 +1599,7 @@ public class SvWriter extends SvCore {
 			DbDataObject dbt = getDbt(dba.get(0));
 			// authorise the save operation
 			if (!isAdmin() && !isSystem() && !hasDbtAccess(dbt, null, SvAccess.MODIFY))
-				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt,
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt,
 						SvAccess.MODIFY.toString()));
 
 			// if an existing object is updated, make sure the object

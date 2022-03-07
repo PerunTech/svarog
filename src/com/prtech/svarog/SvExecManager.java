@@ -637,7 +637,7 @@ public class SvExecManager extends SvCore {
 			throws SvException {
 
 		if (!this.hasPermission(executorKey))
-			throw (new SvException("system.error.not_authorised", this.getInstanceUser(), null, executorKey));
+			throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, this.getInstanceUser(), null, executorKey));
 
 		Object result = null;
 		try {

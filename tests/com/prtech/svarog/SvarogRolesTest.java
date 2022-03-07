@@ -420,7 +420,7 @@ public class SvarogRolesTest {
 					getForms(false, true);
 					fail("User with read privileges should be prevented to auto instance forms!");
 				} catch (SvException ex) {
-					if (!ex.getLabelCode().equals("system.error.user_not_authorized"))
+					if (!ex.getLabelCode().equals(Sv.Exceptions.NOT_AUTHORISED))
 						throw (ex);
 				}
 
@@ -481,7 +481,7 @@ public class SvarogRolesTest {
 				DbDataArray result = svr.getObjects(dqo, 0, 0);
 				fail("no exception was raised");
 			} catch (SvException ex) {
-				if (!ex.getLabelCode().equals("system.error.user_not_authorized"))
+				if (!ex.getLabelCode().equals(Sv.Exceptions.NOT_AUTHORISED))
 					throw (ex);
 			}
 			// we must log off, to force refresh of the permissions
@@ -540,7 +540,7 @@ public class SvarogRolesTest {
 				DbDataArray result = svr.getObjects(dqo, 0, 0);
 				fail("no exception was raised");
 			} catch (SvException ex) {
-				if (!ex.getLabelCode().equals("system.error.user_not_authorized"))
+				if (!ex.getLabelCode().equals(Sv.Exceptions.NOT_AUTHORISED))
 					throw (ex);
 			}
 			// we must log off, to force refresh of the permissions
