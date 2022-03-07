@@ -49,6 +49,7 @@ public class Sv {
 		public static final String REPOSAVE_ERR = "system.error.reposave_err";
 		public static final String BATCH_SIZE_ERR = "system.error.batch_size_err";
 		public static final String SDI_TYPE_LIMIT = "system.error.sdi.sdi_type_limit";
+		public static final String NOT_AUTHORISED = "system.error.not_authorised";
 
 		private Exceptions() {
 		}

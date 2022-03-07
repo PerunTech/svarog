@@ -169,7 +169,7 @@ public class SvConversation extends DbDataObject {
 	public DbDataObject newConversation(SvReader svr, JsonObject jsonData) throws SvException {
 		// check for data
 		if (svr == null)
-			throw (new SvException("system.error.invalid_session", null));
+			throw (new SvException(Sv.INVALID_SESSION, null));
 		if (jsonData == null)
 			throw (new SvException("system.error.not_conversation_object", svr.getInstanceUser()));
 		// only on new objects set CREATED_BY

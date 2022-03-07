@@ -1852,7 +1852,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				saveAsUser = null;
 				instanceUserDefaultGroup = null;
 			} else
-				throw (new SvException("system.error.not_authorised", instanceUser));
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser));
 
 		} else
 			throw (new SvException("system.error.target_user_isnull", instanceUser));
@@ -2724,7 +2724,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				}
 			}
 			if (!hasAccess)
-				throw (new SvException("system.error.user_not_authorized", instanceUser, dbt, accessLevel.toString()));
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt, accessLevel.toString()));
 		} else
 			hasAccess = true;
 		return hasAccess;
@@ -2779,7 +2779,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 			}
 			if (!hasAccess)
-				throw (new SvException("system.error.user_not_authorized", instanceUser, currentDbt,
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, currentDbt,
 						SvAccess.READ.toString()));
 		}
 	}
@@ -3131,7 +3131,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		if (isSystem() || isService()) {
 			instanceUser = newInstanceUser;
 		} else
-			throw (new SvException("system.error.not_authorised", instanceUser));
+			throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser));
 	}
 
 	public Boolean getIsDebugEnabled() {
