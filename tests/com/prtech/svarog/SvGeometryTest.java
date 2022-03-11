@@ -189,7 +189,7 @@ public class SvGeometryTest {
 		try (SvGeometry svg = new SvGeometry()) {
 			WKTReader wkr = new WKTReader(SvUtil.sdiFactory);
 			Geometry geom = wkr.read(sap);
-			geom = svg.fixMinVertexDistance(geom, 100);
+			geom = svg.fixMinVertexDistance(geom, 0.1);
 			geom = svg.fixPolygonSpikes(geom, 2.0);
 		}
 	}
@@ -734,18 +734,17 @@ public class SvGeometryTest {
 
 			Geometry spikeSquareG = SvUtil.sdiFactory.createPolygon(spikeSquare);
 
-			Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE,
-					Sv.DEFAULT_MIN_POINT_DISTANCE);
+			Double minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE, Sv.DEFAULT_MIN_POINT_DISTANCE);
 			svg.testMinVertexDistance(spikeSquareG, minPointDistance);
 
 			try {
-				svg.testMinVertexDistance(spikeSquareG, 1000);
+				svg.testMinVertexDistance(spikeSquareG, 1.0);
 			} catch (SvException e) {
 				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR))
 					fail("Spike was not detected!");
 			}
 
-			Geometry fixed = svg.fixMinVertexDistance(spikeSquareG, 1000);
+			Geometry fixed = svg.fixMinVertexDistance(spikeSquareG, 1.0);
 			if (fixed.getCoordinates().length > 5)
 				fail("duplicate coordinate not removed");
 			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
