@@ -227,11 +227,10 @@ public class Sv {
 	 */
 	public static final String SDI_SYSGRID = "SDI_SYSGRID";
 	public static final String SDI_MIN_POINT_DISTANCE = "SDI_MIN_POINT_DISTANCE";
-	public static final Integer DEFAULT_MIN_POINT_DISTANCE = 0;
+	public static final Double DEFAULT_MIN_POINT_DISTANCE = 0.05;
 
 	public static final String SDI_VERTEX_ALIGN_TOLERANCE = "SDI_VERTEX_ALIGN_TOLERANCE";
 	public static final Double DEFAULT_VERTEX_ALIGN_TOLERANCE = 0.05;
-
 	
 	public static final String SDI_MIN_GEOM_DISTANCE = "SDI_MIN_GEOM_DISTANCE";
 	public static final Integer DEFAULT_MIN_GEOM_DISTANCE = 0;

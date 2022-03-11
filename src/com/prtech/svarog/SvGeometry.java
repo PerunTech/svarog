@@ -65,9 +65,15 @@ import com.google.common.math.DoubleMath;
  */
 public class SvGeometry extends SvWriter {
 	/**
+	 * 
 	 * Log4j instance
 	 */
 	private static final Logger log4j = SvConf.getLogger(SvGeometry.class);
+
+	/**
+	 * Map of all defined geometry fields in the system
+	 */
+	static HashMap<String, DbDataObject> geometryFields = new HashMap<>();
 
 	static final Map<Long, Cache<String, SvSDITile>> layerCache = new ConcurrentHashMap<>();
 	public static final String GEOM_STRUCT_TYPE = initStructType();
@@ -95,6 +101,22 @@ public class SvGeometry extends SvWriter {
 			}
 		}
 		return sysGrid;
+	}
+
+	public DbDataObject getGeomField(Long objectType) throws SvException {
+		String geomFieldName = getGeometryFieldName(objectType);
+		DbDataObject field = geometryFields.get(objectType.toString() + "." + geomFieldName);
+		if (field == null) {
+			synchronized (SvGeometry.class) {
+				if (field == null) {
+					DbDataObject dbt = SvCore.getDbt(objectType);
+					field = SvCore.getFieldByName((String) dbt.getVal(Sv.TABLE_NAME), geomFieldName);
+					geometryFields.put(objectType.toString() + "." + geomFieldName, field);
+				}
+			}
+		}
+		return field;
+
 	}
 
 	/**
@@ -1241,8 +1263,7 @@ public class SvGeometry extends SvWriter {
 	/**
 	 * Minimum distance between to vertexes
 	 */
-	private Integer minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE,
-			Sv.DEFAULT_MIN_POINT_DISTANCE);
+	private Double minPointDistance = SvParameter.getSysParam(Sv.SDI_MIN_POINT_DISTANCE, Sv.DEFAULT_MIN_POINT_DISTANCE);
 
 	/**
 	 * Minimum distance between to vertexes
@@ -1366,7 +1387,7 @@ public class SvGeometry extends SvWriter {
 		for (int i = 1; i < dedupEnd; i++) {
 			Coordinate prevCoord = line.getCoordinates()[i - 1];
 			Coordinate oc = line.getCoordinates()[i];
-			if (oc.equals2D(prevCoord, this.vertexAlignmentTolerance)) {
+			if (oc.equals2D(prevCoord, this.minPointDistance)) {
 				hasDuplicates = true;
 				break;
 			}
@@ -1377,7 +1398,7 @@ public class SvGeometry extends SvWriter {
 			for (int i = 1; i < dedupEnd; i++) {
 				prevCoord = line.getCoordinates()[i - 1];
 				cuurentCoord = line.getCoordinates()[i];
-				if (!cuurentCoord.equals2D(prevCoord, this.vertexAlignmentTolerance)) {
+				if (!cuurentCoord.equals2D(prevCoord, this.minPointDistance)) {
 					newCoords.add(prevCoord);
 				}
 			}
@@ -1733,7 +1754,7 @@ public class SvGeometry extends SvWriter {
 	 *                     other within the tolerance
 	 * 
 	 */
-	public void testMinVertexDistance(Geometry geom, Integer minPointDistance) throws SvException {
+	public void testMinVertexDistance(Geometry geom, Double minPointDistance) throws SvException {
 		minVertexDistance(geom, minPointDistance, true);
 	}
 
@@ -1746,7 +1767,7 @@ public class SvGeometry extends SvWriter {
 	 *                         millimeters!!!)
 	 * @return The simplified geometry
 	 */
-	public Geometry fixMinVertexDistance(Geometry geom, Integer minPointDistance) throws SvException {
+	public Geometry fixMinVertexDistance(Geometry geom, Double minPointDistance) throws SvException {
 		return minVertexDistance(geom, minPointDistance, false);
 	}
 
@@ -1765,14 +1786,14 @@ public class SvGeometry extends SvWriter {
 	 *                     geometry has been simplified
 	 * 
 	 */
-	Geometry minVertexDistance(Geometry geom, Integer minPointDistance, boolean testOnly) throws SvException {
-		if (minPointDistance == 0)
+	Geometry minVertexDistance(Geometry geom, Double minPointDistance, boolean testOnly) throws SvException {
+		if (minPointDistance > 0.0) {
+			Geometry g = TopologyPreservingSimplifier.simplify(geom, minPointDistance);
+			if (testOnly && !g.equalsExact(geom))
+				throw (new SvException(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR, instanceUser, null, null));
+			return g;
+		} else
 			return geom;
-		double tolerance = minPointDistance / 1000.0;
-		Geometry g = TopologyPreservingSimplifier.simplify(geom, tolerance);
-		if (testOnly && !g.equalsExact(geom))
-			throw (new SvException(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR, instanceUser, null, null));
-		return g;
 
 	}
 
@@ -1997,6 +2018,11 @@ public class SvGeometry extends SvWriter {
 
 	}
 
+	public void validateGeometryType(DbDataObject dboGeometry) {
+
+		SvCore.getFieldByName("dd", GEOM_STRUCT_TYPE);
+	}
+
 	/**
 	 * Method to save a DbDataArray of DbDataObjects which are of Geometry Type and
 	 * have set the flag hasGeometries. The method will perform basic saveObject on
@@ -2021,6 +2047,9 @@ public class SvGeometry extends SvWriter {
 				throw (new SvException("system.error.sdi.non_sdi_type", instanceUser, dba, null));
 			currentGeom = getGeometry(dbo);
 			if (currentGeom != null) {
+				if (!currentGeom.getGeometryType().equals(getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE)))
+					throw (new SvException("system.error.sdi.noncompliant_geom_type", instanceUser, dbo,
+							getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE)));
 				verifyBounds(dbo);
 				if (currentGeom instanceof Polygonal)
 					prepareGeometry(dbo);
