@@ -4321,7 +4321,13 @@ public class DbInit {
 			dbf18.setIsNull(true);
 			dbf18.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.EXTENDED_PARAMS.toLowerCase());
 
-			dbt.setDbTableFields(new DbDataField[21]);
+			DbDataField dbf19 = new DbDataField();
+			dbf19.setDbFieldName(Sv.GEOMETRY_TYPE);
+			dbf19.setDbFieldType(DbFieldType.TEXT);
+			dbf19.setIsNull(true);
+			dbf19.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.GEOMETRY_TYPE.toLowerCase());
+			
+			dbt.setDbTableFields(new DbDataField[22]);
 			dbt.getDbTableFields()[0] = dbf1;
 			dbt.getDbTableFields()[1] = dbf2;
 			dbt.getDbTableFields()[2] = dbf2_1;
@@ -4345,6 +4351,7 @@ public class DbInit {
 			dbt.getDbTableFields()[18] = dbf16;
 			dbt.getDbTableFields()[19] = dbf17;
 			dbt.getDbTableFields()[20] = dbf18;
+			dbt.getDbTableFields()[21] = dbf19;
 			return dbt;
 		}
 	}
