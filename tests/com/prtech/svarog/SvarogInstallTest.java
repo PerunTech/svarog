@@ -23,8 +23,9 @@ public class SvarogInstallTest {
 			if (SvarogInstall.shouldUpgradeConfig(dbo1, dbo2, dboFields))
 				fail("shouldUpgrade returned true!");
 			// no upgrade needed we are good, now set a field which must trigger
-			// upgrade
-			dbo2.setVal(dboFields.getItems().get(dboFields.size() - 2).getVal("FIELD_NAME").toString(), "SOME");
+			// upgrade the label code is number 12!
+			String fldName = dboFields.getItems().get(12).getVal("FIELD_NAME").toString();
+			dbo2.setVal(fldName, "SOME");
 			if (!SvarogInstall.shouldUpgradeConfig(dbo1, dbo2, dboFields))
 				fail("shouldUpgrade returned false!");
 
