@@ -120,19 +120,38 @@ public class SvConfigurationImpl implements ISvConfigurationMulti {
 
 	@Override
 	public String afterUpdate(Connection conn, ISvCore svc, String schema) throws Exception {
-		return "";
+		String errorMsg = "";
+		String sqlDrop = "delete from " + schema + "." + SvConf.getMasterRepo()
+				+ "_sys_params where param_type ='java.lang.Integer' and (param_name  like 'SDI_MIN_POINT_DISTANCE' or param_name  like 'SDI_VERTEX_ALIGN_TOLERANCE') ";
+		DbDataObject user = svc != null ? svc.getInstanceUser() : svCONST.systemUser;
+		// ALTER TABLE table_name DROP COLUMN column_name;
+		PreparedStatement ps = null;
+		try {
+			ps = conn.prepareStatement(sqlDrop);
+			ps.execute();
+			errorMsg = "Successfully executed " + sqlDrop;
+			conn.commit();
+		} catch (SQLException e) {
+			throw (new SvException("sys.err.bad_sql", user, null, sqlDrop, e));
+		} finally {
+			SvCore.closeResource(ps, user);
+		}
+
+		return errorMsg;
+
 	}
 
 	@Override
 	public int getVersion(int currentVersion) {
-		//version 1 of the switch to multi configuration
-		return 1;
+		// version 1 of the switch to multi configuration
+		return 3;
 	}
 
 	@Override
 	public List<UpdateType> getUpdateTypes() {
 		List<UpdateType> types = new ArrayList<UpdateType>();
 		types.add(UpdateType.SCHEMA);
+		types.add(UpdateType.FINAL);
 		return types;
 	}
 
