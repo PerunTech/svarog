@@ -6347,6 +6347,7 @@ public class DbInit {
 			dbo.setVal("config_relation_id", dbt.getConfigRelatedTypeName());
 			dbo.setVal("gui_metadata", dbt.getGui_metadata());
 
+
 			if (dbt.getIsConfigTable()) {
 				if (dbt.getConfigColumnName() == null || dbt.getConfigColumnName().length() < 1) {
 					errMsg.append("Table:" + dbt.getDbTableName()
@@ -6408,7 +6409,7 @@ public class DbInit {
 				dbo.setVal("parent_name", dbt.getDbTableName());
 				dbo.setVal("referential_table", dbf.getReferentialTable());
 				dbo.setVal("referential_field", dbf.getRefereftialField());
-
+				dbo.setVal(Sv.GEOMETRY_TYPE, dbf.getGeometryType());
 				if (dbf.getDbFieldName().toUpperCase().equals("PKID"))
 					dbo.setVal("gui_metadata", getDefaultUiMeta(true, true, true, false).toString());
 				else

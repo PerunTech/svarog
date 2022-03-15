@@ -2047,7 +2047,8 @@ public class SvGeometry extends SvWriter {
 				throw (new SvException("system.error.sdi.non_sdi_type", instanceUser, dba, null));
 			currentGeom = getGeometry(dbo);
 			if (currentGeom != null) {
-				if (!currentGeom.getGeometryType().equals(getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE)))
+				String type = (String) getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE);
+				if (!currentGeom.getGeometryType().equalsIgnoreCase(type))
 					throw (new SvException("system.error.sdi.noncompliant_geom_type", instanceUser, dbo,
 							getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE)));
 				verifyBounds(dbo);
