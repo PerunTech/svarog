@@ -267,5 +267,6 @@ public class Sv {
 	public static final String IS_SUCCESSFUL = "IS_SUCCESSFUL";
 	public static final String REFERENCE_DATE = "REFERENCE_DATE";
 	public static final String GEOMETRY_TYPE = "GEOMETRY_TYPE";
+	public static final String POLYGON = "POLYGON";
 
 }
