@@ -259,7 +259,7 @@ public class SvGeometryTest {
 			GeometryFactory gf = SvUtil.sdiFactory;
 			Geometry geom = gf
 					.createMultiPolygon(new Polygon[] { (Polygon) gf.toGeometry(new Envelope(-100, 200, -100, 20)) });
-
+			//geom = TopologyPreservingSimplifier.simplify(geom, 0.05);
 			DbDataObject dbounds = new DbDataObject(svCONST.OBJECT_TYPE_SDI_BOUNDS);
 			dbounds.setVal("BOUNDS_NAME", "testBounds");
 			dbounds.setVal("BOUNDS_ID", "123");
