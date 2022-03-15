@@ -1787,7 +1787,7 @@ public class SvGeometry extends SvWriter {
 	 * 
 	 */
 	Geometry minVertexDistance(Geometry geom, Double minPointDistance, boolean testOnly) throws SvException {
-		if (minPointDistance > 0.0) {
+		if (minPointDistance > 0.0 && geom.getGeometryType().equalsIgnoreCase(Sv.POLYGON)) {
 			Geometry g = TopologyPreservingSimplifier.simplify(geom, minPointDistance);
 			if (testOnly && !g.equalsExact(geom))
 				throw (new SvException(Sv.Exceptions.SDI_VERTEX_DISTANCE_ERR, instanceUser, null, null));
