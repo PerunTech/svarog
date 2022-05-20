@@ -675,6 +675,8 @@ public class SvConf {
 		((BasicDataSource) sysDataSource).setDriverClassName(mainProperties.getProperty("driver.name").trim());
 		((BasicDataSource) sysDataSource).setUrl(mainProperties.getProperty("conn.string").trim());
 		log4j.info("Configuring connection to: " + mainProperties.getProperty("conn.string").trim());
+		log4j.info("Configuring database user name: " + mainProperties.getProperty("user.name").trim());
+		log4j.info("Configuring database schema: " + defaultSchema);
 		((BasicDataSource) sysDataSource).setUsername(mainProperties.getProperty("user.name").trim());
 		((BasicDataSource) sysDataSource).setPassword(mainProperties.getProperty("user.password").trim());
 

@@ -1304,12 +1304,12 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				try {
 					log4j.info("Shutting down svarog");
 					// Svarog shut down executing list of executors
-
-					log4j.info("Shutting down the cluster infrastructure");
-					SvCluster.shutdown(false);
-					SvMaintenance.shutdown();
-					SvCluster.resignCoordinator();
-
+					if (SvConf.isClusterEnabled()) {
+						log4j.info("Shutting down the cluster infrastructure");
+						SvCluster.shutdown(false);
+						SvMaintenance.shutdown();
+						SvCluster.resignCoordinator();
+					}
 					log4j.info("Shutting down the OSGI Framework");
 					if (SvarogDaemon.osgiFramework != null) {
 						SvarogDaemon.osgiFramework.stop();
