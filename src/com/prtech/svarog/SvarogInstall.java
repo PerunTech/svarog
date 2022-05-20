@@ -1732,8 +1732,14 @@ public class SvarogInstall {
 			for (int i = 0; i < texFiles.length; i++) {
 				if (texFiles[i].endsWith(".json")) {
 					DbDataTable dbt = getDbtFromJson(confPath + texFiles[i], SvConf.getMasterRepo());
-					if (dbt != null)
+					if (dbt != null) {
+						if (dbt.getObjectId() == null && isSvarogInstalled()) {
+							DbDataObject dboTable = SvCore.getDbtByName(dbt.getDbTableName());
+							if (dboTable != null && dboTable.getObjectId() > 0L)
+								dbt.setObjectId(dboTable.getObjectId());
+						}
 						dbTables.add(dbt);
+					}
 				}
 			}
 		} catch (Exception e2) {
