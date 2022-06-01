@@ -1271,6 +1271,8 @@ public class SvGeometry extends SvWriter {
 	private Double vertexAlignmentTolerance = SvParameter.getSysParam(Sv.SDI_VERTEX_ALIGN_TOLERANCE,
 			Sv.DEFAULT_VERTEX_ALIGN_TOLERANCE);
 
+	private boolean skipSpatialValidations = false;
+
 	/**
 	 * Constructor to create a SvUtil object according to a user session. This is
 	 * the default constructor available to the public, in order to enforce the
@@ -2000,10 +2002,11 @@ public class SvGeometry extends SvWriter {
 		Geometry geom = getGeometry(dbo);
 		Point centroid = calculateCentroid(geom);
 
-		minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
-		minVertexDistance(geom, minPointDistance, true);
-		testPolygonSpikes(geom, maxAngle);
-
+		if (!skipSpatialValidations) {
+			minGeomDistance(geom, dbo.getObjectType(), minGeomDistance, true);
+			minVertexDistance(geom, minPointDistance, true);
+			testPolygonSpikes(geom, maxAngle);
+		}
 		// if area is not set or we have configured to override
 		if (dbo.getVal("AREA") == null || SvConf.sdiOverrideGeomCalc)
 			dbo.setVal("AREA", geom.getArea());
@@ -2172,6 +2175,14 @@ public class SvGeometry extends SvWriter {
 	public void setAllowNullGeometry(boolean allowNullGeometry) {
 		if (this.hasPermission(svCONST.NULL_GEOMETRY_ACL))
 			this.allowNullGeometry = allowNullGeometry;
+	}
+
+	public boolean isSkipSpatialValidations() {
+		return skipSpatialValidations;
+	}
+
+	public void setSkipSpatialValidations(boolean skipSpatialValidations) {
+		this.skipSpatialValidations = skipSpatialValidations;
 	}
 
 }
