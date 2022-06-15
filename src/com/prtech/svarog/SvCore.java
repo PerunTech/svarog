@@ -65,6 +65,7 @@ import com.prtech.svarog_common.DboUnderground;
 import com.prtech.svarog_interfaces.ISvCore;
 import com.prtech.svarog_interfaces.ISvDatabaseIO;
 import com.prtech.svarog_common.ISvOnSave;
+import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.SvCharId;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
@@ -1242,6 +1243,9 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			}
 		}
 
+		ResponseHandler.setI18n(new I18n());
+		ResponseHandler.setDefaultLocale(SvConf.getDefaultLocale().toUpperCase());
+		SvException.i18n = new I18n();
 		// verify minimal configuration exists
 		validateSvarogConfig();
 	}
@@ -3196,5 +3200,4 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		this.isInternal = isInternal;
 	}
-
 }
