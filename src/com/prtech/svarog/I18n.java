@@ -31,7 +31,7 @@ import com.prtech.svarog_interfaces.II18n;
  * @author PR01
  *
  */
-public class I18n extends SvCore implements II18n {
+public class I18n implements II18n {
 	/**
 	 * Log4j instance used for logging
 	 */
@@ -52,9 +52,9 @@ public class I18n extends SvCore implements II18n {
 	 * 
 	 * @throws SvException
 	 */
-	I18n() throws SvException {
+	/*I18n() throws SvException {
 		super(svCONST.systemUser, null);
-	}
+	}*/
 
 	/**
 	 * The method loadLabels
@@ -244,7 +244,7 @@ public class I18n extends SvCore implements II18n {
 	@Override
 	public String getI18nText(String languageId, String labelCode) {
 		if (languageId == null)
-			languageId = (String) getDefaultLocale().getVal("LOCALE_ID");
+			languageId = (String) SvCore.getDefaultLocale().getVal("LOCALE_ID");
 		return getText(languageId, labelCode);
 	}
 
@@ -281,7 +281,7 @@ public class I18n extends SvCore implements II18n {
 	@Override
 	public String getI18nLongText(String languageId, String labelCode) {
 		if (languageId == null)
-			languageId = (String) getDefaultLocale().getVal("LOCALE_ID");
+			languageId = (String) SvCore.getDefaultLocale().getVal("LOCALE_ID");
 		return getLongText(languageId, labelCode);
 	};
 
