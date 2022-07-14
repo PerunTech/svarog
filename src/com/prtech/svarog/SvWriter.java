@@ -1291,8 +1291,7 @@ public class SvWriter extends SvCore {
 			if (!dbt.getObjectId().equals(dbo.getObjectType()))
 				dbt = getDbt(dbo);
 			if (!hasDbtAccess(dbt, null, SvAccess.WRITE))
-				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt,
-						SvAccess.WRITE.toString()));
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt, SvAccess.WRITE.toString()));
 		}
 	}
 
@@ -1599,8 +1598,7 @@ public class SvWriter extends SvCore {
 			DbDataObject dbt = getDbt(dba.get(0));
 			// authorise the save operation
 			if (!isAdmin() && !isSystem() && !hasDbtAccess(dbt, null, SvAccess.MODIFY))
-				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt,
-						SvAccess.MODIFY.toString()));
+				throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser, dbt, SvAccess.MODIFY.toString()));
 
 			// if an existing object is updated, make sure the object
 			// can still be updated and was not changed in mean time
@@ -2197,9 +2195,12 @@ public class SvWriter extends SvCore {
 	 *                           want to clone the child objects
 	 * @param cloneChildrenLinks Flag to enable/disable cloning of the links between
 	 *                           the child object and other objects
+	 * @param ignoredObjectTypes List of Long value(s) of object type(s) that should
+	 *                           be ignored through the cloning process
 	 * @throws SvException
 	 */
-	void cloneChildren(DbDataObject dbo, Long oldOID, Boolean cloneChildrenLinks) throws SvException {
+	void cloneChildren(DbDataObject dbo, Long oldOID, Boolean cloneChildrenLinks, ArrayList<Long> ignoredObjectTypes)
+			throws SvException {
 
 		String sqlSelect = "select distinct object_type from " + repoDbt.getVal("SCHEMA")
 				+ ".svarog sv where sv.parent_id=? and dt_delete=?";
@@ -2211,7 +2212,12 @@ public class SvWriter extends SvCore {
 				// hold the old/new OIDs, just in case we need to clone the links
 				HashMap<Long, Long> oldNewOIDPairs = null;
 				while (rs.next()) {
-					objectTypesToClone.add(rs.getLong(1));
+					Long tType = rs.getLong(1);
+					if (ignoredObjectTypes == null)
+						objectTypesToClone.add(tType);
+					else if (!ignoredObjectTypes.contains(tType))
+						objectTypesToClone.add(tType);
+
 				}
 				closeResource((AutoCloseable) rs, instanceUser);
 				closeResource((AutoCloseable) ps, instanceUser);
@@ -2238,11 +2244,13 @@ public class SvWriter extends SvCore {
 	 * @param cloneChildren      Flag to enable/disable cloning of child objects
 	 * @param cloneChildrenLinks Flag to enable/disable cloning of children links to
 	 *                           other objects
+	 * @param ignoredObjectTypes List of Long value(s) of object type(s) that should
+	 *                           be ignored through the cloning process
 	 * @return The cloned DbDataObject
 	 * @throws SvException
 	 */
-	DbDataObject cloneObjectImpl(DbDataObject dbo, Boolean cloneChildren, Boolean cloneChildrenLinks)
-			throws SvException {
+	DbDataObject cloneObjectImpl(DbDataObject dbo, Boolean cloneChildren, Boolean cloneChildrenLinks,
+			ArrayList<Long> ignoredObjectTypes) throws SvException {
 		if (dbo.isReadOnly())
 			throw (new SvException("system.error.read_only_clone_forbidden", instanceUser, dbo, null));
 
@@ -2259,7 +2267,7 @@ public class SvWriter extends SvCore {
 
 				saveObject(newObj, false);
 				if (cloneChildren) {
-					cloneChildren(newObj, oldDbo.getObjectId(), cloneChildrenLinks);
+					cloneChildren(newObj, oldDbo.getObjectId(), cloneChildrenLinks, ignoredObjectTypes);
 				}
 			}
 		} finally {
@@ -2285,6 +2293,24 @@ public class SvWriter extends SvCore {
 	}
 
 	/**
+	 * Method for cloning a DbDataObject into new instance. If there is no exception
+	 * the change is committed, otherwise rolled back.
+	 * 
+	 * @param dbo                The object to be cloned
+	 * @param cloneChildren      Flag to enable/disable cloning of child objects
+	 * @param cloneChildrenLinks Flag to enable/disable cloning of children links to
+	 *                           other objects
+	 * @param ignoredObjectTypes List of Long value(s) of object type(s) that should
+	 *                           be ignored through the cloning process
+	 * @return The cloned DbDataObject
+	 * @throws SvException
+	 */
+	public DbDataObject cloneObject(DbDataObject dbo, Boolean cloneChildren, Boolean cloneChildrenLinks,
+			ArrayList<Long> ignoredObjectTypes) throws SvException {
+		return cloneObject(dbo, cloneChildren, cloneChildrenLinks, ignoredObjectTypes, this.autoCommit);
+	}
+
+	/**
 	 * Method for cloning a DbDataObject into new instance, with option to control
 	 * the transaction
 	 * 
@@ -2297,11 +2323,29 @@ public class SvWriter extends SvCore {
 	 */
 	public DbDataObject cloneObject(DbDataObject dbo, Boolean cloneChildren, Boolean cloneChildrenLinks,
 			Boolean autoCommit) throws SvException {
+		return cloneObject(dbo, cloneChildren, cloneChildrenLinks, null, autoCommit);
+	}
+
+	/**
+	 * Method for cloning a DbDataObject into new instance, with option to control
+	 * the transaction
+	 * 
+	 * @param dbo                The object to be cloned
+	 * @param cloneChildren      Flag to enable/disable cloning of child objects
+	 * @param cloneChildrenLinks Flag to enable/disable cloning of children links to
+	 *                           other objects
+	 * @param ignoredObjectTypes List of Long value(s) of object type(s) that should
+	 *                           be ignored through the cloning process
+	 * @return The cloned DbDataObject
+	 * @throws SvException
+	 */
+	public DbDataObject cloneObject(DbDataObject dbo, Boolean cloneChildren, Boolean cloneChildrenLinks,
+			ArrayList<Long> ignoredObjectTypes, Boolean autoCommit) throws SvException {
 
 		DbDataObject cloneDbo = null;
 		try {
 			this.dbSetAutoCommit(false);
-			cloneDbo = cloneObjectImpl(dbo, cloneChildren, cloneChildrenLinks);
+			cloneDbo = cloneObjectImpl(dbo, cloneChildren, cloneChildrenLinks, ignoredObjectTypes);
 			if (autoCommit)
 				dbCommit();
 		} catch (SvException e) {
