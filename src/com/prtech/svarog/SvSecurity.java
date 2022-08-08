@@ -1110,6 +1110,9 @@ public class SvSecurity extends SvCore {
 			}
 		}
 		dboLType = getLinkType("POA", svCONST.OBJECT_TYPE_USER, empowerOverObject.getObject_type());
+		if(dboLType==null) {
+			dboLType = getLinkType("POA", svCONST.OBJECT_TYPE_GROUP, empowerOverObject.getObject_type());
+		}
 		if (dboLType != null) {
 			svl.linkObjects(userObj.getObject_id(), empowerOverObject.getObject_id(), dboLType.getObject_id(), "");
 		} else
