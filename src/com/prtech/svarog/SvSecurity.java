@@ -234,6 +234,9 @@ public class SvSecurity extends SvCore {
 
 		try (SvReader svr = new SvReader()) {
 			DbDataObject dbl = getLinkType("POA", svCONST.OBJECT_TYPE_USER, getTypeIdByName(poaObjectTypeName));
+			if(dbl==null) {
+				dbl = getLinkType("POA", svCONST.OBJECT_TYPE_GROUP, getTypeIdByName(poaObjectTypeName));
+			}
 			poaObjects = svr.getObjectsByLinkedId(userObjectId, svCONST.OBJECT_TYPE_USER, dbl,
 					getTypeIdByName(poaObjectTypeName), false, null, 0, 0);
 			return poaObjects;
@@ -1110,7 +1113,7 @@ public class SvSecurity extends SvCore {
 			}
 		}
 		dboLType = getLinkType("POA", svCONST.OBJECT_TYPE_USER, empowerOverObject.getObject_type());
-		if(dboLType==null) {
+		if (dboLType == null) {
 			dboLType = getLinkType("POA", svCONST.OBJECT_TYPE_GROUP, empowerOverObject.getObject_type());
 		}
 		if (dboLType != null) {
