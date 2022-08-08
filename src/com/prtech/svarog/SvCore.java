@@ -1955,6 +1955,26 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 						retVal = dqe;
 					}
 				}
+			} else if (query instanceof DbQueryExpression && !((DbQueryExpression) query).getIsReverseExpression()) {
+				DbDataObject dbt = ((DbQueryExpression) query).getItems().get(0).getDbt();
+				Long objectType = dbt.getObjectId();
+				for (DbDataObject dbc : poaDbLinkTypes.getItems()) {
+					if (((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
+							&& objectType.equals((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_2))) {
+						DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
+						DbQueryExpression dqe = new DbQueryExpression();
+						DbQueryObject dqo = new DbQueryObject(usersDbt,
+								new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, instanceUser.getObjectId()),
+								DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
+						dqo.setIsReturnType(false);
+						dqe.addItem(dqo);
+						for (DbQueryObject dqotmp : ((DbQueryExpression) query).getItems()) {
+							dqe.addItem(dqotmp);
+						}
+						retVal = dqe;
+					}
+				}
+
 			}
 		}
 		return retVal;

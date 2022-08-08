@@ -916,7 +916,7 @@ public class SvGeometry extends SvWriter {
 
 			DbDataArray dba = new DbDataArray();
 			dba.setItems((ArrayList) deletedGeometries);
-			svw.deleteObjects(dba, false, false);
+			svw.deleteObjects(dba, false, false, false);
 
 			DbDataArray newDba = new DbDataArray();
 			for (Geometry g : newGeometries) {

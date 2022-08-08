@@ -1,6 +1,7 @@
 package com.prtech.svarog;
 
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.fail;
 
 import org.joda.time.DateTime;
 import org.junit.Test;
@@ -9,6 +10,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbQueryExpression;
+import com.prtech.svarog_common.DbQueryObject;
+import com.prtech.svarog_common.DbQueryObject.DbJoinType;
+import com.prtech.svarog_common.DbQueryObject.LinkType;
+import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DboFactory;
 import com.prtech.svarog_common.DboUnderground;
 
@@ -31,6 +38,55 @@ public class SvCoreTest {
 			e.printStackTrace();
 			fail("Exception was thrown");
 		}
+	}
+
+	@Test
+	public void poaTest2() {
+		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
+			String token = svs.logon("BEROVO1", SvUtil.getMD5("welcome1"));
+			try (SvReader svr = new SvReader(token)) {
+				// ovoj da go ima
+				// 00005085790
+				DbDataArray a = newPoaTest(svr, "00005085790");
+				if (a.size() < 1)
+					fail("Nema fic od berovo");
+				// ovoj da go nema
+				// 00005273105
+				a = newPoaTest(svr, "00005273105");
+				if (a.size() > 0)
+					fail("Ima fic od tetovo");
+
+			}
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_user_found")) {
+				System.out.println("Test requires specific user");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was thrown");
+		}
+	}
+
+	public DbDataArray newPoaTest(SvReader svr, String fic) throws SvException {
+		DbDataObject databaseTypeOrgUnit = svr.getObjectById(SvCore.getTypeIdByName("ORG_UNITS"),
+				svCONST.OBJECT_TYPE_TABLE, null);
+		DbDataObject databaseTypeFarmer = svr.getObjectById(SvCore.getTypeIdByName("FARMER"), svCONST.OBJECT_TYPE_TABLE,
+				null);
+		// Fill the field arrays with config from database
+		DbDataObject linkType = SvCore.getLinkType("POA", databaseTypeOrgUnit.getObjectId(),
+				databaseTypeFarmer.getObjectId());
+		DbSearchCriterion crit1 = new DbSearchCriterion("FIC", DbCompareOperand.LIKE, "%" + fic + "%");
+
+		DbQueryObject valOrgUni = new DbQueryObject(databaseTypeOrgUnit, null, DbJoinType.INNER, linkType,
+				LinkType.DBLINK, null, null);
+		DbQueryObject valFarmer = new DbQueryObject(databaseTypeFarmer, crit1, DbJoinType.INNER, null, null, null,
+				null);
+		DbQueryExpression q = new DbQueryExpression();
+		// add the items
+		q.addItem(valOrgUni);
+		q.addItem(valFarmer);
+		DbDataArray ret = svr.getObjects(q, null, null);
+		return ret;
 	}
 
 	@Test
