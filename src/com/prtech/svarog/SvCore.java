@@ -1391,7 +1391,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			String uqVals = type + "." + dbo.getVal(Sv.Link.LINK_OBJ_TYPE_1).toString() + "."
 					+ dbo.getVal(Sv.Link.LINK_OBJ_TYPE_2).toString();
 			DbCache.addObject(dbo, uqVals, true);
-			if (type != null && type.equals(Sv.POA))
+			if (type != null && (type.equals(Sv.POA) || type.equals(Sv.POA_OU)))
 				poaDbLinkTypes.addDataItem(dbo);
 		}
 
@@ -1921,6 +1921,61 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	}
 
 	/**
+	 * Method to modify the underlying query to include power of attorney
+	 * crosschecks
+	 * 
+	 * @param query
+	 * @param dbc
+	 * @return
+	 * @throws SvException
+	 */
+	DbQueryExpression updatedQuery(DbQuery query, DbDataObject dbc) throws SvException {
+		DbDataObject dboUG = getDefaultUserGroup();
+		DbDataObject dbt = ((DbQueryObject) query).getDbt();
+		Long objectType = dbt.getObjectId();
+		if (Sv.POA.equals(dboUG.getVal(Sv.GROUP_SECURITY_TYPE))
+				&& ((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
+				&& objectType.equals((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_2))) {
+			DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
+			DbQueryExpression dqe = new DbQueryExpression();
+			DbQueryObject dqo = new DbQueryObject(usersDbt,
+					new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, instanceUser.getObjectId()),
+					DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
+			dqe.addItem(dqo);
+			dqe.addItem((DbQueryObject) query);
+			((DbQueryObject) query).setIsReturnType(true);
+			return dqe;
+		} else if (Sv.POA_OU.equals(dboUG.getVal(Sv.GROUP_SECURITY_TYPE))
+				&& ((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_ORG_UNITS)
+				&& objectType.equals((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_2))) {
+
+			DbSearchExpression dbs = new DbSearchExpression();
+			try (SvReader svr = new SvReader(this)) {
+				svr.isInternal = true;
+				String uqVals = Sv.POA + "." + Long.toString(svCONST.OBJECT_TYPE_USER) + "."
+						+ Long.toString(svCONST.OBJECT_TYPE_ORG_UNITS);
+				DbDataObject linkUser2OU = DbCache.getObject(uqVals, svCONST.OBJECT_TYPE_LINK_TYPE);
+				DbDataArray linkedOU = svr.getObjectsByLinkedId(instanceUser.getObjectId(), linkUser2OU, null, null,
+						null);
+				for (DbDataObject ou : linkedOU.getItems()) {
+					dbs.addDbSearchItem(new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, ou.getObjectId(),
+							DbSearch.DbLogicOperand.OR));
+				}
+			}
+
+			DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_ORG_UNITS);
+			DbQueryExpression dqe = new DbQueryExpression();
+			DbQueryObject dqo = new DbQueryObject(usersDbt, dbs, DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
+			dqe.addItem(dqo);
+			dqe.addItem((DbQueryObject) query);
+			((DbQueryObject) query).setIsReturnType(true);
+			return dqe;
+
+		}
+		return null;
+	}
+
+	/**
 	 * Method for checking if the current user has power of attorney over the
 	 * dataset he is fetching. If the user group security type is Power of Attorney
 	 * (POA) then the query is modified to contain the empowerment
@@ -1937,22 +1992,14 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			return query;
 		DbDataObject dboUG = getDefaultUserGroup();
 		DbQuery retVal = query;
-		if (dboUG != null && ((String) dboUG.getVal(Sv.GROUP_SECURITY_TYPE)).equals(Sv.POA)) {
+		if (dboUG != null && (Sv.POA.equals(dboUG.getVal(Sv.GROUP_SECURITY_TYPE))
+				|| Sv.POA_OU.equals(dboUG.getVal(Sv.GROUP_SECURITY_TYPE)))) {
 			if (query instanceof DbQueryObject) {
-				DbDataObject dbt = ((DbQueryObject) query).getDbt();
-				Long objectType = dbt.getObjectId();
-				for (DbDataObject dbc : poaDbLinkTypes.getItems()) {
-					if (((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
-							&& objectType.equals((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_2))) {
-						DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
-						DbQueryExpression dqe = new DbQueryExpression();
-						DbQueryObject dqo = new DbQueryObject(usersDbt,
-								new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, instanceUser.getObjectId()),
-								DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
-						dqe.addItem(dqo);
-						dqe.addItem((DbQueryObject) query);
-						((DbQueryObject) query).setIsReturnType(true);
-						retVal = dqe;
+				for (DbDataObject dblPoa : poaDbLinkTypes.getItems()) {
+					DbQuery updated = updatedQuery(query, dblPoa);
+					if (updated != null) {
+						retVal = updated;
+						break;
 					}
 				}
 			} else if (query instanceof DbQueryExpression && !((DbQueryExpression) query).getIsReverseExpression()) {

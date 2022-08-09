@@ -174,6 +174,7 @@ public class Sv {
 	public static final SvCharId CONFIG_TYPE_ID = new SvCharId("config_type_id");
 	public static final SvCharId REPO_TABLE = new SvCharId("REPO_TABLE");
 	public static final String POA = "POA";
+	public static final String POA_OU = "POA_OU";
 	public static final String V = "V";
 	public static final SvCharId LAST_REFRESH = new SvCharId("last_refresh");
 	public static final String USER_DEFAULT_GROUP = "USER_DEFAULT_GROUP";
