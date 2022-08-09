@@ -71,6 +71,28 @@ public class SvCoreTest {
 		}
 	}
 
+	@Test
+	public void poaTest3() {
+		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
+			String token = svs.logon("BEROVO1", SvUtil.getMD5("welcome1"));
+			try (SvReader svr = new SvReader(token)) {
+				// ovoj da go ima
+				// 00005085790
+				DbDataObject dbt = SvCore.getDbtByName("FARMER");
+				DbDataObject o = svr.getObjectById(42032L, dbt, null);
+				if (o == null)
+					fail("Nema fic od berovo");
+			}
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_user_found")) {
+				System.out.println("Test requires specific user");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was thrown");
+		}
+	}
+
 	public DbDataArray newPoaTest(SvReader svr, String fic) throws SvException {
 		DbDataObject databaseTypeOrgUnit = svr.getObjectById(SvCore.getTypeIdByName("ORG_UNITS"),
 				svCONST.OBJECT_TYPE_TABLE, null);
