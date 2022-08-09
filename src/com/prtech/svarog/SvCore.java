@@ -1967,8 +1967,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 								new DbSearchCriterion(Sv.OBJECT_ID, DbCompareOperand.EQUAL, instanceUser.getObjectId()),
 								DbJoinType.INNER, dbc, LinkType.DBLINK, null, null);
 						dqo.setIsReturnType(false);
+						dqo.setSqlTablePrefix("POA_3129USERNAME");
 						dqe.addItem(dqo);
 						for (DbQueryObject dqotmp : ((DbQueryExpression) query).getItems()) {
+							dqotmp.setIsReturnType(true);
 							dqe.addItem(dqotmp);
 						}
 						retVal = dqe;

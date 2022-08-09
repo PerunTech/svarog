@@ -326,7 +326,8 @@ public class DbQueryExpression extends DbQuery {
 			DbQueryObject currentDqo = nextDqo == null ? dqoIterator.next() : nextDqo;
 			// set the prefixes
 			currentRepoPrefix = (forcePhysicalTables ? "REP" + itemSeq : null);
-			currentTblPrefix = "TBL" + itemSeq;
+			currentTblPrefix = currentDqo.getSqlTablePrefix() != null ? currentDqo.getSqlTablePrefix()
+					: "TBL" + itemSeq;
 
 			// if there's orderBy fields then store them away
 			if (currentDqo.getOrderByFields() != null)
@@ -381,7 +382,7 @@ public class DbQueryExpression extends DbQuery {
 					&& currentDqo.linkToNext != null && dblt != null) {
 
 				String nextTableAlias = nextDqo.getSqlTablePrefix() != null ? nextDqo.getSqlTablePrefix()
-						: currentTblPrefix.substring(0, 3) + (itemSeq + 1);
+						: "TBL" + (itemSeq + 1);
 				if (currentDqo.getReferenceDate() == null)
 					whereCriteria.append(" (lnk" + nextTableAlias + ".dt_delete=?) and ");
 				else
@@ -595,7 +596,7 @@ public class DbQueryExpression extends DbQuery {
 			currentRepoPrefix = currentTblPrefix;
 		}
 		String currentTableAlias = currentDqo.getSqlTablePrefix() != null ? currentDqo.getSqlTablePrefix()
-				: currentRepoPrefix.substring(0, 3) + (itemSeq + 1);
+				: "TBL" + (itemSeq + 1);
 
 		switch (prevDqo.linkToNextType) {
 		case CHILD:

@@ -1,6 +1,5 @@
 package com.prtech.svarog;
 
-
 import static org.junit.Assert.fail;
 
 import org.joda.time.DateTime;
@@ -50,6 +49,11 @@ public class SvCoreTest {
 				DbDataArray a = newPoaTest(svr, "00005085790");
 				if (a.size() < 1)
 					fail("Nema fic od berovo");
+				DbDataObject dbo = a.get(0);
+				if (dbo.getVal("TBL0_USER_NAME") != null)
+					fail("We have poa user");
+
+				System.out.println(a.get(0).toSimpleJson().toString());
 				// ovoj da go nema
 				// 00005273105
 				a = newPoaTest(svr, "00005273105");
