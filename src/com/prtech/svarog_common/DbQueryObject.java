@@ -428,26 +428,27 @@ public class DbQueryObject extends DbQuery {
 	String getTblJoin(String tblPrefix) {
 		if (repo == null)
 			return subQuery;
-
-		return repo.getVal("schema") + ".v" + dbt.getVal("table_name") + " " + tblPrefix;
+		String finalPrefix = (sqlTablePrefix != null) ? sqlTablePrefix : tblPrefix;
+		return repo.getVal("schema") + ".v" + dbt.getVal("table_name") + " " + finalPrefix;
 	}
 
 	String getTblJoin(String repoPrefix, String tblPrefix) {
 		if (repo == null)
 			return subQuery;
-
+		String finalPrefix = (sqlTablePrefix != null) ? sqlTablePrefix : tblPrefix;
 		return repo.getVal("schema") + "." + repo.getVal("table_name") + " " + repoPrefix + " JOIN "
-				+ dbt.getVal("schema") + "." + dbt.getVal("table_name") + " " + tblPrefix + " ON " + repoPrefix
-				+ ".meta_pkid=" + tblPrefix + ".pkid";
+				+ dbt.getVal("schema") + "." + dbt.getVal("table_name") + " " + finalPrefix + " ON " + repoPrefix
+				+ ".meta_pkid=" + finalPrefix + ".pkid";
 	}
 
 	String getTblJoin(String repoPrefix, String tblPrefix, String joinToNext) {
 		if (repo == null)
 			return subQuery;
 
+		String finalPrefix = (sqlTablePrefix != null) ? sqlTablePrefix : tblPrefix;
 		return repo.getVal("schema") + "." + repo.getVal("table_name") + " " + repoPrefix + " " + joinToNext + " JOIN "
-				+ dbt.getVal("schema") + "." + dbt.getVal("table_name") + " " + tblPrefix + " ON " + repoPrefix
-				+ ".meta_pkid=" + tblPrefix + ".pkid";
+				+ dbt.getVal("schema") + "." + dbt.getVal("table_name") + " " + finalPrefix + " ON " + repoPrefix
+				+ ".meta_pkid=" + finalPrefix + ".pkid";
 	}
 
 	StringBuilder getTableSql(String repoPrefix, String tblPrefix, Boolean includeGeometries) throws SvException {
