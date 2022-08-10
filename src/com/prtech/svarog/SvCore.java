@@ -1975,6 +1975,18 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		return null;
 	}
 
+	boolean isLinkTypeCompatible(DbDataObject userGroup, DbDataObject linkType, DbDataObject dbt) {
+
+		String groupSecurityType = (String) userGroup.getVal(Sv.GROUP_SECURITY_TYPE);
+		boolean isCompatible = false;
+		isCompatible = ((Long) linkType.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
+				&& dbt.getObjectId().equals((Long) linkType.getVal(Sv.Link.LINK_OBJ_TYPE_2));
+
+		if (Sv.POA.equals(groupSecurityType) && dbt.getObjectId().equals(svCONST.OBJECT_TYPE_ORG_UNITS))
+			isCompatible = false;
+		return isCompatible;
+	}
+
 	/**
 	 * Method for checking if the current user has power of attorney over the
 	 * dataset he is fetching. If the user group security type is Power of Attorney
@@ -2004,10 +2016,8 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				}
 			} else if (query instanceof DbQueryExpression && !((DbQueryExpression) query).getIsReverseExpression()) {
 				DbDataObject dbt = ((DbQueryExpression) query).getItems().get(0).getDbt();
-				Long objectType = dbt.getObjectId();
 				for (DbDataObject dbc : poaDbLinkTypes.getItems()) {
-					if (((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_1)).equals(svCONST.OBJECT_TYPE_USER)
-							&& objectType.equals((Long) dbc.getVal(Sv.Link.LINK_OBJ_TYPE_2))) {
+					if (isLinkTypeCompatible(dboUG, dbc, dbt)) {
 						DbDataObject usersDbt = getDbt(svCONST.OBJECT_TYPE_USER);
 						DbQueryExpression dqe = new DbQueryExpression();
 						DbQueryObject dqo = new DbQueryObject(usersDbt,

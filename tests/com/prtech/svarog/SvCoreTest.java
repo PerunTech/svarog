@@ -40,6 +40,62 @@ public class SvCoreTest {
 	}
 
 	@Test
+	public void testGetUserORGPOA() {
+		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
+			// String token = svs.logon("ADMIN", SvUtil.getMD5("welcome13"));
+			// String token = svs.logon("00005425821", SvUtil.getMD5("welcome"));
+			String token = svs.logon("ADMIN", SvUtil.getMD5("welcome13"));
+			try (SvReader svr = new SvReader(token)) {
+				DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_USER, svCONST.OBJECT_TYPE_ORG_UNITS);
+				// DbDataArray dboAllUsersByOU = svr.getObjectsByLinkedId(13450L, dbl, null,
+				// null, null);
+				DbDataArray dboAllUsersByOU = svr.getObjectsByLinkedId(13450L, svCONST.OBJECT_TYPE_ORG_UNITS, dbl,
+						svCONST.OBJECT_TYPE_USER, true, null, null, null);
+				// DbDataArray dboAllUsersByOU = svr.getObjectsByLinkedId(13450L,
+				// svCONST.OBJECT_TYPE_USER, "POA",
+				// svCONST.OBJECT_TYPE_ORG_UNITS, true, null, 0, 0);
+				if (dboAllUsersByOU.size() < 1)
+					fail("no users found");
+			}
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_user_found")) {
+				System.out.println("Test requires specific user");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was thrown");
+		}
+	}
+
+	@Test
+	public void poaTest4() throws SvException {
+		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
+			// String token = svs.logon("ADMIN", SvUtil.getMD5("welcome13"));
+			String token = svs.logon("00005425821", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(token)) {
+				// ovoj da go ima
+				// 00005085790
+
+				DbDataObject dboTempFarmer = svr.getObjectById(168382L,
+						SvCore.getDbt(SvReader.getTypeIdByName("FARMER")).getObjectId(), new DateTime());
+				DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS,
+						dboTempFarmer.getObjectType());
+				DbDataArray ous = svr.getObjectsByLinkedId(dboTempFarmer.getObjectId(), dboTempFarmer.getObjectType(),
+						dbl, svCONST.OBJECT_TYPE_ORG_UNITS, true, null, 0, 0, "VALID");
+				if (ous.size() < 1)
+					fail("no Regional unit found");
+			}
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_user_found")) {
+				System.out.println("Test requires specific user");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was thrown");
+		}
+	}
+
+	@Test
 	public void poaTest2() {
 		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
 			String token = svs.logon("BEROVO1", SvUtil.getMD5("welcome1"));

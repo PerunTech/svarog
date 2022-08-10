@@ -130,12 +130,11 @@ public class SvarogTest {
 
 	@Test
 	public void testLink() {
-		SvReader svr = null;
-		try {
+		try (SvReader svr = new SvReader()) {
 			if (SvReader.getTypeIdByName("APPLICATION") == 0L)
 				return;
 
-			svr = new SvReader();
+			
 			DbDataArray arrLinkedApp = svr.getObjectsByLinkedId(20516159L, SvReader.getTypeIdByName("APPLICATION"),
 					SvLink.getLinkType("LINK NEW APPLICATION WITH OLD ONE", SvReader.getTypeIdByName("APPLICATION"),
 							SvReader.getTypeIdByName("APPLICATION")),
@@ -157,9 +156,6 @@ public class SvarogTest {
 				ex.printStackTrace();
 				fail("Test failed with exception");
 			}
-		} finally {
-			if (svr != null)
-				svr.release();
 		}
 	}
 
