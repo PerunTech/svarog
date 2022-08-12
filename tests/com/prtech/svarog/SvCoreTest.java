@@ -68,7 +68,7 @@ public class SvCoreTest {
 	}
 
 	@Test
-	public void poaTest4() throws SvException {
+	public void poaTestForFic() throws SvException {
 		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
 			// String token = svs.logon("ADMIN", SvUtil.getMD5("welcome13"));
 			String token = svs.logon("00005425821", SvUtil.getMD5("welcome"));
@@ -84,6 +84,39 @@ public class SvCoreTest {
 						dbl, svCONST.OBJECT_TYPE_ORG_UNITS, true, null, 0, 0, "VALID");
 				if (ous.size() < 1)
 					fail("no Regional unit found");
+			}
+		} catch (SvException e) {
+			if (!e.getLabelCode().equals("system.error.no_user_found")) {
+				System.out.println("Test requires specific user");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was thrown");
+		}
+	}
+
+	@Test
+	public void poaTestForOU() throws SvException {
+		try (SvSecurity svs = new SvSecurity(DateTime.now().toString())) {
+			// String token = svs.logon("ADMIN", SvUtil.getMD5("welcome13"));
+			String token = svs.logon("VELES1", SvUtil.getMD5("welcome1"));
+			try (SvReader svr = new SvReader(token)) {
+				// ovoj da go ima
+				// 00005085790
+
+				DbDataObject dboTempFarmer = svr.getObjectById(48634L,
+						SvCore.getDbt(SvReader.getTypeIdByName("FARMER")).getObjectId(), new DateTime());
+				DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS,
+						dboTempFarmer.getObjectType());
+				DbDataArray ous = svr.getObjectsByLinkedId(dboTempFarmer.getObjectId(), dboTempFarmer.getObjectType(),
+						dbl, svCONST.OBJECT_TYPE_ORG_UNITS, true, null, 0, 0, "VALID");
+
+				if (ous.size() < 1)
+					fail("no Regional unit found");
+
+				if (ous.get(0).getVal("EXTERNAL_ID") == null)
+					fail("Bad column names");
+
 			}
 		} catch (SvException e) {
 			if (!e.getLabelCode().equals("system.error.no_user_found")) {
