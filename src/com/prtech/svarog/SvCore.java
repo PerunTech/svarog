@@ -2027,9 +2027,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 						dqo.setSqlTablePrefix("POA_3129USERNAME");
 						dqe.addItem(dqo);
 						for (DbQueryObject dqotmp : ((DbQueryExpression) query).getItems()) {
-							dqotmp.setIsReturnType(true);
+							// dqotmp.setIsReturnType(true);
 							dqe.addItem(dqotmp);
 						}
+						if (query.getReturnType() != null)
+							dqe.setReturnType(query.getReturnType());
 						retVal = dqe;
 					}
 				}
