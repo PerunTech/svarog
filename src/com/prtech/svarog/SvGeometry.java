@@ -1407,7 +1407,7 @@ public class SvGeometry extends SvWriter {
 			// after we iterated to the end, we add the current coordinate
 			if (cuurentCoord != null) {
 				if (isRing) {
-					newCoords.add(line.getCoordinates()[0]);
+					newCoords.add(newCoords.get(0));
 					line = SvUtil.sdiFactory.createLinearRing(newCoords.toArray(new Coordinate[newCoords.size()]));
 				} else {
 					newCoords.add(cuurentCoord);
