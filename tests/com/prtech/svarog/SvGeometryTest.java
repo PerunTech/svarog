@@ -883,6 +883,25 @@ public class SvGeometryTest {
 	}
 
 	@Test
+	public void dedupeTest2() throws ParseException {
+		try (SvGeometry svg = new SvGeometry()) {
+			String geojsonpoly = "{\"type\":\"Polygon\",\"coordinates\":[[[7551260.2226,4528617.0152],[7551259.9675,4528617.3466],[7551259.7233,4528616.1233],[7551258.8908,4528614.6739],[7551245.7782,4528634.2379],[7551209.0235,4528685.0637],[7551219.7907,4528699.6863],[7551230.9874,4528688.9928],[7551239.379,4528681.8332],[7551245.2593,4528672.3241],[7551253.059,4528629.2916],[7551260.9723,4528618.242],[7551260.2226,4528617.0152]]]}";
+			//String geojsonpoly = "{\"type\":\"Polygon\",\"coordinates\":[[[7556938.6642,4615280.1621],[7556938.6642,4615280.1621],[7556939.0043,4615279.2763],[7556976.2504,4615286.2374],[7556978.239,4615256.1544],[7556975.34,4615254.2432],[7556950.7215,4615250.8258],[7556945.9546,4615253.4534],[7556938.2905,4615264.3878],[7556939.3444,4615278.3905],[7556938.6642,4615280.1621]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:0\"}}}";
+			Gson g = new Gson();
+			JsonObject jo = g.fromJson(geojsonpoly, JsonObject.class);
+			GeometryFactory gff = new GeometryFactory(new PrecisionModel(10));
+			GeoJsonReader gjr = new GeoJsonReader(gff);
+			Geometry geomJ = gjr.read(geojsonpoly);
+			Geometry dedupeGeom = svg.deduplicatePolygon((Polygon) geomJ);
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception was raised");
+
+		}
+	}
+	@Test
 	public void collapsingInnerRing() throws ParseException {
 		try (SvGeometry svg = new SvGeometry()) {
 			String wktPoly1 = "POLYGON ((7557152.881 4614283.725, 7557174.075 4614319.991, 7557197.619 4614302.076, 7557221.964 4614288.055, 7557248.372 4614276.383, 7557274.347 4614266.817, 7557289.961 4614251.282, 7557294.472 4614239.101, 7557251.264 4614248.084, 7557204.481 4614256.261, 7557139.653 4614261.295, 7557152.881 4614283.725), (7557274.347 4614266.817, 7557203.129 4614279.574, 7557274.347 4614266.817, 7557274.347 4614266.817))";
