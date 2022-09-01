@@ -259,7 +259,7 @@ public class SvGeometryTest {
 			GeometryFactory gf = SvUtil.sdiFactory;
 			Geometry geom = gf
 					.createMultiPolygon(new Polygon[] { (Polygon) gf.toGeometry(new Envelope(-100, 200, -100, 20)) });
-			//geom = TopologyPreservingSimplifier.simplify(geom, 0.05);
+			// geom = TopologyPreservingSimplifier.simplify(geom, 0.05);
 			DbDataObject dbounds = new DbDataObject(svCONST.OBJECT_TYPE_SDI_BOUNDS);
 			dbounds.setVal("BOUNDS_NAME", "testBounds");
 			dbounds.setVal("BOUNDS_ID", "123");
@@ -723,6 +723,98 @@ public class SvGeometryTest {
 	}
 
 	@Test
+	public void testFixShortSpikes() throws SvException {
+
+		try (SvGeometry svg = new SvGeometry()) {
+
+			double angleThreshold = 45.0d;
+			Coordinate[] tria = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Coordinate[] spikeSquare = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 20),
+					new Coordinate(gridX0 + 15, gridX0 + 50), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Coordinate[] spikeSquareInner = new Coordinate[] { new Coordinate(gridX0 + 10, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 20), new Coordinate(gridX0 + 20, gridX0 + 20),
+					new Coordinate(gridX0 + 15, gridX0 + 11), new Coordinate(gridX0 + 20, gridX0 + 10),
+					new Coordinate(gridX0 + 10, gridX0 + 10) };
+
+			Geometry spikeSquareInnerG = SvUtil.sdiFactory.createPolygon(spikeSquareInner);
+			Geometry spikeSquareG = SvUtil.sdiFactory.createPolygon(spikeSquare);
+			Geometry triangle = SvUtil.sdiFactory.createPolygon(tria);
+
+			try {
+				svg.testPolygonSpikes(spikeSquareG, -0.1, angleThreshold, 50.0);
+				fail("spike was not detected");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SHORTSPIKE_DETECTED))
+					fail("Spike was not detected!");
+			}
+			try {
+				spikeSquareG = svg.fixPolygonSpikes(triangle, -0.1, angleThreshold + 1.0, 50.0);
+				fail("spike fix did not fail");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SPIKE_FIX_FAILED))
+					fail("Spike fix of triangles shall fail!");
+			}
+
+			try {
+				spikeSquareG = svg.fixPolygonSpikes(spikeSquareG, -0.1, angleThreshold, 50.0);
+			} catch (SvException e) {
+				fail("Spike was not fixed!");
+			}
+			if (spikeSquareG.getCoordinates().length != 5)
+				fail("Spike on spikeSquareG was not fixed!");
+
+			try {
+				svg.testPolygonSpikes(spikeSquareG, -0.1, angleThreshold, 50.0);
+			} catch (SvException e) {
+				fail("Spike was not fixed!");
+			}
+
+			angleThreshold = angleThreshold - 15.0;
+			try {
+				svg.testPolygonSpikes(spikeSquareInnerG, -0.1, angleThreshold, 50.0);
+				fail("spike was not detected");
+			} catch (SvException e) {
+				if (!e.getLabelCode().equals(Sv.Exceptions.SDI_SHORTSPIKE_DETECTED))
+					fail("Spike test on inner spike fail!");
+			}
+			try {
+				spikeSquareInnerG = svg.fixPolygonSpikes(spikeSquareInnerG, -0.1, angleThreshold, 50.0);
+			} catch (SvException e) {
+				fail("Spike was not fixed!");
+			}
+			if (spikeSquareInnerG.getCoordinates().length != 5)
+				fail("Spike on spikeSquareG was not fixed!");
+
+			try {
+				svg.testPolygonSpikes(spikeSquareInnerG, -0.1, angleThreshold, 50.0);
+			} catch (SvException e) {
+				if (e.getLabelCode().equals(Sv.Exceptions.SDI_SHORTSPIKE_DETECTED))
+					fail("Spikes still exist!");
+			}
+			try {
+				svg.fixPolygonSpikes(spikeSquareInnerG, -0.1, angleThreshold, 50.0);
+			} catch (SvException e) {
+
+				fail("Spikes still exist!");
+			}
+
+			// [POLYGON ((10 15, 20 15, 20 10, 10 10, 10 15)), POLYGON ((10 15, 10 20, 20
+			// 20, 20 15, 10 15))]
+
+		} catch (Exception e) {
+			fail("Test failed with exception");
+		}
+		if (SvConnTracker.hasTrackedConnections(false, false))
+			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
 	public void testMinVertexDistance() throws SvException {
 
 		try (SvGeometry svg = new SvGeometry()) {
@@ -886,7 +978,8 @@ public class SvGeometryTest {
 	public void dedupeTest2() throws ParseException {
 		try (SvGeometry svg = new SvGeometry()) {
 			String geojsonpoly = "{\"type\":\"Polygon\",\"coordinates\":[[[7551260.2226,4528617.0152],[7551259.9675,4528617.3466],[7551259.7233,4528616.1233],[7551258.8908,4528614.6739],[7551245.7782,4528634.2379],[7551209.0235,4528685.0637],[7551219.7907,4528699.6863],[7551230.9874,4528688.9928],[7551239.379,4528681.8332],[7551245.2593,4528672.3241],[7551253.059,4528629.2916],[7551260.9723,4528618.242],[7551260.2226,4528617.0152]]]}";
-			//String geojsonpoly = "{\"type\":\"Polygon\",\"coordinates\":[[[7556938.6642,4615280.1621],[7556938.6642,4615280.1621],[7556939.0043,4615279.2763],[7556976.2504,4615286.2374],[7556978.239,4615256.1544],[7556975.34,4615254.2432],[7556950.7215,4615250.8258],[7556945.9546,4615253.4534],[7556938.2905,4615264.3878],[7556939.3444,4615278.3905],[7556938.6642,4615280.1621]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:0\"}}}";
+			// String geojsonpoly =
+			// "{\"type\":\"Polygon\",\"coordinates\":[[[7556938.6642,4615280.1621],[7556938.6642,4615280.1621],[7556939.0043,4615279.2763],[7556976.2504,4615286.2374],[7556978.239,4615256.1544],[7556975.34,4615254.2432],[7556950.7215,4615250.8258],[7556945.9546,4615253.4534],[7556938.2905,4615264.3878],[7556939.3444,4615278.3905],[7556938.6642,4615280.1621]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:0\"}}}";
 			Gson g = new Gson();
 			JsonObject jo = g.fromJson(geojsonpoly, JsonObject.class);
 			GeometryFactory gff = new GeometryFactory(new PrecisionModel(10));
@@ -894,13 +987,13 @@ public class SvGeometryTest {
 			Geometry geomJ = gjr.read(geojsonpoly);
 			Geometry dedupeGeom = svg.deduplicatePolygon((Polygon) geomJ);
 
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Exception was raised");
 
 		}
 	}
+
 	@Test
 	public void collapsingInnerRing() throws ParseException {
 		try (SvGeometry svg = new SvGeometry()) {

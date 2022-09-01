@@ -16,6 +16,7 @@ public class Sv {
 		/**
 		 * Different exception type constants
 		 */
+		public static final String SDI_SHORTSPIKE_DETECTED = "system.error.sdi.shortspike_detected";
 		public static final String SDI_SPIKE_DETECTED = "system.error.sdi.spike_detected";
 		public static final String SDI_SPIKE_FIX_FAILED = "system.error.sdi.spike_fix_fail";
 		public static final String SDI_VERTEX_DISTANCE_ERR = "system.error.sdi.vertex_min_dist_err";
