@@ -49,6 +49,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.Polygonal;
 import com.vividsolutions.jts.index.strtree.STRtree;
 import com.vividsolutions.jts.io.svarog_geojson.GeoJsonReader;
+import com.vividsolutions.jts.operation.distance.DistanceOp;
 import com.vividsolutions.jts.operation.polygonize.Polygonizer;
 import com.vividsolutions.jts.operation.union.UnaryUnionOp;
 import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
@@ -444,12 +445,6 @@ public class SvGeometry extends SvWriter {
 		// make sure that the coordinates of the centroid are never integers
 		// if the coordinates are integers, they might belong on a grid line
 		return centroid;
-	}
-
-	public static List<Geometry> getGeometries(ArrayList<String> tileIds, Long sdiTypeId) {
-		List<Geometry> result = null;
-		return result;
-
 	}
 
 	/**
@@ -1589,13 +1584,39 @@ public class SvGeometry extends SvWriter {
 	 * @throws SvException with label "system.error.sdi.spike_detected" to signify
 	 *                     that the geometry has spike with angle less then maxAngle
 	 */
-	public void testPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
-		if (!(g instanceof Polygon || g instanceof MultiPolygon) || maxAngle < 0.01)
+	public void testPolygonSpikes(Geometry g, Double maxAngle, Double maxShortAngle, Double maxShortSegmentLength)
+			throws SvException {
+		if (!(g instanceof Polygon || g instanceof MultiPolygon) || (maxAngle < 0.0 && maxShortAngle < 0.0))
 			return;
 
 		for (int i = 0; i < g.getNumGeometries(); i++) {
 			Polygon p = (Polygon) g.getGeometryN(i);
-			testPolygonCoordinates(p.getExteriorRing(), maxAngle);
+			testPolygonCoordinates(p.getExteriorRing(), maxAngle, maxShortAngle, maxShortSegmentLength);
+			for (int j = 0; j < p.getNumInteriorRing(); j++) {
+				LineString ls = p.getInteriorRingN(j);
+				testPolygonCoordinates(ls, maxAngle);
+			}
+		}
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes. A spike is considered angle between
+	 * vertices which is lower than a specified system parameter named
+	 * SDI.SPIKE_MAX_ANGLE. The unoriented smallest angle between two vectors must
+	 * not be lower than the system parameter
+	 * 
+	 * @param g        The geometry to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_detected" to signify
+	 *                     that the geometry has spike with angle less then maxAngle
+	 */
+	public void testPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
+		if (!(g instanceof Polygon || g instanceof MultiPolygon) || maxAngle < 0.0)
+			return;
+
+		for (int i = 0; i < g.getNumGeometries(); i++) {
+			Polygon p = (Polygon) g.getGeometryN(i);
+			testPolygonCoordinates(p.getExteriorRing(), maxAngle, -0.01, -0.01);
 			for (int j = 0; j < p.getNumInteriorRing(); j++) {
 				LineString ls = p.getInteriorRingN(j);
 				testPolygonCoordinates(ls, maxAngle);
@@ -1615,26 +1636,50 @@ public class SvGeometry extends SvWriter {
 	 *                     that the geometry spikes can not be fixed automatically
 	 */
 	public Geometry fixPolygonSpikes(Geometry g, Double maxAngle) throws SvException {
-		return fixPolygonSpikes(g, maxAngle, false);
+		return fixPolygonSpikes(g, maxAngle, false, -0.1, -0.1);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes and remove the spikes. A spike test is
+	 * specified as in {@link #testPolygonSpikes(Geometry, Double)}. This method
+	 * will remove the point forming the spike. If removing the point collapses the
+	 * geometry to a line, the method will throw exception
+	 * 
+	 * @param g        The geometry to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
+	 *                     that the geometry spikes can not be fixed automatically
+	 */
+	public Geometry fixPolygonSpikes(Geometry g, Double maxAngle, Double maxShortAngle, Double maxShortSegmentLength)
+			throws SvException {
+		return fixPolygonSpikes(g, maxAngle, false, maxShortAngle, maxShortSegmentLength);
 	}
 
 	/**
 	 * Remove the spikes from a geometry.
 	 * 
-	 * @param p        The polygon to be fixed
-	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @param p                     The polygon to be fixed
+	 * @param maxAngle              the maximum angle in degrees which is considered
+	 *                              as spike
+	 * @param maxShortAngle         the maximum angle in degrees which is considered
+	 *                              as spike related to short segment
+	 * @param maxShortSegmentLength the maximum length of short segment which will
+	 *                              considered together with maxShortAngle as a
+	 *                              spike
 	 * @return A list of coordinates which do not contain spikes
 	 * @throws SvException with label "system.error.sdi.spike_fix_fail" to signify
 	 *                     that the geometry spikes can not be fixed automatically
 	 */
-	public LinearRing fixPolygonCoordinates(LineString p, Double maxAngle) throws SvException {
+	public LinearRing fixPolygonCoordinates(LineString p, Double maxAngle, Double maxShortAngle,
+			Double maxShortSegmentLength) throws SvException {
 		Coordinate[] coords = p.getCoordinates();
 		Coordinate[] newCoordinates = new Coordinate[coords.length];
 		int startIndex = 0;
 
 		// check if there's spike at the first/last
 		double angle = Angle.toDegrees(Angle.angleBetween(coords[1], coords[0], coords[coords.length - 2]));
-		if (angle <= maxAngle)
+		if (angle <= maxAngle || (maxShortAngle >= 0.0 && angle < maxShortAngle
+				&& coords[0].distance(coords[coords.length - 2]) <= maxShortSegmentLength))
 			startIndex = 1;
 
 		// add the zero point, becase we start the loop from the first tail
@@ -1646,7 +1691,18 @@ public class SvGeometry extends SvWriter {
 			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
 			Coordinate tip2 = coords[tip2index];
 			angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
-			if (angle >= maxAngle)
+			// if angle criteria is satisfied add the tail to the list of coordinats
+			boolean remove = false;
+			// test standard max angle
+			if (maxAngle >= 0.0 && angle < maxAngle)
+				remove = true;
+			// test short angle
+			if (maxShortAngle >= 0.0
+					&& (angle < maxShortAngle && coords[0].distance(coords[coords.length - 2]) < maxShortSegmentLength))
+				remove = true;
+
+			// if we don need to remove the point due to max angle rules just add it
+			if (!remove)
 				newCoordinates[iDst++] = tail;
 		}
 		if (startIndex == 1)
@@ -1674,6 +1730,21 @@ public class SvGeometry extends SvWriter {
 	 *                     detected
 	 */
 	public void testPolygonCoordinates(LineString p, Double maxAngle) throws SvException {
+		testPolygonCoordinates(p, maxAngle, -0.01, -0.01);
+	}
+
+	/**
+	 * Test a polygonal geometry for spikes (one ring at a time).The method will try
+	 * to find angles less then max angle and throw
+	 * "system.error.sdi.spike_detected"
+	 * 
+	 * @param p        The polygon linestring to be tested
+	 * @param maxAngle the maximum angle in degrees which is considered as spike
+	 * @throws SvException with label "system.error.sdi.spike_detected" if spike was
+	 *                     detected
+	 */
+	public void testPolygonCoordinates(LineString p, Double maxAngle, Double maxShortAngle,
+			Double maxShortSegmentLength) throws SvException {
 		Coordinate[] coords = p.getCoordinates();
 		for (int cc = 1; cc < coords.length; cc++) {
 			Coordinate tip1 = coords[cc - 1];
@@ -1681,8 +1752,11 @@ public class SvGeometry extends SvWriter {
 			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
 			Coordinate tip2 = coords[tip2index];
 			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
-			if (angle < maxAngle)
+			if (maxAngle>= 0.0 && angle < maxAngle)
 				throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
+
+			if (maxShortAngle >= 0.0 && angle < maxShortAngle && tail.distance(tip2) < maxShortSegmentLength)
+				throw (new SvException(Sv.Exceptions.SDI_SHORTSPIKE_DETECTED, instanceUser, null, null));
 
 		}
 	}
@@ -1702,22 +1776,25 @@ public class SvGeometry extends SvWriter {
 	 *                     or "system.error.sdi.spike_detected" if spike was
 	 *                     detected via test only flag
 	 */
-	Geometry fixPolygonSpikes(Geometry g, Double maxAngle, boolean testOnly) throws SvException {
+	Geometry fixPolygonSpikes(Geometry g, Double maxAngle, boolean testOnly, Double maxShortAngle,
+			Double maxShortSegmentLength) throws SvException {
 
-		if (!(g instanceof Polygon || g instanceof MultiPolygon) || maxAngle < 0.01)
+		if (!(g instanceof Polygon || g instanceof MultiPolygon) || (maxAngle < 0.0 && maxShortAngle < 0.0))
 			return g;
 
 		Polygon[] allPoly = new Polygon[g.getNumGeometries()];
 		for (int i = 0; i < g.getNumGeometries(); i++) {
 			Polygon p = (Polygon) g.getGeometryN(i);
 
-			LinearRing fixedShellCoordinates = fixPolygonCoordinates(p.getExteriorRing(), maxAngle);
+			LinearRing fixedShellCoordinates = fixPolygonCoordinates(p.getExteriorRing(), maxAngle, maxShortAngle,
+					maxShortSegmentLength);
 			List<LinearRing> fixedInternalRingCoordinates = new ArrayList<LinearRing>(p.getNumInteriorRing());
 
 			for (int j = 0; j < p.getNumInteriorRing(); j++) {
 				LineString ls = p.getInteriorRingN(j);
 				try {
-					fixedInternalRingCoordinates.add(fixPolygonCoordinates(ls, maxAngle));
+					fixedInternalRingCoordinates
+							.add(fixPolygonCoordinates(ls, maxAngle, maxShortAngle, maxShortSegmentLength));
 				} catch (Exception e) {
 					// ignore the illegal ring
 					// fixedInternalRingCoordinates[j] = null;
@@ -2051,7 +2128,7 @@ public class SvGeometry extends SvWriter {
 			currentGeom = getGeometry(dbo);
 			if (currentGeom != null) {
 				String type = (String) getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE);
-				if (!currentGeom.getGeometryType().equalsIgnoreCase(type))
+				if (type != null && !currentGeom.getGeometryType().equalsIgnoreCase(type))
 					throw (new SvException("system.error.sdi.noncompliant_geom_type", instanceUser, dbo,
 							getGeomField(dbo.getObjectType()).getVal(Sv.GEOMETRY_TYPE)));
 				verifyBounds(dbo);
