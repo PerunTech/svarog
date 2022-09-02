@@ -1595,6 +1595,7 @@ public class SvWriter extends SvCore {
 		// perform basic validation on the deletion
 		validateList(dba);
 		try {
+			this.dbSetAutoCommit(false);
 			DbDataObject dbt = getDbt(dba.get(0));
 			// authorise the save operation
 			if (!isAdmin() && !isSystem() && !hasDbtAccess(dbt, null, SvAccess.MODIFY))
