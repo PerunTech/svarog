@@ -38,7 +38,6 @@ public class DbCache {
 	 */
 	private static final Logger log4j = SvConf.getLogger(DbCache.class);
 
-
 	/**
 	 * Map containing all DbCacheTables defined in the system
 	 */
@@ -194,7 +193,7 @@ public class DbCache {
 	 *                         object type doesn't specify
 	 * @param cacheExpiry      The time in minutes for expiry of the cached objects,
 	 *                         if the object descriptor doesn't specify any
-	 * @return
+	 * @return The CacheBuilder instance configured by objectDescriptor
 	 */
 	@SuppressWarnings("rawtypes")
 	public static CacheBuilder createBuilder(DbDataObject objectDescriptor, Long cacheSize, Long cacheExpiry) {

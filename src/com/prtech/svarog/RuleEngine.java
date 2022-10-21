@@ -109,7 +109,7 @@ public class RuleEngine extends SvCore {
 	 *            The object over which the rule was executed
 	 * @param params
 	 *            Additional parameters for the rule engine
-	 * @return
+	 * @return True if the execution was successful
 	 * @throws SvException
 	 */
 	public Boolean execute(Long rule_id, DbDataArray actionResults, DbDataObject obj, Map<Object, Object> params)
@@ -132,7 +132,7 @@ public class RuleEngine extends SvCore {
 	 * @param autoCommit
 	 *            If the rule engine should commit the transaction or rollback
 	 *            by default
-	 * @return
+	 * @return True if the execution was successful
 	 * @throws SvException
 	 */
 	public Boolean execute(Long rule_id, DbDataArray actionResults, DbDataObject obj, Map<Object, Object> params,

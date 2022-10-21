@@ -376,7 +376,6 @@ public class DbQueryObject extends DbQuery {
 	/**
 	 * Method returning a list of DB fields with their appropriate aliases
 	 * 
-	 * @param repoDbt The config object for the repository of the object
 	 * @param dbt     The config object for the object type
 	 * @return A string containing list of fields split by comma
 	 * @throws SvException

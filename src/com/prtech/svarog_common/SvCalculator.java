@@ -142,7 +142,6 @@ public abstract class SvCalculator {
 	/**
 	 * Method for saving the calculation, after executing postCalc().
 	 * 
-	 * @return Boolean true if save is success
 	 */
 	public abstract void saveCalc();
 
@@ -194,7 +193,7 @@ public abstract class SvCalculator {
 	 * result. If there are no sub calculations the doCalc method will be
 	 * executed.
 	 * 
-	 * @return
+	 * @return The calculated value
 	 */
 	public BigDecimal calculate() {
 		if (log4j.isDebugEnabled())

@@ -48,7 +48,7 @@ public final class SvClassLoader extends ClassLoader {
 	/**
 	 * Lazy loader to get class loader instance
 	 * 
-	 * @return
+	 * @return The ClassLoader instance
 	 */
 	public static SvClassLoader getInstance() {
 
@@ -67,8 +67,7 @@ public final class SvClassLoader extends ClassLoader {
 	/**
 	 * Method to check if a JAR with the requested ID was already loaded
 	 * 
-	 * @param jarUnqId
-	 *            The ID of the jar file
+	 * @param unqId The ID of the jar file
 	 * @return True if the jar is loaded
 	 */
 	public static Boolean isJarLoaded(String unqId) {
@@ -81,8 +80,8 @@ public final class SvClassLoader extends ClassLoader {
 	/**
 	 * Method to check if a JAR with the requested ID was already loaded
 	 * 
-	 * @param jarUnqId
-	 *            The ID of the jar file
+	 * @param unqId   The ID of the jar file
+	 * @param byteval The the byte value of the jar file
 	 * @return True if the jar is loaded
 	 */
 	public static Boolean isJarLoaded(String unqId, byte[] byteval) {
@@ -101,14 +100,12 @@ public final class SvClassLoader extends ClassLoader {
 	}
 
 	/**
-	 * The class loader first checks if the JAR with the appropriate ID is
-	 * loaded then tries to load
+	 * The class loader first checks if the JAR with the appropriate ID is loaded
+	 * then tries to load
 	 * 
-	 * @param className
-	 *            The class name to be loaded
-	 * @param jarUnqId
-	 *            The JAR unique ID. When running in the rule engine, this is
-	 *            usually the Action ID
+	 * @param className The class name to be loaded
+	 * @param unqId  The JAR unique ID. When running in the rule engine, this is
+	 *                  usually the Action ID
 	 * @return The class definition
 	 * @throws SvException
 	 */
@@ -129,11 +126,9 @@ public final class SvClassLoader extends ClassLoader {
 	 * Method to load all classes from a JAR file and associate the unique ID as
 	 * already loaded so we don't try to load it again if there is no need.
 	 * 
-	 * @param jarByteCode
-	 *            The byte[] array containing the jar file
-	 * @param jarUnqId
-	 *            The unique identifier under which this jar is loaded. For the
-	 *            rule engine it is ACTION ID
+	 * @param jarByteCode The byte[] array containing the jar file
+	 * @param jarUnqId    The unique identifier under which this jar is loaded. For
+	 *                    the rule engine it is ACTION ID
 	 * @throws SvException
 	 */
 	public void loadJar(byte[] jarByteCode, String unqId) throws SvException {
