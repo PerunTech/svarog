@@ -578,6 +578,18 @@ public class SvExecManager extends SvCore {
 	}
 
 	/**
+	 * This method shall be used only for unit testing purposes. When Svarog runs in
+	 * Daemon mode the OSGI services come from the OSGI platform and this setting
+	 * will be ignored
+	 * 
+	 * @param services The list of services which shall be available to the platform
+	 *                 for testing
+	 */
+	public void setOSGIServices(Object[] services) {
+		osgiServices = services;
+	}
+
+	/**
 	 * Method to provide global inter module execution inside Svarog. The Svarog
 	 * Executors are identified by unique combination of Category and Name, limited
 	 * to a validity date specifed by start and end dates. If the reference date is

@@ -100,7 +100,6 @@ public class I18n implements II18n {
 	 * Method to ensure the group code for labels is always the same
 	 * 
 	 * @param labelCode The code of the label (ASCII mnemonic)
-	 * @param locale    The string version of the locale ID
 	 * @return The label group code
 	 */
 	static public String getGroupCode(String labelCode) {
