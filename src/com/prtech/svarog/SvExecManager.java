@@ -144,7 +144,7 @@ public class SvExecManager extends SvCore {
 	 * Global member which we can use for unit testing also! In JUnit just set the
 	 * value of the services you want to test.
 	 */
-	Object[] osgiServices = null;
+	static Object[] osgiServices = null;
 
 	/**
 	 * Log4j instance used for logging
@@ -585,7 +585,7 @@ public class SvExecManager extends SvCore {
 	 * @param services The list of services which shall be available to the platform
 	 *                 for testing
 	 */
-	public void setOSGIServices(Object[] services) {
+	public static void setOSGIServices(Object[] services) {
 		osgiServices = services;
 	}
 
