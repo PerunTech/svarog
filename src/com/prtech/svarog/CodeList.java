@@ -15,6 +15,7 @@
 package com.prtech.svarog;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,33 +41,28 @@ public class CodeList extends SvCore implements ISvCodeList {
 	private static final Logger log4j = SvConf.getLogger(CodeList.class);
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @param session_id
-	 *            User session for which the CodeList is instantiated
-	 * @throws SvException
-	 *             Pass through for any underlying exception in the super
-	 *             contructor
+	 * @param session_id User session for which the CodeList is instantiated
+	 * @throws SvException Pass through for any underlying exception in the super
+	 *                     contructor
 	 */
 	public CodeList(String session_id) throws SvException {
 		super(session_id);
 	}
 
 	/**
-	 * Constructor to create a SvUtil object according to a user session. This
-	 * is the default constructor available to the public, in order to enforce
-	 * the svarog security mechanisms based on the logged on user.
+	 * Constructor to create a SvUtil object according to a user session. This is
+	 * the default constructor available to the public, in order to enforce the
+	 * svarog security mechanisms based on the logged on user.
 	 * 
-	 * @param session_id
-	 *            User session for which the CodeList is instantiated
-	 * @param sharedSvCore
-	 *            The shared SvCore instance which is used for the JDBC
-	 *            connection sharing
-	 * @throws SvException
-	 *             Pass through for any underlying exception in the super
-	 *             contructor
+	 * @param session_id   User session for which the CodeList is instantiated
+	 * @param sharedSvCore The shared SvCore instance which is used for the JDBC
+	 *                     connection sharing
+	 * @throws SvException Pass through for any underlying exception in the super
+	 *                     contructor
 	 */
 	public CodeList(String session_id, SvCore sharedSvCore) throws SvException {
 		super(session_id, sharedSvCore);
@@ -76,12 +72,10 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @param sharedSvCore
-	 *            The shared SvCore instance which is used for the JDBC
-	 *            connection sharing
-	 * @throws SvException
-	 *             Pass through for any underlying exception in the super
-	 *             contructor
+	 * @param sharedSvCore The shared SvCore instance which is used for the JDBC
+	 *                     connection sharing
+	 * @throws SvException Pass through for any underlying exception in the super
+	 *                     contructor
 	 */
 	public CodeList(SvCore sharedSvCore) throws SvException {
 		super(sharedSvCore);
@@ -91,17 +85,16 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 * Default Constructor. This constructor can be used only within the svarog
 	 * package since it will run with system priveleges.
 	 * 
-	 * @throws SvException
-	 *             Pass through for any underlying exception in the super
-	 *             contructor
+	 * @throws SvException Pass through for any underlying exception in the super
+	 *                     contructor
 	 */
 	CodeList() throws SvException {
 		super(svCONST.systemUser, null);
 	}
 
 	/**
-	 * Method to return the key/value map containig the object ids and codes of
-	 * the root categories
+	 * Method to return the key/value map containig the object ids and codes of the
+	 * root categories
 	 * 
 	 * @return Key/value map with categorie Id and code
 	 */
@@ -110,22 +103,20 @@ public class CodeList extends SvCore implements ISvCodeList {
 	}
 
 	/**
-	 * Method to return the key/value map containig the object ids and label
-	 * text of the child codes for a specified code list id. The method
-	 * translates the codes to the labes according to the requested locale
+	 * Method to return the key/value map containig the object ids and label text of
+	 * the child codes for a specified code list id. The method translates the codes
+	 * to the labes according to the requested locale
 	 * 
 	 * @return Key/value map with categorie Id and label text
 	 */
 	public HashMap<Long, String> getCodeListId(String languageId, Long codeListObjectId) {
 		String langId = languageId != null ? languageId : SvConf.getDefaultLocale();
-
-		HashMap<Long, String> catList = new HashMap<Long, String>();
+		HashMap<Long, String> catList = new LinkedHashMap<Long, String>();
 		DbDataArray object = getCodeListBase(codeListObjectId);
 		for (DbDataObject dbo : object.getItems()) {
 			String label = I18n.getText(langId, (String) dbo.getVal("label_code"));
 			catList.put(dbo.getObject_id(), label);
 		}
-
 		return catList;
 
 	}
