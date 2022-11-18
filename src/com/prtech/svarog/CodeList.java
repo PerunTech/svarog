@@ -111,11 +111,11 @@ public class CodeList extends SvCore implements ISvCodeList {
 	 */
 	public HashMap<Long, String> getCodeListId(String languageId, Long codeListObjectId) {
 		String langId = languageId != null ? languageId : SvConf.getDefaultLocale();
-		HashMap<Long, String> catList = new LinkedHashMap<Long, String>();
+		HashMap<Long, String> catList = new LinkedHashMap<>();
 		DbDataArray object = getCodeListBase(codeListObjectId);
 		for (DbDataObject dbo : object.getItems()) {
 			String label = I18n.getText(langId, (String) dbo.getVal("label_code"));
-			catList.put(dbo.getObject_id(), label);
+			catList.put(dbo.getObjectId(), label);
 		}
 		return catList;
 
