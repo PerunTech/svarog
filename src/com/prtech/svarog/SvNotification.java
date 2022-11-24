@@ -81,20 +81,36 @@ public class SvNotification extends SvCore {
 		return notificationObj;
 	}
 
+	/**
+	 * Default method for creating Notification object
+	 * 
+	 * @param type
+	 * @param title
+	 * @param message
+	 * @param sender
+	 * @param eventId
+	 * @param validFrom
+	 * @param validTo
+	 * @return
+	 */
+	public DbDataObject createNotificationObj(String type, String title, String message, String sender, Long eventId,
+			String validFrom, String validTo) {
+		DbDataObject notificationObj = new DbDataObject();
+		notificationObj.setObjectType(svCONST.OBJECT_TYPE_NOTIFICATION);
+		notificationObj.setStatus(svCONST.STATUS_VALID);
+		notificationObj.setVal("TYPE", type);
+		notificationObj.setVal("TITLE", title);
+		notificationObj.setVal("MESSAGE", message);
+		notificationObj.setVal("SENDER", sender);
+		notificationObj.setVal("EVENT_ID", eventId);
+		notificationObj.setVal("VALID_FROM", validFrom);
+		notificationObj.setVal("VALID_TO", validTo);
+		return notificationObj;
+	}
+
 	public void createNotificationPerUser(String type, String title, String message, String sender, Long eventId,
 			DbDataObject userObj, Boolean autoCommit) {
-		SvReader svr = null;
-		SvWriter svw = null;
-		SvLink svl = null;
-		try {
-			svr = new SvReader(this);
-			svw = new SvWriter(svr);
-			svl = new SvLink(svw);
-
-			// get user from the current session
-			// DbDataObject userObj =
-			// SvReader.getUserBySession(svr.getSessionId());
-
+		try (SvReader svr = new SvReader(this); SvWriter svw = new SvWriter(svr); SvLink svl = new SvLink(svw);) {
 			// link new notification per user
 			DbDataObject notificationObj = createNotificationObj(type, title, message, sender, eventId);
 			svw.saveObject(notificationObj, autoCommit);
@@ -104,38 +120,47 @@ public class SvNotification extends SvCore {
 					"", false, autoCommit);
 		} catch (SvException sv) {
 			log4j.error("Error in createNotificationPerUser" + sv.getFormattedMessage(), sv.fillInStackTrace());
-		} finally {
-			if (svr != null)
-				svr.release();
-			if (svw != null)
-				svw.release();
-			if (svl != null)
-				svl.release();
+		}
+	}
+
+	/**
+	 * Method for linking Notification object with User or Usr_Group. This can be
+	 * used for linking same Notification to multiple Users or User_Groups.
+	 * 
+	 * @param dboNotification
+	 * @param userOrUserGroup
+	 */
+	public void createLinkBetweenNotificationAndUserOrUserGroup(DbDataObject dboNotification,
+			DbDataObject userOrUserGroup, Boolean autoCommit) {
+		try (SvLink svl = new SvLink(this);) {
+			String linkName = "LINK_NOTIFICATION_GROUP";
+			Long objectType = svCONST.OBJECT_TYPE_GROUP;
+			if (!userOrUserGroup.getObjectType().equals(objectType)) {
+				linkName = "LINK_NOTIFICATION_USER";
+				objectType = svCONST.OBJECT_TYPE_USER;
+			}
+			DbDataObject linkNotificationUser = SvLink.getLinkType(linkName, svCONST.OBJECT_TYPE_NOTIFICATION,
+					objectType);
+			svl.linkObjects(dboNotification.getObjectId(), userOrUserGroup.getObjectId(),
+					linkNotificationUser.getObjectId(), "", false, autoCommit);
+		} catch (SvException sv) {
+			log4j.error("Error in linkNotificationToUserOrGroup" + sv.getFormattedMessage(), sv.fillInStackTrace());
 		}
 	}
 
 	public DbDataArray getNotificationPerUser(DbDataObject userObj) throws SvException {
-
 		DbDataArray allNotificationsFound = new DbDataArray();
 		try (SvReader svr = new SvReader(this); SvLink svl = new SvLink(svr)) {
 			DbDataArray notificationsFoundPerUser = new DbDataArray();
-			// get user from the current session
-			// DbDataObject userObj =
-			// SvReader.getUserBySession(svr.getSessionId());
-
 			DbDataObject linkNotificationUser = SvLink.getLinkType("LINK_NOTIFICATION_USER",
 					svCONST.OBJECT_TYPE_NOTIFICATION, svCONST.OBJECT_TYPE_USER);
-
 			// get all notifications per user
 			notificationsFoundPerUser = svr.getObjectsByLinkedId(userObj.getObjectId(), svCONST.OBJECT_TYPE_USER,
 					linkNotificationUser, svCONST.OBJECT_TYPE_NOTIFICATION, true, null, 0, 0);
-
 			if (notificationsFoundPerUser.size() > 0)
 				allNotificationsFound = notificationsFoundPerUser;
-
 			// find the userGroup for the user
 			DbDataArray userGroups = svr.getUserGroups();
-
 			// get all notifications per userGroup on which the user belongs
 			DbDataArray notificationsFoundPerUserGroup = new DbDataArray();
 			if (userGroups.size() > 0) {
@@ -153,7 +178,6 @@ public class SvNotification extends SvCore {
 					}
 					tempNotificationsFound = new DbDataArray();
 				}
-
 				if (notificationsFoundPerUserGroup.size() > 0)
 					for (DbDataObject tempNotification : notificationsFoundPerUserGroup.getItems())
 						allNotificationsFound.addDataItem(tempNotification);
@@ -175,7 +199,6 @@ public class SvNotification extends SvCore {
 	 */
 	public static DbDataArray getNotificationPerType(String type) throws SvException {
 		DbDataArray notifications = null;
-
 		try (SvReader svr = new SvReader()) {
 			DateTime now = new DateTime();
 			DbSearchCriterion dscType = new DbSearchCriterion("TYPE", DbCompareOperand.EQUAL, type);
@@ -187,7 +210,6 @@ public class SvNotification extends SvCore {
 			notifications = svr.getObjects(dse, svCONST.OBJECT_TYPE_NOTIFICATION, null, 0, 0);
 
 		}
-
 		return notifications;
 	}
 }
