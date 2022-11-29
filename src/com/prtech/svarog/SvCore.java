@@ -2705,8 +2705,10 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 				if (accessType.getAccessLevelValue() >= accessLevel.getAccessLevelValue()) {
 					hasAccess = true;
 					try {
-						innerDbx.addDbSearchItem(
-								new DbSearchCriterion(cfgFieldName, DbCompareOperand.EQUAL, permItem.getKey()));
+						DbSearchCriterion crit = new DbSearchCriterion(cfgFieldName, DbCompareOperand.EQUAL,
+								permItem.getKey());
+						crit.setNextCritOperand(Sv.OR);
+						innerDbx.addDbSearchItem(crit);
 					} catch (SvException e) {
 					}
 				}

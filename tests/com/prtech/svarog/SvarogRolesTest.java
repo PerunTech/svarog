@@ -42,11 +42,12 @@ public class SvarogRolesTest {
 		SvLock.clearLocks();
 
 	}
+
 	@AfterClass
 	public static void after() {
 		SvConf.setClusterEnabled(true);
 	}
-	
+
 	static final String testUserName = "SVAROG_TEST_USER";
 	static final String testPassword = "SVAROG_TEST_PASS";
 	static final String testPin = "1213";
@@ -341,7 +342,7 @@ public class SvarogRolesTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 	}
 
@@ -364,8 +365,7 @@ public class SvarogRolesTest {
 			if (svr != null)
 				svr.release();
 		}
-		if (SvConnTracker.hasTrackedConnections(true))
-		{
+		if (SvConnTracker.hasTrackedConnections(true)) {
 			fail("You have a connection leak, you dirty animal!");
 		}
 	}
@@ -551,7 +551,7 @@ public class SvarogRolesTest {
 				token = getUserToken(false);
 				svr = new SvReader(token);
 				DbDataArray result = svr.getObjects(dqo, 1, 0);
-				 
+
 				System.out.println(result.toSimpleJson());
 			} else
 				fail("Can't grant permission");
@@ -668,7 +668,7 @@ public class SvarogRolesTest {
 			e.printStackTrace();
 			fail("Can't use session to instantiate SvReader");
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
 
 	}
@@ -682,8 +682,38 @@ public class SvarogRolesTest {
 			e.printStackTrace();
 			fail("Can't use session to instantiate SvReader");
 		}
-		if (SvConnTracker.hasTrackedConnections(false,false))
+		if (SvConnTracker.hasTrackedConnections(false, false))
 			fail("You have a connection leak, you dirty animal!");
+	}
+
+	@Test
+	public void testACL() {
+		System.out.println("before test edbar install");
+
+		try (SvSecurity svSec = new SvSecurity()) {
+			svSec.setInstanceUser(svCONST.serviceUser);
+			DbDataObject pesevsk = svSec.getUser("Z.PESEVSKI");
+
+
+			try (SvReader svr = new SvReader()) {
+				svr.switchUser(pesevsk);
+
+				DbDataArray obb = svr.getObjects(null, svCONST.OBJECT_TYPE_BATCH_JOB_TYPE, null, 0, 0);
+
+				System.out.println(obb.toSimpleJson().toString());
+			} catch (Exception e) {
+				e.printStackTrace();
+				fail("exception was raised");
+			}
+
+		} catch (SvException e) {
+			System.out.println(e.getFormattedMessage());
+			if (!e.getLabelCode().equals("system.error.no_user_found"))
+				fail("exception was raised");
+
+		}
+
+		System.out.println("test edbar install finished");
 	}
 
 }
