@@ -1889,7 +1889,8 @@ public class SvarogInstall {
 						+ SvConf.getSqlkw().getString("OBJECT_QUALIFIER_RIGHT") + ",");
 		}
 		String strTypeWhere = Sv.EMPTY_STRING;
-		if (dbt != null && dbt.getObjectId() != null)
+		if (dbt != null && dbt.getObjectId() != null
+				&& dbt.getMapDbTableFields().get(SvGeometry.getGeometryFieldName(dbt.getObjectId())) == null)
 			strTypeWhere = " WHERE REP0.OBJECT_TYPE=" + Long.toString(dbt.getObjectId());
 
 		sbt.setLength(sbt.length() - 1);
