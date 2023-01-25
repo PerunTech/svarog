@@ -390,4 +390,22 @@ public class SvParametersTest {
 				fail("Value returned is not the same");
 		}
 	}
+	
+	
+	@Test
+	public void testUserParams() throws SvException {
+		try (SvParameter svp = new SvParameter()) {
+			String paramName = "TEST_PARAM";
+			String paramValue = "TEST_PARAM_VALUE";
+			String val = svp.getUserParam(paramName, paramValue,0L);
+			if (!val.equals(paramValue))
+				fail("Non existent param shall return null");
+
+			svp.getUserParam(paramName, paramValue, 0L);
+			String retVal = (String) svp.getUserParam(paramName, 0L);
+			if (!retVal.equals(paramValue))
+				fail("Value returned is not the same");
+		}	
+	}
+	
 }

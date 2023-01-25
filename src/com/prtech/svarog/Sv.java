@@ -208,6 +208,7 @@ public class Sv {
 	public static final long DEFAULT_CACHE_SIZE = 5000;
 	public static final long DEFAULT_CACHE_TTL = 10;
 	public static final String SYS_PARAMS = "SYS_PARAMS";
+	public static final String USER_PARAMS = "USER_PARAMS";
 	public static final String USCORE = "_";
 	public static final String CONFIG_FILENAME = "svarog.properties";
 	public static final String LRU = "LRU";
@@ -270,5 +271,6 @@ public class Sv {
 	public static final String REFERENCE_DATE = "REFERENCE_DATE";
 	public static final String GEOMETRY_TYPE = "GEOMETRY_TYPE";
 	public static final String POLYGON = "POLYGON";
+	public static final String KEY_TOO_LONG = "KEY_TOO_LONG";
 
 }

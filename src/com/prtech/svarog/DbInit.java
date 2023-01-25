@@ -352,7 +352,64 @@ public class DbInit {
 
 		return dbt;
 	}
+	// table USER_PARAMS
+	private static DbDataTable getUserParams() {
+		DbDataTable dbt = new DbDataTable();
+		dbt.setDbTableName(Sv.REPO_TABLE_NAME + Sv.USCORE + Sv.USER_PARAMS);
+		dbt.setDbRepoName(Sv.MASTER_REPO_NAME);
+		dbt.setDbSchema(Sv.DEFAULT_SCHEMA);
+		dbt.setIsSystemTable(true);
+		dbt.setObjectId(svCONST.OBJECT_TYPE_USER_PARAMS);
+		dbt.setIsRepoTable(false);
+		dbt.setIsConfigTable(false);
+		dbt.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.SYS_PARAMS.toLowerCase());
+		dbt.setUse_cache(true);
 
+		// f1
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName(Sv.PKID);
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.TABLE_META_PKID);
+
+		// f2
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName(Sv.PARAM_NAME);
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(10);
+		dbf2.setIsNull(false);
+		dbf2.setIsUnique(true);
+		dbf2.setUnique_level(Sv.PARENT);
+		dbf2.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_NAME.toLowerCase());
+
+		// f4
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName(Sv.PARAM_VALUE);
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(1000);
+		dbf4.setIsUnique(false);
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_VALUE.toLowerCase());
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName(Sv.PARAM_TYPE);
+		dbf5.setDbFieldType(DbFieldType.NUMERIC);
+		dbf5.setDbFieldSize(2);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code(Sv.MASTER_REPO + Sv.DOT + Sv.PARAM_TYPE.toLowerCase());
+
+		DbDataField[] dbTableFields = new DbDataField[4];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf4;
+		dbTableFields[3] = dbf5;
+		dbt.setDbTableFields(dbTableFields);
+		return dbt;
+	}
+	
 	// table SYS_PARAMS
 	private static DbDataTable getSysParams() {
 		DbDataTable dbt = new DbDataTable();
@@ -5623,6 +5680,9 @@ public class DbInit {
 		dbtList.add(addSortOrder(dbtt));
 
 		dbtt = getSysParams();
+		dbtList.add(addSortOrder(dbtt));
+
+		dbtt = getUserParams();
 		dbtList.add(addSortOrder(dbtt));
 
 		dbtt = getConfigurationLog();

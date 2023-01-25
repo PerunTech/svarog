@@ -53,8 +53,51 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 public class SvParameter extends SvCore {
 	private static final Logger log4j = SvConf.getLogger(SvParameter.class);
 
-
 	static Cache<String, DbDataObject> paramsCache = initParamCache();
+
+	static int decodeType(Class<?> clazz) {
+		int code = 0;
+		if (clazz == String.class)
+			code = 0;
+		else if (clazz == DateTime.class)
+			code = 1;
+		else if (clazz == Boolean.class)
+			code = 2;
+		else if (clazz == Integer.class)
+			code = 3;
+		else if (clazz == Long.class)
+			code = 4;
+		else if (clazz == Double.class)
+			code = 5;
+		return code;
+
+	}
+
+	static Class<?> typeByCode(int type) {
+		Class<?> clazz = String.class;
+		switch (type) {
+		case 0:
+			clazz = String.class;
+			break;
+		case 1:
+			clazz = DateTime.class;
+			break;
+		case 2:
+			clazz = Boolean.class;
+			break;
+		case 3:
+			clazz = Integer.class;
+			break;
+		case 4:
+			clazz = Long.class;
+			break;
+		case 5:
+			clazz = Double.class;
+			break;
+
+		}
+		return clazz;
+	}
 
 	/**
 	 * Method to initialise the params cache.
@@ -902,12 +945,94 @@ public class SvParameter extends SvCore {
 	private static void prepareParam(DbDataObject dbParamValue) {
 		String value = (String) dbParamValue.getVal(Sv.PARAM_VALUE);
 		try {
-			Class<?> c = Class.forName((String) dbParamValue.getVal(Sv.PARAM_TYPE));
+			Class<?> c = null;
+			Object type = dbParamValue.getVal(Sv.PARAM_TYPE);
+			if (type instanceof String)
+				c = Class.forName((String) dbParamValue.getVal(Sv.PARAM_TYPE));
+			else
+				c = typeByCode(((Long) dbParamValue.getVal(Sv.PARAM_TYPE)).intValue());
 			Constructor<?> ctor = c.getConstructor(String.class);
 			Object object = ctor.newInstance(new Object[] { value });
 			dbParamValue.setVal(Sv.PARAM_VALUE, object);
 		} catch (Exception e) {
 			log4j.error("Casting to class not possible", e);
+		}
+	}
+
+	/**
+	 * The implementation method that gets the value of parameter in the User params
+	 * by parent object object
+	 * 
+	 * @param key the system parameter key.
+	 * 
+	 * 
+	 */
+	static Object getUserParamImpl(String key, Object defaultValue, Class<?> paramType, Long parentId)
+			throws SvException {
+		if (key.length() > 10)
+			throw (new SvException(Sv.KEY_TOO_LONG, svCONST.systemUser));
+
+		Object value = null;
+		DbDataObject dbParamValue = null;
+		try (SvReader svr = new SvReader()) {
+			DbDataObject dbt = SvCore.getDbtByName(Sv.USER_PARAMS);
+			DbDataArray dbParams = svr.getObjectsByParentId(parentId, dbt.getObjectId(), null);
+			for (DbDataObject dbo : dbParams.getItems())
+				if (dbo.getVal(Sv.PARAM_NAME).equals(key)) {
+					dbParamValue = dbo;
+					break;
+
+				}
+
+			if (dbParamValue == null) {
+				if (SvConf.getParam(key) != null && !SvConf.getParam(key).isEmpty())
+					defaultValue = SvConf.getParam(key);
+				dbParamValue = new DbDataObject(dbt.getObjectId());
+				dbParamValue.setParentId(parentId);
+				dbParamValue.setVal(Sv.PARAM_NAME, key);
+				dbParamValue.setVal(Sv.PARAM_VALUE, defaultValue);
+				dbParamValue.setVal(Sv.PARAM_TYPE, decodeType(paramType));
+				try (SvWriter svw = new SvWriter()) {
+					svw.saveObject(dbParamValue, true);
+				}
+			} else
+				prepareParam(dbParamValue);
+		}
+		value = dbParamValue.getVal(Sv.PARAM_VALUE);
+		return value;
+	}
+
+	/**
+	 * The implementation method that sets the value of parameter in the sys params
+	 * object
+	 * 
+	 * @param key        the system parameter key.
+	 * @param value
+	 * @param autoCommit Flag to disable the auto commit on success. In case the
+	 *                   linking is part of a transaction
+	 * @param parentId   Id of the parent obhect
+	 * 
+	 */
+	static void setUserParamImpl(String key, Object value, Boolean autoCommit, Long parentId) throws SvException {
+		if (key.length() > 10)
+			throw (new SvException(Sv.KEY_TOO_LONG, svCONST.systemUser));
+		try (SvReader svr = new SvReader(); SvWriter svw = new SvWriter(svr)) {
+			DbDataObject dbParamValue = null;
+			DbDataObject dbt = SvCore.getDbtByName(Sv.USER_PARAMS);
+			DbDataArray dbParams = svr.getObjectsByParentId(parentId, dbt.getObjectId(), null);
+			for (DbDataObject dbo : dbParams.getItems())
+				if (dbo.getVal(Sv.PARAM_NAME).equals(key)) {
+					dbParamValue = dbo;
+					break;
+
+				}
+			if (dbParamValue == null) {
+				dbParamValue = new DbDataObject(dbt.getObjectId());
+				dbParamValue.setVal(Sv.PARAM_NAME, key);
+			}
+			dbParamValue.setVal(Sv.PARAM_TYPE, decodeType(value.getClass()));
+			dbParamValue.setVal(Sv.PARAM_VALUE, value);
+			svw.saveObject(dbParamValue, autoCommit);
 		}
 	}
 
@@ -933,8 +1058,8 @@ public class SvParameter extends SvCore {
 					dbParamValue.setVal(Sv.PARAM_NAME, key);
 					dbParamValue.setVal(Sv.PARAM_VALUE, defaultValue);
 					dbParamValue.setVal(Sv.PARAM_TYPE, paramType.getName());
-					try (SvWriter svw= new SvWriter()) {
-						svw.saveObject(dbParamValue,true);
+					try (SvWriter svw = new SvWriter()) {
+						svw.saveObject(dbParamValue, true);
 					}
 				} else
 					prepareParam(dbParamValue);
@@ -982,7 +1107,7 @@ public class SvParameter extends SvCore {
 	}
 
 	/**
-	 * Method that gets the value of system parameter as type long
+	 * Method that gets the value of system parameter as type Object
 	 * 
 	 * @param paramName The name of the parameter
 	 * @return The value of the parameter as string
@@ -1056,8 +1181,142 @@ public class SvParameter extends SvCore {
 		return (Integer) getSysParamImpl(paramName, defaultValue, Integer.class);
 	}
 
+	/**
+	 * Method to get a system system parameter under the specified name, and parse
+	 * it as Doubles.
+	 * 
+	 * @param paramName  The param name to be
+	 * @param dateFormat
+	 * @return
+	 * @throws Exception
+	 */
+
 	public static Double getSysParam(String paramName, Double defaultValue) throws SvException {
 		return (Double) getSysParamImpl(paramName, defaultValue, Double.class);
+	}
+
+	/**
+	 * Method that sets the value of system parameter of type string, which
+	 * autocommits
+	 * 
+	 * @param key   of the parameter
+	 * @param value of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+
+	public static void setUserParam(String key, String value, Long parentId) throws SvException {
+		setUserParamImpl(key, value, true, parentId);
+	}
+
+	public static void setUserParam(String key, DateTime value, Long parentId) throws SvException {
+		setUserParamImpl(key, value, true, parentId);
+	}
+
+	public static void setUserParam(String key, Boolean value, Long parentId) throws SvException {
+		setUserParamImpl(key, value, true, parentId);
+	}
+
+	public static void setUserParam(String key, Integer value, Long parentId) throws SvException {
+		setUserParamImpl(key, value, true, parentId);
+	}
+
+	public static void setUserParam(String key, Long value, Long parentId) throws SvException {
+		setUserParamImpl(key, value, true, parentId);
+	}
+
+	public static void setUserParam(String key, Double value, Long parentId) throws SvException {
+		setUserParamImpl(key, value, true, parentId);
+	}
+
+	/**
+	 * Method that gets the value of system parameter as type Object
+	 * 
+	 * @param paramName The name of the parameter
+	 * @return The value of the parameter as string
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public Object getUserParam(String paramName, Long parentId) throws SvException {
+		return getUserParamImpl(paramName, null, Object.class, parentId);
+	}
+
+	/**
+	 * Method that gets the value of system parameter as type long
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public static String getUserParam(String paramName, String defaultValue, Long parentId) throws SvException {
+		return (String) getUserParamImpl(paramName, defaultValue, String.class, parentId);
+
+	}
+
+	/**
+	 * Method that gets the value of system parameter as type long
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public static Long getUserParam(String paramName, Long defaultValue, Long parentId) throws SvException {
+		return (Long) getUserParamImpl(paramName, defaultValue, Long.class, parentId);
+	}
+
+	/**
+	 * Method that gets the value of system parameter as type Date
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public static DateTime getUserParam(String paramName, DateTime defaultValue, Long parentId) throws SvException {
+		return (DateTime) getUserParamImpl(paramName, defaultValue, DateTime.class, parentId);
+	}
+
+	/**
+	 * Method that gets the value of system parameter as boolean
+	 * 
+	 * @param paramName The name of the parameter
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public static Boolean getUserParam(String paramName, Boolean defaultValue, Long parentId) throws SvException {
+		return (Boolean) getUserParamImpl(paramName, defaultValue, Boolean.class, parentId);
+	}
+
+	/**
+	 * Method to get a system system parameter under the specified name, and parse
+	 * it using the assigned date format.
+	 * 
+	 * @param paramName  The param name to be
+	 * @param dateFormat
+	 * @return
+	 * @throws Exception
+	 */
+	public static Integer getUserParam(String paramName, Integer defaultValue, Long parentId) throws SvException {
+		return (Integer) getUserParamImpl(paramName, defaultValue, Integer.class, parentId);
+	}
+
+	/**
+	 * Method to get a system system parameter under the specified name, and parse
+	 * it as Doubles.
+	 * 
+	 * @param paramName  The param name to be
+	 * @param dateFormat
+	 * @return
+	 * @throws Exception
+	 */
+
+	public static Double getUserParam(String paramName, Double defaultValue, Long parentId) throws SvException {
+		return (Double) getUserParamImpl(paramName, defaultValue, Double.class, parentId);
 	}
 
 }
