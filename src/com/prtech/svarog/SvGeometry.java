@@ -1752,7 +1752,7 @@ public class SvGeometry extends SvWriter {
 			int tip2index = (cc == coords.length - 1 ? 1 : cc + 1);
 			Coordinate tip2 = coords[tip2index];
 			double angle = Angle.toDegrees(Angle.angleBetween(tip1, tail, tip2));
-			if (maxAngle>= 0.0 && angle < maxAngle)
+			if (maxAngle >= 0.0 && angle < maxAngle)
 				throw (new SvException(Sv.Exceptions.SDI_SPIKE_DETECTED, instanceUser, null, null));
 
 			if (maxShortAngle >= 0.0 && angle < maxShortAngle && tail.distance(tip2) < maxShortSegmentLength)
@@ -1982,10 +1982,22 @@ public class SvGeometry extends SvWriter {
 	 * is selected from the underlying layer identified via layerTypeId and assumes
 	 * that the underlying layer does not contain overlapping polygons.
 	 * 
-	 * @param hole        The geometry describing the hole
-	 * @param layerTypeId The layer from which we should get the polygon via
-	 *                    intersections
-	 * @param remove      Flag if we should remove a hole, or create a hole.
+	 * @param hole            The geometry describing the hole
+	 * @param layerTypeId     The layer from which we should get the polygon via
+	 *                        intersections
+	 * @param remove          Flag if we should remove a hole, or create a hole.
+	 * @param filterFieldName The field name of the associated DbDataObject of the
+	 *                        layer geometry which should be filtered
+	 * @param filterValue     The which should be matched as equal. Geometries which
+	 *                        don't match the filters are not returned
+	 * @param reverseFilter   If this flag is true, the filter will return only
+	 *                        geometries which do not match
+	 * @param excludeSelf     Flag if you want to exclude the test against self
+	 *                        (requires that both geometries have been saved to the
+	 *                        DB and have valid object Id)
+	 * @param referenceDate   The reference date to be used for fetching the tile
+	 *                        data. Providing null reference will fetch the current
+	 *                        dataset.
 	 * @return The modified polygon
 	 * @throws SvException
 	 */
@@ -2008,6 +2020,19 @@ public class SvGeometry extends SvWriter {
 	 * @param operationFill        Flag to allow fill of hole or cutoff if false;
 	 * @param allowMultiGeometries Boolean flag to allow operation over multiple
 	 *                             overlapping geometries
+	 * @param filterFieldName      The field name of the associated DbDataObject of
+	 *                             the layer geometry which should be filtered
+	 * @param filterValue          The which should be matched as equal. Geometries
+	 *                             which don't match the filters are not returned
+	 * @param reverseFilter        If this flag is true, the filter will return only
+	 *                             geometries which do not match
+	 * @param excludeSelf          Flag if you want to exclude the test against self
+	 *                             (requires that both geometries have been saved to
+	 *                             the DB and have valid object Id)
+	 * @param referenceDate        The reference date to be used for fetching the
+	 *                             tile data. Providing null reference will fetch
+	 *                             the current dataset.
+	 * 
 	 * @return Set of modified geometries
 	 * @throws SvException Any underlying exception
 	 */

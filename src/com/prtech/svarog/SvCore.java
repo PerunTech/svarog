@@ -33,6 +33,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -207,6 +208,11 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 	 * The POA types defined in Svarog, we need them for security checks.
 	 */
 	protected static DbDataArray poaDbLinkTypes = new DbDataArray();
+
+	/**
+	 * The link types defined in Svarog
+	 */
+	protected static DbDataArray dbLinkTypes = new DbDataArray();
 	/**
 	 * List of currently configured geometry types in Svarog. If and Object Type Id
 	 * is in this list SvWriter will throw an exception when saveObject is attempted
@@ -1352,7 +1358,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 		query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_LINK_TYPE),
 				getFields(svCONST.OBJECT_TYPE_LINK_TYPE), null, null, null);
 		DbDataArray linkTypes = svc.getObjects(query, null, null);
-
+		dbLinkTypes.setItems(linkTypes.getItems());
 		// load form types from the DB
 		query = new DbQueryObject(repoDbt, repoDbtFields, getDbt(svCONST.OBJECT_TYPE_FORM_TYPE),
 				getFields(svCONST.OBJECT_TYPE_FORM_TYPE), null, null, null);
@@ -3219,6 +3225,30 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			instanceUser = newInstanceUser;
 		} else
 			throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser));
+	}
+
+	/**
+	 * Method to get the link types between two object regardless of the link code.
+	 * 
+	 * @param typeId1       The first type id
+	 * @param typeId2       The second type id
+	 * @param bidirectional If the bidirectional flag is set, the method will the
+	 *                      link type regardless of the order first or second.
+	 * @return List of the link types
+	 */
+	public List<DbDataObject> getLinkTypes(Long typeId1, Long typeId2, boolean bidirectional) {
+		ArrayList<DbDataObject> retval = new ArrayList<>();
+		for (DbDataObject link : dbLinkTypes.getItems()) {
+			if ((link.getVal(Sv.Link.LINK_OBJ_TYPE_1).equals(typeId1)
+					&& link.getVal(Sv.Link.LINK_OBJ_TYPE_2).equals(typeId2))
+					|| (bidirectional && link.getVal(Sv.Link.LINK_OBJ_TYPE_2).equals(typeId1)
+							&& link.getVal(Sv.Link.LINK_OBJ_TYPE_1).equals(typeId2))
+
+			) {
+				retval.add(link);
+			}
+		}
+		return retval;
 	}
 
 	public Boolean getIsDebugEnabled() {
