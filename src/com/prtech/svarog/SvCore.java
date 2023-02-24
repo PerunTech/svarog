@@ -734,6 +734,29 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			}
 		return retField;
 	}
+	/**
+	 * Method to get the link types between two object regardless of the link code.
+	 * 
+	 * @param typeId1       The first type id
+	 * @param typeId2       The second type id
+	 * @param bidirectional If the bidirectional flag is set, the method will the
+	 *                      link type regardless of the order first or second.
+	 * @return List of the link types
+	 */
+	public static List<DbDataObject> getLinkTypes(Long typeId1, Long typeId2, boolean bidirectional) {
+		ArrayList<DbDataObject> retval = new ArrayList<>();
+		for (DbDataObject link : dbLinkTypes.getItems()) {
+			if ((link.getVal(Sv.Link.LINK_OBJ_TYPE_1).equals(typeId1)
+					&& link.getVal(Sv.Link.LINK_OBJ_TYPE_2).equals(typeId2))
+					|| (bidirectional && link.getVal(Sv.Link.LINK_OBJ_TYPE_2).equals(typeId1)
+							&& link.getVal(Sv.Link.LINK_OBJ_TYPE_1).equals(typeId2))
+
+			) {
+				retval.add(link);
+			}
+		}
+		return retval;
+	}
 
 	/**
 	 * Method to get a link type descriptor in DbDataObject format
@@ -3225,30 +3248,6 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 			instanceUser = newInstanceUser;
 		} else
 			throw (new SvException(Sv.Exceptions.NOT_AUTHORISED, instanceUser));
-	}
-
-	/**
-	 * Method to get the link types between two object regardless of the link code.
-	 * 
-	 * @param typeId1       The first type id
-	 * @param typeId2       The second type id
-	 * @param bidirectional If the bidirectional flag is set, the method will the
-	 *                      link type regardless of the order first or second.
-	 * @return List of the link types
-	 */
-	public List<DbDataObject> getLinkTypes(Long typeId1, Long typeId2, boolean bidirectional) {
-		ArrayList<DbDataObject> retval = new ArrayList<>();
-		for (DbDataObject link : dbLinkTypes.getItems()) {
-			if ((link.getVal(Sv.Link.LINK_OBJ_TYPE_1).equals(typeId1)
-					&& link.getVal(Sv.Link.LINK_OBJ_TYPE_2).equals(typeId2))
-					|| (bidirectional && link.getVal(Sv.Link.LINK_OBJ_TYPE_2).equals(typeId1)
-							&& link.getVal(Sv.Link.LINK_OBJ_TYPE_1).equals(typeId2))
-
-			) {
-				retval.add(link);
-			}
-		}
-		return retval;
 	}
 
 	public Boolean getIsDebugEnabled() {
