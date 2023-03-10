@@ -291,18 +291,12 @@
 		<dependency>
 			<groupId>svarog</groupId>
 			<artifactId>svarog-interfaces</artifactId>
-			<version>[3.2.8-SNAPSHOT,3.2.99]</version>
+			<version>[3.2.15,3.2.99]</version>
 		</dependency>
 		<dependency>
 			<groupId>svarog-jts-io</groupId>
 			<artifactId>svarog-jts-io</artifactId>
 			<version>[1.14.0,1.15.0]</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.18.0</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -388,6 +382,13 @@
 					<artifactId>svarog-io</artifactId>
 					<version>1.1.0</version>
 				</dependency>
+				<dependency>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-core</artifactId>
+					<version>2.17.0</version>
+					<scope>provided</scope>
+				</dependency>
+
 			</dependencies>
 		</profile>
 	</profiles>

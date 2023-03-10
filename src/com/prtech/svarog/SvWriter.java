@@ -2155,24 +2155,22 @@ public class SvWriter extends SvCore {
 			ps.setTimestamp(10, new Timestamp(SvConf.MAX_DATE.getMillis()));
 			log4j.debug("Executing SQL:" + findLinksSql);
 			try (ResultSet rs = ps.executeQuery()) {
-				Long oVal = null;
 				Boolean isFound = false;
 				while (rs.next()) {
 					DbDataObject dbo = new DbDataObject();
 					isFound = false;
 					dbo.setObjectType(rs.getLong("OBJECT_TYPE"));
 					dbo.setVal("LINK_TYPE_ID", rs.getLong("LINK_TYPE_ID"));
-					dbo.setVal("LINK_OBJ_ID_2", rs.getLong("LINK_OBJ_ID_2"));
-
-					oVal = rs.getLong("LINK_OBJ_ID_1");
-					if (oVal != null && oldNewOIDPairs.containsKey(oVal)) {
-						dbo.setVal("LINK_OBJ_ID_1", oldNewOIDPairs.get(oVal));
+					Long oid2 = rs.getLong("LINK_OBJ_ID_2");
+					Long oid1 = rs.getLong("LINK_OBJ_ID_1");
+					
+					if (oid1 != null && oldNewOIDPairs.containsKey(oid1)) {
+						dbo.setVal("LINK_OBJ_ID_1", oldNewOIDPairs.get(oid1));
+						dbo.setVal("LINK_OBJ_ID_2", oid2);
 						isFound = true;
-					}
-
-					oVal = rs.getLong("LINK_OBJ_ID_2");
-					if (oVal != null && oldNewOIDPairs.containsKey(oVal)) {
-						dbo.setVal("LINK_OBJ_ID_2", oldNewOIDPairs.get(oVal));
+					} else if (oid2 != null && oldNewOIDPairs.containsKey(oid2)) {
+						dbo.setVal("LINK_OBJ_ID_2", oldNewOIDPairs.get(oid2));
+						dbo.setVal("LINK_OBJ_ID_1", oid1);
 						isFound = true;
 					}
 					if (isFound)
