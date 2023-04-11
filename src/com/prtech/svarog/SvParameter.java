@@ -1045,6 +1045,19 @@ public class SvParameter extends SvCore {
 	 * 
 	 */
 	static Object getSysParamImpl(String key, Object defaultValue, Class<?> paramType) throws SvException {
+		return getSysParamImpl(key, defaultValue, paramType, true);
+	}
+
+	/**
+	 * The implementation method that gets the value of parameter in the sys params
+	 * object
+	 * 
+	 * @param key the system parameter key.
+	 * 
+	 * 
+	 */
+	private static Object getSysParamImpl(String key, Object defaultValue, Class<?> paramType, boolean autoCreate)
+			throws SvException {
 		Object value = null;
 		DbDataObject dbParamValue = paramsCache.getIfPresent(key);
 		if (dbParamValue == null) {
@@ -1058,9 +1071,10 @@ public class SvParameter extends SvCore {
 					dbParamValue.setVal(Sv.PARAM_NAME, key);
 					dbParamValue.setVal(Sv.PARAM_VALUE, defaultValue);
 					dbParamValue.setVal(Sv.PARAM_TYPE, paramType.getName());
-					try (SvWriter svw = new SvWriter()) {
-						svw.saveObject(dbParamValue, true);
-					}
+					if (autoCreate)
+						try (SvWriter svw = new SvWriter()) {
+							svw.saveObject(dbParamValue, true);
+						}
 				} else
 					prepareParam(dbParamValue);
 				dbParamValue.setIsDirty(false);
@@ -1117,6 +1131,19 @@ public class SvParameter extends SvCore {
 	 */
 	public Object getSysParam(String paramName) throws SvException {
 		return getSysParamImpl(paramName, null, Object.class);
+	}
+
+	/**
+	 * Method that gets the value of system parameter as type Object
+	 * 
+	 * @param paramName The name of the parameter
+	 * @return The value of the parameter as string
+	 * 
+	 * @throws SvException
+	 * 
+	 */
+	public static Object getSysParam(String paramName, boolean autoCreate) throws SvException {
+		return getSysParamImpl(paramName, null, Object.class, autoCreate);
 	}
 
 	/**

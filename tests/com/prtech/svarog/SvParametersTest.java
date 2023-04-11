@@ -407,5 +407,16 @@ public class SvParametersTest {
 				fail("Value returned is not the same");
 		}	
 	}
-	
+	@Test
+	public void testSysParamNoAuto() throws SvException {
+		try (SvParameter svp = new SvParameter()) {
+			String paramName = "TEST_PARAM_DONTCREATE"+DateTime.now().toString();
+			Object val = SvParameter.getSysParam(paramName, false);
+			if (val!=null)
+				fail("Non existent param shall return null");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }
