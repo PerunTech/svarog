@@ -390,14 +390,13 @@ public class SvParametersTest {
 				fail("Value returned is not the same");
 		}
 	}
-	
-	
+
 	@Test
 	public void testUserParams() throws SvException {
 		try (SvParameter svp = new SvParameter()) {
 			String paramName = "TEST_PARAM";
 			String paramValue = "TEST_PARAM_VALUE";
-			String val = svp.getUserParam(paramName, paramValue,0L);
+			String val = svp.getUserParam(paramName, paramValue, 0L);
 			if (!val.equals(paramValue))
 				fail("Non existent param shall return null");
 
@@ -405,18 +404,14 @@ public class SvParametersTest {
 			String retVal = (String) svp.getUserParam(paramName, 0L);
 			if (!retVal.equals(paramValue))
 				fail("Value returned is not the same");
-		}	
+		}
 	}
+
 	@Test
 	public void testSysParamNoAuto() throws SvException {
-		try (SvParameter svp = new SvParameter()) {
-			String paramName = "TEST_PARAM_DONTCREATE"+DateTime.now().toString();
-			Object val = SvParameter.getSysParam(paramName, false);
-			if (val!=null)
-				fail("Non existent param shall return null");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		String paramName = "TEST_PARAM_DONTCREATE" + DateTime.now().toString();
+		Object val = SvParameter.getSysParam(paramName, false);
+		if (val != null)
+			fail("Non existent param shall return null");
 	}
 }
