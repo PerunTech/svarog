@@ -389,6 +389,16 @@ public class SvRelationCache {
 	}
 
 	/**
+	 * Method to build a DbQueryExpression from this SvRelationCache.
+	 *
+	 * @return A DbQueryExpression describing this SvRelationCache with its children
+	 * @throws SvException Any thrown exception is forwarded
+	 */
+	public DbQueryExpression getQueryExpression() throws SvException {
+		return buildReverseDQE();
+	}
+	
+	/**
 	 * Method to build a DbQueryExpression based on the cache graph but in
 	 * reverse order. The forward order had a number of bugs and limitations
 	 * 
