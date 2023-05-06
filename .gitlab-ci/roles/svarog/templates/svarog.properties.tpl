@@ -25,6 +25,7 @@ sys.defaultTimeFormat=HH:mm:ss
 sys.defaultJSDateFormat=d/m/Y
 sys.defaultJSTimeFormat=H:i
 
+sys.cluster.heartbeat_port={{ heartbeat_port }}
 
 sys.gis.default_srid=NULL
 sys.gis.geom_handler=POSTGIS

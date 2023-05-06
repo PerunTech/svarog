@@ -14,6 +14,7 @@ postgres_connstring: jdbc:postgresql://{{ postgres_ip }}:{{ postgres_port }}/sva
 postgres_db_type: POSTGRES
 postgres_db_handler: 
 
+heartbeat_port: 66783
 ###### MASTER POSTGRES SVAROG SETTINGS ########
 master_postgres_schema: SVAROG3_MASTER
 
