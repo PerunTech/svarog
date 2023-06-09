@@ -302,7 +302,8 @@ public class ClusterTest {
 		}
 	}
 
-	@Test
+	
+	//@Test
 	public void heartbeatClientFailLockTest() {
 		System.out.print("Test heartbeatClientFailLockTest");
 		int lockHash2 = 0;

@@ -5921,7 +5921,7 @@ public class DbInit {
 				aclStr = DbInit.loadCustomResources(jarPath, filePath);
 			else {
 				istr = new FileInputStream(new File(filePath));
-				aclStr = IOUtils.toString(istr);
+				aclStr = IOUtils.toString(istr,"UTF-8");
 			}
 			if (aclStr != null) {
 				aclStr = aclStr.replace(Sv.MASTER_REPO_NAME, SvConf.getMasterRepo());
@@ -7112,7 +7112,7 @@ public class DbInit {
 			GeoJsonReader jtsReader = new GeoJsonReader();
 			String path = "./" + SvConf.getConfPath() + SvarogInstall.masterSDIPath + "/boundary.json";
 			is = new FileInputStream(path);
-			geoJSONBounds = IOUtils.toString(is);
+			geoJSONBounds = IOUtils.toString(is,"UTF-8");
 			geo = jtsReader.read(geoJSONBounds);
 		} catch (IOException e) {
 			log4j.error("System bounds can not be read from file!", e);
@@ -7265,7 +7265,7 @@ public class DbInit {
 					JarEntry je = (JarEntry) e.nextElement();
 					if (je.getName().equals(resourceName)) {
 						try (InputStream is = jarFile.getInputStream(je)) {
-							retVal = IOUtils.toString(is);
+							retVal = IOUtils.toString(is,"UTF-8");
 						}
 					}
 				}
