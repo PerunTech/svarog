@@ -347,31 +347,37 @@ public class SvPerunManager extends SvCore {
 		DbDataArray upgradedList = new DbDataArray();
 
 		for (IPerunPlugin plugin : plugins) {
-			DbDataObject pluginDbo = dboPlugins.getItemByIdx(plugin.getContextName());
-			// get the new version of the descriptor
-			DbDataObject newVersion = buildDboPlugin(plugin);
-			if (pluginDbo != null) {
-				if (plugin.getVersion() > (Long.valueOf(pluginDbo.getVal("VERSION").toString())).intValue()) {
-					// if we should keep the old menu, copy from old
-					if (!plugin.replaceMenuOnNew())
-						newVersion.setVal(MENU_CONF, pluginDbo.getVal(MENU_CONF));
-					// if we should keep the old context menu, copy from old
-					if (!plugin.replaceContextMenuOnNew())
-						newVersion.setVal(CONTEXT_MENU_CONF, pluginDbo.getVal(CONTEXT_MENU_CONF));
-					newVersion.setPkid(pluginDbo.getPkid());
-					newVersion.setObjectId(pluginDbo.getObjectId());
-					if (pluginDbo.getVal(Sv.GUI_METADATA) != null)
-						newVersion.setVal(Sv.GUI_METADATA, pluginDbo.getVal(Sv.GUI_METADATA));
+			try {
+				DbDataObject pluginDbo = dboPlugins.getItemByIdx(plugin.getContextName());
+				// get the new version of the descriptor
+				DbDataObject newVersion = buildDboPlugin(plugin);
+				if (pluginDbo != null) {
+					if (plugin.getVersion() > (Long.valueOf(pluginDbo.getVal("VERSION").toString())).intValue()) {
+						// if we should keep the old menu, copy from old
+						if (!plugin.replaceMenuOnNew())
+							newVersion.setVal(MENU_CONF, pluginDbo.getVal(MENU_CONF));
+						// if we should keep the old context menu, copy from old
+						if (!plugin.replaceContextMenuOnNew())
+							newVersion.setVal(CONTEXT_MENU_CONF, pluginDbo.getVal(CONTEXT_MENU_CONF));
+						newVersion.setPkid(pluginDbo.getPkid());
+						newVersion.setObjectId(pluginDbo.getObjectId());
+						if (pluginDbo.getVal(Sv.GUI_METADATA) != null)
+							newVersion.setVal(Sv.GUI_METADATA, pluginDbo.getVal(Sv.GUI_METADATA));
+						pluginDbo = newVersion;
+						upgradedList.addDataItem(pluginDbo);
+					}
+
+				} else {
 					pluginDbo = newVersion;
 					upgradedList.addDataItem(pluginDbo);
 				}
-
-			} else {
-				pluginDbo = newVersion;
-				upgradedList.addDataItem(pluginDbo);
+				SvPerunInstance inst = new SvPerunInstance(plugin, pluginDbo);
+				pluginMap.put(plugin.getContextName(), inst);
+			} catch (Exception e) {
+				log4j.error("Failed to register a Perun Pluging on following context:"
+						+ (plugin.getContextName() != null ? plugin.getContextName() : "NO_CONTEXT"), e);
 			}
-			SvPerunInstance inst = new SvPerunInstance(plugin, pluginDbo);
-			pluginMap.put(plugin.getContextName(), inst);
+
 		}
 		return upgradedList;
 	}
