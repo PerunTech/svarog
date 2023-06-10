@@ -6734,8 +6734,8 @@ public class DbInit {
 		// dbo.setTable_name(dbt.getDbRepoName() + "_tables");
 		// dbo.setSchema(dbt.getDbSchema());
 		dboAdminUser.setObjectType(svCONST.OBJECT_TYPE_USER);
-		dboAdminUser.setObjectId(svObjectId);
-		svObjectId++;
+		//dboAdminUser.setObjectId(svObjectId);
+		//svObjectId++;
 		dboAdminUser.setVal("USER_TYPE", "INTERNAL");
 		dboAdminUser.setVal("USER_UID", UUID.randomUUID().toString());
 		dboAdminUser.setVal("USER_NAME", "ADMIN");
