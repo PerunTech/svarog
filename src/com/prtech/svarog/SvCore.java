@@ -1390,8 +1390,7 @@ public abstract class SvCore implements ISvCore, java.lang.AutoCloseable {
 
 		// before purging the cache check that we at least have loaded
 		// the config from database
-		if (objectTypes == null || objectTypes.isEmpty() || fieldTypes == null || fieldTypes.isEmpty()
-				|| linkTypes == null || linkTypes.isEmpty())
+		if (objectTypes == null || objectTypes.isEmpty() || fieldTypes == null || fieldTypes.isEmpty())
 			throw (new SvException(
 					"Bad {REPO}_TABLES configuration. Check the database.".replace("{REPO}", SvConf.getMasterRepo()),
 					svCONST.systemUser));
