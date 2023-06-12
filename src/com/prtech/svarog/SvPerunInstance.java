@@ -35,9 +35,7 @@ public class SvPerunInstance {
 	IPerunPlugin plugin;
 	DbDataObject dboPlugin;
 
-	
-	JsonObject setMenuJson(DbDataObject dboPlugin, String confFieldName)
-	{
+	JsonObject setMenuJson(DbDataObject dboPlugin, String confFieldName) throws SvException {
 		Gson g = new Gson();
 		JsonObject menu = null;
 		if (dboPlugin.getVal(confFieldName) != null) {
@@ -52,27 +50,30 @@ public class SvPerunInstance {
 				}
 			} else
 				log4j.error("Can't parse context menu config");
-		} else
-		{
-			if(confFieldName.equals("MENU_CONF"))
-				menu = plugin.getMenu((JsonObject) null, null);
-			else
-				menu = plugin.getContextMenu((HashMap) null, (JsonObject) null, null);
+		} else {
+			try (SvReader svr = new SvReader()) {
+				if (confFieldName.equals("MENU_CONF"))
+					menu = plugin.getMenu((JsonObject) null, svr);
+				else
+					menu = plugin.getContextMenu((HashMap) null, (JsonObject) null, svr);
+			}
 		}
 		return menu;
 	}
-	
+
 	/**
-	 * Constructor to set a 
+	 * Constructor to set a
+	 * 
 	 * @param plugin
 	 * @param dboPlugin
+	 * @throws SvException 
 	 */
-	SvPerunInstance(IPerunPlugin plugin, DbDataObject dboPlugin) {
+	SvPerunInstance(IPerunPlugin plugin, DbDataObject dboPlugin) throws SvException {
 		if (plugin == null || dboPlugin == null)
 			throw new NullPointerException("Plugin can't be null");
 		this.status = dboPlugin.getStatus();
 		this.plugin = plugin;
-		
+
 		this.mainMenu = setMenuJson(dboPlugin, "MENU_CONF");
 		this.contextMenu = setMenuJson(dboPlugin, "CONTEXT_MENU_CONF");
 
@@ -85,7 +86,8 @@ public class SvPerunInstance {
 				: plugin.getIconPath());
 		this.jsPath = (String) (dboPlugin.getVal("JAVASCRIPT_PATH") != null ? dboPlugin.getVal("JAVASCRIPT_PATH")
 				: plugin.getJsPluginUrl());
-		this.sortOrder = (dboPlugin.getVal("SORT_ORDER") != null ? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
+		this.sortOrder = (dboPlugin.getVal("SORT_ORDER") != null
+				? (Long.valueOf(dboPlugin.getVal("SORT_ORDER").toString())).intValue()
 				: plugin.getSortOrder());
 		this.plugin = plugin;
 		this.dboPlugin = dboPlugin;
@@ -97,7 +99,7 @@ public class SvPerunInstance {
 		if (obj == null) {
 			return false;
 		}
-		if (this.getClass()!=obj.getClass()) {
+		if (this.getClass() != obj.getClass()) {
 			return false;
 		}
 		if (this.plugin == null) {

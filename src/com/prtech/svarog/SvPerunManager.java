@@ -81,8 +81,14 @@ public class SvPerunManager extends SvCore {
 			if (name != null) {
 				SvPerunInstance inst = pluginMap.get(name);
 				if (inst != null) {
-					SvPerunInstance newInstance = new SvPerunInstance(inst.getPlugin(), dbo);
-					pluginMap.put(newInstance.getPlugin().getContextName(), newInstance);
+					SvPerunInstance newInstance;
+					try {
+						newInstance = new SvPerunInstance(inst.getPlugin(), dbo);
+						pluginMap.put(newInstance.getPlugin().getContextName(), newInstance);
+					} catch (SvException e) {
+						log4j.error("Error loading plugin:" + name, e);
+					}
+
 				}
 			}
 		}
