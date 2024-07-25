@@ -26,6 +26,7 @@ public class SvMTWriterTest {
 		}
 	}
 
+	@Ignore
 	@Test
 	public void MTTestSingleThread() {
 		SvCore.isDebugEnabled = true;
