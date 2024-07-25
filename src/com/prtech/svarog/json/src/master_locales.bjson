@@ -294,6 +294,22 @@
           "object_type": {OBJECT_TYPE_LOCALE},
           "status": "VALID","values": [
             {
+              "LANGUAGE": "Armenian"
+            },
+            {
+              "COUNTRY": "Armenia"
+            },
+            {
+              "LOCALE_ID": "hy_HY"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
               "LANGUAGE": "Belarusian"
             },
             {
@@ -1053,6 +1069,22 @@
             },
             {
               "LOCALE_ID": "ko_KR"
+            }
+          ]}
+      },
+{        "com.prtech.svarog_common.DbDataObject": {					
+          "dt_insert": "2000-01-01T00:00:00.000+01:00",
+          "dt_delete": "9999-12-31T01:00:00.000+01:00",
+          "object_type": {OBJECT_TYPE_LOCALE},
+          "status": "VALID","values": [
+            {
+              "LANGUAGE": "Kirghiz"
+            },
+            {
+              "COUNTRY": "Kyrgyzstan"
+            },
+            {
+              "LOCALE_ID": "ky_KY"
             }
           ]}
       },
